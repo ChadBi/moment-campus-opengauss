@@ -1,0 +1,24 @@
+services:
+  opengauss:
+    image: opengauss:7.0.0-RC3
+    container_name: opengauss
+
+    privileged: true
+    restart: unless-stopped
+    pull_policy: never
+
+    environment:
+      GS_PASSWORD: "Gaussdb@123"
+      GS_DB: "moment_campus"
+      GS_USERNAME: "gaussdb"
+      GS_USER_PASSWORD: "Gaussdb@123"
+      GS_PORT: "5432"
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - opengauss-data:/var/lib/opengauss
+
+volumes:
+  opengauss-data:

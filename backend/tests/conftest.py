@@ -1,0 +1,175 @@
+import asyncio
+from typing import AsyncGenerator
+
+import pytest
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from app.database import Base, get_db
+from app.main import app
+from app.models import *  # noqa: F401,F403 - ensure all models registered with Base
+from app.core.security import get_password_hash, create_access_token, create_refresh_token
+
+# Use in-memory SQLite for tests
+TEST_DATABASE_URL = "sqlite+aiosqlite://"
+
+test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+test_session_maker = async_sessionmaker(
+    test_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """Create an instance of the default event loop for the test session."""
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def setup_database():
+    """Create all tables before each test and drop them after."""
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+
+async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with test_session_maker() as session:
+        yield session
+
+
+# Override the get_db dependency in the app
+app.dependency_overrides[get_db] = override_get_db
+
+
+@pytest_asyncio.fixture
+async def client() -> AsyncGenerator[AsyncClient, None]:
+    """Provide an httpx AsyncClient for testing."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+        yield ac
+
+
+@pytest_asyncio.fixture
+async def db_session() -> AsyncGenerator[AsyncSession, None]:
+    """Provide a test database session for direct DB operations in tests."""
+    async with test_session_maker() as session:
+        yield session
+
+
+@pytest_asyncio.fixture
+async def test_school(db_session: AsyncSession) -> dict:
+    """Create a test school and return its id."""
+    from app.models.school import School
+    school = School(name="测试大学", code="test-uni", is_active=True)
+    db_session.add(school)
+    await db_session.commit()
+    await db_session.refresh(school)
+    return {"id": school.id, "name": school.name, "code": school.code}
+
+
+@pytest_asyncio.fixture
+async def test_category(db_session: AsyncSession) -> dict:
+    """Create a test category and return its id."""
+    from app.models.category import Category
+    category = Category(name="失物招领", code="lost-found", icon="🔍", default_validity_days=30, is_active=True)
+    db_session.add(category)
+    await db_session.commit()
+    await db_session.refresh(category)
+    return {"id": category.id, "name": category.name, "code": category.code}
+
+
+@pytest_asyncio.fixture
+async def test_post_type(db_session: AsyncSession) -> dict:
+    """Create a test post type and return its id."""
+    from app.models.post_type import PostType
+    post_type = PostType(name="普通信息", code="normal", is_active=True)
+    db_session.add(post_type)
+    await db_session.commit()
+    await db_session.refresh(post_type)
+    return {"id": post_type.id, "name": post_type.name, "code": post_type.code}
+
+
+@pytest_asyncio.fixture
+async def test_user(client: AsyncClient, test_school: dict) -> dict:
+    """Register a test user and return user info with tokens."""
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "testuser@example.com",
+            "nickname": "测试用户",
+            "password": "testpassword123",
+            "school_id": test_school["id"],
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    return {
+        "email": "testuser@example.com",
+        "nickname": "测试用户",
+        "password": "testpassword123",
+        "school_id": test_school["id"],
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+    }
+
+
+@pytest_asyncio.fixture
+async def auth_headers(test_user: dict) -> dict:
+    """Return authorization headers for the test user."""
+    return {"Authorization": f"Bearer {test_user['access_token']}"}
+
+
+@pytest_asyncio.fixture
+async def test_post(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict, test_post_type: dict) -> dict:
+    """Create a test post and return its data."""
+    response = await client.post(
+        "/api/v1/posts",
+        json={
+            "title": "测试帖子标题",
+            "content": "这是测试帖子的内容，至少十个字符",
+            "category_id": test_category["id"],
+            "post_type_id": test_post_type["id"],
+            "is_anonymous": False,
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+@pytest_asyncio.fixture
+async def second_user(client: AsyncClient, test_school: dict) -> dict:
+    """Register a second test user for ownership tests."""
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "seconduser@example.com",
+            "nickname": "第二用户",
+            "password": "testpassword456",
+            "school_id": test_school["id"],
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    return {
+        "email": "seconduser@example.com",
+        "nickname": "第二用户",
+        "password": "testpassword456",
+        "school_id": test_school["id"],
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+    }
+
+
+@pytest_asyncio.fixture
+async def second_auth_headers(second_user: dict) -> dict:
+    """Return authorization headers for the second test user."""
+    return {"Authorization": f"Bearer {second_user['access_token']}"}

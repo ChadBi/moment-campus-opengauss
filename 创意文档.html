@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="此刻校园——校园即时信息共享与沉淀平台创意提案" />
+  <title>此刻校园｜TRAE AI 创造力大赛创意提案</title>
+  <style>
+    :root{
+      --bg:#f4f7f4;
+      --paper:#ffffff;
+      --ink:#16231d;
+      --muted:#64736b;
+      --line:#dce6df;
+      --green:#287a55;
+      --green-2:#46a276;
+      --soft:#e9f5ee;
+      --amber:#f4b85f;
+      --shadow:0 18px 60px rgba(28,70,49,.10);
+      --radius:24px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC",system-ui,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(70,162,118,.12), transparent 26%),
+        radial-gradient(circle at 90% 15%, rgba(244,184,95,.12), transparent 24%),
+        var(--bg);
+      line-height:1.75;
+    }
+    .wrap{width:min(1120px,calc(100% - 32px));margin:auto}
+    header{
+      min-height:92vh;
+      display:grid;
+      place-items:center;
+      padding:48px 0;
+    }
+    .hero{
+      position:relative;
+      overflow:hidden;
+      width:100%;
+      padding:clamp(34px,6vw,72px);
+      border:1px solid rgba(40,122,85,.14);
+      border-radius:34px;
+      background:rgba(255,255,255,.86);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(12px);
+    }
+    .hero:after{
+      content:"";
+      position:absolute;
+      right:-70px;bottom:-100px;
+      width:360px;height:360px;border-radius:50%;
+      background:linear-gradient(145deg,rgba(70,162,118,.20),rgba(244,184,95,.16));
+      filter:blur(2px);
+    }
+    .badge{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 14px;border-radius:999px;
+      background:var(--soft);color:var(--green);
+      font-weight:700;font-size:14px;
+      border:1px solid rgba(40,122,85,.13);
+    }
+    h1{
+      margin:24px 0 12px;
+      font-size:clamp(48px,9vw,92px);
+      line-height:1.03;
+      letter-spacing:-.06em;
+    }
+    .tagline{
+      max-width:760px;
+      font-size:clamp(20px,3vw,32px);
+      line-height:1.35;
+      font-weight:700;
+      color:#284c3b;
+    }
+    .intro{max-width:760px;color:var(--muted);font-size:17px}
+    .hero-grid{
+      display:grid;grid-template-columns:1.2fr .8fr;gap:32px;align-items:end;
+      position:relative;z-index:1;
+    }
+    .mini-map{
+      min-height:360px;border-radius:28px;
+      position:relative;overflow:hidden;
+      background:
+        linear-gradient(90deg, transparent 47%, rgba(40,122,85,.10) 48%, rgba(40,122,85,.10) 52%, transparent 53%),
+        linear-gradient(0deg, transparent 47%, rgba(40,122,85,.08) 48%, rgba(40,122,85,.08) 52%, transparent 53%),
+        #eef6f1;
+      border:1px solid var(--line);
+    }
+    .road{position:absolute;background:#fff;border-radius:99px;box-shadow:0 0 0 1px rgba(40,122,85,.06)}
+    .r1{width:120%;height:38px;left:-10%;top:46%;transform:rotate(-16deg)}
+    .r2{width:38px;height:120%;left:48%;top:-10%;transform:rotate(12deg)}
+    .pin{
+      position:absolute;width:54px;height:54px;border-radius:20px 20px 20px 4px;
+      transform:rotate(-45deg);display:grid;place-items:center;
+      background:var(--paper);box-shadow:0 12px 28px rgba(24,65,45,.18);
+      border:1px solid var(--line);
+    }
+    .pin span{transform:rotate(45deg);font-size:24px}
+    .p1{left:14%;top:18%}.p2{right:13%;top:22%}.p3{left:25%;bottom:16%}.p4{right:25%;bottom:13%}
+    .nav{
+      display:flex;gap:10px;flex-wrap:wrap;margin-top:28px
+    }
+    .nav a{
+      color:var(--ink);text-decoration:none;font-weight:700;font-size:14px;
+      background:#fff;border:1px solid var(--line);padding:10px 14px;border-radius:12px
+    }
+    section{padding:88px 0}
+    .section-title{max-width:760px;margin-bottom:34px}
+    .eyebrow{color:var(--green);font-weight:800;letter-spacing:.08em;font-size:13px}
+    h2{font-size:clamp(34px,5vw,58px);line-height:1.16;margin:10px 0 14px;letter-spacing:-.035em}
+    .lead{color:var(--muted);font-size:18px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .card{
+      background:rgba(255,255,255,.88);border:1px solid var(--line);
+      border-radius:var(--radius);padding:26px;box-shadow:0 8px 28px rgba(28,70,49,.05)
+    }
+    .card h3{margin:12px 0 8px;font-size:21px}
+    .card p{color:var(--muted);margin:0}
+    .icon{
+      width:48px;height:48px;border-radius:16px;display:grid;place-items:center;
+      background:var(--soft);font-size:23px
+    }
+    .problem{
+      display:grid;grid-template-columns:1fr 1fr;gap:24px
+    }
+    .quote{
+      font-size:clamp(25px,4vw,44px);line-height:1.35;font-weight:800;
+      padding:40px;border-radius:28px;background:#18392a;color:#fff;
+      box-shadow:var(--shadow)
+    }
+    .quote small{display:block;margin-top:22px;color:#bdd5c8;font-size:15px;font-weight:500}
+    .list{display:grid;gap:12px}
+    .list-item{
+      display:flex;gap:14px;align-items:flex-start;padding:18px 20px;
+      background:#fff;border:1px solid var(--line);border-radius:18px
+    }
+    .num{
+      flex:0 0 34px;height:34px;border-radius:11px;display:grid;place-items:center;
+      background:var(--soft);color:var(--green);font-weight:800
+    }
+    .list-item b{display:block;margin-bottom:3px}.list-item span{color:var(--muted)}
+    .flow{
+      display:grid;grid-template-columns:repeat(5,1fr);gap:12px
+    }
+    .step{
+      padding:24px 16px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:20px
+    }
+    .step strong{display:block;font-size:18px;margin:8px 0 4px}
+    .step span{font-size:14px;color:var(--muted)}
+    .ai-box{
+      padding:38px;border-radius:30px;background:linear-gradient(135deg,#18392a,#286b4a);color:white
+    }
+    .ai-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:26px}
+    .ai-item{padding:18px;border-radius:18px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.14)}
+    .ai-item b{display:block;margin-bottom:6px}.ai-item span{color:#d3e5da;font-size:14px}
+    .privacy{
+      margin-top:18px;padding:16px 18px;border-radius:16px;background:rgba(255,255,255,.08);
+      color:#d9e9df;font-size:14px
+    }
+    .value{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+    .metric{font-size:42px;line-height:1;color:var(--green);font-weight:900;margin-bottom:12px}
+    footer{padding:30px 0 54px;color:var(--muted);text-align:center;font-size:14px}
+    @media(max-width:860px){
+      .hero-grid,.problem{grid-template-columns:1fr}
+      .grid,.ai-grid{grid-template-columns:1fr 1fr}
+      .flow{grid-template-columns:1fr 1fr}
+      .value{grid-template-columns:1fr}
+      header{min-height:auto;padding-top:20px}
+    }
+    @media(max-width:560px){
+      .grid,.ai-grid,.flow{grid-template-columns:1fr}
+      .hero{padding:28px 20px}
+      .mini-map{min-height:280px}
+      section{padding:62px 0}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap hero">
+      <div class="hero-grid">
+        <div>
+          <div class="badge">TRAE AI 创造力大赛 · 社会服务赛道</div>
+          <h1>此刻校园</h1>
+          <div class="tagline">让校园里的有用信息，不再随着聊天记录一起消失。</div>
+          <p class="intro">
+            一个由校园成员共同建设的本地信息共享平台。大家可以发现并发布美食、小猫、打印店、
+            配送群、拍照点、活动与便民服务，让零散经验沉淀为可搜索、可验证、会更新的校园知识地图。
+          </p>
+          <nav class="nav">
+            <a href="#problem">真实问题</a>
+            <a href="#product">产品方案</a>
+            <a href="#ai">AI 能力</a>
+            <a href="#value">价值意义</a>
+          </nav>
+        </div>
+        <div class="mini-map" aria-label="校园信息地图示意">
+          <div class="road r1"></div><div class="road r2"></div>
+          <div class="pin p1"><span>🍜</span></div>
+          <div class="pin p2"><span>🐈</span></div>
+          <div class="pin p3"><span>🖨️</span></div>
+          <div class="pin p4"><span>📷</span></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="problem">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="eyebrow">01 · 想解决什么问题</div>
+          <h2>校园信息很多，但真正需要时往往找不到。</h2>
+          <p class="lead">
+            校园里的实用信息通常散落在群聊、表白墙、朋友圈和口口相传中。信息发布得快、消失得也快，
+            新生不知道去哪里问，老生也在反复回答同样的问题。
+          </p>
+        </div>
+        <div class="problem">
+          <div class="quote">
+            “哪里打印最便宜？”<br>
+            “哪栋楼附近有小猫？”<br>
+            “食堂哪家窗口值得吃？”<br>
+            “校园里哪里适合拍照？”
+            <small>这些问题每天都在被重新提问，却没有形成可持续的校园公共记忆。</small>
+          </div>
+          <div class="list">
+            <div class="list-item"><div class="num">1</div><div><b>信息分散</b><span>群聊、论坛和社交平台各自割裂，检索成本高。</span></div></div>
+            <div class="list-item"><div class="num">2</div><div><b>时效难辨</b><span>旧价格、旧群码、已关闭店铺仍在传播，缺少有效期管理。</span></div></div>
+            <div class="list-item"><div class="num">3</div><div><b>经验无法沉淀</b><span>热心同学分享过的信息，很快被新的聊天内容覆盖。</span></div></div>
+            <div class="list-item"><div class="num">4</div><div><b>新生信息差</b><span>刚进入校园的人缺少熟人和经验，适应成本尤其高。</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="product">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="eyebrow">02 · 大概是什么产品</div>
+          <h2>一张由所有校园成员共同更新的“校园生活地图”。</h2>
+          <p class="lead">
+            产品采用网站 / PWA 形态，以地点、时间和标签组织内容，形成“发现—发布—验证—沉淀—再发现”的闭环。
+          </p>
+        </div>
+        <div class="grid">
+          <article class="card"><div class="icon">🗺️</div><h3>地图发现</h3><p>按当前位置浏览周边美食、服务、动物、活动与拍照点。</p></article>
+          <article class="card"><div class="icon">🔎</div><h3>自然语言搜索</h3><p>直接搜索“十分钟内能打印彩色照片的地方”等真实需求。</p></article>
+          <article class="card"><div class="icon">✍️</div><h3>轻量发布</h3><p>选择地点、添加标签与有效期，几步完成一条校园信息。</p></article>
+          <article class="card"><div class="icon">✅</div><h3>共同验证</h3><p>通过“仍然有效”、评论、纠错与举报维护信息可信度。</p></article>
+          <article class="card"><div class="icon">⏳</div><h3>时效管理</h3><p>群码、活动、价格等内容到期提醒，降低过时信息干扰。</p></article>
+          <article class="card"><div class="icon">⭐</div><h3>收藏与清单</h3><p>创建“新生必备”“校园猫图鉴”“平价打印”等主题清单。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="section-title">
+          <div class="eyebrow">03 · 核心使用流程</div>
+          <h2>每一次分享，都成为下一位同学的答案。</h2>
+        </div>
+        <div class="flow">
+          <div class="step"><div class="icon" style="margin:auto">📍</div><strong>发现地点</strong><span>看到有价值的校园信息</span></div>
+          <div class="step"><div class="icon" style="margin:auto">📝</div><strong>发布记录</strong><span>补充位置、描述与有效期</span></div>
+          <div class="step"><div class="icon" style="margin:auto">🏷️</div><strong>智能整理</strong><span>推荐标签并关联相似内容</span></div>
+          <div class="step"><div class="icon" style="margin:auto">🤝</div><strong>社区验证</strong><span>其他同学确认、评价或纠错</span></div>
+          <div class="step"><div class="icon" style="margin:auto">🌱</div><strong>持续沉淀</strong><span>形成可复用的校园知识</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ai">
+      <div class="wrap">
+        <div class="ai-box">
+          <div class="eyebrow" style="color:#9bd0b1">04 · AI 如何参与</div>
+          <h2 style="margin-top:10px">AI 不替代社区，而是帮助公共信息更容易被整理和找到。</h2>
+          <div class="ai-grid">
+            <div class="ai-item"><b>语义检索</b><span>理解口语化需求，而不局限于关键词完全匹配。</span></div>
+            <div class="ai-item"><b>标签推荐</b><span>根据公开内容建议类别、地点属性与时效标签。</span></div>
+            <div class="ai-item"><b>重复聚合</b><span>识别同一地点的重复帖子，合并信息与讨论。</span></div>
+            <div class="ai-item"><b>过期提醒</b><span>结合有效期和社区反馈，提示可能失效的内容。</span></div>
+          </div>
+          <div class="privacy">
+            隐私边界：AI 仅处理用户主动发布的公共内容；不读取私人聊天、通讯录或个人轨迹。
+            精确定位由用户自愿提供，并支持地点模糊化与敏感信息检测。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="value">
+      <div class="wrap">
+        <div class="section-title">
+          <div class="eyebrow">05 · 目标用户与价值</div>
+          <h2>把“熟人才知道”变成“每个人都能找到”。</h2>
+        </div>
+        <div class="value">
+          <article class="card">
+            <div class="metric">学生</div>
+            <h3>降低校园生活的信息成本</h3>
+            <p>面向新生、在校生、交换生与访客，在找服务、参加活动、探索校园和解决临时需求时使用。</p>
+          </article>
+          <article class="card">
+            <div class="metric">社区</div>
+            <h3>形成持续更新的校园公共记忆</h3>
+            <p>让零散经验不再一次性消耗，减少重复询问，增强同学之间的互助感和校园归属感。</p>
+          </article>
+          <article class="card">
+            <div class="metric">服务</div>
+            <h3>让小型校园服务被更准确地发现</h3>
+            <p>打印店、社团、公益活动与校内便民点可以通过真实评价获得稳定曝光，而不是依赖群聊刷屏。</p>
+          </article>
+          <article class="card">
+            <div class="metric">扩展</div>
+            <h3>从单校验证到高校通用平台</h3>
+            <p>先以一所高校建立内容密度和治理机制，再复制到更多校园，形成各校独立、结构统一的信息网络。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="quote" style="text-align:center">
+          此刻发生的校园生活，<br>值得被看见，也值得被留下。
+          <small>此刻校园｜校园即时信息共享与沉淀平台</small>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    TRAE AI 创造力大赛 · 社会服务赛道创意提案
+  </footer>
+</body>
+</html>
