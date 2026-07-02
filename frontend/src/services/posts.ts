@@ -60,6 +60,8 @@ interface CreatePostRequest {
   is_anonymous?: boolean;
   tags?: string[];
   expire_at?: string;
+  // T-B-06: 支持创建时指定初始状态
+  status?: 'draft' | 'pending';
 }
 
 interface PostFilters {

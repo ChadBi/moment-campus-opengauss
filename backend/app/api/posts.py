@@ -179,7 +179,7 @@ async def create_post(
         title=post_data.title,
         content=post_data.content,
         is_anonymous=post_data.is_anonymous,
-        status="pending",  # 需要审核
+        status=post_data.status or "pending",  # T-B-06: 支持 draft 草稿 / pending 提交审核
         expire_at=post_data.expire_at,
         activity_start_at=post_data.activity_start_at,
         activity_end_at=post_data.activity_end_at,

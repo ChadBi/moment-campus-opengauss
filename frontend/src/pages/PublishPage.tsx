@@ -35,7 +35,7 @@ const PublishPage: React.FC = () => {
     setFormData(prev => ({ ...prev, category_id: String(id) }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, status: 'draft' | 'pending' = 'pending') => {
     e.preventDefault();
 
     if (!formData.title || !formData.content || !formData.category_id) {
@@ -61,11 +61,15 @@ const PublishPage: React.FC = () => {
         category_id: Number(formData.category_id),
         location_id: 1, // 默认地点，实际应让用户选择
         is_anonymous: formData.is_anonymous,
+        status, // T-B-06: draft 草稿 / pending 提交审核
       });
-      setToast({ message: '发布成功', type: 'success' });
+      setToast({
+        message: status === 'draft' ? '草稿已保存' : '已提交审核，等待管理员通过',
+        type: 'success',
+      });
       setTimeout(() => navigate('/'), 1000);
     } catch (error: any) {
-      const message = error.response?.data?.detail || '发布失败，请稍后重试';
+      const message = error.response?.data?.detail || '操作失败，请稍后重试';
       setToast({ message, type: 'error' });
     } finally {
       setLoading(false);
@@ -100,7 +104,7 @@ const PublishPage: React.FC = () => {
 
       {/* 表单卡片：Card variant=elevated */}
       <Card variant="elevated" padding="lg">
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={(e) => handleSubmit(e, 'pending')} className="space-y-5">
           <Input
             label="标题"
             name="title"
@@ -198,10 +202,13 @@ const PublishPage: React.FC = () => {
 
           {/* 提示信息：淡绿色背景卡片 */}
           <div className="bg-grass/12 text-[#476a51] rounded-md px-4 py-3 text-xs leading-relaxed border border-grass/20">
-            信息会过期，也能被更新。每条信息都有“最后确认时间”，路过时点一下仍然有效，就能帮后来的人少走弯路。
+            信息会过期，也能被更新。每条信息都有"最后确认时间"，路过时点一下仍然有效，就能帮后来的人少走弯路。
+            <br />
+            <span className="text-[#5a8266]">提示：</span>可先"存为草稿"稍后再"提交审核"，审核通过后才会公开展示。
           </div>
 
           <div className="flex gap-3 pt-2">
+            {/* T-B-06: 提交审核（默认） */}
             <Button
               type="submit"
               variant="primary"
@@ -209,11 +216,21 @@ const PublishPage: React.FC = () => {
               loading={loading}
               className="flex-1"
             >
-              发布
+              提交审核
             </Button>
+            {/* T-B-06: 存为草稿 */}
             <Button
               type="button"
               variant="secondary"
+              size="lg"
+              loading={loading}
+              onClick={(e) => handleSubmit(e as unknown as React.FormEvent, 'draft')}
+            >
+              存为草稿
+            </Button>
+            <Button
+              type="button"
+              variant="text"
               size="lg"
               onClick={() => navigate(-1)}
             >
