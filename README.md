@@ -24,8 +24,8 @@
 
 本阶段将完成从项目初始化到最终交付的完整开发流程，包括：
 - 前端：React + TypeScript + Vite + Tailwind CSS
-- 后端：Python + FastAPI + SQLAlchemy
-- 数据库：SQLite（开发）/ openGauss 7.0.0-RC3 轻量版（生产）
+- 后端：Python + FastAPI + SQLAlchemy 2.0（async）+ asyncpg
+- 数据库：openGauss 7.0.0-RC3 轻量版（Docker 部署，唯一数据库，已彻底移除 SQLite）
 
 > **演示学校**：江南大学蠡湖校区（坐标 31.4837, 120.2712，map_zoom=16）。Base 项目原使用"华东师范大学、复旦大学"作为模拟对象，已于 T-A-16/17 任务中统一替换为江南大学。
 
@@ -83,60 +83,32 @@
 
 ### 1. 后端启动
 
-#### 1.1 默认 SQLite 模式（开发）
-
-```bash
-cd backend
-
-# 创建并激活虚拟环境
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
-
-# 安装依赖
-pip install -r requirements.txt
-
-# 配置环境变量
-cp .env.example .env.development
-
-# 初始化数据库
-alembic upgrade head
-
-# 填充演示数据（可选）
-python scripts/seed_data.py
-
-# 启动后端服务
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-#### 1.2 openGauss 生产模式
-
-> 适用场景：演示 openGauss 7.0.0-RC3 物理模型落地、性能测试、课程设计交付。
-
 ```bash
 # 1. 启动 openGauss 容器（项目根目录）
 docker compose up -d opengauss
 
 # 2. 后端目录下激活虚拟环境
 cd backend
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1   # Windows PowerShell
 # source .venv/bin/activate    # macOS/Linux
 
-# 3. 切换到 openGauss 环境（通过 APP_ENV 加载 backend/.env.opengauss）
+# 3. 安装依赖
+pip install -r requirements.txt
+
+# 4. 切换到 openGauss 环境（通过 APP_ENV 加载 backend/.env.opengauss）
 # Windows PowerShell:
 $env:APP_ENV = "opengauss"
 # macOS/Linux:
 export APP_ENV=opengauss
 
-# 4. 执行数据库迁移
+# 5. 执行数据库迁移
 alembic upgrade head
 
-# 5. 填充江南大学演示数据
+# 6. 填充江南大学演示数据
 python scripts/seed_data.py
 
-# 6. 启动后端服务
+# 7. 启动后端服务
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
@@ -172,8 +144,8 @@ npm run dev
 
 ```bash
 cd backend
-venv\Scripts\activate   # Windows
-# source venv/bin/activate  # macOS/Linux
+.\.venv\Scripts\Activate.ps1   # Windows PowerShell
+# source .venv/bin/activate    # macOS/Linux
 pip install pytest pytest-asyncio httpx
 pytest tests/ -v
 ```
@@ -211,18 +183,24 @@ pytest tests/ -v
 ## 技术栈概览
 
 - **前端**：React + TypeScript + Vite + Tailwind CSS + MapLibre GL JS
-- **后端**：Python + FastAPI + SQLAlchemy + PostgreSQL（兼容 openGauss）
-- **生产数据库**：openGauss 7.0.0-RC3 轻量版（Docker 部署，含表空间/分区/存储过程/触发器/物化视图物理模型）
-- **开发数据库**：SQLite（异步 aiosqlite）
-- **认证**：JWT
+- **后端**：Python + FastAPI + SQLAlchemy 2.0（async）+ asyncpg
+- **数据库**：openGauss 7.0.0-RC3 轻量版（Docker 部署，含表空间/分区/存储过程/触发器/物化视图物理模型，唯一数据库）
+- **认证**：JWT + 3 级角色层级（user / admin / super_admin）
 - **地图**：MapLibre GL JS / Leaflet
+
+## 核心特性
+
+- **6 态状态机**：draft / pending / published / expired / conflict / archived，13 条合法流转规则，普通用户与管理员分级权限
+- **5 类协同验证**：confirmation（证实）/ refutation（证伪）/ update（补充更新）/ expiration_report（过期上报）/ conflict_report（冲突上报），兼容旧别名
+- **RBAC 权限矩阵**：user < admin < super_admin 层级向下兼容，`require_role()` 依赖工厂统一校验
+- **openGauss 物理模型**：4 表空间 / 66 索引 / 8 存储过程 / 8 触发器 / 4 物化视图 / 7 分区表（详见 [docs/27_数据库物理模型设计.md](docs/27_数据库物理模型设计.md)）
 
 ## 项目状态
 
-核心功能开发完成（87%），前后端联调通过，38 个 API 测试全部通过。
+核心功能开发完成，前后端联调通过，172 项自动化测试全部通过。
 
-当前已完成：地图页集成、信息发布与浏览、搜索与分类筛选、评论与互动、用户中心、管理后台、前后端联调。
+当前已完成：openGauss 适配、6 态状态机、5 类协同验证、RBAC 权限矩阵、江南大学数据改造、地图页集成、信息发布与浏览、搜索与分类筛选、评论与互动、用户中心、管理后台。
 
-待完成：性能优化、部署配置、E2E 测试。
+按 MVP 原则已放弃：阶段 C（创新点：可信度/过期/冲突/版本/信誉）、阶段 D（扩展能力：时间轴/裁定/共同修正）、SQLite 开发备选。
 
 详见 [TODO.md](TODO.md)。
