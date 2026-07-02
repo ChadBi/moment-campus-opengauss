@@ -22,6 +22,10 @@ from app.schemas.interaction import (
 )
 from app.schemas.common import MessageResponse
 from app.core.exceptions import NotFoundException, BadRequestException
+from app.core.validation_type import (
+    normalize_validation_type,
+    ValidationType,
+)
 
 router = APIRouter(tags=["互动"])
 
@@ -167,8 +171,16 @@ async def create_validation(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    有效性确认
-    用户可以对帖子进行有效性确认（有效/无效/不确定）
+    协同验证（T-B-02 扩展为 5 类）
+
+    用户可对帖子提交 5 类协同验证：
+    - confirmation: 证实（信息真实有效）
+    - refutation: 证伪（信息有误）
+    - update: 补充更新
+    - expiration_report: 过期上报
+    - conflict_report: 冲突上报
+
+    向后兼容旧值：valid→confirmation / invalid→refutation / uncertain→update
     """
     # 查询帖子
     result = await db.execute(select(Post).where(Post.id == post_id, Post.is_deleted == False))
@@ -176,21 +188,26 @@ async def create_validation(
     if not post:
         raise NotFoundException(detail="帖子不存在")
 
-    # 创建有效性确认记录
+    # 归一化验证类型（别名 → 正式名）
+    canonical_type = normalize_validation_type(data.validation_type)
+
+    # 创建协同验证记录（统一存储正式名）
     validation = ValidationRecord(
         post_id=post_id,
         user_id=current_user.id,
-        validation_type=data.validation_type,
+        validation_type=canonical_type,
         comment=data.comment,
     )
     db.add(validation)
 
-    # 更新帖子的有效性计数
-    if data.validation_type == "valid":
+    # 兼容旧 Post.valid_count / invalid_count 统计字段
+    # - confirmation → valid_count +1
+    # - refutation   → invalid_count +1
+    # - 其他 3 类不计入旧字段（待 T-C-01 可信度计算统一处理）
+    if canonical_type in ValidationType.LEGACY_POSITIVE_COUNT_TYPES:
         post.valid_count += 1
-    elif data.validation_type == "invalid":
+    elif canonical_type in ValidationType.LEGACY_NEGATIVE_COUNT_TYPES:
         post.invalid_count += 1
-    # uncertain 不更新计数
 
     try:
         await db.commit()

@@ -23,8 +23,10 @@ class FavoriteResponse(BaseModel):
 class ValidationCreate(BaseModel):
     validation_type: str = Field(
         ...,
-        pattern="^(valid|invalid|uncertain)$",
-        description="有效性类型：valid（有效）/ invalid（无效）/ uncertain（不确定）"
+        pattern="^(confirmation|refutation|update|expiration_report|conflict_report|valid|invalid|uncertain)$",
+        description="协同验证类型（5 类）：confirmation（证实）/ refutation（证伪）/ update（补充更新）/ "
+                    "expiration_report（过期上报）/ conflict_report（冲突上报）。"
+                    "向后兼容旧值：valid→confirmation / invalid→refutation / uncertain→update"
     )
     comment: Optional[str] = Field(None, max_length=500, description="备注说明，最多500字符")
 
