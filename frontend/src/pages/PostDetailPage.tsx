@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { postsApi } from '../services/posts';
 import { commentsApi } from '../services/comments';
-import { interactionsApi } from '../services/interactions';
+import { interactionsApi, type ValidationStats, type ValidationType } from '../services/interactions';
 import type { Post, Comment } from '../types';
 import { Card } from '../components/ui/Card';
 import { Avatar } from '../components/ui/Avatar';
@@ -21,7 +21,36 @@ import {
   Bookmark,
   Share2,
   Flag,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  ClockAlert,
+  AlertTriangle,
 } from 'lucide-react';
+
+// T-B-05: 6 态状态徽章配置
+const STATUS_BADGE_CONFIG: Record<string, { variant: 'default' | 'success' | 'warning' | 'danger' | 'info'; label: string }> = {
+  draft: { variant: 'default', label: '草稿' },
+  pending: { variant: 'warning', label: '待审核' },
+  published: { variant: 'success', label: '已发布' },
+  expired: { variant: 'default', label: '已过期' },
+  conflict: { variant: 'danger', label: '冲突中' },
+  archived: { variant: 'default', label: '已归档' },
+};
+
+// T-B-05: 5 类协同验证选项
+const VALIDATION_OPTIONS: Array<{
+  type: ValidationType;
+  label: string;
+  icon: React.ReactNode;
+  color: string;
+}> = [
+  { type: 'confirmation', label: '证实', icon: <CheckCircle2 size={14} />, color: 'text-grass' },
+  { type: 'refutation', label: '证伪', icon: <XCircle size={14} />, color: 'text-danger' },
+  { type: 'update', label: '补充更新', icon: <AlertCircle size={14} />, color: 'text-info' },
+  { type: 'expiration_report', label: '过期上报', icon: <ClockAlert size={14} />, color: 'text-sun' },
+  { type: 'conflict_report', label: '冲突上报', icon: <AlertTriangle size={14} />, color: 'text-danger' },
+];
 
 const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,11 +61,13 @@ const PostDetailPage: React.FC = () => {
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
+  const [validationStats, setValidationStats] = useState<ValidationStats | null>(null);
 
   useEffect(() => {
     if (id) {
       loadPost();
       loadComments();
+      loadValidationStats();
     }
   }, [id]);
 
@@ -50,6 +81,31 @@ const PostDetailPage: React.FC = () => {
       setToast({ message: '加载帖子失败', type: 'error' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // T-B-05: 加载协同验证统计
+  const loadValidationStats = async () => {
+    try {
+      const stats = await interactionsApi.getValidationStats(Number(id));
+      setValidationStats(stats);
+    } catch (error) {
+      console.error('加载验证统计失败:', error);
+    }
+  };
+
+  // T-B-05: 提交协同验证
+  const handleValidate = async (type: ValidationType) => {
+    if (!isAuthenticated) {
+      setToast({ message: '请先登录后再进行验证', type: 'warning' });
+      return;
+    }
+    try {
+      await interactionsApi.validatePost(Number(id), type);
+      setToast({ message: '验证已提交', type: 'success' });
+      loadValidationStats();
+    } catch (error) {
+      setToast({ message: '验证失败', type: 'error' });
     }
   };
 
@@ -157,16 +213,28 @@ const PostDetailPage: React.FC = () => {
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-white border border-line rounded-lg p-4">
           <small className="block text-ink-muted text-xs mb-1.5">现在状态</small>
-          <strong className="text-sm text-ink font-medium">{post.status || '未标注'}</strong>
+          <strong className="text-sm text-ink font-medium flex items-center gap-2">
+            {post.status && STATUS_BADGE_CONFIG[post.status] ? (
+              <Badge variant={STATUS_BADGE_CONFIG[post.status].variant}>
+                {STATUS_BADGE_CONFIG[post.status].label}
+              </Badge>
+            ) : (
+              <span>{post.status || '未标注'}</span>
+            )}
+          </strong>
         </div>
         <div className="bg-white border border-line rounded-lg p-4">
           <small className="block text-ink-muted text-xs mb-1.5">信息分类</small>
           <strong className="text-sm text-ink font-medium">{post.category?.name || '未分类'}</strong>
         </div>
         <div className="bg-white border border-line rounded-lg p-4">
-          <small className="block text-ink-muted text-xs mb-1.5">有效确认</small>
+          <small className="block text-ink-muted text-xs mb-1.5">协同验证</small>
           <strong className="text-sm text-ink font-medium">
-            <span className="font-data">{post.valid_count || 0}</span> 人确认仍然有效
+            <span className="font-data">{validationStats?.total_count || 0}</span> 条验证 ·
+            综合状态：
+            {validationStats?.validity_status === 'valid' && <span className="text-grass"> 有效</span>}
+            {validationStats?.validity_status === 'invalid' && <span className="text-danger"> 无效</span>}
+            {validationStats?.validity_status === 'uncertain' && <span className="text-sun"> 待定</span>}
           </strong>
         </div>
         <div className="bg-white border border-line rounded-lg p-4">
@@ -174,6 +242,56 @@ const PostDetailPage: React.FC = () => {
           <strong className="text-sm text-ink font-medium">{post.author?.nickname || '匿名用户'}</strong>
         </div>
       </div>
+
+      {/* T-B-05: 协同验证统计面板（5 类细分） */}
+      {validationStats && validationStats.total_count > 0 && (
+        <Card variant="elevated" padding="md" className="mb-4">
+          <h3 className="font-display font-bold text-sm text-lake mb-3 flex items-center gap-2">
+            <CheckCircle2 size={16} />
+            协同验证统计
+          </h3>
+          <div className="grid grid-cols-5 gap-2 text-center">
+            <div className="p-2 rounded-md bg-grass/8">
+              <div className="text-lg font-data font-bold text-grass">{validationStats.confirmation_count}</div>
+              <div className="text-[10px] text-ink-muted mt-0.5">证实</div>
+            </div>
+            <div className="p-2 rounded-md bg-danger/8">
+              <div className="text-lg font-data font-bold text-danger">{validationStats.refutation_count}</div>
+              <div className="text-[10px] text-ink-muted mt-0.5">证伪</div>
+            </div>
+            <div className="p-2 rounded-md bg-info/8">
+              <div className="text-lg font-data font-bold text-info">{validationStats.update_count}</div>
+              <div className="text-[10px] text-ink-muted mt-0.5">补充更新</div>
+            </div>
+            <div className="p-2 rounded-md bg-sun/8">
+              <div className="text-lg font-data font-bold text-sun">{validationStats.expiration_report_count}</div>
+              <div className="text-[10px] text-ink-muted mt-0.5">过期上报</div>
+            </div>
+            <div className="p-2 rounded-md bg-danger/8">
+              <div className="text-lg font-data font-bold text-danger">{validationStats.conflict_report_count}</div>
+              <div className="text-[10px] text-ink-muted mt-0.5">冲突上报</div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* T-B-05: 5 类协同验证操作按钮 */}
+      {isAuthenticated && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {VALIDATION_OPTIONS.map(opt => (
+            <Button
+              key={opt.type}
+              variant="secondary"
+              size="sm"
+              onClick={() => handleValidate(opt.type)}
+              icon={opt.icon}
+              className={opt.color}
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {/* 作者信息 + 统计 */}
       <Card variant="elevated" padding="md" className="mb-4">
