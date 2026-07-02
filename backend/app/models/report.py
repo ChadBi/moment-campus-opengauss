@@ -8,7 +8,7 @@ from app.database import Base
 class Report(Base):
     __tablename__ = "reports"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     post_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("posts.id"), nullable=True, index=True)
     comment_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("comments.id"), nullable=True, index=True)
     reporter_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)

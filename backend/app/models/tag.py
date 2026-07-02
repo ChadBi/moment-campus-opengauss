@@ -8,7 +8,7 @@ from app.database import Base
 class Tag(Base):
     __tablename__ = "tags"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     slug: Mapped[str] = mapped_column(String(60), unique=True, nullable=False, index=True)
     usage_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

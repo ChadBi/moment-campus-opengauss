@@ -8,7 +8,7 @@ from app.database import Base
 class ValidationRecord(Base):
     __tablename__ = "validation_records"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     post_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("posts.id"), nullable=False, index=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     validation_type: Mapped[str] = mapped_column(String(10), nullable=False)

@@ -8,7 +8,7 @@ from app.database import Base
 class TopicCollectionPost(Base):
     __tablename__ = "topic_collection_posts"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     topic_collection_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("topic_collections.id"), nullable=False, index=True)
     post_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("posts.id"), nullable=False, index=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

@@ -8,7 +8,7 @@ from app.database import Base
 class Category(Base):
     __tablename__ = "categories"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     code: Mapped[str] = mapped_column(String(30), unique=True, nullable=False, index=True)
     icon: Mapped[str] = mapped_column(String(10), nullable=False)

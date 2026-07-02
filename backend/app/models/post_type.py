@@ -8,7 +8,7 @@ from app.database import Base
 class PostType(Base):
     __tablename__ = "post_types"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     code: Mapped[str] = mapped_column(String(30), unique=True, nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(String(200), nullable=True)

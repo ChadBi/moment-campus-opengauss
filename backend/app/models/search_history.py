@@ -8,7 +8,7 @@ from app.database import Base
 class SearchHistory(Base):
     __tablename__ = "search_histories"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     keyword: Mapped[str] = mapped_column(String(200), nullable=False)
     result_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
