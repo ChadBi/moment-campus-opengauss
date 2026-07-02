@@ -1,0 +1,87 @@
+# ============================================================
+# 文件名称：crontab
+# 用途：此刻校园 openGauss 定时任务配置
+# 依据：docs/27_数据库物理模型设计.md 第 8 节
+# 创建时间：2026-06-29
+# 说明：
+#   1. 共 7 个 JOB，覆盖过期标记/信誉分/日志归档/物化视图/清理/统计/索引维护
+#   2. 通过 install_crontab.sh 安装到系统 crontab
+#   3. 环境变量在 install_crontab.sh 中设置（PSQL_PATH / DB_USER / DB_NAME）
+#   4. 日志输出到 /var/log/momentcampus/cron/
+# ============================================================
+
+# ===== 环境变量（由 install_crontab.sh 注入）=====
+# PSQL_PATH=/usr/local/bin/psql
+# DB_USER=omm
+# DB_NAME=moment_campus
+# DB_HOST=127.0.0.1
+# DB_PORT=5432
+# LOG_DIR=/var/log/momentcampus/cron
+
+# ============================================================
+# JOB01 过期信息标记（每小时整点执行）
+# 调用：sp_mark_expired_posts()
+# 频率：0 * * * *（每小时）
+# ============================================================
+0 * * * * ${PSQL_PATH} -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "SELECT sp_mark_expired_posts();" >> ${LOG_DIR}/job01_expire.log 2>&1
+
+# ============================================================
+# JOB02 用户信誉分更新（每日 03:00 全量更新）
+# 调用：sp_update_reputation() 对所有用户
+# 频率：0 3 * * *（每日 03:00）
+# ============================================================
+0 3 * * * ${PSQL_PATH} -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "SELECT sp_update_reputation(id) FROM users WHERE is_deleted = FALSE AND is_active = TRUE;" >> ${LOG_DIR}/job02_reputation.log 2>&1
+
+# ============================================================
+# JOB03 日志归档（每日 04:00）
+# 调用：sp_archive_logs()
+# 频率：0 4 * * *（每日 04:00）
+# ============================================================
+0 4 * * * ${PSQL_PATH} -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "SELECT sp_archive_logs();" >> ${LOG_DIR}/job03_archive.log 2>&1
+
+# ============================================================
+# JOB04 物化视图刷新（每 10 分钟）
+# 调用：REFRESH MATERIALIZED VIEW CONCURRENTLY
+# 频率：*/10 * * * *（每 10 分钟）
+# 注：CONCURRENTLY 需要唯一索引，已在 06_create_materialized_views.sql 中创建
+# ============================================================
+*/10 * * * * ${PSQL_PATH} -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_admin_dashboard;" >> ${LOG_DIR}/job04_mv_admin.log 2>&1
+*/10 * * * * ${PSQL_PATH} -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_post_validation_stats;" >> ${LOG_DIR}/job04_mv_post.log 2>&1
+
+# 每日 03:30 刷新（低频更新的物化视图）
+30 3 * * * ${PSQL_PATH} -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_user_reputation_ranking;" >> ${LOG_DIR}/job04_mv_user.log 2>&1
+30 3 * * * ${PSQL_PATH} -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "REFRESH MATERIALIZED VIEW CONCURRENTLY mv_location_post_count;" >> ${LOG_DIR}/job04_mv_location.log 2>&1
+
+# ============================================================
+# JOB05 软删除清理（每周日 02:00）
+# 调用：sp_cleanup_soft_deleted()
+# 频率：0 2 * * 0（每周日 02:00）
+# ============================================================
+0 2 * * 0 ${PSQL_PATH} -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "SELECT sp_cleanup_soft_deleted();" >> ${LOG_DIR}/job05_cleanup.log 2>&1
+
+# ============================================================
+# JOB06 统计信息更新（每日 01:00）
+# 调用：ANALYZE（更新优化器统计信息）
+# 频率：0 1 * * *（每日 01:00）
+# 注：ANALYZE 仅更新统计信息，不锁表
+# ============================================================
+0 1 * * * ${PSQL_PATH} -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "ANALYZE;" >> ${LOG_DIR}/job06_analyze.log 2>&1
+
+# ============================================================
+# JOB07 索引维护（每月 1 日 02:30）
+# 调用：REINDEX（重建碎片化索引）
+# 频率：30 2 1 * *（每月 1 日 02:30）
+# 注：REINDEX 会锁表，建议在低峰期执行
+# ============================================================
+30 2 1 * * ${PSQL_PATH} -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -c "REINDEX DATABASE ${DB_NAME};" >> ${LOG_DIR}/job07_reindex.log 2>&1
+
+# ============================================================
+# 任务汇总
+# ============================================================
+# JOB01 过期信息标记     每小时      sp_mark_expired_posts()
+# JOB02 信誉分更新       每日 03:00  sp_update_reputation()
+# JOB03 日志归档         每日 04:00  sp_archive_logs()
+# JOB04 物化视图刷新     每 10 分钟  REFRESH MATERIALIZED VIEW
+# JOB05 软删除清理       每周日 02:00 sp_cleanup_soft_deleted()
+# JOB06 统计信息更新     每日 01:00  ANALYZE
+# JOB07 索引维护         每月 1 日   REINDEX
