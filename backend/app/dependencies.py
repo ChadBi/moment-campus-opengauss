@@ -74,10 +74,13 @@ async def get_current_admin(
     user: User = Depends(get_current_user)
 ) -> User:
     """
-    获取当前管理员用户
+    获取当前管理员用户（admin 或 super_admin）
     如果用户不是管理员，抛出 403 异常
+
+    Note: T-X-01 后推荐使用 require_role(Role.ADMIN) 替代本函数
     """
-    if user.role != "admin":
+    from app.core.permissions import is_admin
+    if not is_admin(user):
         raise ForbiddenException(detail="没有权限执行此操作，需要管理员权限")
-    
+
     return user

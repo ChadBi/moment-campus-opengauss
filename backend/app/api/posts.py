@@ -403,8 +403,9 @@ async def delete_post(
 # ============================================================
 
 def _is_admin(user: User) -> bool:
-    """判断用户是否为管理员"""
-    return user.role == "admin"
+    """判断用户是否为管理员（T-X-01：使用统一权限系统）"""
+    from app.core.permissions import is_admin
+    return is_admin(user)
 
 
 @router.get("/{post_id}/allowed-transitions", summary="获取可流转状态列表")
