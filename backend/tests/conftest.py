@@ -1,5 +1,4 @@
 import asyncio
-import os
 from typing import AsyncGenerator
 
 import pytest
@@ -14,18 +13,10 @@ from app.main import app
 from app.models import *  # noqa: F401,F403 - ensure all models registered with Base
 from app.core.security import get_password_hash, create_access_token, create_refresh_token
 
-# 通过 APP_ENV 环境变量切换测试数据库：
-#   - APP_ENV=opengauss: 使用 .env.opengauss 中配置的 openGauss 数据库（TRUNCATE 清理）
-#   - 其他: 使用内存 SQLite（create_all/drop_all）
-_USE_OPENGAUSS = os.environ.get("APP_ENV") == "opengauss"
-
-if _USE_OPENGAUSS:
-    # openGauss: 使用 NullPool 避免连接跨事件循环复用（pytest-asyncio 默认每用例一个 loop）
-    from app.config import settings
-    test_engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
-else:
-    TEST_DATABASE_URL = "sqlite+aiosqlite://"
-    test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+# 测试统一使用 openGauss（项目已完全迁移，不再支持 SQLite）。
+# 使用 NullPool 避免连接跨事件循环复用（pytest-asyncio 默认每用例一个 loop）。
+from app.config import settings
+test_engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
 
 test_session_maker = async_sessionmaker(
     test_engine,
@@ -63,27 +54,19 @@ async def _reset_opengauss_sequences(conn) -> None:
 
 @pytest_asyncio.fixture(autouse=True)
 async def setup_database():
-    """Set up database state before each test and clean up after.
+    """每个用例前后清空所有表并重置序列（openGauss）。
 
-    - openGauss: 使用 TRUNCATE ... CASCADE 清空所有表（保留外部创建的 schema），
-      并显式重置序列（openGauss 不支持 RESTART IDENTITY）
-    - SQLite: create_all / drop_all（内存数据库，每用例独立）
+    使用 TRUNCATE ... CASCADE 清空所有表（保留外部创建的 schema 与数据库对象如表空间/物化视图/触发器等），
+    并显式重置序列（openGauss 不支持 RESTART IDENTITY）。
     """
-    if _USE_OPENGAUSS:
-        table_names = ", ".join(f'"{t}"' for t in Base.metadata.tables.keys())
-        async with test_engine.begin() as conn:
-            await conn.execute(text(f"TRUNCATE {table_names} CASCADE"))
-            await _reset_opengauss_sequences(conn)
-        yield
-        async with test_engine.begin() as conn:
-            await conn.execute(text(f"TRUNCATE {table_names} CASCADE"))
-            await _reset_opengauss_sequences(conn)
-    else:
-        async with test_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        yield
-        async with test_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
+    table_names = ", ".join(f'"{t}"' for t in Base.metadata.tables.keys())
+    async with test_engine.begin() as conn:
+        await conn.execute(text(f"TRUNCATE {table_names} CASCADE"))
+        await _reset_opengauss_sequences(conn)
+    yield
+    async with test_engine.begin() as conn:
+        await conn.execute(text(f"TRUNCATE {table_names} CASCADE"))
+        await _reset_opengauss_sequences(conn)
 
 
 async def override_get_db() -> AsyncGenerator[AsyncSession, None]:

@@ -8,7 +8,7 @@ from app.database import Base
 class Draft(Base):
     __tablename__ = "drafts"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     title: Mapped[str | None] = mapped_column(String(200), nullable=True)
     content: Mapped[str | None] = mapped_column(Text, nullable=True)

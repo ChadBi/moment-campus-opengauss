@@ -8,7 +8,7 @@ from app.database import Base
 class School(Base):
     __tablename__ = "schools"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
