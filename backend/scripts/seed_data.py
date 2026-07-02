@@ -1,6 +1,10 @@
 """
 演示数据填充脚本
 用于开发和测试环境
+
+注意：本脚本不再创建表结构，需先通过 Alembic 迁移创建表：
+    alembic upgrade head
+脚本仅清空现有数据并重新填充演示数据。
 """
 import asyncio
 import sys
@@ -12,6 +16,8 @@ import random
 backend_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(backend_dir))
 
+import app.db_compat  # noqa: F401  openGauss 兼容性补丁，必须在 SQLAlchemy 引擎前导入
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import async_session_maker, engine
 from app.models import (
@@ -30,34 +36,61 @@ def get_password_hash(password: str) -> str:
 
 
 async def init_db():
-    """初始化数据库，创建所有表"""
+    """清空所有现有数据（保留表结构，openGauss 已通过 Alembic 创建表）
+
+    使用 TRUNCATE ... CASCADE 清空所有表数据，再逐表重置自增序列。
+    注：openGauss 的 PGXC 架构不支持 RESTART IDENTITY 子句，需手动 ALTER SEQUENCE。
+    """
+    # 按外键依赖逆序列出所有业务表
+    tables = [
+        "admin_operation_logs",
+        "search_histories",
+        "browse_histories",
+        "drafts",
+        "topic_collection_posts",
+        "topic_collections",
+        "notifications",
+        "reports",
+        "validation_records",
+        "favorites",
+        "likes",
+        "comments",
+        "post_images",
+        "post_tags",
+        "posts",
+        "tags",
+        "locations",
+        "post_types",
+        "categories",
+        "users",
+        "schools",
+    ]
+    table_list = ", ".join(tables)
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        # 1. 清空所有表数据（CASCADE 处理外键依赖）
+        await conn.execute(
+            text(f"TRUNCATE TABLE {table_list} CASCADE;")
+        )
+        # 2. 重置每张表的自增序列（PGXC 不支持 RESTART IDENTITY，需手动重置）
+        for table_name in tables:
+            # openGauss 默认序列命名为 <table>_id_seq
+            await conn.execute(
+                text(f"ALTER SEQUENCE {table_name}_id_seq RESTART WITH 1;")
+            )
 
 
 async def seed_schools(session: AsyncSession):
-    """创建学校数据"""
+    """创建学校数据：江南大学（蠡湖校区）作为唯一模拟核心"""
     schools = [
         School(
-            name="华东师范大学",
-            code="ecnu",
-            province="上海",
-            city="上海",
-            address="上海市普陀区中山北路3663号",
-            center_lat=31.2297,
-            center_lng=121.4075,
-            map_zoom=15,
-            is_active=True
-        ),
-        School(
-            name="复旦大学",
-            code="fudan",
-            province="上海",
-            city="上海",
-            address="上海市杨浦区邯郸路220号",
-            center_lat=31.2982,
-            center_lng=121.5035,
-            map_zoom=15,
+            name="江南大学",
+            code="jiangnan",
+            province="江苏省",
+            city="无锡市",
+            address="江苏省无锡市滨湖区蠡湖大道1800号",
+            center_lat=31.483706,
+            center_lng=120.271166,
+            map_zoom=16,
             is_active=True
         )
     ]
@@ -121,7 +154,7 @@ async def seed_users(session: AsyncSession, schools: list):
             email=f"user{i}@example.com",
             nickname=f"用户{i}",
             password_hash=get_password_hash("pass123"),  # 使用短密码避免 bcrypt 72 字节限制
-            school_id=schools[i % 2].id,
+            school_id=schools[0].id,
             role="user",
             bio=f"这是用户{i}的个人简介",
             is_active=True
@@ -134,22 +167,32 @@ async def seed_users(session: AsyncSession, schools: list):
 
 
 async def seed_locations(session: AsyncSession, schools: list):
-    """创建地点数据"""
+    """创建地点数据：江南大学蠡湖校区 15 个地点
+
+    坐标基于校区中心 (120.271166, 31.483706) 做合理偏移（纬度±0.005，经度±0.005）。
+    """
     locations = []
-    
-    # 华东师范大学地点
-    ecnu_locations = [
-        ("丽娃河畔", 31.2297, 121.4075, "校园著名景点"),
-        ("第一食堂", 31.2300, 121.4080, "主食堂"),
-        ("图书馆", 31.2295, 121.4070, "主图书馆"),
-        ("体育馆", 31.2290, 121.4065, "综合体育馆"),
-        ("教学楼A", 31.2305, 121.4085, "主要教学楼"),
-        ("学生宿舍区", 31.2310, 121.4090, "学生生活区"),
-        ("校园超市", 31.2298, 121.4078, "便利店"),
-        ("打印店", 31.2302, 121.4082, "文印服务"),
+
+    # 江南大学蠡湖校区地点清单：(名称, 纬度, 经度, 描述)
+    jiangnan_locations = [
+        ("北门", 31.4863, 120.2712, "蠡湖大道主入口"),
+        ("南门", 31.4812, 120.2712, "校园南入口"),
+        ("第一食堂", 31.4840, 120.2700, "主食堂"),
+        ("第二食堂", 31.4845, 120.2725, "学生食堂"),
+        ("图书馆", 31.4835, 120.2715, "主图书馆"),
+        ("体育馆", 31.4855, 120.2735, "综合体育馆"),
+        ("田径场", 31.4850, 120.2745, "主田径场"),
+        ("教学楼A区", 31.4842, 120.2710, "主要教学区"),
+        ("学士公寓", 31.4825, 120.2730, "学生宿舍区"),
+        ("校园超市", 31.4838, 120.2720, "综合超市"),
+        ("文浩科学馆", 31.4830, 120.2705, "讲座演出场地"),
+        ("大学生活动中心", 31.4828, 120.2728, "社团活动场地"),
+        ("蠡湖畔", 31.4820, 120.2718, "校园水域景观"),
+        ("快递服务中心", 31.4833, 120.2738, "校园快递点"),
+        ("打印文印店", 31.4847, 120.2708, "文印服务"),
     ]
-    
-    for name, lat, lng, desc in ecnu_locations:
+
+    for name, lat, lng, desc in jiangnan_locations:
         loc = Location(
             school_id=schools[0].id,
             name=name,
@@ -160,30 +203,7 @@ async def seed_locations(session: AsyncSession, schools: list):
             is_verified=True
         )
         locations.append(loc)
-    
-    # 复旦大学地点
-    fudan_locations = [
-        ("光华楼", 31.2982, 121.5035, "标志性建筑"),
-        ("食堂一楼", 31.2985, 121.5040, "主食堂"),
-        ("图书馆", 31.2980, 121.5030, "主图书馆"),
-        ("体育馆", 31.2975, 121.5025, "综合体育馆"),
-        ("教学楼B", 31.2990, 121.5045, "主要教学楼"),
-        ("学生宿舍区", 31.2995, 121.5050, "学生生活区"),
-        ("校园超市", 31.2983, 121.5038, "便利店"),
-    ]
-    
-    for name, lat, lng, desc in fudan_locations:
-        loc = Location(
-            school_id=schools[1].id,
-            name=name,
-            description=desc,
-            latitude=lat,
-            longitude=lng,
-            post_count=0,
-            is_verified=True
-        )
-        locations.append(loc)
-    
+
     session.add_all(locations)
     await session.flush()
     return locations
@@ -196,10 +216,10 @@ async def seed_posts(session: AsyncSession, users: list, schools: list, categori
     # 创建30条信息
     for i in range(30):
         user = users[i % len(users)]
-        school = schools[i % 2]
+        school = schools[0]
         category = categories[i % len(categories)]
         post_type = post_types[i % len(post_types)]
-        location = locations[i % len(locations)]
+        location = random.choice(locations)
         
         post = Post(
             user_id=user.id,
@@ -319,10 +339,10 @@ async def seed_topic_collections(session: AsyncSession, schools: list, users: li
     topic_data = [
         ("新生入学指南", "为新生提供校园生活必备信息", schools[0].id),
         ("毕业季攻略", "毕业季相关活动和信息汇总", schools[0].id),
-        ("校园美食地图", "校园周边美食推荐", schools[1].id),
-        ("学习资源汇总", "图书馆、自习室学习资源", schools[1].id),
+        ("校园美食地图", "校园周边美食推荐", schools[0].id),
+        ("学习资源汇总", "图书馆、自习室学习资源", schools[0].id),
         ("社团活动精选", "精彩社团活动合集", schools[0].id),
-        ("校园生活贴士", "校园生活实用技巧", schools[1].id),
+        ("校园生活贴士", "校园生活实用技巧", schools[0].id),
     ]
     
     for i, (title, desc, school_id) in enumerate(topic_data):
@@ -384,8 +404,9 @@ async def seed_reports(session: AsyncSession, posts: list, users: list):
 
 async def seed_data():
     """主函数：填充所有演示数据"""
-    print("开始初始化数据库...")
+    print("清空现有数据（保留表结构）...")
     await init_db()
+    print("✓ 已清空所有表数据并重置自增 ID")
     
     async with async_session_maker() as session:
         print("创建学校数据...")

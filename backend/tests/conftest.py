@@ -1,20 +1,32 @@
 import asyncio
+import os
 from typing import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from app.database import Base, get_db
 from app.main import app
 from app.models import *  # noqa: F401,F403 - ensure all models registered with Base
 from app.core.security import get_password_hash, create_access_token, create_refresh_token
 
-# Use in-memory SQLite for tests
-TEST_DATABASE_URL = "sqlite+aiosqlite://"
+# 通过 APP_ENV 环境变量切换测试数据库：
+#   - APP_ENV=opengauss: 使用 .env.opengauss 中配置的 openGauss 数据库（TRUNCATE 清理）
+#   - 其他: 使用内存 SQLite（create_all/drop_all）
+_USE_OPENGAUSS = os.environ.get("APP_ENV") == "opengauss"
 
-test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+if _USE_OPENGAUSS:
+    # openGauss: 使用 NullPool 避免连接跨事件循环复用（pytest-asyncio 默认每用例一个 loop）
+    from app.config import settings
+    test_engine = create_async_engine(settings.DATABASE_URL, echo=False, poolclass=NullPool)
+else:
+    TEST_DATABASE_URL = "sqlite+aiosqlite://"
+    test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+
 test_session_maker = async_sessionmaker(
     test_engine,
     class_=AsyncSession,
@@ -24,20 +36,54 @@ test_session_maker = async_sessionmaker(
 
 @pytest.fixture(scope="session")
 def event_loop():
-    """Create an instance of the default event loop for the test session."""
+    """Create an instance of the default event loop for the test session.
+
+    保留以兼容旧版 pytest-asyncio；新版（1.x）默认按用例创建 loop。
+    """
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
 
 
+async def _reset_opengauss_sequences(conn) -> None:
+    """显式重置所有表的自增序列。
+
+    openGauss (PGXC) 不支持 `TRUNCATE ... RESTART IDENTITY`，
+    需使用 `setval(pg_get_serial_sequence(...), 1, false)` 单独重置。
+    仅对存在 id 列的表生效。
+    """
+    for table_name in Base.metadata.tables.keys():
+        await conn.execute(
+            text(
+                f"SELECT setval(pg_get_serial_sequence('{table_name}', 'id'), "
+                f"1, false) WHERE pg_get_serial_sequence('{table_name}', 'id') IS NOT NULL"
+            )
+        )
+
+
 @pytest_asyncio.fixture(autouse=True)
 async def setup_database():
-    """Create all tables before each test and drop them after."""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    """Set up database state before each test and clean up after.
+
+    - openGauss: 使用 TRUNCATE ... CASCADE 清空所有表（保留外部创建的 schema），
+      并显式重置序列（openGauss 不支持 RESTART IDENTITY）
+    - SQLite: create_all / drop_all（内存数据库，每用例独立）
+    """
+    if _USE_OPENGAUSS:
+        table_names = ", ".join(f'"{t}"' for t in Base.metadata.tables.keys())
+        async with test_engine.begin() as conn:
+            await conn.execute(text(f"TRUNCATE {table_names} CASCADE"))
+            await _reset_opengauss_sequences(conn)
+        yield
+        async with test_engine.begin() as conn:
+            await conn.execute(text(f"TRUNCATE {table_names} CASCADE"))
+            await _reset_opengauss_sequences(conn)
+    else:
+        async with test_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        yield
+        async with test_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
 
 
 async def override_get_db() -> AsyncGenerator[AsyncSession, None]:

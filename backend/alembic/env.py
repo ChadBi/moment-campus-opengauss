@@ -13,15 +13,22 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
+import app.db_compat  # noqa: F401  应用 openGauss 兼容性补丁
 from app.config import settings
 from app.database import Base
+
+# 导入 models 包，确保所有模型类被加载并注册到 Base.metadata，
+# 否则 autogenerate 会因为 metadata 为空而生成空迁移。
+import app.models  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-# Set the sqlalchemy.url from app settings
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Set the sqlalchemy.url from app settings.
+# Escape '%' to '%%' to avoid configparser BasicInterpolation errors when the
+# URL contains percent-encoded characters (e.g. password 'Gaussdb%40123').
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -58,6 +65,9 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_as_batch=False,
+        compare_type=True,
+        compare_server_default=True,
     )
 
     with context.begin_transaction():
@@ -65,7 +75,13 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        render_as_batch=False,
+        compare_type=True,
+        compare_server_default=True,
+    )
 
     with context.begin_transaction():
         context.run_migrations()

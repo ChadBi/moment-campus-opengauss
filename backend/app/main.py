@@ -10,6 +10,7 @@ logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL, logging.INFO),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -30,6 +31,12 @@ app.add_middleware(
 
 # 路由
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+
+@app.on_event("startup")
+async def startup_event():
+    db_type = settings.DATABASE_URL.split("://")[0]
+    logger.info(f"启动 {settings.APP_NAME} | 环境: {settings.APP_ENV} | DB: {db_type}")
 
 
 @app.get("/")
