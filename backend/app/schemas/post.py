@@ -157,3 +157,25 @@ class PostListResponse(BaseModel):
     expire_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+# T-B-04: 状态流转请求
+class PostTransitionCreate(BaseModel):
+    target_status: str = Field(
+        ...,
+        pattern="^(draft|pending|published|expired|conflict|archived|pending_review)$",
+        description="目标状态：draft/pending/published/expired/conflict/archived。"
+                    "pending_review 为 pending 的别名，将被归一化",
+    )
+    reason: Optional[str] = Field(None, max_length=500, description="流转原因（可选）")
+
+
+# T-B-04: 状态流转响应
+class PostTransitionResponse(BaseModel):
+    post_id: int
+    previous_status: str
+    current_status: str
+    transitioned_at: datetime
+    transitioned_by: int
+
+    model_config = ConfigDict(from_attributes=True)

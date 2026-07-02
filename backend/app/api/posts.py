@@ -15,9 +15,15 @@ from app.models.like import Like
 from app.models.favorite import Favorite
 from app.models.user import User
 from app.models.category import Category
-from app.schemas.post import PostCreate, PostUpdate, PostResponse, PostListResponse, TagBrief
+from app.schemas.post import (
+    PostCreate, PostUpdate, PostResponse, PostListResponse, TagBrief,
+    PostTransitionCreate, PostTransitionResponse,
+)
 from app.schemas.common import PaginatedResponse
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
+from app.core.post_status import (
+    can_transition, normalize_status, get_allowed_transitions, PostStatus,
+)
 
 router = APIRouter(prefix="/posts", tags=["信息"])
 
@@ -390,3 +396,111 @@ async def delete_post(
     await db.commit()
 
     return {"message": "删除成功"}
+
+
+# ============================================================
+# T-B-04: 状态流转接口
+# ============================================================
+
+def _is_admin(user: User) -> bool:
+    """判断用户是否为管理员"""
+    return user.role == "admin"
+
+
+@router.get("/{post_id}/allowed-transitions", summary="获取可流转状态列表")
+async def get_post_allowed_transitions(
+    post_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """获取当前状态下可流转的目标状态列表（T-B-04）
+
+    普通用户与管理员返回相同的可流转集合，但实际能否流转由 transition 接口按权限校验。
+    """
+    result = await db.execute(
+        select(Post).where(Post.id == post_id, Post.is_deleted == False)
+    )
+    post = result.scalar_one_or_none()
+    if not post:
+        raise NotFoundException(detail="信息不存在")
+
+    allowed = get_allowed_transitions(post.status)
+    return {
+        "post_id": post_id,
+        "current_status": post.status,
+        "allowed_transitions": sorted(allowed),
+    }
+
+
+@router.post(
+    "/{post_id}/transition",
+    response_model=PostTransitionResponse,
+    summary="状态流转（T-B-04）",
+)
+async def transition_post_status(
+    post_id: int,
+    data: PostTransitionCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """流转信息状态（6 态状态机）
+
+    权限规则：
+    - 普通用户仅可执行：draft → pending（提交审核）、draft → archived（放弃草稿）
+    - 管理员可执行所有合法流转（审核通过/驳回/归档/过期/冲突标记等）
+    - 已归档（archived）为终态，任何人都不可流转
+
+    流转合法性由 app.core.post_status.can_transition 校验。
+    """
+    result = await db.execute(
+        select(Post).where(Post.id == post_id, Post.is_deleted == False)
+    )
+    post = result.scalar_one_or_none()
+    if not post:
+        raise NotFoundException(detail="信息不存在")
+
+    previous_status = post.status
+    target = normalize_status(data.target_status)
+
+    # 1. 校验目标状态合法性
+    if not can_transition(previous_status, target):
+        raise BadRequestException(
+            detail=f"非法状态流转：{previous_status} → {target}。"
+                   f"当前状态可流转至：{sorted(get_allowed_transitions(previous_status))}"
+        )
+
+    # 2. 权限校验
+    is_admin = _is_admin(current_user)
+    is_owner = post.user_id == current_user.id
+
+    # 普通用户仅允许：draft → pending（提交审核）、draft → archived（放弃草稿）
+    # 且仅限作者本人操作
+    user_allowed = (
+        is_owner
+        and previous_status == PostStatus.DRAFT
+        and target in {PostStatus.PENDING, PostStatus.ARCHIVED}
+    )
+    if not is_admin and not user_allowed:
+        raise ForbiddenException(
+            detail="无权限执行此状态流转。普通用户仅可将自己的草稿提交审核或归档。"
+        )
+
+    # 3. 执行流转
+    post.status = target
+    post.updated_at = datetime.now()
+
+    try:
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise BadRequestException(detail="状态流转失败，请重试")
+
+    await db.refresh(post)
+
+    return PostTransitionResponse(
+        post_id=post.id,
+        previous_status=previous_status,
+        current_status=post.status,
+        transitioned_at=post.updated_at,
+        transitioned_by=current_user.id,
+    )

@@ -49,9 +49,17 @@ class ValidationResponse(BaseModel):
 # 有效性统计响应
 class ValidationStatsResponse(BaseModel):
     post_id: int
-    valid_count: int = Field(default=0, description="有效确认数")
-    invalid_count: int = Field(default=0, description="无效确认数")
-    uncertain_count: int = Field(default=0, description="不确定确认数")
+    # 旧 3 类字段（向后兼容，对应 Post.valid_count / invalid_count）
+    valid_count: int = Field(default=0, description="有效确认数（= confirmation 计数）")
+    invalid_count: int = Field(default=0, description="无效确认数（= refutation 计数）")
+    uncertain_count: int = Field(default=0, description="不确定确认数（= update 计数）")
+    # T-B-02 新增 5 类细分计数
+    confirmation_count: int = Field(default=0, description="证实数")
+    refutation_count: int = Field(default=0, description="证伪数")
+    update_count: int = Field(default=0, description="补充更新数")
+    expiration_report_count: int = Field(default=0, description="过期上报数")
+    conflict_report_count: int = Field(default=0, description="冲突上报数")
+    total_count: int = Field(default=0, description="总验证数")
     validity_status: str = Field(default="valid", description="综合有效性状态")
     records: Optional[List[ValidationResponse]] = Field(default=None, description="确认记录列表")
 

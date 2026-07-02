@@ -19,6 +19,7 @@ from app.schemas.interaction import (
     FavoriteResponse,
     ValidationCreate,
     ValidationResponse,
+    ValidationStatsResponse,
 )
 from app.schemas.common import MessageResponse
 from app.core.exceptions import NotFoundException, BadRequestException
@@ -273,3 +274,88 @@ async def create_report(
         raise BadRequestException(detail="操作失败，请重试")
 
     return MessageResponse(message="举报已提交，我们会尽快处理")
+
+
+# ============================================================
+# T-B-04: 协同验证统计接口
+# ============================================================
+
+@router.get(
+    "/posts/{post_id}/validation-stats",
+    response_model=ValidationStatsResponse,
+    summary="获取协同验证统计（T-B-04）",
+)
+async def get_validation_stats(
+    post_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """获取帖子的协同验证统计（5 类细分计数 + 旧 3 类兼容字段）
+
+    返回字段：
+    - 旧 3 类（兼容）：valid_count / invalid_count / uncertain_count
+    - 新 5 类细分：confirmation_count / refutation_count / update_count /
+                  expiration_report_count / conflict_report_count
+    - total_count: 总验证数
+    - validity_status: 综合有效性状态（valid/invalid/uncertain）
+    """
+    # 查询帖子
+    result = await db.execute(
+        select(Post).where(Post.id == post_id, Post.is_deleted == False)
+    )
+    post = result.scalar_one_or_none()
+    if not post:
+        raise NotFoundException(detail="帖子不存在")
+
+    # 按 validation_type 分组计数
+    result = await db.execute(
+        select(
+            ValidationRecord.validation_type,
+            func.count(ValidationRecord.id).label("cnt"),
+        )
+        .where(ValidationRecord.post_id == post_id)
+        .group_by(ValidationRecord.validation_type)
+    )
+    counts_by_type = {row[0]: row[1] for row in result.all()}
+
+    # 5 类正式计数
+    confirmation_count = counts_by_type.get("confirmation", 0)
+    refutation_count = counts_by_type.get("refutation", 0)
+    update_count = counts_by_type.get("update", 0)
+    expiration_report_count = counts_by_type.get("expiration_report", 0)
+    conflict_report_count = counts_by_type.get("conflict_report", 0)
+
+    # 旧 3 类兼容字段（数据库可能存有旧值 valid/invalid/uncertain，累加到对应新类）
+    legacy_valid = counts_by_type.get("valid", 0)
+    legacy_invalid = counts_by_type.get("invalid", 0)
+    legacy_uncertain = counts_by_type.get("uncertain", 0)
+
+    valid_count = confirmation_count + legacy_valid
+    invalid_count = refutation_count + legacy_invalid
+    uncertain_count = update_count + legacy_uncertain
+
+    total = sum(counts_by_type.values())
+
+    # 综合有效性状态：以 confirmation vs refutation 比例判定
+    if valid_count > invalid_count:
+        validity_status = "valid"
+    elif invalid_count > valid_count:
+        validity_status = "invalid"
+    elif total > 0:
+        validity_status = "uncertain"
+    else:
+        validity_status = "valid"
+
+    return ValidationStatsResponse(
+        post_id=post_id,
+        valid_count=valid_count,
+        invalid_count=invalid_count,
+        uncertain_count=uncertain_count,
+        confirmation_count=confirmation_count,
+        refutation_count=refutation_count,
+        update_count=update_count,
+        expiration_report_count=expiration_report_count,
+        conflict_report_count=conflict_report_count,
+        total_count=total,
+        validity_status=validity_status,
+    )

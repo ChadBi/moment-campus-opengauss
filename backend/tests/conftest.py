@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
+from sqlalchemy import text, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -202,3 +202,48 @@ async def second_user(client: AsyncClient, test_school: dict) -> dict:
 async def second_auth_headers(second_user: dict) -> dict:
     """Return authorization headers for the second test user."""
     return {"Authorization": f"Bearer {second_user['access_token']}"}
+
+
+@pytest_asyncio.fixture
+async def admin_user(client: AsyncClient, db_session: AsyncSession, test_school: dict) -> dict:
+    """注册一名管理员用户并返回其 token。
+
+    先注册普通用户，再直接修改 role='admin' 升为管理员。
+    """
+    response = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "adminuser@example.com",
+            "nickname": "管理员",
+            "password": "adminpassword123",
+            "school_id": test_school["id"],
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    # 升为管理员
+    from app.models.user import User
+    result = await db_session.execute(
+        select(User).where(User.email == "adminuser@example.com")
+    )
+    user = result.scalar_one_or_none()
+    assert user is not None
+    user.role = "admin"
+    await db_session.commit()
+
+    return {
+        "email": "adminuser@example.com",
+        "nickname": "管理员",
+        "password": "adminpassword123",
+        "school_id": test_school["id"],
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+        "id": user.id,
+    }
+
+
+@pytest_asyncio.fixture
+async def admin_headers(admin_user: dict) -> dict:
+    """Return authorization headers for the admin user."""
+    return {"Authorization": f"Bearer {admin_user['access_token']}"}
