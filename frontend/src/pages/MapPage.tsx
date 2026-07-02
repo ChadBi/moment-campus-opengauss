@@ -37,8 +37,8 @@ const CATEGORY_NAMES: Record<number, string> = {
   12: '其他',
 };
 
-const DEFAULT_CENTER: [number, number] = [121.408, 31.2297]; // 华东师范大学 [lng, lat]
-const DEFAULT_ZOOM = 15;
+const DEFAULT_CENTER: [number, number] = [120.271166, 31.483706]; // 江南大学蠡湖校区 [lng, lat]
+const DEFAULT_ZOOM = 16;
 
 const MapPage: React.FC = () => {
   const navigate = useNavigate();

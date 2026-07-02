@@ -171,7 +171,7 @@ const PublishPage: React.FC = () => {
               type="number"
               value={formData.location_lat}
               onChange={handleChange}
-              placeholder="例如：31.2297"
+              placeholder="例如：31.4837"
               step="0.0001"
             />
             <Input
@@ -180,7 +180,7 @@ const PublishPage: React.FC = () => {
               type="number"
               value={formData.location_lng}
               onChange={handleChange}
-              placeholder="例如：121.4075"
+              placeholder="例如：120.2712"
               step="0.0001"
             />
           </div>
