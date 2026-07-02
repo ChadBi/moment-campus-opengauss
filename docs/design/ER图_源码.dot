@@ -1,0 +1,70 @@
+digraph ERDiagram {
+  rankdir=LR;
+  fontname="Microsoft YaHei";
+  fontsize=20;
+  label="此刻校园 - 数据库 E-R 图（21 实体 + 35 联系）";
+  labelloc="t";
+  bgcolor="#FAFAFA";
+  node [fontname="Consolas", fontsize=10];
+  edge [fontname="Microsoft YaHei", fontsize=9];
+
+  // ===== 实体节点定义 =====
+  schools [shape=record, style=filled, fillcolor="#E2EFDA", label="{schools (学校表)\l    PK id: BIGINT\l    name: VARCHAR(100)\l    code: VARCHAR(20)\l    logo_url: VARCHAR(500)\l    province: VARCHAR(50)\l    city: VARCHAR(50)\l    address: VARCHAR(255)\l    center_lat: NUMERIC(10,7)\l    center_lng: NUMERIC(10,7)\l    map_zoom: INTEGER\l    is_active: BOOLEAN\l    created_at: TIMESTAMP\l    updated_at: TIMESTAMP\l}"];
+  users [shape=record, style=filled, fillcolor="#DEEBF7", label="{users (用户表)\l    PK id: BIGINT\l    email: VARCHAR(255)\l    nickname: VARCHAR(50)\l    password_hash: VARCHAR(255)\l    avatar_url: VARCHAR(500)\l    FK school_id: BIGINT\l    role: VARCHAR(20)\l    bio: VARCHAR(500)\l    is_active: BOOLEAN\l    last_login_at: TIMESTAMP\l    created_at: TIMESTAMP\l    updated_at: TIMESTAMP\l    is_deleted: BOOLEAN\l    deleted_at: TIMESTAMP\l}"];
+  categories [shape=record, style=filled, fillcolor="#E2EFDA", label="{categories (分类表)\l    PK id: BIGINT\l    name: VARCHAR(50)\l    code: VARCHAR(30)\l    icon: VARCHAR(10)\l    description: VARCHAR(200)\l    default_validity_days: INTEGER\l    sort_order: INTEGER\l    is_active: BOOLEAN\l    created_at: TIMESTAMP\l    updated_at: TIMESTAMP\l}"];
+  post_types [shape=record, style=filled, fillcolor="#E2EFDA", label="{post_types (信息类型表)\l    PK id: BIGINT\l    name: VARCHAR(50)\l    code: VARCHAR(30)\l    description: VARCHAR(200)\l    sort_order: INTEGER\l    is_active: BOOLEAN\l    created_at: TIMESTAMP\l    updated_at: TIMESTAMP\l}"];
+  tags [shape=record, style=filled, fillcolor="#E2EFDA", label="{tags (标签表)\l    PK id: BIGINT\l    name: VARCHAR(50)\l    slug: VARCHAR(60)\l    usage_count: INTEGER\l    is_official: BOOLEAN\l    created_at: TIMESTAMP\l    updated_at: TIMESTAMP\l    is_deleted: BOOLEAN\l    deleted_at: TIMESTAMP\l}"];
+  locations [shape=record, style=filled, fillcolor="#E2EFDA", label="{locations (地点表)\l    PK id: BIGINT\l    FK school_id: BIGINT\l    name: VARCHAR(100)\l    description: VARCHAR(500)\l    latitude: NUMERIC(10,7)\l    longitude: NUMERIC(10,7)\l    floor: VARCHAR(10)\l    building: VARCHAR(100)\l    post_count: INTEGER\l    is_verified: BOOLEAN\l    created_at: TIMESTAMP\l    updated_at: TIMESTAMP\l    is_deleted: BOOLEAN\l    deleted_at: TIMESTAMP\l}"];
+  posts [shape=record, style=filled, fillcolor="#DEEBF7", label="{posts (信息表)\l    PK id: BIGINT\l    FK user_id: BIGINT\l    FK school_id: BIGINT\l    FK category_id: BIGINT\l    FK post_type_id: BIGINT\l    FK location_id: BIGINT\l    title: VARCHAR(200)\l    content: TEXT\l    is_anonymous: BOOLEAN\l    status: VARCHAR(20)\l    view_count: INTEGER\l    like_count: INTEGER\l    comment_count: INTEGER\l    favorite_count: INTEGER\l    valid_count: INTEGER\l    invalid_count: INTEGER\l    expire_at: TIMESTAMP\l    activity_start_at: TIMESTAMP\l    activity_end_at: TIMESTAMP\l    lost_type: VARCHAR(10)\l    contact_info: VARCHAR(255)\l    is_top: BOOLEAN\l    is_recommend: BOOLEAN\l    created_at: TIMESTAMP\l    updated_at: TIMESTAMP\l    is_deleted: BOOLEAN\l    deleted_at: TIMESTAMP\l}"];
+  post_tags [shape=record, style=filled, fillcolor="#FCE4D6", label="{post_tags (信息标签关联表)\l    PK id: BIGINT\l    FK post_id: BIGINT\l    FK tag_id: BIGINT\l    created_at: TIMESTAMP\l}"];
+  post_images [shape=record, style=filled, fillcolor="#FCE4D6", label="{post_images (信息图片表)\l    PK id: BIGINT\l    FK post_id: BIGINT\l    image_url: VARCHAR(500)\l    thumbnail_url: VARCHAR(500)\l    sort_order: INTEGER\l    file_size: INTEGER\l    width: INTEGER\l    height: INTEGER\l    created_at: TIMESTAMP\l    is_deleted: BOOLEAN\l    deleted_at: TIMESTAMP\l}"];
+  comments [shape=record, style=filled, fillcolor="#FFF2CC", label="{comments (评论表)\l    PK id: BIGINT\l    FK post_id: BIGINT\l    FK user_id: BIGINT\l    FK parent_id: BIGINT\l    FK reply_to_user_id: BIGINT\l    content: TEXT\l    like_count: INTEGER\l    status: VARCHAR(20)\l    created_at: TIMESTAMP\l    updated_at: TIMESTAMP\l    is_deleted: BOOLEAN\l    deleted_at: TIMESTAMP\l}"];
+  likes [shape=record, style=filled, fillcolor="#FFF2CC", label="{likes (点赞表)\l    PK id: BIGINT\l    FK post_id: BIGINT\l    FK user_id: BIGINT\l    created_at: TIMESTAMP\l}"];
+  favorites [shape=record, style=filled, fillcolor="#FFF2CC", label="{favorites (收藏表)\l    PK id: BIGINT\l    FK post_id: BIGINT\l    FK user_id: BIGINT\l    created_at: TIMESTAMP\l}"];
+  validation_records [shape=record, style=filled, fillcolor="#FBE4E4", label="{validation_records (协同验证记录表)\l    PK id: BIGINT\l    FK post_id: BIGINT\l    FK user_id: BIGINT\l    validation_type: VARCHAR(30)\l    comment: VARCHAR(500)\l    created_at: TIMESTAMP\l}"];
+  reports [shape=record, style=filled, fillcolor="#FBE4E4", label="{reports (举报表)\l    PK id: BIGINT\l    FK post_id: BIGINT\l    FK comment_id: BIGINT\l    FK reporter_id: BIGINT\l    report_type: VARCHAR(30)\l    description: TEXT\l    status: VARCHAR(20)\l    FK handler_id: BIGINT\l    handle_result: TEXT\l    handled_at: TIMESTAMP\l    created_at: TIMESTAMP\l    updated_at: TIMESTAMP\l}"];
+  notifications [shape=record, style=filled, fillcolor="#FBE4E4", label="{notifications (通知表)\l    PK id: BIGINT\l    FK user_id: BIGINT\l    type: VARCHAR(30)\l    title: VARCHAR(200)\l    content: VARCHAR(500)\l    target_type: VARCHAR(50)\l    target_id: BIGINT\l    FK actor_id: BIGINT\l    is_read: BOOLEAN\l    read_at: TIMESTAMP\l    created_at: TIMESTAMP\l    is_deleted: BOOLEAN\l    deleted_at: TIMESTAMP\l}"];
+  topic_collections [shape=record, style=filled, fillcolor="#DEEBF7", label="{topic_collections (专题合集表)\l    PK id: BIGINT\l    title: VARCHAR(200)\l    description: TEXT\l    cover_url: VARCHAR(500)\l    FK school_id: BIGINT\l    FK creator_id: BIGINT\l    post_count: INTEGER\l    view_count: INTEGER\l    status: VARCHAR(20)\l    sort_order: INTEGER\l    published_at: TIMESTAMP\l    created_at: TIMESTAMP\l    updated_at: TIMESTAMP\l    is_deleted: BOOLEAN\l    deleted_at: TIMESTAMP\l}"];
+  topic_collection_posts [shape=record, style=filled, fillcolor="#FCE4D6", label="{topic_collection_posts (专题信息关联表)\l    PK id: BIGINT\l    FK topic_collection_id: BIGINT\l    FK post_id: BIGINT\l    sort_order: INTEGER\l    created_at: TIMESTAMP\l}"];
+  drafts [shape=record, style=filled, fillcolor="#FFF2CC", label="{drafts (草稿表)\l    PK id: BIGINT\l    FK user_id: BIGINT\l    title: VARCHAR(200)\l    content: TEXT\l    FK category_id: BIGINT\l    FK post_type_id: BIGINT\l    FK location_id: BIGINT\l    is_anonymous: BOOLEAN\l    extra_data: TEXT\l    created_at: TIMESTAMP\l    updated_at: TIMESTAMP\l    is_deleted: BOOLEAN\l    deleted_at: TIMESTAMP\l}"];
+  browse_histories [shape=record, style=filled, fillcolor="#FFF2CC", label="{browse_histories (浏览历史表)\l    PK id: BIGINT\l    FK user_id: BIGINT\l    FK post_id: BIGINT\l    created_at: TIMESTAMP\l}"];
+  search_histories [shape=record, style=filled, fillcolor="#FFF2CC", label="{search_histories (搜索历史表)\l    PK id: BIGINT\l    FK user_id: BIGINT\l    keyword: VARCHAR(200)\l    result_count: INTEGER\l    created_at: TIMESTAMP\l}"];
+  admin_operation_logs [shape=record, style=filled, fillcolor="#E4DFF0", label="{admin_operation_logs (管理员操作日志表)\l    PK id: BIGINT\l    FK admin_id: BIGINT\l    action: VARCHAR(50)\l    target_type: VARCHAR(50)\l    target_id: BIGINT\l    detail: TEXT\l    ip_address: VARCHAR(45)\l    user_agent: VARCHAR(500)\l    created_at: TIMESTAMP\l}"];
+
+  // ===== 关系定义 =====
+  schools -> users [arrowtail=tee, arrowhead=crow, dir=both, label="归属"];
+  schools -> posts [arrowtail=tee, arrowhead=crow, dir=both, label="发布于"];
+  schools -> locations [arrowtail=tee, arrowhead=crow, dir=both, label="拥有"];
+  schools -> topic_collections [arrowtail=tee, arrowhead=crow, dir=both, label="属于"];
+  users -> posts [arrowtail=tee, arrowhead=crow, dir=both, label="发布"];
+  categories -> posts [arrowtail=tee, arrowhead=crow, dir=both, label="分类"];
+  post_types -> posts [arrowtail=tee, arrowhead=crow, dir=both, label="类型"];
+  locations -> posts [arrowtail=tee, arrowhead=crow, dir=both, label="位于"];
+  posts -> post_images [arrowtail=tee, arrowhead=crow, dir=both, label="含图"];
+  posts -> tags [arrowtail=crow, arrowhead=crow, dir=both, label="标签"];
+  posts -> comments [arrowtail=tee, arrowhead=crow, dir=both, label="评论"];
+  posts -> likes [arrowtail=tee, arrowhead=crow, dir=both, label="点赞"];
+  posts -> favorites [arrowtail=tee, arrowhead=crow, dir=both, label="收藏"];
+  posts -> validation_records [arrowtail=tee, arrowhead=crow, dir=both, label="验证"];
+  posts -> reports [arrowtail=tee, arrowhead=crow, dir=both, label="被举报"];
+  posts -> browse_histories [arrowtail=tee, arrowhead=crow, dir=both, label="被浏览"];
+  posts -> topic_collections [arrowtail=crow, arrowhead=crow, dir=both, label="收录于"];
+  users -> comments [arrowtail=tee, arrowhead=crow, dir=both, label="评论"];
+  users -> likes [arrowtail=tee, arrowhead=crow, dir=both, label="点赞"];
+  users -> favorites [arrowtail=tee, arrowhead=crow, dir=both, label="收藏"];
+  users -> validation_records [arrowtail=tee, arrowhead=crow, dir=both, label="验证"];
+  users -> reports [arrowtail=tee, arrowhead=crow, dir=both, label="举报"];
+  users -> reports [arrowtail=tee, arrowhead=crow, dir=both, label="处理"];
+  users -> notifications [arrowtail=tee, arrowhead=crow, dir=both, label="接收"];
+  users -> notifications [arrowtail=tee, arrowhead=crow, dir=both, label="触发"];
+  users -> drafts [arrowtail=tee, arrowhead=crow, dir=both, label="草稿"];
+  users -> browse_histories [arrowtail=tee, arrowhead=crow, dir=both, label="浏览"];
+  users -> search_histories [arrowtail=tee, arrowhead=crow, dir=both, label="搜索"];
+  users -> admin_operation_logs [arrowtail=tee, arrowhead=crow, dir=both, label="操作"];
+  users -> topic_collections [arrowtail=tee, arrowhead=crow, dir=both, label="创建"];
+  comments -> comments [arrowtail=tee, arrowhead=crow, dir=both, label="回复"];
+  comments -> reports [arrowtail=tee, arrowhead=crow, dir=both, label="被举报"];
+  categories -> drafts [arrowtail=tee, arrowhead=crow, dir=both, label="草稿分类"];
+  post_types -> drafts [arrowtail=tee, arrowhead=crow, dir=both, label="草稿类型"];
+  locations -> drafts [arrowtail=tee, arrowhead=crow, dir=both, label="草稿地点"];
+}

@@ -1,0 +1,390 @@
+# Base 项目与目标项目差异说明
+
+> 文档版本：1.0
+> 编写日期：2026-06-29
+> 主要依据：[`docs/"此刻校园"项目初步方案说明`](file:///d:/Project/database-class/moment-campus/docs/%22此刻校园%22项目初步方案说明)（694 行项目调整方案）+ 仓库实际代码
+
+---
+
+## 1. 两个项目的概念定义
+
+### 1.1 Base 项目（当前仓库已实现的版本）
+
+- **定义**：原始方案中的"校园地图信息共享平台"
+- **特征**：用户在地图上发布和浏览校园信息，按位置、时间、分类、标签组织
+- **本质**：地图版校园论坛，信息以"帖子"为核心，操作以"发布/查看/评论/点赞/收藏"为主
+- **代码位置**：当前仓库 `backend/` + `frontend/`
+- **数据库**：SQLite（`sqlite+aiosqlite:///./dev.db`）
+
+依据：[`docs/"此刻校园"项目初步方案说明`](file:///d:/Project/database-class/moment-campus/docs/%22此刻校园%22项目初步方案说明) 第 3 节"原始项目方案"
+
+### 1.2 目标项目（待改造的版本）
+
+- **课程设计暂定题目**：**基于 openGauss 的"此刻校园"时空信息图谱与可信协同平台设计与实现**
+- **定义**：校园时空信息图谱与可信协同平台
+- **特征**：记录校园信息从产生、验证、变化、冲突到失效的完整过程
+- **本质**：由校园成员共同维护的实时校园状态数据库
+- **关键改造**：
+  1. 数据库切换为 openGauss
+  2. 业务模型升级（信息生命周期、协同验证、可信度、版本、冲突、时间轴等）
+- **基础**：在 Base 项目代码上演进，**不重新创建新项目**
+
+依据：[`docs/"此刻校园"项目初步方案说明`](file:///d:/Project/database-class/moment-campus/docs/%22此刻校园%22项目初步方案说明) 第 1.1 节、第 5 节、第 6 节、第 14 节
+
+---
+
+## 2. 产品定位的变化
+
+| 维度 | Base 项目 | 目标项目 | 变化性质 |
+| ---- | --------- | ---- | -------- |
+| 项目定位 | 校园地图信息共享平台 | 校园时空信息图谱与可信协同平台 | **重新定位** |
+| 核心数据 | 用户发布的帖子 | 与地点和时间相关的校园状态 | **本质变化** |
+| 地图作用 | 展示信息位置 | 展示校园实时状态及历史状态 | **职责扩展** |
+| 信息时效 | 主要记录发布时间 | 记录生效、过期和失效时间 | **新增维度** |
+| 用户互动 | 点赞、评论、收藏 | 确认、反对、纠错、补充、订阅 | **行为重塑** |
+| 信息修改 | 直接修改原内容 | 保留完整历史版本 | **新增版本链** |
+| 信息失效 | 用户/管理员删除 | 自动衰减并进入失效状态 | **自动化** |
+| 信息冲突 | 依靠评论讨论 | 系统识别并标记冲突 | **新增检测** |
+| 信息可信度 | 无明确判断 | 根据验证和时间动态计算 | **新增指标** |
+| 历史查询 | 只能查看旧帖子 | 可还原历史时间点的校园状态 | **新增时间轴** |
+| 数据库作用 | 存储业务数据 | 参与状态流转、验证、追溯与统计 | **职责扩展** |
+| 项目特点 | 地图版校园论坛 | 共同维护的校园实时状态数据库 | **重新定义** |
+
+依据：[`docs/"此刻校园"项目初步方案说明`](file:///d:/Project/database-class/moment-campus/docs/%22此刻校园%22项目初步方案说明) 第 10 节"调整前后的对比"
+
+---
+
+## 3. Base 项目存在的问题（目标项目要解决的）
+
+依据 [`docs/"此刻校园"项目初步方案说明`](file:///d:/Project/database-class/moment-campus/docs/%22此刻校园%22项目初步方案说明) 第 4 节，Base 项目方案存在以下不足：
+
+| # | 问题 | 详细说明 | 目标项目解决方式 |
+| -- | ---- | -------- | ---------------- |
+| 4.1 | 信息仍以普通帖子为核心 | 操作仍是发布/查看/修改/删除/评论/收藏，与普通论坛区别不明显 | 改为发布"校园状态"，包含地点、类型、当前状态、生效时间、预计失效时间、可信度等 |
+| 4.2 | 地图可能只是展示工具 | 若仅把帖子放在坐标上，地图只是界面而非核心业务结构 | 地图需展示实时校园状态，并支持历史状态回放 |
+| 4.3 | 缺乏信息时效性管理 | 只记录发布时间，无法管理生效/失效/可信度衰减 | 引入生效时间、预计失效时间、自动过期机制 |
+| 4.4 | 缺乏协同验证机制 | 点赞不能真正代表"信息准确" | 区分"喜欢/已确认/已失效/有错误/补充新情况"等验证类型 |
+| 4.5 | 缺乏历史追溯 | 直接修改原记录会覆盖过去 | 引入版本管理，每次修改生成新版本 |
+
+---
+
+## 4. 改造范围总览（按模块）
+
+下表是后续所有改造工作的索引，每行对应一个改造方向。"改造方式"列说明具体动作；"优先级"按课程设计交付需求确定。
+
+| 模块 | Base 项目现状 | 目标状态 | 改造方式 | 优先级 |
+| -- | --------- | ---- | ---- | --- |
+| **数据库引擎** | SQLite（aiosqlite） | openGauss 7.0.0-RC3（轻量版） | 切换驱动、修复类型不一致、重建初始化脚本 | **P0** |
+| **主键/外键类型** | PK=Integer，FK=BigInteger（不一致） | PK 与 FK 统一为 BigInteger | 全量修改 21 个模型 + 重建迁移 | **P0** |
+| **数据库初始化** | `Base.metadata.create_all`（在 `seed_data.py`） | Alembic 迁移脚本完整建表 | 重写初始迁移、补充版本管理 | **P0** |
+| **Post 实体** | 缺少生命周期、可信度、版本字段 | 增加 status_state、credibility_score、effective_at、version 等字段 | 扩展模型 + 新增相关实体 | **P0** |
+| **信息状态流转** | 只有 status=pending/published | 6 态：待验证/当前有效/存在争议/可能过期/已失效/已撤销 | 新增状态机 + 自动过期任务 | **P0** |
+| **协同验证** | ValidationRecord 仅记录 valid/invalid/uncertain | 区分确认/反对/纠错/补充/证据 5 类，影响可信度 | 重构 ValidationRecord + 新增 Evidence 模型 | **P0** |
+| **可信度计算** | 仅 valid_count/invalid_count 计数 | 动态分（基础分 + 确认加分 + 反对减分 + 时间衰减 + 信誉加权） | 新增 CredibilityLog + 计算服务 | **P1** |
+| **自动过期** | expire_at 字段存在但无处理逻辑 | 临近过期标记"可能过期"，超时未确认转"已失效" | 定时任务 + 状态流转 | **P1** |
+| **冲突检测** | 无 | 同地点+同类别+时间重叠识别矛盾信息 | 新增 ConflictDetection 服务 + ConflictRecord 模型 | **P1** |
+| **版本管理** | 修改直接覆盖 | 每次修改生成新版本，保留完整版本链 | 新增 PostVersion 模型 + 修改接口改造 | **P1** |
+| **时间轴回放** | 无 | 历史时间点校园状态查询 | 新增 Timeline API + 前端时间轴页面 | **P2** |
+| **地点订阅** | 仅 Favorite 收藏 | 地点/分类订阅 + 变化通知 | 新增 Subscription 模型 + 通知触发 | **P1** |
+| **用户信誉** | 无 | 用户信誉分管理（基于历史贡献） | User 模型扩展 + 信誉计算服务 | **P1** |
+| **管理员裁定** | 仅 approve/reject | 增加冲突裁定、共同修正 | 管理后台扩展 | **P2** |
+| **Service 层** | 无独立 Service 层 | 抽取业务逻辑到 services/ | 重构路由函数 | **P1** |
+| **前端地图** | 显示标记 | 显示实时校园状态 + 历史回放 | MapPage 改造 | **P1** |
+| **前端信息详情** | 显示帖子内容 | 显示状态、可信度、验证统计、版本历史 | PostDetailPage 改造 | **P0** |
+| **前端发布页** | 发布普通帖子 | 发布"校园状态"（含生效/失效时间） | PublishPage 改造 | **P0** |
+| **前端新增页面** | 无 | 时间轴页、地点订阅页、可信度详情页、版本历史页 | 新增页面 | **P2** |
+| **Docker 部署** | 仅 openGauss 服务 | openGauss + 后端 + 前端三服务编排 | 扩展 docker-compose.yml | **P1** |
+
+---
+
+## 5. 数据库层面的变化
+
+### 5.1 引擎切换
+
+| 项 | Base | 目标 |
+| -- | ---- | ---- |
+| DBMS | SQLite | openGauss 7.0.0-RC3 轻量版 |
+| 驱动 | aiosqlite | 待验证：asyncpg 或 psycopg2（详见 openGauss 适配分析文档） |
+| 连接 URL | `sqlite+aiosqlite:///./dev.db` | `postgresql+asyncpg://gaussdb:Gaussdb@123@localhost:5432/moment_campus`（待验证） |
+| 部署方式 | 本地文件 | Docker 容器（已有 `docker-compose.yml`） |
+
+### 5.2 模型变化
+
+#### 5.2.1 现有模型需扩展的字段（示例）
+
+| 模型 | 需新增字段 | 用途 |
+| ---- | ---------- | ---- |
+| Post | `status_state`（状态机字段） | 替代或细化现有 `status`，支持 6 态流转 |
+| Post | `credibility_score`（Numeric） | 动态可信度分数 |
+| Post | `effective_at`（DateTime） | 信息生效时间（区别于 created_at） |
+| Post | `current_version`（Integer） | 当前版本号 |
+| Post | `last_confirmed_at`（DateTime） | 最近一次确认时间 |
+| User | `reputation_score`（Numeric） | 用户信誉分 |
+| User | `reputation_level`（String） | 信誉等级 |
+| ValidationRecord | `validation_type` 扩展枚举 | valid/invalid/uncertain → confirmed/changed/inaccurate/supplement/evidence |
+| ValidationRecord | `evidence_url`（String） | 现场证据图片 URL |
+| Category | `auto_expire_policy`（String） | 自动过期策略 |
+
+#### 5.2.2 需新增的实体
+
+| 新模型 | 表名（建议） | 用途 |
+| ------ | ----------- | ---- |
+| PostVersion | post_versions | 信息版本历史（版本号、修改前后内容、修改人、修改原因） |
+| ConflictRecord | conflict_records | 冲突信息记录（涉及的两条 Post、状态、裁定结果） |
+| Subscription | subscriptions | 地点/分类订阅 |
+| CredibilityLog | credibility_logs | 可信度变化日志（每次变动的原因、加减分） |
+| StateTransitionLog | state_transition_logs | 状态流转日志（从→到、触发原因、操作人） |
+| UserReputationLog | user_reputation_logs | 用户信誉变化日志 |
+| Evidence | evidences | 现场证据（图片、描述、提交人、关联 Post） |
+
+### 5.3 SQL 兼容性改造
+
+详见 [20_openGauss适配分析.md](file:///d:/Project/database-class/moment-campus/docs/20_openGauss适配分析.md)。本节仅列差异：
+
+| 项 | Base | 目标 |
+| -- | ---- | ---- |
+| 主键类型 | Integer | BigInteger（与外键统一） |
+| 外键类型 | BigInteger | BigInteger（保持） |
+| 自增 | SQLite 隐式 | openGauss SERIAL/IDENTITY（SQLAlchemy 自动处理） |
+| `ilike` 模糊匹配 | SQLite 模拟（ASCII 不区分大小写） | openGauss 原生支持 ILIKE |
+| Boolean | SQLite 0/1 | openGauss 真 BOOLEAN |
+| 时间默认值 | Python 端 `datetime.now` | 保持 Python 端（无 SQL 端函数） |
+| 事务隔离 | SQLite 隐式 | openGauss 支持 READ COMMITTED / REPEATABLE READ |
+| 触发器/视图 | 无 | 目标项目可引入（用于状态流转、可信度计算等，体现数据库课设要点） |
+
+---
+
+## 6. 后端业务和权限模型的变化
+
+### 6.1 权限模型扩展
+
+| Base | 目标 |
+| ---- | ---- |
+| 用户角色：`user`、`admin` | 增加 `location_maintainer`（地点维护者） |
+| 权限：注册/登录/发帖/评论/管理 | 增加地点维护、协同验证、信誉加权、版本回滚等权限 |
+
+依据：[`docs/"此刻校园"项目初步方案说明`](file:///d:/Project/database-class/moment-campus/docs/%22此刻校园%22项目初步方案说明) 第 11.1 节"用户与权限管理"
+
+### 6.2 业务模型扩展
+
+| 业务 | Base 实现 | 目标改造 |
+| ---- | --------- | -------- |
+| 信息发布 | 直接创建 Post，status=pending | 创建 Post 时初始化状态机为"待验证"，初始化可信度 50 分，记录 effective_at |
+| 信息修改 | 直接覆盖原字段 | 创建 PostVersion 记录原内容，更新 current_version |
+| 信息删除 | 软删除（is_deleted=True） | 状态转为"已撤销"，保留版本链 |
+| 用户验证 | ValidationRecord 类型固定 | 5 类验证，每类对可信度有不同影响 |
+| 信息冲突 | 无 | 发布时检查同地点+同类别+时间重叠，自动创建 ConflictRecord |
+| 信息过期 | 无处理 | 定时任务扫描 expire_at，临近标记"可能过期"，超时转"已失效" |
+| 信息查询 | 按 created_at 排序 | 按可信度×时间×距离综合排序 |
+| 通知 | 评论/点赞通知 | 增加订阅变化通知、冲突通知、状态变化通知 |
+
+### 6.3 新增业务模块
+
+| 模块 | 主要职责 |
+| ---- | -------- |
+| 状态机服务 | 管理 Post 的 6 态流转，校验合法转移 |
+| 可信度服务 | 监听验证事件，更新 credibility_score，写入 CredibilityLog |
+| 冲突检测服务 | 发布/修改时检测冲突，创建 ConflictRecord |
+| 过期调度服务 | 定时扫描过期 Post，触发状态流转 |
+| 版本管理服务 | 修改时创建 PostVersion，支持版本回滚与差异查看 |
+| 订阅通知服务 | 监听地点/分类变化，生成通知 |
+| 信誉计算服务 | 根据用户历史贡献计算 reputation_score |
+
+---
+
+## 7. 页面和交互的变化
+
+### 7.1 现有页面改造
+
+| 页面 | Base 实现 | 目标改造 |
+| ---- | --------- | -------- |
+| HomePage | 信息流列表（卡片） | 信息流卡片增加状态徽标、可信度条、最近确认时间 |
+| MapPage | 静态标记 | 标记颜色反映状态（有效/争议/过期），点击查看状态详情；增加"历史回放"控件 |
+| SearchPage | 关键词+筛选 | 增加按状态、可信度范围筛选 |
+| PostDetailPage | 内容+评论+互动 | 增加状态时间轴、可信度详情、验证统计、版本历史、冲突提示 |
+| PublishPage | 标题+内容+图片+标签 | 增加"状态类型"选择、生效时间、预计失效时间、证据上传 |
+| ProfilePage | 个人资料+发布+收藏 | 增加我的验证、信誉分、我的订阅 |
+| AdminReviewPage | 待审核列表 | 增加冲突裁定、状态强制流转、版本回滚 |
+| NotificationsPage | 评论/点赞通知 | 增加订阅通知、冲突通知、过期通知 |
+
+### 7.2 新增页面
+
+| 页面 | 路由（建议） | 用途 |
+| ---- | ----------- | ---- |
+| 校园时间轴 | `/timeline` | 选择历史时间点，查看当时校园状态 |
+| 信息版本历史 | `/posts/:id/versions` | 查看某条信息的版本演化 |
+| 地点订阅中心 | `/subscriptions` | 管理地点/分类订阅 |
+| 冲突信息列表 | `/conflicts` | 查看所有冲突信息（管理员） |
+| 用户信誉详情 | `/users/:id/reputation` | 查看用户信誉变化历史 |
+
+---
+
+## 8. 哪些原有功能可以保留
+
+依据 [`docs/"此刻校园"项目初步方案说明`](file:///d:/Project/database-class/moment-campus/docs/%22此刻校园%22项目初步方案说明) 第 8 节"保留的原有内容"：
+
+### 8.1 完全保留（无需修改）
+
+- 项目名称"此刻校园"
+- 面向校园生活的应用场景
+- 校园成员共同维护信息的理念
+- 信息开放共享原则
+- 视觉风格（清新校园风、温暖手绘感、地图作为视觉主体、浅绿/浅蓝/米白/暖黄色、卡片式信息展示）
+- 现有 12 个信息分类（校园美食、校园动物、打印服务、校园活动、学习资源、生活服务、校园交通、校园设施、活动场地、失物招领、校园兼职、其他）
+- JWT 认证链路
+- 文件上传能力
+- 响应式布局骨架
+
+### 8.2 保留但需扩展
+
+- 地图首页（保留，但需支持状态展示与历史回放）
+- 地图与列表切换（保留交互模式）
+- 地点详情页（保留，增加状态展示）
+- 信息发布页（保留，增加状态字段）
+- 用户个人中心（保留，增加信誉模块）
+- 分类筛选（保留）
+- 关键词搜索（保留，扩展筛选维度）
+- 校园动态页（保留，扩展为状态变化流）
+- 管理员后台（保留，增加冲突裁定）
+
+### 8.3 现有代码资产保留清单
+
+| 代码资产 | 保留方式 |
+| -------- | -------- |
+| `backend/app/core/security.py` | 直接复用 |
+| `backend/app/core/exceptions.py` | 直接复用 |
+| `backend/app/middleware.py` | 直接复用 |
+| `backend/app/dependencies.py` | 直接复用，可扩展 `get_current_location_maintainer` |
+| `backend/app/database.py` | 改造（切换驱动） |
+| `backend/app/config.py` | 改造（增加 openGauss 配置项） |
+| 21 个现有模型 | 扩展（增加字段、新增关联） |
+| `frontend/src/components/layout/*` | 直接复用 |
+| `frontend/src/components/ui/*` | 直接复用 |
+| `frontend/src/services/api.ts` | 直接复用 |
+| `frontend/src/store/useAuthStore.ts` | 直接复用 |
+| `frontend/src/store/useUIStore.ts` | 直接复用 |
+| `frontend/src/routes.tsx` | 扩展（增加新路由） |
+
+---
+
+## 9. 哪些功能需要重构
+
+| 模块 | 重构原因 | 重构方式 |
+| ---- | -------- | -------- |
+| `backend/app/api/posts.py` create_post | 需初始化状态机、可信度、版本 | 抽取到 `services/post_service.py` |
+| `backend/app/api/posts.py` update_post | 需创建版本记录而非覆盖 | 抽取到 `services/post_service.py` + `services/version_service.py` |
+| `backend/app/api/search.py` | N+1 查询、性能差 | 重写为 JOIN 查询，抽取到 `services/search_service.py` |
+| `backend/app/api/interactions.py` validate | 验证类型扩展、影响可信度 | 抽取到 `services/validation_service.py` |
+| `backend/app/api/map.py` | 仅返回标记，需反映状态 | 改造查询，关联状态字段 |
+| `backend/app/api/admin.py` | 增加冲突裁定、版本回滚 | 扩展接口 |
+| `backend/alembic/versions/82978de89068_*.py` | 空迁移 | 完全重写 |
+| `frontend/src/pages/PublishPage.tsx` | 增加状态字段 | 扩展表单 |
+| `frontend/src/pages/PostDetailPage.tsx` | 增加状态/版本/可信度展示 | 扩展页面 |
+| `frontend/src/pages/MapPage.tsx` | 增加状态着色与历史回放 | 扩展页面 |
+
+---
+
+## 10. 哪些内容暂时不做
+
+依据 [`docs/"此刻校园"项目初步方案说明`](file:///d:/Project/database-class/moment-campus/docs/%22此刻校园%22项目初步方案说明) 第 9 节"弱化或暂缓的功能"：
+
+| # | 暂不实现的功能 | 原因 |
+| -- | -------------- | ---- |
+| 10.1 | 实时聊天 | 与数据库课设重点关系不大，通过评论与信息补充替代 |
+| 10.2 | 复杂导航算法 | 地图仅展示位置和基本路线，不替代专业地图软件 |
+| 10.3 | 复杂推荐算法 | 首期按地点热度、可信度、收藏数简单排序即可 |
+| 10.4 | 接入真实传感器 | 校园状态由用户发布与协同验证产生，不接 IoT |
+| 10.5 | 多端同步开发 | 优先 Web 端，不做小程序/App/桌面客户端 |
+| 10.6 | 多学校切换 | 第一版仅支持单校（与 Base 项目一致） |
+| 10.7 | 校园实名认证 | 与 Base 项目边界一致 |
+| 10.8 | PWA 离线能力 | 与 Base 项目边界一致 |
+| 10.9 | AI 语义搜索 | 规划但不在课设范围 |
+
+---
+
+## 11. 改造优先级与建议顺序
+
+### 11.1 P0（必须完成，否则无法交付课程设计）
+
+1. 数据库切换到 openGauss（详见 [20_openGauss适配分析.md](file:///d:/Project/database-class/moment-campus/docs/20_openGauss适配分析.md)）
+2. 修复主键/外键类型不一致
+3. 重写 Alembic 初始迁移
+4. Post 状态机字段扩展 + 6 态流转
+5. 协同验证类型扩展（5 类）
+6. 前端信息详情页展示状态与验证统计
+7. 前端发布页支持状态字段
+
+### 11.2 P1（核心创新点，体现课设深度）
+
+1. 动态可信度计算
+2. 自动过期机制
+3. 冲突检测
+4. 信息版本管理
+5. 地点订阅与变化通知
+6. 用户信誉分
+7. Service 层抽取
+8. Docker 三服务编排
+9. 前端地图状态展示
+
+### 11.3 P2（锦上添花）
+
+1. 校园时间轴回放
+2. 管理员冲突裁定
+3. 共同修正机制
+4. 新增页面（时间轴、版本历史、订阅中心等）
+
+### 11.4 建议执行顺序
+
+```
+阶段 A：openGauss 适配（P0）
+  ├─ 修复模型类型
+  ├─ 切换驱动
+  ├─ 重写迁移
+  └─ 验证基础 CRUD
+       ↓
+阶段 B：核心业务升级（P0）
+  ├─ Post 状态机
+  ├─ 协同验证扩展
+  ├─ 前端详情页/发布页改造
+  └─ 联调验证
+       ↓
+阶段 C：创新点实现（P1）
+  ├─ 可信度 + 过期 + 冲突 + 版本 + 订阅 + 信誉
+  ├─ Service 层抽取
+  └─ Docker 编排
+       ↓
+阶段 D：扩展能力（P2）
+  ├─ 时间轴
+  ├─ 管理员裁定
+  └─ 新增页面
+       ↓
+阶段 E：测试与交付
+  ├─ 测试覆盖
+  ├─ 文档完善
+  └─ 课程设计报告
+```
+
+---
+
+## 12. 关键判断与待确认事项
+
+### 12.1 已确认
+
+- 课程设计要求使用 openGauss（依据 `docs/数据库课程设计考核说明.md` 第 25 行）
+- Docker Compose 中 openGauss 已部署，端口 5432，库名 `moment_campus`，用户 `gaussdb`，密码 `Gaussdb@123`
+- 目标项目要在 Base 代码上演进，不重建项目（依据用户任务说明 + `docs/"此刻校园"项目初步方案说明` 第 14 节）
+- Base 项目代码可运行，前后端联调通过（依据 `AIwork/项目状态恢复与验证任务报告.md`）
+
+### 12.2 推测（基于代码结构）
+
+- 目标项目的 12 个分类与 Base 一致（依据 `docs/"此刻校园"项目初步方案说明` 第 8.3 节明确"保留的信息分类"）
+- 视觉风格保持手绘水墨风（依据 `AIwork/` 下 4 份手绘水墨风重设计报告）
+- 现有 21 个模型均会被保留（依据方案文档"保留原有内容"原则）
+
+### 12.3 待确认（需要后续运行或开发时验证）
+
+- openGauss 7.0.0-RC3 轻量版是否完全兼容 PostgreSQL 协议（影响驱动选择：asyncpg 还是 psycopg2）
+- openGauss 是否支持 SQLAlchemy 2.0 的全部 async 特性
+- 课程设计报告是否要求使用 openGauss 特有功能（如触发器、存储过程、视图）—— 若要求，需在数据库层引入这些特性以体现课设要点
+- 是否需要保留 SQLite 作为本地开发备选（建议保留，通过环境变量切换）
+- 时间轴回放功能的精度要求（按分钟？按小时？按天？）

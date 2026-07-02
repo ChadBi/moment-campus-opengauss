@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="556" viewBox="0 0 700 556">
+<style>text{font-family:"微软雅黑";}</style>
+<rect width="700" height="556" fill="#FAFAFA"/>
+  <text x="350" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#2F5496">此刻校园 - 用户子系统 E-R 图</text>
+  <text x="350" y="48" text-anchor="middle" font-size="11" fill="#595959">用户、学校、草稿管理（3 实体）</text>
+  <line x1="162" y1="123" x2="470" y2="123" stroke="#999999" stroke-width="1.5"/>
+  <text x="187.0" y="127.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
+  <text x="445.0" y="127.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
+  <rect x="300" y="114" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
+  <text x="316" y="126" text-anchor="middle" font-size="10" fill="#333333">归属</text>
+  <line x1="470" y1="123" x2="146" y2="337" stroke="#999999" stroke-width="1.5"/>
+  <text x="449.1395020527945" y="140.77823012562337" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
+  <text x="166.8604979472055" y="327.2217698743766" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
+  <rect x="292" y="221" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
+  <text x="308" y="233" text-anchor="middle" font-size="10" fill="#333333">草稿</text>
+  <rect x="50" y="80" width="224" height="86" rx="4" ry="4" fill="#E2EFDA" stroke="#70AD47" stroke-width="2"/>
+  <rect x="50" y="80" width="224" height="28" rx="4" ry="4" fill="#70AD47"/>
+  <rect x="50" y="100" width="224" height="8" fill="#70AD47"/>
+  <text x="162" y="99" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">schools</text>
+  <text x="58" y="122" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
+  <text x="266" y="122" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="54" y1="125" x2="270" y2="125" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="58" y="138" font-family="Consolas" font-size="11" font-weight="normal" fill="#333333">name</text>
+  <text x="266" y="138" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">VARCHAR(100)</text>
+  <line x1="54" y1="141" x2="270" y2="141" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="58" y="154" font-family="Consolas" font-size="11" font-weight="normal" fill="#333333">code</text>
+  <text x="266" y="154" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">VARCHAR(20)</text>
+  <line x1="54" y1="157" x2="270" y2="157" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="58" y="170" font-family="Consolas" font-size="11" font-weight="normal" fill="#333333">logo_url</text>
+  <text x="266" y="170" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">VARCHAR(500)</text>
+  <line x1="54" y1="173" x2="270" y2="173" stroke="#D9D9D9" stroke-width="0.5"/>
+  <rect x="350" y="80" width="240" height="86" rx="4" ry="4" fill="#DEEBF7" stroke="#4472C4" stroke-width="2"/>
+  <rect x="350" y="80" width="240" height="28" rx="4" ry="4" fill="#4472C4"/>
+  <rect x="350" y="100" width="240" height="8" fill="#4472C4"/>
+  <text x="470" y="99" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">users</text>
+  <text x="358" y="122" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
+  <text x="582" y="122" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="354" y1="125" x2="586" y2="125" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="358" y="138" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK school_id</text>
+  <text x="582" y="138" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="354" y1="141" x2="586" y2="141" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="358" y="154" font-family="Consolas" font-size="11" font-weight="normal" fill="#333333">email</text>
+  <text x="582" y="154" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">VARCHAR(255)</text>
+  <line x1="354" y1="157" x2="586" y2="157" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="358" y="170" font-family="Consolas" font-size="11" font-weight="normal" fill="#333333">nickname</text>
+  <text x="582" y="170" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">VARCHAR(50)</text>
+  <line x1="354" y1="173" x2="586" y2="173" stroke="#D9D9D9" stroke-width="0.5"/>
+  <rect x="50" y="278" width="192" height="118" rx="4" ry="4" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
+  <rect x="50" y="278" width="192" height="28" rx="4" ry="4" fill="#FFC000"/>
+  <rect x="50" y="298" width="192" height="8" fill="#FFC000"/>
+  <text x="146" y="297" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">drafts</text>
+  <text x="58" y="320" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
+  <text x="234" y="320" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="54" y1="323" x2="238" y2="323" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="58" y="336" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
+  <text x="234" y="336" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="54" y1="339" x2="238" y2="339" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="58" y="352" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK category_id</text>
+  <text x="234" y="352" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="54" y1="355" x2="238" y2="355" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="58" y="368" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK post_type_id</text>
+  <text x="234" y="368" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="54" y1="371" x2="238" y2="371" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="58" y="384" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK location_id</text>
+  <text x="234" y="384" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="54" y1="387" x2="238" y2="387" stroke="#D9D9D9" stroke-width="0.5"/>
+</svg>

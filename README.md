@@ -25,7 +25,9 @@
 本阶段将完成从项目初始化到最终交付的完整开发流程，包括：
 - 前端：React + TypeScript + Vite + Tailwind CSS
 - 后端：Python + FastAPI + SQLAlchemy
-- 数据库：SQLite（开发）/ PostgreSQL（生产）
+- 数据库：SQLite（开发）/ openGauss 7.0.0-RC3 轻量版（生产）
+
+> **演示学校**：江南大学蠡湖校区（坐标 31.4837, 120.2712，map_zoom=16）。Base 项目原使用"华东师范大学、复旦大学"作为模拟对象，已于 T-A-16/17 任务中统一替换为江南大学。
 
 ## 文档目录
 
@@ -81,15 +83,17 @@
 
 ### 1. 后端启动
 
+#### 1.1 默认 SQLite 模式（开发）
+
 ```bash
 cd backend
 
 # 创建并激活虚拟环境
-python -m venv venv
+python -m venv .venv
 # Windows:
-venv\Scripts\activate
+.venv\Scripts\activate
 # macOS/Linux:
-source venv/bin/activate
+source .venv/bin/activate
 
 # 安装依赖
 pip install -r requirements.txt
@@ -106,6 +110,37 @@ python scripts/seed_data.py
 # 启动后端服务
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+
+#### 1.2 openGauss 生产模式
+
+> 适用场景：演示 openGauss 7.0.0-RC3 物理模型落地、性能测试、课程设计交付。
+
+```bash
+# 1. 启动 openGauss 容器（项目根目录）
+docker compose up -d opengauss
+
+# 2. 后端目录下激活虚拟环境
+cd backend
+.\.venv\Scripts\Activate.ps1   # Windows PowerShell
+# source .venv/bin/activate    # macOS/Linux
+
+# 3. 切换到 openGauss 环境（通过 APP_ENV 加载 backend/.env.opengauss）
+# Windows PowerShell:
+$env:APP_ENV = "opengauss"
+# macOS/Linux:
+export APP_ENV=opengauss
+
+# 4. 执行数据库迁移
+alembic upgrade head
+
+# 5. 填充江南大学演示数据
+python scripts/seed_data.py
+
+# 6. 启动后端服务
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+详细环境配置、连接串、容器管理见 [docs/22_项目运行与开发环境说明.md](docs/22_项目运行与开发环境说明.md)。
 
 - API 服务：http://localhost:8000
 - API 文档：http://localhost:8000/docs
@@ -130,6 +165,8 @@ npm run dev
 |------|------|------|
 | 管理员 | admin@momentcampus.com | pass123 |
 | 普通用户 | user1@example.com ~ user10@example.com | pass123 |
+
+**演示学校**：江南大学蠡湖校区（code=`jiangnan`，中心坐标 31.4837 / 120.2712）。
 
 ### 4. 运行测试
 
@@ -174,7 +211,9 @@ pytest tests/ -v
 ## 技术栈概览
 
 - **前端**：React + TypeScript + Vite + Tailwind CSS + MapLibre GL JS
-- **后端**：Python + FastAPI + SQLAlchemy + PostgreSQL
+- **后端**：Python + FastAPI + SQLAlchemy + PostgreSQL（兼容 openGauss）
+- **生产数据库**：openGauss 7.0.0-RC3 轻量版（Docker 部署，含表空间/分区/存储过程/触发器/物化视图物理模型）
+- **开发数据库**：SQLite（异步 aiosqlite）
 - **认证**：JWT
 - **地图**：MapLibre GL JS / Leaflet
 
