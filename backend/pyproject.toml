@@ -1,0 +1,12 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "integration: openGauss 物理对象集成测试（SP/TR/MV/分区）",
+    "e2e: 端到端测试（需启动完整环境）",
+    "slow: 耗时较长的测试",
+]
+addopts = "-v --tb=short --strict-markers"

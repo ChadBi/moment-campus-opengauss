@@ -1,6 +1,7 @@
-from sqlalchemy import BigInteger, Integer, String, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import BigInteger, Integer, String, Boolean, DateTime, ForeignKey, Index, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
+from decimal import Decimal
 
 from app.database import Base
 
@@ -22,6 +23,12 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # 物理模型扩展字段（03_alter_tables.sql 新增，SP04 sp_update_reputation 写入）
+    reputation_score: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 2),
+        nullable=True,
+        comment="用户信誉分（0-100），由 sp_update_reputation 计算",
+    )
 
     # 关系
     school: Mapped["School"] = relationship(back_populates="users")

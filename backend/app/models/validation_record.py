@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Integer, String, DateTime, ForeignKey, Index, Text
+from sqlalchemy import BigInteger, Integer, String, Boolean, DateTime, ForeignKey, Index, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 
@@ -18,6 +18,9 @@ class ValidationRecord(Base):
     )
     comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    # 物理模型扩展字段（03_alter_tables.sql 新增，触发器/SP 依赖）
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # 关系
     post: Mapped["Post"] = relationship(back_populates="validation_records")

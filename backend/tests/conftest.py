@@ -58,14 +58,28 @@ async def setup_database():
 
     使用 TRUNCATE ... CASCADE 清空所有表（保留外部创建的 schema 与数据库对象如表空间/物化视图/触发器等），
     并显式重置序列（openGauss 不支持 RESTART IDENTITY）。
+    同时清理归档表（admin_operation_logs_archive，SP05 写入），表不存在时跳过。
     """
     table_names = ", ".join(f'"{t}"' for t in Base.metadata.tables.keys())
     async with test_engine.begin() as conn:
         await conn.execute(text(f"TRUNCATE {table_names} CASCADE"))
+        # 归档表不在 Base.metadata 中（分区表），单独清理；openGauss 不支持 IF EXISTS，用 DO 块
+        await conn.execute(text(
+            "DO $$ BEGIN "
+            "EXECUTE 'TRUNCATE TABLE admin_operation_logs_archive CASCADE'; "
+            "EXCEPTION WHEN undefined_table THEN NULL; "
+            "END $$"
+        ))
         await _reset_opengauss_sequences(conn)
     yield
     async with test_engine.begin() as conn:
         await conn.execute(text(f"TRUNCATE {table_names} CASCADE"))
+        await conn.execute(text(
+            "DO $$ BEGIN "
+            "EXECUTE 'TRUNCATE TABLE admin_operation_logs_archive CASCADE'; "
+            "EXCEPTION WHEN undefined_table THEN NULL; "
+            "END $$"
+        ))
         await _reset_opengauss_sequences(conn)
 
 

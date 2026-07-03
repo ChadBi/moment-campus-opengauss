@@ -1,6 +1,7 @@
 from sqlalchemy import BigInteger, String, Boolean, DateTime, Integer, Text, ForeignKey, Index, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
+from decimal import Decimal
 
 from app.database import Base
 
@@ -30,6 +31,12 @@ class Post(Base):
     favorite_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     valid_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     invalid_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # 物理模型扩展字段（03_alter_tables.sql 新增，SP01 sp_recalc_credibility 写入）
+    credibility_score: Mapped[Decimal | None] = mapped_column(
+        Numeric(5, 2),
+        nullable=True,
+        comment="信息可信度（0-100），由 sp_recalc_credibility 计算",
+    )
     expire_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     activity_start_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     activity_end_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
