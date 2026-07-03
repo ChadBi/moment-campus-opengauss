@@ -67,16 +67,16 @@ const AdminUsersPage: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-main">用户管理</h1>
-        <p className="text-text-sub text-sm mt-1">
+        <h1 className="text-2xl font-bold text-ink">用户管理</h1>
+        <p className="text-ink-sub text-sm mt-1">
           共 {users.length} 个用户
         </p>
       </div>
 
       {users.length === 0 ? (
         <Card padding="lg" className="text-center py-12">
-          <Users size={48} className="mx-auto text-text-disabled mb-4" />
-          <p className="text-text-sub">暂无用户</p>
+          <Users size={48} className="mx-auto text-ink-disabled mb-4" />
+          <p className="text-ink-sub">暂无用户</p>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -90,7 +90,7 @@ const AdminUsersPage: React.FC = () => {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-text-main">
+                    <span className="font-medium text-ink">
                       {user.nickname}
                     </span>
                     <Badge 
@@ -106,8 +106,8 @@ const AdminUsersPage: React.FC = () => {
                       {user.is_active ? '已激活' : '已禁用'}
                     </Badge>
                   </div>
-                  <p className="text-text-sub text-sm">{user.email}</p>
-                  <p className="text-text-sub text-xs mt-1">
+                  <p className="text-ink-sub text-sm">{user.email}</p>
+                  <p className="text-ink-sub text-xs mt-1">
                     注册时间：{new Date(user.created_at).toLocaleDateString('zh-CN')}
                   </p>
                 </div>

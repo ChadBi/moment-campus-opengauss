@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { postsApi } from '../services/posts';
 import type { Post } from '../types';
@@ -8,38 +9,46 @@ import { Badge } from '../components/ui/Badge';
 import { Loading } from '../components/ui/Loading';
 import { Button } from '../components/ui/Button';
 import { Heart, MessageCircle, Eye, MapPin, Clock } from 'lucide-react';
+import { colors as categoryColors } from '../styles/tokens';
+
+// 分类名 → tokens.ts category 色板键
+const CATEGORY_COLOR_MAP: Record<string, keyof typeof categoryColors.category> = {
+  '美食': 'food', '食物': 'food', '餐饮': 'food',
+  '活动': 'event', '事件': 'event',
+  '服务': 'service',
+  '学习': 'study', '学术': 'study',
+  '失物招领': 'lostFound', '失物': 'lostFound',
+  '社团': 'club',
+};
+const getCategoryColor = (name?: string) => {
+  const key = name ? CATEGORY_COLOR_MAP[name] : undefined;
+  return categoryColors.category[key ?? 'default'];
+};
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-    loadPosts();
-  }, [page]);
+  const {
+    data,
+    isLoading,
+    isError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['posts', 'feed'],
+    queryFn: ({ pageParam = 1 }) => postsApi.getPosts({ page: pageParam, page_size: 20 }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+  });
 
-  const loadPosts = async () => {
-    try {
-      setLoading(true);
-      const response = await postsApi.getPosts({ page, page_size: 20 });
-      if (page === 1) {
-        setPosts(response.items as Post[]);
-      } else {
-        setPosts(prev => [...prev, ...(response.items as Post[])]);
-      }
-      setHasMore(page * 20 < response.total);
-    } catch (error) {
-      console.error('加载帖子失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const posts = (data?.pages.flatMap(p => p.items) ?? []) as Post[];
+  const loading = isLoading || isFetchingNextPage;
 
   const handleLoadMore = () => {
-    if (hasMore && !loading) {
-      setPage(prev => prev + 1);
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
   };
 
@@ -74,12 +83,13 @@ const HomePage: React.FC = () => {
 
       {/* 信息流卡片：左侧 Avatar + 右侧内容 */}
       <div className="space-y-4">
-        {posts.map(post => (
+        {posts.map((post, index) => (
           <Card
             key={post.id}
             variant="elevated"
             padding="md"
-            className="hover:shadow-xl"
+            className="hover:shadow-xl stagger-card"
+            style={{ animationDelay: `${index * 40}ms` }}
             onClick={() => handlePostClick(post.id)}
           >
             <div className="flex items-start gap-3.5">
@@ -94,7 +104,10 @@ const HomePage: React.FC = () => {
                   <span className="font-medium text-ink text-sm">
                     {post.author?.nickname || '匿名用户'}
                   </span>
-                  <Badge variant="default">
+                  <Badge
+                    variant="default"
+                    style={{ backgroundColor: getCategoryColor(post.category?.name).light, color: getCategoryColor(post.category?.name).main }}
+                  >
                     {post.category?.name || '未分类'}
                   </Badge>
                 </div>
@@ -141,6 +154,10 @@ const HomePage: React.FC = () => {
         </div>
       )}
 
+      {isError && (
+        <div className="text-center py-16 text-danger">加载失败，请稍后重试</div>
+      )}
+
       {/* 空状态：大 emoji + 文字引导 */}
       {!loading && posts.length === 0 && (
         <div className="text-center py-16">
@@ -151,12 +168,13 @@ const HomePage: React.FC = () => {
       )}
 
       {/* 加载更多：Button variant=secondary */}
-      {hasMore && posts.length > 0 && (
+      {hasNextPage && posts.length > 0 && (
         <div className="mt-7 text-center">
           <Button
             variant="secondary"
             onClick={handleLoadMore}
-            loading={loading}
+            loading={isFetchingNextPage}
+            disabled={!hasNextPage}
           >
             加载更多
           </Button>

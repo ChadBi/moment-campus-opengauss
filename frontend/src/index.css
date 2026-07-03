@@ -189,6 +189,29 @@ img {
 .text-sub { color: var(--ink-2); }
 .border-default { border-color: var(--line); }
 
+/* === WS4: hover utility + 路由/卡片动效类 === */
+.lift-on-hover {
+  @apply transition-transform duration-200 ease-out hover:-translate-y-0.5;
+}
+
+/* 路由切换淡入（WS5 用） */
+.route-fade-enter {
+  animation: routeFadeIn 180ms ease-out;
+}
+@keyframes routeFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 首页卡片入场 stagger（WS5 用） */
+.stagger-card {
+  animation: staggerIn 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes staggerIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

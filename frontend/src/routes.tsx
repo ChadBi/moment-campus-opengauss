@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { MainLayout } from './components/layout';
 import { Loading } from './components/ui';
 import { useAuthStore } from './store/useAuthStore';
@@ -25,21 +25,26 @@ const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage'));
 
 // Protected Route
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+const ProtectedRoute: React.FC<{ children: React.ReactNode; requireAdmin?: boolean }> = ({ children, requireAdmin }) => {
+  const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
+  if (requireAdmin && user?.role !== 'admin' && user?.role !== 'super_admin') {
+    return <Navigate to="/" replace />;
+  }
+
   return <>{children}</>;
 };
 
-const AppRoutes: React.FC = () => {
+const AnimatedRoutes: React.FC = () => {
+  const location = useLocation();
   return (
-    <BrowserRouter>
-      <Suspense fallback={<Loading fullScreen />}>
-        <Routes>
+    <Suspense fallback={<Loading fullScreen />}>
+      <div key={location.pathname} className="route-fade-enter">
+        <Routes location={location}>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -50,10 +55,24 @@ const AppRoutes: React.FC = () => {
             <Route path="/map" element={<MapPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/posts/:id" element={<PostDetailPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
 
             {/* Protected Routes */}
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/publish"
               element={
@@ -64,8 +83,15 @@ const AppRoutes: React.FC = () => {
             />
           </Route>
 
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AdminDashboard />}>
+          {/* Admin Routes (require admin role) */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<AdminHomePage />} />
             <Route path="review" element={<AdminReviewPage />} />
             <Route path="reports" element={<AdminReportsPage />} />
@@ -76,7 +102,15 @@ const AppRoutes: React.FC = () => {
           {/* 404 */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+      </div>
       </Suspense>
+  );
+};
+
+const AppRoutes: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <AnimatedRoutes />
     </BrowserRouter>
   );
 };

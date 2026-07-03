@@ -26,13 +26,13 @@ const AdminSettingsPage: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-main">系统设置</h1>
-        <p className="text-text-sub text-sm mt-1">管理系统配置</p>
+        <h1 className="text-2xl font-bold text-ink">系统设置</h1>
+        <p className="text-ink-sub text-sm mt-1">管理系统配置</p>
       </div>
 
       <div className="space-y-6">
         <Card padding="md">
-          <h2 className="text-lg font-semibold text-text-main mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
             <Settings size={20} />
             基本设置
           </h2>
@@ -51,7 +51,7 @@ const AdminSettingsPage: React.FC = () => {
         </Card>
 
         <Card padding="md">
-          <h2 className="text-lg font-semibold text-text-main mb-4">
+          <h2 className="text-lg font-semibold text-ink mb-4">
             内容限制
           </h2>
           <div className="space-y-4">
@@ -77,7 +77,7 @@ const AdminSettingsPage: React.FC = () => {
         </Card>
 
         <Card padding="md">
-          <h2 className="text-lg font-semibold text-text-main mb-4">
+          <h2 className="text-lg font-semibold text-ink mb-4">
             功能开关
           </h2>
           <div className="space-y-4">
@@ -91,7 +91,7 @@ const AdminSettingsPage: React.FC = () => {
                 })}
                 className="w-4 h-4"
               />
-              <span className="text-text-main">新信息需要审核</span>
+              <span className="text-ink">新信息需要审核</span>
             </label>
             <label className="flex items-center gap-3">
               <input
@@ -103,7 +103,7 @@ const AdminSettingsPage: React.FC = () => {
                 })}
                 className="w-4 h-4"
               />
-              <span className="text-text-main">启用评论功能</span>
+              <span className="text-ink">启用评论功能</span>
             </label>
             <label className="flex items-center gap-3">
               <input
@@ -115,7 +115,7 @@ const AdminSettingsPage: React.FC = () => {
                 })}
                 className="w-4 h-4"
               />
-              <span className="text-text-main">允许匿名发布</span>
+              <span className="text-ink">允许匿名发布</span>
             </label>
           </div>
         </Card>

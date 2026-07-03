@@ -109,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <Link
           to="/profile"
           onClick={onClose}
-          className="w-[42px] h-[42px] rounded-[14px] bg-lamp text-white font-extrabold grid place-items-center transition-transform hover:-translate-y-0.5"
+          className="w-[42px] h-[42px] rounded-[14px] bg-lamp text-white font-extrabold grid place-items-center lift-on-hover"
           style={{ boxShadow: '0 8px 20px rgba(0,0,0,.16)' }}
           title="个人中心"
         >

@@ -8,6 +8,7 @@ interface CardProps {
   className?: string;
   children: React.ReactNode;
   onClick?: () => void;
+  style?: React.CSSProperties;
 }
 
 const variantStyles: Record<CardVariant, string> = {
@@ -32,6 +33,7 @@ export const Card: React.FC<CardProps> = ({
   className = '',
   children,
   onClick,
+  style,
 }) => {
   const baseStyles =
     'transition-[transform,box-shadow,border-color] duration-[200ms] ease-out';
@@ -43,6 +45,7 @@ export const Card: React.FC<CardProps> = ({
     <div
       className={`${baseStyles} ${variantStyle} ${paddingStyle} ${clickable} ${className}`}
       onClick={onClick}
+      style={style}
     >
       {children}
     </div>

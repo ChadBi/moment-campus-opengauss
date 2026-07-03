@@ -39,7 +39,7 @@ const LoginPage: React.FC = () => {
       const response = await authApi.login({ email: formData.email, password: formData.password });
       setAuth(response.user, response.access_token, response.refresh_token);
       setToast({ message: '登录成功', type: 'success' });
-      setTimeout(() => navigate('/'), 1000);
+      navigate('/');
     } catch (err: any) {
       const message = err.response?.data?.detail || '登录失败，请检查邮箱和密码';
       setError(message);

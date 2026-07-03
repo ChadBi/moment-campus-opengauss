@@ -52,30 +52,30 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-mist">
       {/* Mobile sidebar toggle */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-paper border-b border-line px-4 py-3 flex items-center justify-between">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 hover:bg-gray-100 rounded-lg"
+          className="p-2 hover:bg-mist/70 rounded-lg"
         >
           <Menu size={24} />
         </button>
-        <h1 className="text-lg font-bold text-text-main">管理后台</h1>
+        <h1 className="text-lg font-bold text-ink">管理后台</h1>
         <div className="w-10" />
       </div>
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 h-screen w-64 bg-white border-r border-gray-200 transition-transform lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-40 h-screen w-64 bg-paper border-r border-line transition-transform lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-text-main">管理后台</h1>
+        <div className="flex items-center justify-between p-4 border-b border-line">
+          <h1 className="text-xl font-bold text-ink">管理后台</h1>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
+            className="lg:hidden p-2 hover:bg-mist/70 rounded-lg"
           >
             <X size={20} />
           </button>
@@ -93,8 +93,8 @@ const AdminDashboard: React.FC = () => {
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive(item.path)
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-text-sub hover:bg-gray-100'
+                    ? 'bg-lake/10 text-lake font-medium'
+                    : 'text-ink-sub hover:bg-mist/70'
                 }`}
               >
                 <Icon size={20} />
@@ -104,7 +104,7 @@ const AdminDashboard: React.FC = () => {
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-line">
           <div className="flex items-center gap-3 mb-3">
             <Avatar
               src={user.avatar_url}
@@ -112,7 +112,7 @@ const AdminDashboard: React.FC = () => {
               size="md"
             />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-text-main truncate">
+              <p className="text-sm font-medium text-ink truncate">
                 {user.nickname}
               </p>
               <Badge variant="info" className="text-xs">

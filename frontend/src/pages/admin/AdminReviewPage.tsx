@@ -95,16 +95,16 @@ const AdminReviewPage: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-main">内容审核</h1>
-        <p className="text-text-sub text-sm mt-1">
+        <h1 className="text-2xl font-bold text-ink">内容审核</h1>
+        <p className="text-ink-sub text-sm mt-1">
           待审核信息：{posts.length} 条
         </p>
       </div>
 
       {posts.length === 0 ? (
         <Card padding="lg" className="text-center py-12">
-          <Check size={48} className="mx-auto text-green-500 mb-4" />
-          <p className="text-text-sub">暂无待审核内容</p>
+          <Check size={48} className="mx-auto text-grass mb-4" />
+          <p className="text-ink-sub">暂无待审核内容</p>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -118,7 +118,7 @@ const AdminReviewPage: React.FC = () => {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-text-main text-sm">
+                    <span className="font-medium text-ink text-sm">
                       {post.author?.nickname || '匿名用户'}
                     </span>
                     <Badge variant="default" className="text-xs">
@@ -128,13 +128,13 @@ const AdminReviewPage: React.FC = () => {
                       待审核
                     </Badge>
                   </div>
-                  <h3 className="font-semibold text-text-main mb-2">
+                  <h3 className="font-semibold text-ink mb-2">
                     {post.title}
                   </h3>
-                  <p className="text-text-sub text-sm mb-3 line-clamp-2">
+                  <p className="text-ink-sub text-sm mb-3 line-clamp-2">
                     {post.content}
                   </p>
-                  <div className="flex items-center gap-4 text-xs text-text-sub mb-3">
+                  <div className="flex items-center gap-4 text-xs text-ink-sub mb-3">
                     <span className="flex items-center gap-1">
                       <Calendar size={14} />
                       {formatDate(post.created_at)}

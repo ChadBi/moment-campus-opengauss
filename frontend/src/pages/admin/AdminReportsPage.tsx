@@ -103,8 +103,8 @@ const AdminReportsPage: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-main">举报管理</h1>
-        <p className="text-text-sub text-sm mt-1">
+        <h1 className="text-2xl font-bold text-ink">举报管理</h1>
+        <p className="text-ink-sub text-sm mt-1">
           共 {reports.length} 条举报
         </p>
       </div>
@@ -142,8 +142,8 @@ const AdminReportsPage: React.FC = () => {
 
       {reports.length === 0 ? (
         <Card padding="lg" className="text-center py-12">
-          <Flag size={48} className="mx-auto text-text-disabled mb-4" />
-          <p className="text-text-sub">暂无举报记录</p>
+          <Flag size={48} className="mx-auto text-ink-disabled mb-4" />
+          <p className="text-ink-sub">暂无举报记录</p>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -157,7 +157,7 @@ const AdminReportsPage: React.FC = () => {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium text-text-main text-sm">
+                    <span className="font-medium text-ink text-sm">
                       {report.reporter?.nickname || '匿名举报'}
                     </span>
                     {getStatusBadge(report.status)}
@@ -166,14 +166,14 @@ const AdminReportsPage: React.FC = () => {
                     </Badge>
                   </div>
                   {report.post && (
-                    <p className="text-text-sub text-sm mb-2">
+                    <p className="text-ink-sub text-sm mb-2">
                       举报内容：{report.post.title}
                     </p>
                   )}
-                  <p className="text-text-main text-sm mb-3">
+                  <p className="text-ink text-sm mb-3">
                     {report.description}
                   </p>
-                  <div className="text-xs text-text-sub mb-3">
+                  <div className="text-xs text-ink-sub mb-3">
                     举报时间：{new Date(report.created_at).toLocaleString('zh-CN')}
                   </div>
                   {report.status === 'pending' && (

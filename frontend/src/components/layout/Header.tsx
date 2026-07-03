@@ -54,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
             {user && (
               <Link
                 to="/notifications"
-                className="relative w-11 h-11 rounded-[14px] bg-white/[0.74] border border-line grid place-items-center transition-transform hover:-translate-y-0.5"
+                className="relative w-11 h-11 rounded-[14px] bg-white/[0.74] border border-line grid place-items-center lift-on-hover"
                 aria-label="通知"
               >
                 <Bell size={19} className="text-ink-sub" />
@@ -69,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* 发布按钮：灯笼橙 */}
             <Link
               to="/publish"
-              className="h-11 px-4 rounded-[14px] bg-lamp text-white font-bold inline-flex items-center gap-2 shadow-lamp transition-transform hover:-translate-y-0.5"
+              className="h-11 px-4 rounded-[14px] bg-lamp text-white font-bold inline-flex items-center gap-2 shadow-lamp lift-on-hover"
             >
               <Plus size={19} />
               <span className="hidden md:inline">发布此刻</span>
@@ -79,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
             {user ? (
               <Link
                 to="/profile"
-                className="w-11 h-11 rounded-[14px] overflow-hidden border border-line bg-white/[0.74] grid place-items-center transition-transform hover:-translate-y-0.5"
+                className="w-11 h-11 rounded-[14px] overflow-hidden border border-line bg-white/[0.74] grid place-items-center lift-on-hover"
                 aria-label={user.nickname}
               >
                 <Avatar
@@ -91,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <Link
                 to="/login"
-                className="h-11 px-4 rounded-[14px] bg-lake text-white font-bold inline-flex items-center transition-transform hover:-translate-y-0.5"
+                className="h-11 px-4 rounded-[14px] bg-lake text-white font-bold inline-flex items-center lift-on-hover"
               >
                 登录
               </Link>
