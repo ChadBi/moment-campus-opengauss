@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
+import { useUIStore } from '../store/useUIStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
@@ -23,6 +24,8 @@ api.interceptors.request.use(
 );
 
 // 响应拦截器：处理错误和 Token 刷新
+// 设计原则：操作类请求遇到 401 时只提醒"请登录"，不跳转页面（保留用户当前浏览上下文）。
+// 页面级跳转由 ProtectedRoute 在路由层处理，这里只负责操作层提示。
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -48,10 +51,14 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
           return api(originalRequest);
         } catch (refreshError) {
+          // refresh 失败：清登录态 + 全局提示，不硬跳转
           useAuthStore.getState().logout();
-          window.location.href = '/login';
+          useUIStore.getState().showToast('登录已过期，请重新登录', 'warning');
           return Promise.reject(refreshError);
         }
+      } else {
+        // 无 refreshToken：未登录用户尝试需登录操作，只提示不跳转
+        useUIStore.getState().showToast('请先登录', 'warning');
       }
     }
 
