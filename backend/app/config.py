@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
 
     # 数据库（openGauss，asyncpg 异步驱动）
+    # 注意：scheme 必须用 postgresql+asyncpg —— openGauss 兼容 PostgreSQL 协议，
+    # SQLAlchemy 据此选择 asyncpg 驱动；这不是 PostgreSQL 数据库，实际连接的是 openGauss。
     DATABASE_URL: str = "postgresql+asyncpg://gaussdb:Gaussdb%40123@localhost:5432/moment_campus"
     DB_POOL_SIZE: int = 5
     DB_MAX_OVERFLOW: int = 10

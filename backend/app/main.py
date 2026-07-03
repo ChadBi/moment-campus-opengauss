@@ -35,8 +35,13 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 @app.on_event("startup")
 async def startup_event():
-    db_type = settings.DATABASE_URL.split("://")[0]
-    logger.info(f"启动 {settings.APP_NAME} | 环境: {settings.APP_ENV} | DB: {db_type}")
+    # openGauss 兼容 PostgreSQL 协议，SQLAlchemy 连接串使用 postgresql+asyncpg scheme，
+    # 但实际连接的是 openGauss 数据库。这里基于 APP_ENV 显示真实数据库类型。
+    if settings.APP_ENV == "opengauss":
+        db_display = "openGauss (asyncpg)"
+    else:
+        db_display = settings.DATABASE_URL.split("://")[0]
+    logger.info(f"启动 {settings.APP_NAME} | 环境: {settings.APP_ENV} | DB: {db_display}")
 
 
 @app.get("/")
