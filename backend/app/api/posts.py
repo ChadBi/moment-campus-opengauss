@@ -57,14 +57,14 @@ async def get_posts(
 
     # 排序
     if sort == "latest":
-        query = query.order_by(Post.is_top.desc(), Post.created_at.desc())
+        query = query.order_by(Post.created_at.desc())
     elif sort == "hottest":
-        query = query.order_by(Post.is_top.desc(), Post.like_count.desc(), Post.created_at.desc())
+        query = query.order_by(Post.like_count.desc(), Post.created_at.desc())
     elif sort == "nearest":
         # 按距离排序需要 location，这里简化为按更新时间排序
-        query = query.order_by(Post.is_top.desc(), Post.updated_at.desc())
+        query = query.order_by(Post.updated_at.desc())
     else:
-        query = query.order_by(Post.is_top.desc(), Post.created_at.desc())
+        query = query.order_by(Post.created_at.desc())
 
     # 计算总数
     count_query = select(func.count()).select_from(query.subquery())

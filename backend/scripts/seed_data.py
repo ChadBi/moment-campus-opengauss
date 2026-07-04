@@ -109,7 +109,7 @@ USERS_DATA = [
 
 # 帖子清单（30 条真实场景数据）
 # 字段：title / content / category_code / location_name / user_email
-#       is_anonymous / views / likes / is_top / is_recommend / comments / validations
+#       is_anonymous / views / likes / is_recommend / comments / validations
 POSTS_DATA = [
     # ==================== 校园美食 (food) ====================
     {
@@ -125,7 +125,7 @@ POSTS_DATA = [
         "location_name": "第二食堂",
         "user_email": "user6@example.com",
         "is_anonymous": False,
-        "views": 342, "likes": 28, "is_top": False, "is_recommend": True,
+        "views": 342, "likes": 28, "is_recommend": True,
         "comments": [
             {"user_email": "user3@example.com", "content": "昨天刚去吃过，确实不错！午餐肉给得超大方", "likes": 5},
             {"user_email": "user9@example.com", "content": "请问辣度选微辣会踩雷吗？不吃辣星人瑟瑟发抖", "likes": 1},
@@ -150,7 +150,7 @@ POSTS_DATA = [
         "location_name": "第一食堂",
         "user_email": "user3@example.com",
         "is_anonymous": False,
-        "views": 198, "likes": 15, "is_top": False, "is_recommend": False,
+        "views": 198, "likes": 15, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "我也发现了！茶叶蛋确实好吃", "likes": 3},
             {"user_email": "user9@example.com", "content": "豆浆可以单独买吗？", "likes": 0},
@@ -174,7 +174,7 @@ POSTS_DATA = [
         "location_name": "北门",
         "user_email": "user3@example.com",
         "is_anonymous": False,
-        "views": 521, "likes": 42, "is_top": False, "is_recommend": True,
+        "views": 521, "likes": 42, "is_recommend": True,
         "comments": [
             {"user_email": "user9@example.com", "content": "沙县拌面真的便宜量大，强推", "likes": 6},
             {"user_email": "user6@example.com", "content": "补充一个：南门黄焖鸡米饭小份12块也还行", "likes": 4},
@@ -198,7 +198,7 @@ POSTS_DATA = [
         "location_name": "第二食堂",
         "user_email": "user6@example.com",
         "is_anonymous": False,
-        "views": 287, "likes": 19, "is_top": False, "is_recommend": False,
+        "views": 287, "likes": 19, "is_recommend": False,
         "comments": [
             {"user_email": "user3@example.com", "content": "在食堂吃螺蛳粉会被室友追杀吧哈哈哈", "likes": 8},
             {"user_email": "user9@example.com", "content": "打包回宿舍也会被宿管阿姨追杀", "likes": 5},
@@ -225,7 +225,7 @@ POSTS_DATA = [
         "location_name": "图书馆",
         "user_email": "user8@example.com",
         "is_anonymous": False,
-        "views": 612, "likes": 56, "is_top": False, "is_recommend": True,
+        "views": 612, "likes": 56, "is_recommend": True,
         "comments": [
             {"user_email": "user4@example.com", "content": "学士今天在我书包上睡着了哈哈", "likes": 12},
             {"user_email": "user7@example.com", "content": "上周给它拍了组照片，已发朋友圈", "likes": 8},
@@ -252,7 +252,7 @@ POSTS_DATA = [
         "location_name": "蠡湖畔",
         "user_email": "user7@example.com",
         "is_anonymous": False,
-        "views": 478, "likes": 38, "is_top": False, "is_recommend": True,
+        "views": 478, "likes": 38, "is_recommend": True,
         "comments": [
             {"user_email": "user2@example.com", "content": "周末钓鱼时看到了，确实萌", "likes": 4},
             {"user_email": "user5@example.com", "content": "夜跑看到有人想靠近被天鹅追着咬哈哈哈", "likes": 15},
@@ -280,7 +280,7 @@ POSTS_DATA = [
         "location_name": "教学楼A区",
         "user_email": "user8@example.com",
         "is_anonymous": False,
-        "views": 234, "likes": 21, "is_top": False, "is_recommend": False,
+        "views": 234, "likes": 21, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "已私信！想领养", "likes": 2},
             {"user_email": "user7@example.com", "content": "校友群转发了，希望能找到好人家", "likes": 3},
@@ -306,7 +306,7 @@ POSTS_DATA = [
         "location_name": "校园超市",
         "user_email": "user9@example.com",
         "is_anonymous": False,
-        "views": 189, "likes": 14, "is_top": False, "is_recommend": False,
+        "views": 189, "likes": 14, "is_recommend": False,
         "comments": [
             {"user_email": "user4@example.com", "content": "会员卡充值活动持续到什么时候？", "likes": 1},
             {"user_email": "user10@example.com", "content": "胶装质量怎么样？毕业论文要打印", "likes": 0},
@@ -333,7 +333,7 @@ POSTS_DATA = [
         "location_name": "图书馆",
         "user_email": "user10@example.com",
         "is_anonymous": False,
-        "views": 256, "likes": 22, "is_top": False, "is_recommend": False,
+        "views": 256, "likes": 22, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "新生感谢学长！已收藏", "likes": 4},
         ],
@@ -357,7 +357,7 @@ POSTS_DATA = [
         "location_name": "文浩科学馆",
         "user_email": "user1@example.com",
         "is_anonymous": False,
-        "views": 423, "likes": 35, "is_top": False, "is_recommend": True,
+        "views": 423, "likes": 35, "is_recommend": True,
         "comments": [
             {"user_email": "user3@example.com", "content": "必须去！《雷雨》是经典", "likes": 5},
             {"user_email": "user9@example.com", "content": "周五晚上正好没课，冲", "likes": 2},
@@ -380,7 +380,7 @@ POSTS_DATA = [
         "location_name": "大学生活动中心",
         "user_email": "user1@example.com",
         "is_anonymous": False,
-        "views": 312, "likes": 27, "is_top": False, "is_recommend": True,
+        "views": 312, "likes": 27, "is_recommend": True,
         "comments": [
             {"user_email": "user9@example.com", "content": "零基础真的能进吗？四肢不协调", "likes": 6},
             {"user_email": "user1@example.com", "content": "回复楼上：完全可以，新人班从零开始教", "likes": 3},
@@ -406,7 +406,7 @@ POSTS_DATA = [
         "location_name": "教学楼A区",
         "user_email": "user10@example.com",
         "is_anonymous": False,
-        "views": 389, "likes": 31, "is_top": False, "is_recommend": True,
+        "views": 389, "likes": 31, "is_recommend": True,
         "comments": [
             {"user_email": "user1@example.com", "content": "已投简历！希望能进", "likes": 4},
             {"user_email": "user9@example.com", "content": "10小时/周会不会影响绩点？", "likes": 2},
@@ -433,7 +433,7 @@ POSTS_DATA = [
         "location_name": "文浩科学馆",
         "user_email": "user4@example.com",
         "is_anonymous": False,
-        "views": 567, "likes": 48, "is_top": False, "is_recommend": True,
+        "views": 567, "likes": 48, "is_recommend": True,
         "comments": [
             {"user_email": "user1@example.com", "content": "已经预约了！冲", "likes": 3},
             {"user_email": "user10@example.com", "content": "学长提醒：提前1小时去抢前排", "likes": 7},
@@ -457,7 +457,7 @@ POSTS_DATA = [
         "location_name": "图书馆",
         "user_email": "user4@example.com",
         "is_anonymous": False,
-        "views": 678, "likes": 52, "is_top": False, "is_recommend": False,
+        "views": 678, "likes": 52, "is_recommend": False,
         "comments": [
             {"user_email": "user9@example.com", "content": "考试周必须早6:30去排队", "likes": 8},
             {"user_email": "user1@example.com", "content": "三楼24h自习室预约链接有吗？", "likes": 2},
@@ -482,7 +482,7 @@ POSTS_DATA = [
         "location_name": "图书馆",
         "user_email": "user4@example.com",
         "is_anonymous": False,
-        "views": 312, "likes": 18, "is_top": False, "is_recommend": False,
+        "views": 312, "likes": 18, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "新规好评！以前书包占位太烦人", "likes": 12},
         ],
@@ -505,7 +505,7 @@ POSTS_DATA = [
         "location_name": "教学楼A区",
         "user_email": "user10@example.com",
         "is_anonymous": False,
-        "views": 891, "likes": 87, "is_top": False, "is_recommend": True,
+        "views": 891, "likes": 87, "is_recommend": True,
         "comments": [
             {"user_email": "user1@example.com", "content": "学长牛逼！已下载", "likes": 5},
             {"user_email": "user9@example.com", "content": "救命数据结构渣渣，谢谢学长", "likes": 3},
@@ -535,7 +535,7 @@ POSTS_DATA = [
         "location_name": "快递服务中心",
         "user_email": "user1@example.com",
         "is_anonymous": False,
-        "views": 423, "likes": 25, "is_top": False, "is_recommend": False,
+        "views": 423, "likes": 25, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "上周五饭点排队40分钟，血泪教训", "likes": 8},
             {"user_email": "user9@example.com", "content": "代取委托书模板有吗？", "likes": 1},
@@ -557,7 +557,7 @@ POSTS_DATA = [
         "location_name": "学士公寓",
         "user_email": "user1@example.com",
         "is_anonymous": False,
-        "views": 234, "likes": 12, "is_top": False, "is_recommend": False,
+        "views": 234, "likes": 12, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "在洗衣机洗鞋的人是什么心态", "likes": 15},
             {"user_email": "user9@example.com", "content": "1楼洗鞋机也经常坏", "likes": 2},
@@ -582,7 +582,7 @@ POSTS_DATA = [
         "location_name": "校园超市",
         "user_email": "user9@example.com",
         "is_anonymous": False,
-        "views": 367, "likes": 31, "is_top": False, "is_recommend": False,
+        "views": 367, "likes": 31, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "咖啡7折冲了，囤了5瓶", "likes": 4},
             {"user_email": "user6@example.com", "content": "方便面买二送一等于66折，香", "likes": 3},
@@ -613,7 +613,7 @@ POSTS_DATA = [
         "location_name": "北门",
         "user_email": "user5@example.com",
         "is_anonymous": False,
-        "views": 289, "likes": 19, "is_top": False, "is_recommend": False,
+        "views": 289, "likes": 19, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "季卡35元？我去办一张", "likes": 2},
             {"user_email": "user9@example.com", "content": "周末经常找不到车，要提前10分钟预约", "likes": 1},
@@ -637,7 +637,7 @@ POSTS_DATA = [
         "location_name": "北门",
         "user_email": "user10@example.com",
         "is_anonymous": False,
-        "views": 312, "likes": 16, "is_top": False, "is_recommend": False,
+        "views": 312, "likes": 16, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "i江大App的实时位置经常不准", "likes": 3},
             {"user_email": "user6@example.com", "content": "校内环线周六怎么不到南门？", "likes": 1},
@@ -666,7 +666,7 @@ POSTS_DATA = [
         "location_name": "体育馆",
         "user_email": "user5@example.com",
         "is_anonymous": False,
-        "views": 256, "likes": 14, "is_top": False, "is_recommend": False,
+        "views": 256, "likes": 14, "is_recommend": False,
         "comments": [
             {"user_email": "user9@example.com", "content": "学期卡300超值，已办", "likes": 3},
             {"user_email": "user1@example.com", "content": "不会游泳可以去学吗？有教练吗？", "likes": 1},
@@ -690,7 +690,7 @@ POSTS_DATA = [
         "location_name": "田径场",
         "user_email": "user5@example.com",
         "is_anonymous": False,
-        "views": 178, "likes": 8, "is_top": False, "is_recommend": False,
+        "views": 178, "likes": 8, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "感谢提醒，今晚改去体育馆", "likes": 2},
         ],
@@ -716,7 +716,7 @@ POSTS_DATA = [
         "location_name": "大学生活动中心",
         "user_email": "user1@example.com",
         "is_anonymous": False,
-        "views": 234, "likes": 11, "is_top": False, "is_recommend": False,
+        "views": 234, "likes": 11, "is_recommend": False,
         "comments": [
             {"user_email": "user9@example.com", "content": "请问社团外可以预约吗？班级活动", "likes": 1},
             {"user_email": "user1@example.com", "content": "回复楼上：可以的，走班级活动审批", "likes": 2},
@@ -741,7 +741,7 @@ POSTS_DATA = [
         "location_name": "文浩科学馆",
         "user_email": "user10@example.com",
         "is_anonymous": False,
-        "views": 167, "likes": 9, "is_top": False, "is_recommend": False,
+        "views": 167, "likes": 9, "is_recommend": False,
         "comments": [],
         "validations": [],
     },
@@ -763,7 +763,7 @@ POSTS_DATA = [
         "location_name": "第一食堂",
         "user_email": "user1@example.com",
         "is_anonymous": False,
-        "views": 312, "likes": 5, "is_top": False, "is_recommend": False,
+        "views": 312, "likes": 5, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "中午在二楼吃饭没看到，帮你留意", "likes": 2},
             {"user_email": "user9@example.com", "content": "建议挂失身份证和银行卡！", "likes": 8},
@@ -786,7 +786,7 @@ POSTS_DATA = [
         "location_name": "图书馆",
         "user_email": "user4@example.com",
         "is_anonymous": False,
-        "views": 145, "likes": 7, "is_top": False, "is_recommend": False,
+        "views": 145, "likes": 7, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "感谢同学！U盘放contact.txt这个建议很好", "likes": 3},
         ],
@@ -809,7 +809,7 @@ POSTS_DATA = [
         "location_name": "北门",
         "user_email": "user9@example.com",
         "is_anonymous": False,
-        "views": 423, "likes": 18, "is_top": False, "is_recommend": False,
+        "views": 423, "likes": 18, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "18元/时算高的吗？奶茶店普遍15左右", "likes": 4},
             {"user_email": "user9@example.com", "content": "回复楼上：茶颜是连锁，待遇比奶茶店好", "likes": 2},
@@ -832,7 +832,7 @@ POSTS_DATA = [
         "location_name": "图书馆",
         "user_email": "user10@example.com",
         "is_anonymous": False,
-        "views": 289, "likes": 12, "is_top": False, "is_recommend": False,
+        "views": 289, "likes": 12, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "已私信！下学期高数救命", "likes": 3},
             {"user_email": "user9@example.com", "content": "80元/次算良心价了，外面机构200+", "likes": 5},
@@ -867,7 +867,7 @@ POSTS_DATA = [
         "location_name": "学士公寓",
         "user_email": "user10@example.com",
         "is_anonymous": False,
-        "views": 1234, "likes": 98, "is_top": True, "is_recommend": True,
+        "views": 1234, "likes": 98, "is_recommend": True,
         "comments": [
             {"user_email": "user1@example.com", "content": "学长救命！正要买装备", "likes": 8},
             {"user_email": "user3@example.com", "content": "补充一个：床帘！必备神器", "likes": 12},
@@ -1123,7 +1123,6 @@ async def seed_posts(session: AsyncSession, users: list, schools: list,
             invalid_count=len([v for v in p.get("validations", []) if v["type"] == "refutation"]),
             lost_type=lost_type,
             expire_at=created_at + timedelta(days=category.default_validity_days),
-            is_top=p.get("is_top", False),
             is_recommend=p.get("is_recommend", False),
             created_at=created_at,
             updated_at=created_at,

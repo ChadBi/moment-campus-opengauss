@@ -41,7 +41,6 @@ class Post(Base):
     activity_end_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     lost_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
     contact_info: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    is_top: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_recommend: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False, index=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)

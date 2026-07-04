@@ -98,7 +98,6 @@ class PostUpdate(BaseModel):
     lost_type: Optional[str] = Field(None, max_length=10, description="丢失类型")
     contact_info: Optional[str] = Field(None, max_length=255, description="联系方式")
     status: Optional[str] = Field(None, max_length=20, description="状态")
-    is_top: Optional[bool] = Field(None, description="是否置顶")
     is_recommend: Optional[bool] = Field(None, description="是否推荐")
 
 
@@ -124,7 +123,6 @@ class PostResponse(BaseModel):
     activity_end_at: Optional[datetime] = None
     lost_type: Optional[str] = None
     contact_info: Optional[str] = None
-    is_top: bool = False
     is_recommend: bool = False
     created_at: datetime
     updated_at: datetime
@@ -158,7 +156,6 @@ class PostListResponse(BaseModel):
     view_count: int = 0
     valid_count: int = 0
     invalid_count: int = 0
-    is_top: bool = False
     is_recommend: bool = False
     created_at: datetime
     expire_at: Optional[datetime] = None
