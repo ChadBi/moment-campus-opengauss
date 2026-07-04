@@ -30,6 +30,9 @@ class ValidationRecord(Base):
         Index("idx_validation_post", "post_id", "created_at"),
         Index("idx_validation_user", "user_id"),
         Index("idx_validation_post_type", "post_id", "validation_type"),
+        # 每用户对每帖只能有一条验证记录（2 类互斥可切换）
+        # 通过 04_drop_favorites_and_simplify_validation.sql 迁移脚本添加
+        Index("idx_validation_post_user_unique", "post_id", "user_id", unique=True),
     )
 
     def __repr__(self) -> str:

@@ -11,7 +11,6 @@ from .post_image import PostImage
 from .location import Location
 from .comment import Comment
 from .like import Like
-from .favorite import Favorite
 from .validation_record import ValidationRecord
 from .report import Report
 from .notification import Notification
@@ -35,7 +34,6 @@ __all__ = [
     "Location",
     "Comment",
     "Like",
-    "Favorite",
     "ValidationRecord",
     "Report",
     "Notification",

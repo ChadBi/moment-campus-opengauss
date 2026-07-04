@@ -117,7 +117,6 @@ class PostResponse(BaseModel):
     view_count: int = 0
     like_count: int = 0
     comment_count: int = 0
-    favorite_count: int = 0
     valid_count: int = 0
     invalid_count: int = 0
     expire_at: Optional[datetime] = None
@@ -140,7 +139,6 @@ class PostResponse(BaseModel):
 
     # 前端需要的额外字段
     is_liked: bool = Field(default=False, description="当前用户是否已点赞")
-    is_favorited: bool = Field(default=False, description="当前用户是否已收藏")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -157,7 +155,6 @@ class PostListResponse(BaseModel):
     tags: Optional[List[TagBrief]] = Field(default=None, description="标签列表")
     like_count: int = 0
     comment_count: int = 0
-    favorite_count: int = 0
     view_count: int = 0
     valid_count: int = 0
     invalid_count: int = 0

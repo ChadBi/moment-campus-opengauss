@@ -39,7 +39,10 @@ const LoginPage: React.FC = () => {
       const response = await authApi.login({ email: formData.email, password: formData.password });
       setAuth(response.user, response.access_token, response.refresh_token);
       setToast({ message: '登录成功', type: 'success' });
-      navigate('/');
+      // 管理员登录直接跳后台，普通用户跳首页
+      const role = response.user?.role;
+      const isAdmin = role === 'admin' || role === 'super_admin';
+      navigate(isAdmin ? '/admin' : '/');
     } catch (err: any) {
       const message = err.response?.data?.detail || '登录失败，请检查邮箱和密码';
       setError(message);

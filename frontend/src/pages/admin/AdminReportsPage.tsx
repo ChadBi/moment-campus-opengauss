@@ -1,214 +1,357 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
-import { Avatar } from '../../components/ui/Avatar';
-import { Loading } from '../../components/ui/Loading';
-import { Toast } from '../../components/ui/Toast';
-import { api } from '../../services/api';
-import { Flag, Check, X } from 'lucide-react';
+import { Table, Pagination, type Column } from '../../components/ui/Table';
+import { adminApi, type ReportBrief, type HandleReportRequest } from '../../services/admin';
+import { Flag } from 'lucide-react';
 
-interface Report {
-  id: number;
-  post_id?: number;
-  comment_id?: number;
-  report_type: string;
-  description: string;
-  status: string;
-  created_at: string;
-  reporter?: {
-    id: number;
-    nickname: string;
-    avatar_url?: string;
-  };
-  post?: {
-    id: number;
-    title: string;
-  };
-}
+const PAGE_SIZE = 10;
+
+/** 举报类型 → 中文标签 */
+const REPORT_TYPE_LABELS: Record<string, string> = {
+  spam: '垃圾信息',
+  harassment: '骚扰',
+  false_info: '虚假信息',
+  inappropriate: '不当内容',
+  other: '其他',
+};
+
+/** 处理动作配置 */
+const ACTION_OPTIONS: Array<{
+  value: HandleReportRequest['action'];
+  label: string;
+  variant: 'default' | 'warning' | 'danger';
+  desc: string;
+}> = [
+  { value: 'dismiss', label: '驳回', variant: 'default', desc: '举报不成立，驳回' },
+  { value: 'warn', label: '警告', variant: 'warning', desc: '警告帖子作者' },
+  { value: 'delete_post', label: '删除帖子', variant: 'danger', desc: '删除被举报的帖子' },
+  { value: 'ban_user', label: '封禁用户', variant: 'danger', desc: '禁用帖子作者账号' },
+];
 
 const AdminReportsPage: React.FC = () => {
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<ReportBrief[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>('all');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [filterStatus, setFilterStatus] = useState<string | undefined>(undefined);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
-  useEffect(() => {
-    loadReports();
-  }, [filter]);
+  // 处理面板状态
+  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [processAction, setProcessAction] = useState<HandleReportRequest['action']>('dismiss');
+  const [processReason, setProcessReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async (p: number, status?: string) => {
     try {
       setLoading(true);
-      const params = filter !== 'all' ? { status: filter } : {};
-      const response = await api.get('/admin/reports', { params });
-      setReports(response.data);
+      const data = await adminApi.getReports({ page: p, page_size: PAGE_SIZE, status });
+      setReports(data.items);
+      setTotal(data.total);
+      setTotalPages(data.total_pages);
     } catch (error) {
       console.error('加载举报列表失败:', error);
       setToast({ message: '加载举报列表失败', type: 'error' });
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    loadReports(page, filterStatus);
+  }, [page, filterStatus, loadReports]);
+
+  /** 打开处理面板 */
+  const openProcessPanel = (reportId: number) => {
+    setProcessingId(reportId);
+    setProcessAction('dismiss');
+    setProcessReason('');
   };
 
-  const handleResolve = async (reportId: number, action: string) => {
-    const result = prompt(`请输入处理结果（${action}）：`);
-    if (!result) return;
+  /** 关闭处理面板 */
+  const closeProcessPanel = () => {
+    setProcessingId(null);
+    setProcessReason('');
+  };
 
+  /** 提交处理 */
+  const handleSubmit = async (reportId: number) => {
+    if (!processReason.trim()) {
+      setToast({ message: '请输入处理说明', type: 'warning' });
+      return;
+    }
+    setSubmitting(true);
     try {
-      await api.put(`/admin/reports/${reportId}/handle`, {
-        status: action,
-        result,
+      await adminApi.handleReport(reportId, {
+        action: processAction,
+        reason: processReason.trim(),
       });
-      setReports(reports.filter(r => r.id !== reportId));
-      setToast({ message: '处理成功', type: 'success' });
+      setToast({ message: '举报已处理', type: 'success' });
+      closeProcessPanel();
+      loadReports(page, filterStatus);
     } catch (error) {
       console.error('处理失败:', error);
       setToast({ message: '处理失败', type: 'error' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="warning">待处理</Badge>;
-      case 'resolved':
-        return <Badge variant="success">已解决</Badge>;
-      case 'dismissed':
-        return <Badge variant="default">已驳回</Badge>;
-      default:
-        return <Badge variant="default">{status}</Badge>;
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
-  const getReportTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      spam: '垃圾信息',
-      harassment: '骚扰',
-      false_info: '虚假信息',
-      inappropriate: '不当内容',
-      other: '其他',
-    };
-    return labels[type] || type;
-  };
+  // 表格列配置
+  const columns: Column<ReportBrief>[] = [
+    {
+      key: 'post_title',
+      title: '举报内容',
+      render: (value, row) => (
+        <div className="min-w-0">
+          {value ? (
+            <p className="font-medium text-ink line-clamp-1">{value}</p>
+          ) : (
+            <p className="text-ink-muted italic">（无关联帖子）</p>
+          )}
+          <p className="text-xs text-ink-muted line-clamp-1 mt-0.5">
+            {row.description || '无描述'}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'reporter_name',
+      title: '举报人',
+      width: 110,
+      nowrap: true,
+      render: (value) => value || '匿名',
+    },
+    {
+      key: 'report_type',
+      title: '类型',
+      width: 100,
+      nowrap: true,
+      render: (value) => (
+        <Badge variant="default">
+          {REPORT_TYPE_LABELS[value] || value}
+        </Badge>
+      ),
+    },
+    {
+      key: 'status',
+      title: '状态',
+      width: 90,
+      nowrap: true,
+      render: (value) => {
+        if (value === 'pending') return <Badge variant="warning">待处理</Badge>;
+        if (value === 'handled') return <Badge variant="success">已处理</Badge>;
+        return <Badge variant="default">{value}</Badge>;
+      },
+    },
+    {
+      key: 'created_at',
+      title: '举报时间',
+      width: 130,
+      nowrap: true,
+      render: (value) => formatDate(value),
+    },
+    {
+      key: 'actions',
+      title: '操作',
+      width: 100,
+      nowrap: true,
+      render: (_, row) => {
+        if (row.status !== 'pending') {
+          return <span className="text-xs text-ink-muted">已处理</span>;
+        }
+        if (processingId === row.id) {
+          return (
+            <button
+              onClick={closeProcessPanel}
+              className="text-sm text-ink-muted hover:text-ink"
+            >
+              收起
+            </button>
+          );
+        }
+        return (
+          <Button size="sm" variant="primary" onClick={() => openProcessPanel(row.id)}>
+            处理
+          </Button>
+        );
+      },
+    },
+  ];
 
-  if (loading) {
-    return (
-      <div className="py-12">
-        <Loading text="加载中..." />
-      </div>
-    );
-  }
+  // 筛选选项
+  const filterOptions: Array<{ label: string; value: string | undefined }> = [
+    { label: '全部', value: undefined },
+    { label: '待处理', value: 'pending' },
+    { label: '已处理', value: 'handled' },
+  ];
+
+  // 当前正在处理的举报
+  const processingReport = reports.find((r) => r.id === processingId);
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-ink">举报管理</h1>
-        <p className="text-ink-sub text-sm mt-1">
-          共 {reports.length} 条举报
-        </p>
+    <div className="space-y-4">
+      {/* 页面标题 */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">举报管理</h1>
+          <p className="text-ink-sub text-sm mt-1">共 {total} 条举报</p>
+        </div>
+        {/* 筛选 */}
+        <div className="flex items-center gap-1 bg-paper border border-line rounded-md p-0.5">
+          {filterOptions.map((opt) => (
+            <button
+              key={String(opt.label)}
+              onClick={() => {
+                setFilterStatus(opt.value);
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded text-sm transition-colors ${
+                filterStatus === opt.value
+                  ? 'bg-lake text-paper'
+                  : 'text-ink-sub hover:bg-mist'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="mb-4 flex gap-2">
-        <Button
-          size="sm"
-          variant={filter === 'all' ? 'primary' : 'secondary'}
-          onClick={() => setFilter('all')}
-        >
-          全部
-        </Button>
-        <Button
-          size="sm"
-          variant={filter === 'pending' ? 'primary' : 'secondary'}
-          onClick={() => setFilter('pending')}
-        >
-          待处理
-        </Button>
-        <Button
-          size="sm"
-          variant={filter === 'resolved' ? 'primary' : 'secondary'}
-          onClick={() => setFilter('resolved')}
-        >
-          已解决
-        </Button>
-        <Button
-          size="sm"
-          variant={filter === 'dismissed' ? 'primary' : 'secondary'}
-          onClick={() => setFilter('dismissed')}
-        >
-          已驳回
-        </Button>
-      </div>
-
-      {reports.length === 0 ? (
-        <Card padding="lg" className="text-center py-12">
+      {/* 表格 */}
+      {reports.length === 0 && !loading ? (
+        <Card padding="lg" className="text-center py-16">
           <Flag size={48} className="mx-auto text-ink-disabled mb-4" />
           <p className="text-ink-sub">暂无举报记录</p>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {reports.map(report => (
-            <Card key={report.id} padding="md">
-              <div className="flex items-start gap-4">
-                <Avatar
-                  src={report.reporter?.avatar_url}
-                  fallback={report.reporter?.nickname?.[0] || '?'}
-                  size="md"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium text-ink text-sm">
-                      {report.reporter?.nickname || '匿名举报'}
-                    </span>
-                    {getStatusBadge(report.status)}
-                    <Badge variant="default" className="text-xs">
-                      {getReportTypeLabel(report.report_type)}
-                    </Badge>
-                  </div>
-                  {report.post && (
-                    <p className="text-ink-sub text-sm mb-2">
-                      举报内容：{report.post.title}
-                    </p>
-                  )}
-                  <p className="text-ink text-sm mb-3">
-                    {report.description}
-                  </p>
-                  <div className="text-xs text-ink-sub mb-3">
-                    举报时间：{new Date(report.created_at).toLocaleString('zh-CN')}
-                  </div>
-                  {report.status === 'pending' && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() => handleResolve(report.id, 'resolved')}
-                      >
-                        <Check size={16} className="mr-1" />
-                        解决
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => handleResolve(report.id, 'dismissed')}
-                      >
-                        <X size={16} className="mr-1" />
-                        驳回
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
+        <Table<ReportBrief>
+          columns={columns}
+          data={reports}
+          loading={loading}
+          emptyText="暂无举报记录"
+        />
       )}
 
+      {/* 处理面板（内联展开） */}
+      {processingReport && (
+        <Card variant="outlined" padding="md">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-ink">
+                处理举报 #{processingReport.id}
+              </h3>
+              <button
+                onClick={closeProcessPanel}
+                className="text-ink-muted hover:text-ink"
+              >
+                收起
+              </button>
+            </div>
+
+            {/* 举报摘要 */}
+            <div className="bg-mist/50 rounded-md p-3 text-sm">
+              <p className="text-ink">
+                <span className="text-ink-muted">举报内容：</span>
+                {processingReport.post_title || '无关联帖子'}
+              </p>
+              <p className="text-ink mt-1">
+                <span className="text-ink-muted">举报理由：</span>
+                {processingReport.description || '无描述'}
+              </p>
+            </div>
+
+            {/* 动作选择 */}
+            <div>
+              <label className="block text-sm font-medium text-ink mb-2">处理动作</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {ACTION_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setProcessAction(opt.value)}
+                    className={`p-2.5 rounded-md border text-left transition-all ${
+                      processAction === opt.value
+                        ? 'border-lake bg-lake/5 ring-1 ring-lake/30'
+                        : 'border-line hover:border-lake/40 bg-paper'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant={opt.variant}>{opt.label}</Badge>
+                    </div>
+                    <p className="text-xs text-ink-muted mt-1">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 处理说明 */}
+            <div>
+              <label className="block text-sm font-medium text-ink mb-2">
+                处理说明 <span className="text-danger">*</span>
+              </label>
+              <textarea
+                value={processReason}
+                onChange={(e) => setProcessReason(e.target.value)}
+                placeholder="请输入处理说明（必填）"
+                rows={3}
+                className="w-full px-3 py-2 border border-line rounded-md text-sm text-ink bg-paper focus:outline-none focus:ring-2 focus:ring-lake/30 focus:border-lake resize-none"
+              />
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex items-center justify-end gap-2">
+              <Button size="sm" variant="text" onClick={closeProcessPanel}>
+                取消
+              </Button>
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => handleSubmit(processingReport.id)}
+                loading={submitting}
+              >
+                确认处理
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* 分页 */}
+      <Pagination
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={total}
+        totalPages={totalPages}
+        onChange={(p) => setPage(p)}
+      />
+
+      {/* Toast */}
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
+        <div className="fixed bottom-6 right-6 z-50">
+          <div
+            className={`px-4 py-3 rounded-lg shadow-lg text-sm ${
+              toast.type === 'success'
+                ? 'bg-grass text-paper'
+                : toast.type === 'warning'
+                ? 'bg-sun text-ink'
+                : 'bg-danger text-paper'
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -16,7 +16,4 @@ export const usersApi = {
 
   getMyPosts: (page = 1, pageSize = 20) =>
     api.get('/users/me/posts', { params: { page, page_size: pageSize } }),
-
-  getMyFavorites: (page = 1, pageSize = 20) =>
-    api.get('/users/me/favorites', { params: { page, page_size: pageSize } }),
 };

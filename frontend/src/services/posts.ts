@@ -13,7 +13,6 @@ interface Post {
   view_count: number;
   like_count: number;
   comment_count: number;
-  favorite_count: number;
   valid_count: number;
   invalid_count: number;
   created_at: string;

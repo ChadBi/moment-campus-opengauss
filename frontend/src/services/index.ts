@@ -9,3 +9,15 @@ export { uploadApi } from './upload';
 export { usersApi } from './users';
 export { mapApi } from './map';
 export type { MapMarker } from './map';
+export { adminApi } from './admin';
+export type {
+  DashboardStats,
+  AdminLog,
+  CategoryAdmin,
+  TagAdmin,
+  BatchOperationResult,
+  PaginatedResponse,
+  PostBrief,
+  UserBrief,
+  ReportBrief,
+} from './admin';

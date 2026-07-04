@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Loading } from '../components/ui/Loading';
 import { Toast } from '../components/ui/Toast';
-import { Edit, LogOut, FileText, LogIn, UserCircle, Heart, CheckCircle, Award } from 'lucide-react';
+import { Edit, LogOut, FileText, LogIn, UserCircle, CheckCircle, Award } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -99,7 +99,6 @@ const ProfilePage: React.FC = () => {
 
   const stats = [
     { label: '已发布', value: myPosts.length, icon: <FileText size={16} />, color: 'text-lake' },
-    { label: '已收藏', value: 0, icon: <Heart size={16} />, color: 'text-lamp' },
     { label: '确认有效', value: 0, icon: <CheckCircle size={16} />, color: 'text-grass' },
     { label: '贡献值', value: 0, icon: <Award size={16} />, color: 'text-sun' },
   ];

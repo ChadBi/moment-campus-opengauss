@@ -28,7 +28,6 @@ class Post(Base):
     view_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     like_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     comment_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    favorite_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     valid_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     invalid_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     # 物理模型扩展字段（03_alter_tables.sql 新增，SP01 sp_recalc_credibility 写入）
@@ -59,7 +58,6 @@ class Post(Base):
     post_images: Mapped[list["PostImage"]] = relationship(back_populates="post")
     comments: Mapped[list["Comment"]] = relationship(back_populates="post")
     likes: Mapped[list["Like"]] = relationship(back_populates="post")
-    favorites: Mapped[list["Favorite"]] = relationship(back_populates="post")
     validation_records: Mapped[list["ValidationRecord"]] = relationship(back_populates="post")
     reports: Mapped[list["Report"]] = relationship(back_populates="post")
     topic_collection_posts: Mapped[list["TopicCollectionPost"]] = relationship(back_populates="post")

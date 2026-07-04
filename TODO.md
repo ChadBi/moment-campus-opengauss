@@ -15,6 +15,16 @@
 
 ## 已完成
 
+### 管理员后台重构收尾（2026-07-04 完成）
+
+- [x] WS9 AdminTagsPage 新建：列表+搜索+筛选+编辑+官方切换+软删除+合并面板
+- [x] WS10a AdminLogsPage 新建：5 维筛选（admin_id/action/target_type/date_from/date_to）+ JSON 详情解析
+- [x] WS10b AdminSettingsPage 修复：localStorage 持久化 + "前端本地配置"标注 + 恢复默认
+- [x] 路由更新：routes.tsx 追加 categories/tags/logs 三个子路由
+- [x] V1-V6 后端验证全部通过（stats/logs/categories CRUD/tags CRUD+merge/批量操作）
+- [x] V7 前端构建验证通过（npm run build exit 0）
+- [x] 登录页自动跳转：检测到 admin/super_admin 角色登录后直接跳 `/admin`，普通用户跳 `/`
+
 ### 文档梳理阶段（2026-06-29 完成）
 
 - [x] 完整阅读项目（根目录 / 后端 / 前端 / docs）

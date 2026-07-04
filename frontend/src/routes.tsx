@@ -22,6 +22,9 @@ const AdminHomePage = lazy(() => import('./pages/admin/AdminHomePage'));
 const AdminReviewPage = lazy(() => import('./pages/admin/AdminReviewPage'));
 const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
+const AdminCategoriesPage = lazy(() => import('./pages/admin/AdminCategoriesPage'));
+const AdminTagsPage = lazy(() => import('./pages/admin/AdminTagsPage'));
+const AdminLogsPage = lazy(() => import('./pages/admin/AdminLogsPage'));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage'));
 
 // Protected Route
@@ -45,67 +48,68 @@ const AnimatedRoutes: React.FC = () => {
   const location = useLocation();
   return (
     <Suspense fallback={<Loading fullScreen />}>
-      <div key={location.pathname} className="route-fade-enter">
-        <Routes location={location}>
-          {/* Public Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+      <Routes location={location}>
+        {/* Public Routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
-          {/* Protected Routes with MainLayout */}
-          <Route element={<MainLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/map" element={<MapPage />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/posts/:id" element={<PostDetailPage />} />
+        {/* Protected Routes with MainLayout */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/map" element={<MapPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/posts/:id" element={<PostDetailPage />} />
 
-            {/* Protected Routes */}
-            <Route
-              path="/notifications"
-              element={
-                <ProtectedRoute>
-                  <NotificationsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/publish"
-              element={
-                <ProtectedRoute>
-                  <PublishPage />
-                </ProtectedRoute>
-              }
-            />
-          </Route>
-
-          {/* Admin Routes (require admin role) */}
+          {/* Protected Routes */}
           <Route
-            path="/admin"
+            path="/notifications"
             element={
-              <ProtectedRoute requireAdmin>
-                <AdminDashboard />
+              <ProtectedRoute>
+                <NotificationsPage />
               </ProtectedRoute>
             }
-          >
-            <Route index element={<AdminHomePage />} />
-            <Route path="review" element={<AdminReviewPage />} />
-            <Route path="reports" element={<AdminReportsPage />} />
-            <Route path="users" element={<AdminUsersPage />} />
-            <Route path="settings" element={<AdminSettingsPage />} />
-          </Route>
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/publish"
+            element={
+              <ProtectedRoute>
+                <PublishPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
 
-          {/* 404 */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </div>
-      </Suspense>
+        {/* Admin Routes (require admin role) */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<AdminHomePage />} />
+          <Route path="review" element={<AdminReviewPage />} />
+          <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="categories" element={<AdminCategoriesPage />} />
+          <Route path="tags" element={<AdminTagsPage />} />
+          <Route path="logs" element={<AdminLogsPage />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
+        </Route>
+
+        {/* 404 */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Suspense>
   );
 };
 

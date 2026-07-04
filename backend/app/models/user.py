@@ -35,7 +35,6 @@ class User(Base):
     posts: Mapped[list["Post"]] = relationship(back_populates="user")
     comments: Mapped[list["Comment"]] = relationship(back_populates="user", foreign_keys="Comment.user_id")
     likes: Mapped[list["Like"]] = relationship(back_populates="user")
-    favorites: Mapped[list["Favorite"]] = relationship(back_populates="user")
     validation_records: Mapped[list["ValidationRecord"]] = relationship(back_populates="user")
     reports: Mapped[list["Report"]] = relationship(back_populates="reporter", foreign_keys="Report.reporter_id")
     handled_reports: Mapped[list["Report"]] = relationship(back_populates="handler", foreign_keys="Report.handler_id")

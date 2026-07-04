@@ -1,32 +1,26 @@
 import { api } from './api';
 
-// T-B-02: 5 类协同验证类型 + 旧 3 类别名
+// T-B-02: 2 类协同验证类型 + 旧 2 类别名
 export type ValidationType =
   | 'confirmation'
   | 'refutation'
-  | 'update'
-  | 'expiration_report'
-  | 'conflict_report'
-  // 旧 3 类别名（向后兼容）
+  // 旧 2 类别名（向后兼容）
   | 'valid'
-  | 'invalid'
-  | 'uncertain';
+  | 'invalid';
 
 // T-B-04: 协同验证统计响应
 export interface ValidationStats {
   post_id: number;
-  // 旧 3 类兼容字段
+  // 旧 2 类兼容字段
   valid_count: number;
   invalid_count: number;
-  uncertain_count: number;
-  // 5 类细分计数
+  // 2 类细分计数
   confirmation_count: number;
   refutation_count: number;
-  update_count: number;
-  expiration_report_count: number;
-  conflict_report_count: number;
   total_count: number;
   validity_status: 'valid' | 'invalid' | 'uncertain';
+  // 当前用户对此帖的验证类型（用于前端高亮按钮；null 表示未验证）
+  user_validation_type: 'confirmation' | 'refutation' | null;
 }
 
 // T-B-04: 状态流转响应
@@ -44,12 +38,7 @@ export const interactionsApi = {
     return response.data;
   },
 
-  favoritePost: async (postId: number): Promise<{ favorited: boolean; favorite_count: number }> => {
-    const response = await api.post(`/posts/${postId}/favorite`);
-    return response.data;
-  },
-
-  // T-B-02: 5 类协同验证（兼容旧 3 类别名）
+  // T-B-02: 2 类协同验证（证实/证伪 互斥可切换）
   validatePost: async (
     postId: number,
     validationType: ValidationType,
@@ -98,12 +87,5 @@ export const interactionsApi = {
       report_type: reportType,
       description,
     });
-  },
-
-  getMyFavorites: async (page = 1, pageSize = 20): Promise<any> => {
-    const response = await api.get('/users/me/favorites', {
-      params: { page, page_size: pageSize },
-    });
-    return response.data;
   },
 };

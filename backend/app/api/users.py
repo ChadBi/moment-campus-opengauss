@@ -10,7 +10,6 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.post import Post
-from app.models.favorite import Favorite
 from app.models.category import Category
 from app.models.location import Location
 from app.models.post_tag import PostTag
@@ -134,39 +133,17 @@ async def get_my_posts(
     )
 
 
-@router.get("/me/favorites", response_model=PaginatedResponse[PostListResponse], summary="获取我的收藏列表")
+@router.get("/me/favorites", response_model=PaginatedResponse[PostListResponse], summary="获取我的收藏列表", deprecated=True, include_in_schema=False)
 async def get_my_favorites(
     page: int = 1,
     page_size: int = 20,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # 查询我的收藏，预加载关联数据
-    query = select(Post).join(Favorite).options(
-        selectinload(Post.user),
-        selectinload(Post.category),
-        selectinload(Post.location),
-        selectinload(Post.post_tags).selectinload(PostTag.tag),
-    ).where(
-        Favorite.user_id == current_user.id,
-        Post.is_deleted == False
-    ).order_by(Favorite.created_at.desc())
-
-    # 获取总数
-    count_query = select(func.count()).select_from(Favorite).where(
-        Favorite.user_id == current_user.id
-    )
-    total_result = await db.execute(count_query)
-    total = total_result.scalar() or 0
-
-    # 分页
-    offset = (page - 1) * page_size
-    posts_result = await db.execute(query.offset(offset).limit(page_size))
-    posts = posts_result.scalars().all()
-
+    """[已废弃] 收藏功能已下线，返回空列表"""
     return PaginatedResponse.create(
-        items=posts,
+        items=[],
         page=page,
         page_size=page_size,
-        total=total
+        total=0
     )

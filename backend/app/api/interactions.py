@@ -10,13 +10,11 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.post import Post
 from app.models.like import Like
-from app.models.favorite import Favorite
 from app.models.validation_record import ValidationRecord
 from app.models.report import Report
 from app.models.notification import Notification
 from app.schemas.interaction import (
     LikeResponse,
-    FavoriteResponse,
     ValidationCreate,
     ValidationResponse,
     ValidationStatsResponse,
@@ -102,68 +100,6 @@ async def toggle_like(
     )
 
 
-@router.post("/posts/{post_id}/favorite", response_model=FavoriteResponse)
-async def toggle_favorite(
-    post_id: int,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """
-    收藏/取消收藏（切换）
-    如果已收藏则取消收藏，如果未收藏则收藏
-    """
-    # 查询帖子
-    result = await db.execute(select(Post).where(Post.id == post_id, Post.is_deleted == False))
-    post = result.scalar_one_or_none()
-    if not post:
-        raise NotFoundException(detail="帖子不存在")
-
-    # 查询是否已收藏
-    result = await db.execute(
-        select(Favorite).where(Favorite.post_id == post_id, Favorite.user_id == current_user.id)
-    )
-    existing_favorite = result.scalar_one_or_none()
-
-    if existing_favorite:
-        # 取消收藏
-        await db.delete(existing_favorite)
-        post.favorite_count = max(0, post.favorite_count - 1)
-        is_favorited = False
-    else:
-        # 收藏
-        new_favorite = Favorite(post_id=post_id, user_id=current_user.id)
-        db.add(new_favorite)
-        post.favorite_count += 1
-        is_favorited = True
-
-        # 创建通知（不给自己的帖子收藏发通知）
-        if post.user_id != current_user.id:
-            notification = Notification(
-                user_id=post.user_id,
-                type="favorite",
-                title="有人收藏了你的帖子",
-                content=f"{current_user.nickname}收藏了你的帖子「{post.title}」",
-                target_type="post",
-                target_id=post_id,
-                actor_id=current_user.id,
-            )
-            db.add(notification)
-
-    try:
-        await db.commit()
-    except IntegrityError:
-        await db.rollback()
-        raise BadRequestException(detail="操作失败，请重试")
-
-    await db.refresh(post)
-
-    return FavoriteResponse(
-        post_id=post_id,
-        favorite_count=post.favorite_count,
-        is_favorited=is_favorited,
-    )
-
-
 @router.post("/posts/{post_id}/validate", response_model=ValidationResponse)
 async def create_validation(
     post_id: int,
@@ -172,16 +108,14 @@ async def create_validation(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    协同验证（T-B-02 扩展为 5 类）
+    协同验证（2 类互斥可切换）
 
-    用户可对帖子提交 5 类协同验证：
-    - confirmation: 证实（信息真实有效）
-    - refutation: 证伪（信息有误）
-    - update: 补充更新
-    - expiration_report: 过期上报
-    - conflict_report: 冲突上报
+    每用户对每帖只能有一条验证记录，规则：
+    - 无记录 → 新建（confirmation 或 refutation）
+    - 已有同类型记录 → 删除（取消）
+    - 已有不同类型记录 → 删除原记录，新建新类型（切换）
 
-    向后兼容旧值：valid→confirmation / invalid→refutation / uncertain→update
+    向后兼容旧值：valid→confirmation / invalid→refutation
     """
     # 查询帖子
     result = await db.execute(select(Post).where(Post.id == post_id, Post.is_deleted == False))
@@ -192,7 +126,48 @@ async def create_validation(
     # 归一化验证类型（别名 → 正式名）
     canonical_type = normalize_validation_type(data.validation_type)
 
-    # 创建协同验证记录（统一存储正式名）
+    # 查询当前用户对此帖的已有验证记录（任意类型）
+    result = await db.execute(
+        select(ValidationRecord).where(
+            ValidationRecord.post_id == post_id,
+            ValidationRecord.user_id == current_user.id,
+        )
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        if existing.validation_type == canonical_type:
+            # 同类型 → 取消（删除记录）
+            await db.delete(existing)
+            # 更新 Post 旧统计字段
+            if canonical_type in ValidationType.LEGACY_POSITIVE_COUNT_TYPES:
+                post.valid_count = max(0, post.valid_count - 1)
+            elif canonical_type in ValidationType.LEGACY_NEGATIVE_COUNT_TYPES:
+                post.invalid_count = max(0, post.invalid_count - 1)
+            try:
+                await db.commit()
+            except IntegrityError:
+                await db.rollback()
+                raise BadRequestException(detail="操作失败，请重试")
+            # 返回被取消的记录信息（id=0 表示已删除）
+            return ValidationResponse(
+                id=0,
+                post_id=post_id,
+                user_id=current_user.id,
+                validation_type=canonical_type,
+                comment=None,
+                created_at=existing.created_at,
+            )
+        else:
+            # 不同类型 → 切换（删除原记录，新建新记录）
+            # 先回滚原记录对 Post 统计字段的影响
+            if existing.validation_type in ValidationType.LEGACY_POSITIVE_COUNT_TYPES:
+                post.valid_count = max(0, post.valid_count - 1)
+            elif existing.validation_type in ValidationType.LEGACY_NEGATIVE_COUNT_TYPES:
+                post.invalid_count = max(0, post.invalid_count - 1)
+            await db.delete(existing)
+
+    # 新建记录（首次验证 或 切换后新建）
     validation = ValidationRecord(
         post_id=post_id,
         user_id=current_user.id,
@@ -201,10 +176,7 @@ async def create_validation(
     )
     db.add(validation)
 
-    # 兼容旧 Post.valid_count / invalid_count 统计字段
-    # - confirmation → valid_count +1
-    # - refutation   → invalid_count +1
-    # - 其他 3 类不计入旧字段（待 T-C-01 可信度计算统一处理）
+    # 更新 Post 旧统计字段
     if canonical_type in ValidationType.LEGACY_POSITIVE_COUNT_TYPES:
         post.valid_count += 1
     elif canonical_type in ValidationType.LEGACY_NEGATIVE_COUNT_TYPES:
@@ -290,14 +262,14 @@ async def get_validation_stats(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """获取帖子的协同验证统计（5 类细分计数 + 旧 3 类兼容字段）
+    """获取帖子的协同验证统计（2 类计数 + 当前用户验证类型）
 
     返回字段：
-    - 旧 3 类（兼容）：valid_count / invalid_count / uncertain_count
-    - 新 5 类细分：confirmation_count / refutation_count / update_count /
-                  expiration_report_count / conflict_report_count
-    - total_count: 总验证数
+    - 旧 2 类（兼容）：valid_count / invalid_count
+    - 2 类细分：confirmation_count / refutation_count
+    - total_count: 总验证数（仅计入 confirmation + refutation + 旧别名）
     - validity_status: 综合有效性状态（valid/invalid/uncertain）
+    - user_validation_type: 当前用户对此帖的验证类型（confirmation/refutation/None）
     """
     # 查询帖子
     result = await db.execute(
@@ -318,23 +290,19 @@ async def get_validation_stats(
     )
     counts_by_type = {row[0]: row[1] for row in result.all()}
 
-    # 5 类正式计数
+    # 2 类正式计数
     confirmation_count = counts_by_type.get("confirmation", 0)
     refutation_count = counts_by_type.get("refutation", 0)
-    update_count = counts_by_type.get("update", 0)
-    expiration_report_count = counts_by_type.get("expiration_report", 0)
-    conflict_report_count = counts_by_type.get("conflict_report", 0)
 
-    # 旧 3 类兼容字段（数据库可能存有旧值 valid/invalid/uncertain，累加到对应新类）
+    # 旧别名兼容（valid→confirmation, invalid→refutation）
     legacy_valid = counts_by_type.get("valid", 0)
     legacy_invalid = counts_by_type.get("invalid", 0)
-    legacy_uncertain = counts_by_type.get("uncertain", 0)
 
     valid_count = confirmation_count + legacy_valid
     invalid_count = refutation_count + legacy_invalid
-    uncertain_count = update_count + legacy_uncertain
 
-    total = sum(counts_by_type.values())
+    # 仅计入 confirmation + refutation + 旧别名（历史废弃类型不计入 total）
+    total = valid_count + invalid_count
 
     # 综合有效性状态：以 confirmation vs refutation 比例判定
     if valid_count > invalid_count:
@@ -346,16 +314,26 @@ async def get_validation_stats(
     else:
         validity_status = "valid"
 
+    # 查询当前用户对此帖的验证类型
+    user_validation_type = None
+    result = await db.execute(
+        select(ValidationRecord.validation_type).where(
+            ValidationRecord.post_id == post_id,
+            ValidationRecord.user_id == current_user.id,
+        )
+    )
+    row = result.scalar_one_or_none()
+    if row:
+        # 归一化为正式名（处理旧别名）
+        user_validation_type = normalize_validation_type(row)
+
     return ValidationStatsResponse(
         post_id=post_id,
         valid_count=valid_count,
         invalid_count=invalid_count,
-        uncertain_count=uncertain_count,
         confirmation_count=confirmation_count,
         refutation_count=refutation_count,
-        update_count=update_count,
-        expiration_report_count=expiration_report_count,
-        conflict_report_count=conflict_report_count,
         total_count=total,
         validity_status=validity_status,
+        user_validation_type=user_validation_type,
     )

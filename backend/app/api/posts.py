@@ -12,7 +12,6 @@ from app.models.tag import Tag
 from app.models.post_tag import PostTag
 from app.models.post_image import PostImage
 from app.models.like import Like
-from app.models.favorite import Favorite
 from app.models.user import User
 from app.models.category import Category
 from app.models.location import Location
@@ -137,24 +136,17 @@ async def get_post(
     await db.commit()
     await db.refresh(post, attribute_names=["view_count"])
 
-    # 检查当前用户是否点赞/收藏
+    # 检查当前用户是否点赞
     is_liked = False
-    is_favorited = False
     if current_user:
         like_result = await db.execute(
             select(Like).where(Like.post_id == post_id, Like.user_id == current_user.id)
         )
         is_liked = like_result.scalar_one_or_none() is not None
 
-        fav_result = await db.execute(
-            select(Favorite).where(Favorite.post_id == post_id, Favorite.user_id == current_user.id)
-        )
-        is_favorited = fav_result.scalar_one_or_none() is not None
-
     # 构建响应
     response = PostResponse.model_validate(post)
     response.is_liked = is_liked
-    response.is_favorited = is_favorited
 
     # 设置标签
     if post.post_tags:

@@ -18,14 +18,9 @@ import {
   Eye,
   MapPin,
   Clock,
-  Bookmark,
-  Share2,
   Flag,
   CheckCircle2,
   XCircle,
-  AlertCircle,
-  ClockAlert,
-  AlertTriangle,
 } from 'lucide-react';
 
 // T-B-05: 6 态状态徽章配置
@@ -38,18 +33,31 @@ const STATUS_BADGE_CONFIG: Record<string, { variant: 'default' | 'success' | 'wa
   archived: { variant: 'default', label: '已归档' },
 };
 
-// T-B-05: 5 类协同验证选项
+// T-B-05: 2 类协同验证选项（证实/证伪 互斥可切换）
 const VALIDATION_OPTIONS: Array<{
   type: ValidationType;
   label: string;
+  activeLabel: string;
   icon: React.ReactNode;
   color: string;
+  activeClass: string;
 }> = [
-  { type: 'confirmation', label: '证实', icon: <CheckCircle2 size={14} />, color: 'text-grass' },
-  { type: 'refutation', label: '证伪', icon: <XCircle size={14} />, color: 'text-danger' },
-  { type: 'update', label: '补充更新', icon: <AlertCircle size={14} />, color: 'text-info' },
-  { type: 'expiration_report', label: '过期上报', icon: <ClockAlert size={14} />, color: 'text-sun' },
-  { type: 'conflict_report', label: '冲突上报', icon: <AlertTriangle size={14} />, color: 'text-danger' },
+  {
+    type: 'confirmation',
+    label: '证实',
+    activeLabel: '已证实',
+    icon: <CheckCircle2 size={14} />,
+    color: 'text-grass',
+    activeClass: 'bg-grass text-paper border-grass',
+  },
+  {
+    type: 'refutation',
+    label: '证伪',
+    activeLabel: '已证伪',
+    icon: <XCircle size={14} />,
+    color: 'text-danger',
+    activeClass: 'bg-danger text-paper border-danger',
+  },
 ];
 
 const PostDetailPage: React.FC = () => {
@@ -94,16 +102,27 @@ const PostDetailPage: React.FC = () => {
     }
   };
 
-  // T-B-05: 提交协同验证
+  // T-B-05: 提交协同验证（互斥可切换）
+  // - 当前未验证 → 新建
+  // - 当前已选同类型 → 取消
+  // - 当前已选不同类型 → 切换
   const handleValidate = async (type: ValidationType) => {
     if (!isAuthenticated) {
       setToast({ message: '请先登录后再进行验证', type: 'warning' });
       return;
     }
+    const current = validationStats?.user_validation_type;
     try {
       await interactionsApi.validatePost(Number(id), type);
-      setToast({ message: '验证已提交', type: 'success' });
+      if (current === type) {
+        setToast({ message: '已取消验证', type: 'info' });
+      } else if (current) {
+        setToast({ message: '已切换验证', type: 'success' });
+      } else {
+        setToast({ message: '验证已提交', type: 'success' });
+      }
       loadValidationStats();
+      loadPost();
     } catch (error) {
       setToast({ message: '验证失败', type: 'error' });
     }
@@ -126,20 +145,6 @@ const PostDetailPage: React.FC = () => {
     try {
       await interactionsApi.likePost(Number(id));
       loadPost();
-      setToast({ message: '点赞成功', type: 'success' });
-    } catch (error) {
-      setToast({ message: '操作失败', type: 'error' });
-    }
-  };
-
-  const handleFavorite = async () => {
-    if (!isAuthenticated) {
-      setToast({ message: '请先登录', type: 'warning' });
-      return;
-    }
-    try {
-      await interactionsApi.favoritePost(Number(id));
-      setToast({ message: '收藏成功', type: 'success' });
     } catch (error) {
       setToast({ message: '操作失败', type: 'error' });
     }
@@ -243,53 +248,51 @@ const PostDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* T-B-05: 协同验证统计面板（5 类细分） */}
+      {/* T-B-05: 协同验证统计面板（2 类） */}
       {validationStats && validationStats.total_count > 0 && (
         <Card variant="elevated" padding="md" className="mb-4">
           <h3 className="font-display font-bold text-sm text-lake mb-3 flex items-center gap-2">
             <CheckCircle2 size={16} />
             协同验证统计
           </h3>
-          <div className="grid grid-cols-5 gap-2 text-center">
-            <div className="p-2 rounded-md bg-grass/8">
-              <div className="text-lg font-data font-bold text-grass">{validationStats.confirmation_count}</div>
-              <div className="text-[10px] text-ink-muted mt-0.5">证实</div>
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <div className="p-3 rounded-md bg-grass/8">
+              <div className="text-2xl font-data font-bold text-grass">{validationStats.confirmation_count}</div>
+              <div className="text-xs text-ink-muted mt-1">证实</div>
             </div>
-            <div className="p-2 rounded-md bg-danger/8">
-              <div className="text-lg font-data font-bold text-danger">{validationStats.refutation_count}</div>
-              <div className="text-[10px] text-ink-muted mt-0.5">证伪</div>
-            </div>
-            <div className="p-2 rounded-md bg-info/8">
-              <div className="text-lg font-data font-bold text-info">{validationStats.update_count}</div>
-              <div className="text-[10px] text-ink-muted mt-0.5">补充更新</div>
-            </div>
-            <div className="p-2 rounded-md bg-sun/8">
-              <div className="text-lg font-data font-bold text-sun">{validationStats.expiration_report_count}</div>
-              <div className="text-[10px] text-ink-muted mt-0.5">过期上报</div>
-            </div>
-            <div className="p-2 rounded-md bg-danger/8">
-              <div className="text-lg font-data font-bold text-danger">{validationStats.conflict_report_count}</div>
-              <div className="text-[10px] text-ink-muted mt-0.5">冲突上报</div>
+            <div className="p-3 rounded-md bg-danger/8">
+              <div className="text-2xl font-data font-bold text-danger">{validationStats.refutation_count}</div>
+              <div className="text-xs text-ink-muted mt-1">证伪</div>
             </div>
           </div>
         </Card>
       )}
 
-      {/* T-B-05: 5 类协同验证操作按钮 */}
+      {/* T-B-05: 2 类协同验证操作按钮（互斥可切换） */}
       {isAuthenticated && (
         <div className="flex flex-wrap gap-2 mb-4">
-          {VALIDATION_OPTIONS.map(opt => (
-            <Button
-              key={opt.type}
-              variant="secondary"
-              size="sm"
-              onClick={() => handleValidate(opt.type)}
-              icon={opt.icon}
-              className={opt.color}
-            >
-              {opt.label}
-            </Button>
-          ))}
+          {VALIDATION_OPTIONS.map(opt => {
+            const isActive = validationStats?.user_validation_type === opt.type;
+            return (
+              <button
+                key={opt.type}
+                onClick={() => handleValidate(opt.type)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-all ${
+                  isActive
+                    ? opt.activeClass
+                    : `bg-paper border-line ${opt.color} hover:bg-mist`
+                }`}
+              >
+                {opt.icon}
+                {isActive ? opt.activeLabel : opt.label}
+              </button>
+            );
+          })}
+          {validationStats?.user_validation_type && (
+            <span className="text-xs text-ink-muted self-center ml-1">
+              · 再点一次取消
+            </span>
+          )}
         </div>
       )}
 
@@ -329,10 +332,6 @@ const PostDetailPage: React.FC = () => {
             <MessageCircle size={15} />
             <span className="font-data font-bold">{post.comment_count || 0}</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <Bookmark size={15} />
-            <span className="font-data font-bold">{post.favorite_count || 0}</span>
-          </span>
         </div>
       </Card>
 
@@ -350,14 +349,13 @@ const PostDetailPage: React.FC = () => {
 
       {/* 底部操作按钮 */}
       <div className="flex flex-wrap gap-2 mb-6">
-        <Button variant="primary" size="sm" onClick={handleLike} icon={<Heart size={16} />}>
-          点赞
-        </Button>
-        <Button variant="secondary" size="sm" onClick={handleFavorite} icon={<Bookmark size={16} />}>
-          收藏
-        </Button>
-        <Button variant="secondary" size="sm" icon={<Share2 size={16} />}>
-          分享
+        <Button
+          variant={post.is_liked ? 'danger' : 'primary'}
+          size="sm"
+          onClick={handleLike}
+          icon={<Heart size={16} />}
+        >
+          {post.is_liked ? '已点赞' : '点赞'}
         </Button>
         <Button variant="text" size="sm" icon={<Flag size={16} />}>
           举报
