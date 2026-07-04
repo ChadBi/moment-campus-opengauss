@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Toast } from '../components/ui/Toast';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, ArrowLeft } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -130,6 +130,16 @@ const LoginPage: React.FC = () => {
               立即注册
             </Link>
           </div>
+
+          {/* 访客返回入口：返回上一页（直接访问 /login 时回首页） */}
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="mt-4 w-full flex items-center justify-center gap-1.5 text-sm text-ink-muted hover:text-ink transition-colors py-2"
+          >
+            <ArrowLeft size={14} />
+            以访客身份继续浏览
+          </button>
         </Card>
       </div>
 
