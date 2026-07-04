@@ -3,12 +3,9 @@ import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
+import { useAuthStore } from '../../store/useAuthStore';
 
 interface MainLayoutProps {
-  user?: {
-    nickname: string;
-    avatar_url?: string;
-  } | null;
   notificationCount?: number;
   categories?: Array<{
     id: number;
@@ -18,11 +15,12 @@ interface MainLayoutProps {
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
-  user,
   notificationCount = 0,
   categories = [],
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // 从 store 获取登录用户信息：登录后显示头像，未登录显示登录按钮
+  const user = useAuthStore((s) => s.user);
 
   return (
     <div className="min-h-screen bg-mist md:grid md:grid-cols-[88px_minmax(0,1fr)]">
