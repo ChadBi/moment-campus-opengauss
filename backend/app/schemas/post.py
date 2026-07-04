@@ -147,7 +147,7 @@ class PostResponse(BaseModel):
 class PostListResponse(BaseModel):
     id: int
     title: str
-    content: str = Field(max_length=200, description="内容摘要")
+    content: str = Field(description="内容（完整内容，前端用 CSS line-clamp 控制显示行数）")
     category: Optional[CategoryBrief] = None
     location: Optional[LocationBrief] = None
     author: Optional[UserBrief] = Field(None, alias="user", description="作者信息")
