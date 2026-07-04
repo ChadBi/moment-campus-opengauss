@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Bell, Menu, Plus } from 'lucide-react';
+import { Bell, Menu, Plus } from 'lucide-react';
 import { Avatar } from '../ui';
 
 interface HeaderProps {
@@ -20,7 +20,7 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="sticky top-0 z-30 bg-mist/80 backdrop-blur-lg border-b border-line/60">
       <div className="max-w-[1680px] mx-auto px-3 md:px-6 py-3 md:py-4">
-        <div className="grid grid-cols-[1fr_auto] gap-3 md:grid-cols-[minmax(220px,0.9fr)_minmax(0,1.4fr)_auto] md:gap-5 md:items-center">
+        <div className="flex items-center justify-between gap-3 md:gap-5">
           {/* 品牌文字：楷体"此刻校园" + 副标题 */}
           <div className="flex items-baseline gap-2.5 whitespace-nowrap">
             <h1 className="font-display font-extrabold text-[22px] md:text-[28px] tracking-[0.08em] text-lake leading-none">
@@ -29,23 +29,6 @@ export const Header: React.FC<HeaderProps> = ({
             <small className="hidden lg:inline text-ink-muted text-xs">
               把会消失的校园经验留下来
             </small>
-          </div>
-
-          {/* 搜索框 - 桌面端：大圆角18px，半透明白底 */}
-          <div className="hidden md:block relative w-full">
-            <Search
-              size={20}
-              className="absolute left-[17px] top-1/2 -translate-y-1/2 text-lake-light"
-            />
-            <input
-              type="text"
-              placeholder="搜地点、服务或一条经验…"
-              aria-label="搜索校园信息"
-              className="w-full h-[52px] pl-12 pr-16 rounded-[18px] bg-white/[0.78] border border-transparent shadow-sm focus:bg-white focus:border-lake/25 focus:outline-none transition-colors"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 font-data font-bold text-[11px] text-ink-muted border border-line rounded-[7px] px-2 py-1.5 pointer-events-none">
-              ⌘ K
-            </span>
           </div>
 
           {/* 右侧操作区 */}
@@ -105,20 +88,6 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Menu size={20} className="text-ink" />
             </button>
-          </div>
-
-          {/* 搜索框 - 移动端：独占一行 */}
-          <div className="col-span-2 md:hidden relative">
-            <Search
-              size={20}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-lake-light"
-            />
-            <input
-              type="text"
-              placeholder="搜索校园信息…"
-              aria-label="搜索校园信息"
-              className="w-full h-12 pl-12 pr-4 rounded-[18px] bg-white/[0.78] border border-transparent shadow-sm focus:bg-white focus:border-lake/25 focus:outline-none transition-colors"
-            />
           </div>
         </div>
       </div>
