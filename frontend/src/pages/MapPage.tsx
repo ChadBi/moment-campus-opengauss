@@ -83,12 +83,21 @@ const MapPage: React.FC = () => {
         const color = CATEGORY_COLORS[marker.category_id] || '#95A5A6';
         const categoryName = CATEGORY_NAMES[marker.category_id] || '未知';
 
-        // 创建自定义标记元素
+        // 外层 wrapper：不要设置任何 transform，maplibre-gl 会用 transform 定位 marker
+        // 形状（旋转 -45deg 变成水滴形）放到内层 pin 元素上
         const el = document.createElement('div');
         el.className = 'custom-marker';
         el.style.cssText = `
           width: 28px;
           height: 28px;
+          cursor: pointer;
+        `;
+
+        // 内层水滴形 pin：承担 rotate 变换，不影响外层定位
+        const pin = document.createElement('div');
+        pin.style.cssText = `
+          width: 100%;
+          height: 100%;
           border-radius: 50% 50% 50% 0;
           background: ${color};
           transform: rotate(-45deg);
@@ -96,7 +105,6 @@ const MapPage: React.FC = () => {
           align-items: center;
           justify-content: center;
           box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          cursor: pointer;
           transition: transform 0.2s;
         `;
 
@@ -108,14 +116,15 @@ const MapPage: React.FC = () => {
           background: white;
           transform: rotate(45deg);
         `;
-        el.appendChild(inner);
+        pin.appendChild(inner);
+        el.appendChild(pin);
 
-        // 悬停效果
+        // 悬停效果：只缩放 pin，不动外层
         el.addEventListener('mouseenter', () => {
-          el.style.transform = 'rotate(-45deg) scale(1.2)';
+          pin.style.transform = 'rotate(-45deg) scale(1.2)';
         });
         el.addEventListener('mouseleave', () => {
-          el.style.transform = 'rotate(-45deg) scale(1)';
+          pin.style.transform = 'rotate(-45deg) scale(1)';
         });
 
         const markerInstance = new maplibregl.Marker({ element: el })
