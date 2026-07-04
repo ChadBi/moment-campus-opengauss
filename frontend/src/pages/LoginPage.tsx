@@ -131,10 +131,10 @@ const LoginPage: React.FC = () => {
             </Link>
           </div>
 
-          {/* 访客返回入口：返回上一页（直接访问 /login 时回首页） */}
+          {/* 访客返回入口：直接回首页，不依赖浏览器历史 */}
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
             className="mt-4 w-full flex items-center justify-center gap-1.5 text-sm text-ink-muted hover:text-ink transition-colors py-2"
           >
             <ArrowLeft size={14} />
