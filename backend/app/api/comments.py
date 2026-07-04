@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, text
 from sqlalchemy.orm import selectinload, joinedload
 from typing import Optional
 from datetime import datetime
@@ -159,6 +159,10 @@ async def create_comment(
             )
             db.add(comment_notification)
 
+    await db.commit()
+
+    # 评论后更新评论者信誉分（评论也是一种贡献）
+    await db.execute(text("SELECT sp_update_reputation(:uid)"), {"uid": current_user.id})
     await db.commit()
 
     # 重新查询以获取关联数据

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func, or_, text
 from sqlalchemy.orm import selectinload, joinedload
 from typing import Optional
 from datetime import datetime, timedelta
@@ -252,6 +252,10 @@ async def create_post(
 
     await db.commit()
     await db.refresh(post)
+
+    # 发帖后更新作者信誉分（sp_update_reputation 公式含 v_published_cnt × 0.5）
+    await db.execute(text("SELECT sp_update_reputation(:uid)"), {"uid": current_user.id})
+    await db.commit()
 
     # 重新查询以获取关联数据
     query = select(Post).where(Post.id == post.id)

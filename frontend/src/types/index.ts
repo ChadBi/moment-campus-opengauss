@@ -9,6 +9,7 @@ export interface User {
   bio?: string;
   is_active: boolean;
   created_at: string;
+  reputation_score?: number;
 }
 
 // 帖子类型

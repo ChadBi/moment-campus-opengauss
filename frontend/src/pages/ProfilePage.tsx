@@ -168,7 +168,7 @@ const ProfilePage: React.FC = () => {
   const stats = [
     { label: '已发布', value: myPosts.length, icon: <FileText size={16} />, color: 'text-lake' },
     { label: '确认有效', value: 0, icon: <CheckCircle size={16} />, color: 'text-grass' },
-    { label: '贡献值', value: 0, icon: <Award size={16} />, color: 'text-sun' },
+    { label: '贡献值', value: Math.round(userInfo.reputation_score || 0), icon: <Award size={16} />, color: 'text-sun' },
   ];
 
   return (
@@ -247,7 +247,7 @@ const ProfilePage: React.FC = () => {
               <Award size={15} className="text-white" />
             </span>
             <span className="text-xs text-white/85">校园贡献值</span>
-            <span className="font-data font-bold text-base text-white">0</span>
+            <span className="font-data font-bold text-base text-white">{Math.round(userInfo.reputation_score || 0)}</span>
           </div>
         </div>
         <div className="px-7 py-4 flex gap-2 bg-paper">

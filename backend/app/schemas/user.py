@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional
 from datetime import datetime
+from decimal import Decimal
 
 
 # Token相关
@@ -48,6 +49,7 @@ class UserResponse(BaseModel):
     bio: Optional[str] = None
     is_active: bool
     created_at: datetime
+    reputation_score: Optional[Decimal] = None
 
     class Config:
         from_attributes = True
