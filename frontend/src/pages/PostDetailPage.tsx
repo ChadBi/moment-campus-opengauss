@@ -73,6 +73,8 @@ const PostDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (id) {
+      // loading 仅用于初始加载，避免后续刷新时整个组件树被 Loading 占位符替换导致滚动位置丢失
+      setLoading(true);
       loadPost();
       loadComments();
       loadValidationStats();
@@ -81,7 +83,6 @@ const PostDetailPage: React.FC = () => {
 
   const loadPost = async () => {
     try {
-      setLoading(true);
       const response = await postsApi.getPost(Number(id));
       setPost(response as Post);
     } catch (error) {
