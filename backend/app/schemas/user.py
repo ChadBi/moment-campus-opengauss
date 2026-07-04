@@ -10,6 +10,11 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class LoginResponse(Token):
+    """登录/注册响应：在 Token 基础上附带用户信息，前端 setAuth 需要 user。"""
+    user: "UserResponse"
+
+
 class TokenPayload(BaseModel):
     sub: int
     type: str
@@ -46,6 +51,11 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class LoginResponse(Token):
+    """登录/注册响应：在 Token 基础上附带用户信息，前端 setAuth 需要 user。"""
+    user: UserResponse
 
 
 class UserUpdate(BaseModel):

@@ -11,7 +11,7 @@ from app.core.security import (
     create_refresh_token,
     decode_token,
 )
-from app.schemas.user import UserRegister, UserLogin, Token, UserResponse, RefreshTokenRequest
+from app.schemas.user import UserRegister, UserLogin, Token, UserResponse, RefreshTokenRequest, LoginResponse
 from app.schemas.common import MessageResponse
 from app.models.user import User
 from app.core.exceptions import BadRequestException, UnauthorizedException, ConflictException
@@ -79,9 +79,10 @@ async def login(
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token_value = create_refresh_token(data={"sub": str(user.id)})
 
-    return Token(
+    return LoginResponse(
         access_token=access_token,
         refresh_token=refresh_token_value,
+        user=UserResponse.model_validate(user),
     )
 
 
