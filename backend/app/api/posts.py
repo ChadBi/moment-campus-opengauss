@@ -91,6 +91,11 @@ async def get_posts(
     items = []
     for post in posts:
         post_data = PostListResponse.model_validate(post)
+        # 设置作者信息（is_anonymous 时隐藏真实身份）
+        if post.is_anonymous:
+            post_data.author = None
+        elif post.user:
+            post_data.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url}
         # 设置封面图片
         if post.post_images:
             post_data.cover_image = post.post_images[0].image_url if post.post_images else None
@@ -147,6 +152,12 @@ async def get_post(
     # 构建响应
     response = PostResponse.model_validate(post)
     response.is_liked = is_liked
+
+    # 设置作者信息（匿名时隐藏）
+    if post.is_anonymous:
+        response.author = None
+    elif post.user:
+        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url}
 
     # 设置标签
     if post.post_tags:
@@ -271,6 +282,10 @@ async def create_post(
     post = result.unique().scalar_one()
 
     response = PostResponse.model_validate(post)
+    if post.is_anonymous:
+        response.author = None
+    elif post.user:
+        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url}
     if post.post_tags:
         response.tags = [TagBrief.model_validate(pt.tag) for pt in post.post_tags if pt.tag]
 
@@ -387,6 +402,10 @@ async def update_post(
     post = result.unique().scalar_one()
 
     response = PostResponse.model_validate(post)
+    if post.is_anonymous:
+        response.author = None
+    elif post.user:
+        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url}
     if post.post_tags:
         response.tags = [TagBrief.model_validate(pt.tag) for pt in post.post_tags if pt.tag]
 

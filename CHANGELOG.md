@@ -5,6 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.1.1] - 2026-07-04
+
+### 变更
+
+- `api/posts` 修复帖子列表/详情/创建/更新接口 author 字段返回问题（移除 alias="user"，手动映射 author，非匿名帖子正确显示作者昵称）
+- `api/comments` 修复评论创建 500 错误（MissingGreenlet，添加 selectinload 预加载 replies）；修复评论/回复 author 字段返回
+- `api/search` 修复搜索结果 author 字段名称不一致问题，content 返回完整内容
+- `schemas/post` PostListResponse 补充 user_id、is_anonymous 字段；PostResponse/PostListResponse 移除 author 的 alias="user"
+- `schemas/comment` CommentResponse 移除 author 的 alias="user"
+- `schemas/user` 删除重复 LoginResponse 定义，改用 Pydantic v2 的 model_config
+- `frontend` 个人中心显示真实信誉分（reputation_score），User 类型补充 reputation_score 字段
+- 信誉分系统完善：登录/个人信息接口正确返回 reputation_score，发帖后信誉分正确触发存储过程更新
+- 清理数据库测试垃圾数据（"123123"帖子及相关评论）
+- `.gitignore` 添加 .trae/ 目录
+
 ## [0.1.0] - 2026-06-18
 
 ### 新增

@@ -66,15 +66,26 @@ async def get_post_comments(
     items = []
     for comment in comments:
         comment_data = CommentResponse.model_validate(comment)
+        # 设置评论者信息
+        if comment.user:
+            comment_data.author = {"id": comment.user.id, "nickname": comment.user.nickname, "avatar_url": comment.user.avatar_url}
+        if comment.reply_to_user:
+            comment_data.reply_to_user = {"id": comment.reply_to_user.id, "nickname": comment.reply_to_user.nickname, "avatar_url": comment.reply_to_user.avatar_url}
         # 计算回复数量
         comment_data.reply_count = len(comment.replies) if comment.replies else 0
         # 转换子评论
         if comment.replies:
-            comment_data.replies = [
-                CommentResponse.model_validate(reply)
-                for reply in comment.replies
-                if not reply.is_deleted
-            ]
+            replies = []
+            for reply in comment.replies:
+                if reply.is_deleted:
+                    continue
+                reply_data = CommentResponse.model_validate(reply)
+                if reply.user:
+                    reply_data.author = {"id": reply.user.id, "nickname": reply.user.nickname, "avatar_url": reply.user.avatar_url}
+                if reply.reply_to_user:
+                    reply_data.reply_to_user = {"id": reply.reply_to_user.id, "nickname": reply.reply_to_user.nickname, "avatar_url": reply.reply_to_user.avatar_url}
+                replies.append(reply_data)
+            comment_data.replies = replies
         items.append(comment_data)
 
     return PaginatedResponse.create(
@@ -165,16 +176,23 @@ async def create_comment(
     await db.execute(text("SELECT sp_update_reputation(:uid)"), {"uid": current_user.id})
     await db.commit()
 
-    # 重新查询以获取关联数据
+    # 重新查询以获取关联数据（预加载 replies 防止 MissingGreenlet）
     query = select(Comment).where(Comment.id == comment.id)
     query = query.options(
         joinedload(Comment.user),
         joinedload(Comment.reply_to_user),
+        selectinload(Comment.replies),
     )
     result = await db.execute(query)
     comment = result.unique().scalar_one()
 
-    return CommentResponse.model_validate(comment)
+    response = CommentResponse.model_validate(comment)
+    if comment.user:
+        response.author = {"id": comment.user.id, "nickname": comment.user.nickname, "avatar_url": comment.user.avatar_url}
+    if comment.reply_to_user:
+        response.reply_to_user = {"id": comment.reply_to_user.id, "nickname": comment.reply_to_user.nickname, "avatar_url": comment.reply_to_user.avatar_url}
+
+    return response
 
 
 @router.delete("/comments/{comment_id}", summary="删除评论")

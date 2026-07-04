@@ -146,11 +146,13 @@ async def search_posts(
         # 构建响应
         post_dict = {
             "id": post.id,
+            "user_id": post.user_id,
             "title": post.title,
-            "content": post.content[:200] if len(post.content) > 200 else post.content,
+            "content": post.content,
+            "is_anonymous": post.is_anonymous,
             "category": category,
             "location": location,
-            "user": author if not post.is_anonymous else None,
+            "author": {"id": author.id, "nickname": author.nickname, "avatar_url": author.avatar_url} if (author and not post.is_anonymous) else None,
             "cover_image": cover_image,
             "tags": tags,
             "like_count": post.like_count,

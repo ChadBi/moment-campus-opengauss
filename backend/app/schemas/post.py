@@ -128,7 +128,7 @@ class PostResponse(BaseModel):
     updated_at: datetime
 
     # 关联数据
-    author: Optional[UserBrief] = Field(None, alias="user", description="作者信息")
+    author: Optional[UserBrief] = None
     category: Optional[CategoryBrief] = None
     location: Optional[LocationBrief] = None
     post_type: Optional[PostTypeBrief] = None
@@ -138,17 +138,19 @@ class PostResponse(BaseModel):
     # 前端需要的额外字段
     is_liked: bool = Field(default=False, description="当前用户是否已点赞")
 
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    model_config = ConfigDict(from_attributes=True)
 
 
 # 信息列表响应（简化版，用于列表展示）
 class PostListResponse(BaseModel):
     id: int
+    user_id: int
     title: str
     content: str = Field(description="内容（完整内容，前端用 CSS line-clamp 控制显示行数）")
+    is_anonymous: bool = False
     category: Optional[CategoryBrief] = None
     location: Optional[LocationBrief] = None
-    author: Optional[UserBrief] = Field(None, alias="user", description="作者信息")
+    author: Optional[UserBrief] = None
     cover_image: Optional[str] = Field(None, description="封面图片")
     tags: Optional[List[TagBrief]] = Field(default=None, description="标签列表")
     like_count: int = 0
@@ -160,7 +162,7 @@ class PostListResponse(BaseModel):
     created_at: datetime
     expire_at: Optional[datetime] = None
 
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    model_config = ConfigDict(from_attributes=True)
 
 
 # T-B-04: 状态流转请求

@@ -26,16 +26,16 @@ class CommentResponse(BaseModel):
     updated_at: datetime
 
     # 关联数据
-    author: Optional[UserBrief] = Field(None, alias="user", description="评论者信息")
+    author: Optional[UserBrief] = None
     reply_to_user: Optional[UserBrief] = Field(None, description="被回复者信息")
-    
+
     # 子评论列表（用于嵌套展示）
     replies: Optional[List["CommentResponse"]] = Field(default=None, description="子评论列表")
-    
+
     # 回复数量（用于分页加载）
     reply_count: int = Field(default=0, description="回复数量")
 
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    model_config = ConfigDict(from_attributes=True)
 
 
 # 解决循环引用

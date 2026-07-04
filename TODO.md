@@ -15,6 +15,20 @@
 
 ## 已完成
 
+### 超大规模检查与Bug修复（2026-07-04 完成）
+
+- [x] 修复评论创建500错误（MissingGreenlet：Comment.replies 关系未预加载）
+- [x] 修复非匿名帖子/评论全部显示"匿名用户"（author 字段 alias="user" 导致API返回user而非author）
+- [x] PostListResponse/CommentResponse 移除 alias="user"，所有返回点手动映射 author 字段
+- [x] PostListResponse 补充 user_id、is_anonymous 字段
+- [x] 修复 user.py 中 LoginResponse 重复定义
+- [x] 删除数据库中 is_top 字段及置顶逻辑
+- [x] 修复时区问题（Asia/Shanghai）
+- [x] 完善校园贡献值（reputation_score）在登录/个人中心返回
+- [x] 清理测试垃圾数据（123123帖子及评论）
+- [x] API验证全部通过（帖子列表/详情/评论/回复 author字段正确）
+- [x] 前端UI验证通过（首页正确显示作者昵称）
+
 ### 管理员后台重构收尾（2026-07-04 完成）
 
 - [x] WS9 AdminTagsPage 新建：列表+搜索+筛选+编辑+官方切换+软删除+合并面板
