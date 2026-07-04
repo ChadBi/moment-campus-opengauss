@@ -10,6 +10,7 @@ from app.dependencies import get_current_user
 from app.models.comment import Comment
 from app.models.post import Post
 from app.models.user import User
+from app.models.notification import Notification
 from app.schemas.comment import CommentCreate, CommentResponse
 from app.schemas.common import PaginatedResponse
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
@@ -126,6 +127,37 @@ async def create_comment(
 
     # 更新信息的评论计数
     post.comment_count += 1
+
+    # 创建通知
+    # 1. 评论帖子：通知帖子作者（不给自己发通知）
+    # 2. 回复评论：通知被回复者（如果有 reply_to_user_id 且不是自己）
+    if comment_data.reply_to_user_id is not None:
+        # 回复评论：通知被回复者
+        if comment_data.reply_to_user_id != current_user.id:
+            reply_notification = Notification(
+                user_id=comment_data.reply_to_user_id,
+                type="comment",
+                title="有人回复了你的评论",
+                content=f"{current_user.nickname} 回复了你的评论：{comment_data.content[:30]}",
+                target_type="post",
+                target_id=post_id,
+                actor_id=current_user.id,
+                is_read=False,
+            )
+            db.add(reply_notification)
+    elif post.user_id != current_user.id:
+        # 评论帖子（非回复）：通知帖子作者
+            comment_notification = Notification(
+                user_id=post.user_id,
+                type="comment",
+                title="您的帖子有新评论",
+                content=f"{current_user.nickname} 评论了你的《{post.title}》",
+                target_type="post",
+                target_id=post_id,
+                actor_id=current_user.id,
+                is_read=False,
+            )
+            db.add(comment_notification)
 
     await db.commit()
 
