@@ -1061,9 +1061,28 @@ async def seed_posts(session: AsyncSession, users: list, schools: list,
     event_type = next((pt for pt in post_types if pt.code == "event"), post_types[0])
     lost_found_type = next((pt for pt in post_types if pt.code == "lost_found"), post_types[0])
 
+    # 时间分布策略：让帖子分散在过去 30 天内，最近几条设置在几分钟到几小时前
+    # 这样前端能看到"刚刚 / X分钟前 / X小时前 / X天前"各种时间格式
+    # 元素为 (days_ago, hours_ago, minutes_ago)，按索引对应 POSTS_DATA 的 30 条
+    TIME_OFFSETS = [
+        (30, 0, 0),   (29, 3, 0),   (28, 6, 0),   (27, 9, 0),   (26, 12, 0),
+        (25, 0, 0),   (24, 2, 0),   (23, 5, 0),   (22, 8, 0),   (21, 14, 0),
+        (20, 0, 0),   (18, 4, 0),   (16, 7, 0),   (15, 10, 0),  (14, 16, 0),
+        (13, 0, 0),   (12, 3, 0),   (11, 6, 0),   (10, 12, 0),  (9, 18, 0),
+        (8, 0, 0),    (7, 4, 0),    (6, 8, 0),    (5, 14, 0),   (4, 20, 0),
+        (3, 0, 0),    (2, 6, 0),    (1, 12, 0),   (0, 6, 0),    (0, 0, 45),
+    ]
+    # 索引说明：
+    #   [0-24]  过去 4-30 天 → "X天前"
+    #   [25-27] 过去 1-3 天 → "1天前" / "2天前" / "3天前"
+    #   [28]    6 小时前 → "6小时前"
+    #   [29]    45 分钟前 → "45分钟前"
+
     posts = []
     all_comments = []
     all_validations = []
+
+    now = datetime.now()
 
     for i, p in enumerate(POSTS_DATA):
         user = user_by_email[p["user_email"]]
@@ -1083,6 +1102,10 @@ async def seed_posts(session: AsyncSession, users: list, schools: list,
         if category.code == "lost_found":
             lost_type = "lost" if "丢失" in p["title"] else "found"
 
+        # 计算这条帖子的创建时间（分散在过去 30 天内）
+        days_ago, hours_ago, mins_ago = TIME_OFFSETS[i] if i < len(TIME_OFFSETS) else (1, 0, 0)
+        created_at = now - timedelta(days=days_ago, hours=hours_ago, minutes=mins_ago)
+
         post = Post(
             user_id=user.id,
             school_id=schools[0].id,
@@ -1099,43 +1122,56 @@ async def seed_posts(session: AsyncSession, users: list, schools: list,
             valid_count=len([v for v in p.get("validations", []) if v["type"] == "confirmation"]),
             invalid_count=len([v for v in p.get("validations", []) if v["type"] == "refutation"]),
             lost_type=lost_type,
-            expire_at=datetime.now() + timedelta(days=category.default_validity_days),
+            expire_at=created_at + timedelta(days=category.default_validity_days),
             is_top=p.get("is_top", False),
             is_recommend=p.get("is_recommend", False),
+            created_at=created_at,
+            updated_at=created_at,
         )
         posts.append(post)
 
     session.add_all(posts)
     await session.flush()
 
-    # 创建评论
+    # 创建评论（时间在帖子创建后 1-48 小时内分散）
     for i, p in enumerate(POSTS_DATA):
         post = posts[i]
-        for c in p.get("comments", []):
+        for j, c in enumerate(p.get("comments", [])):
             comment_user = user_by_email[c["user_email"]]
+            # 每条评论在帖子创建后 1+j*3 小时
+            comment_time = post.created_at + timedelta(hours=1 + j * 3)
+            # 不超过当前时间
+            if comment_time > now:
+                comment_time = now - timedelta(minutes=10 + j * 5)
             comment = Comment(
                 post_id=post.id,
                 user_id=comment_user.id,
                 parent_id=None,
                 content=c["content"],
                 like_count=c.get("likes", 0),
-                status="published"
+                status="published",
+                created_at=comment_time,
+                updated_at=comment_time,
             )
             all_comments.append(comment)
 
     session.add_all(all_comments)
     await session.flush()
 
-    # 创建验证记录（confirmation/refutation）
+    # 创建验证记录（confirmation/refutation，时间在帖子创建后 2-72 小时内）
     for i, p in enumerate(POSTS_DATA):
         post = posts[i]
-        for v in p.get("validations", []):
+        for j, v in enumerate(p.get("validations", [])):
             v_user = user_by_email[v["user_email"]]
+            v_time = post.created_at + timedelta(hours=2 + j * 6)
+            if v_time > now:
+                v_time = now - timedelta(minutes=30 + j * 15)
             record = ValidationRecord(
                 post_id=post.id,
                 user_id=v_user.id,
                 validation_type=v["type"],
-                comment=v.get("comment")
+                comment=v.get("comment"),
+                created_at=v_time,
             )
             all_validations.append(record)
 
