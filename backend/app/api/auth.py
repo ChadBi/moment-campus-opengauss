@@ -19,7 +19,7 @@ from app.core.exceptions import BadRequestException, UnauthorizedException, Conf
 router = APIRouter(prefix="/auth", tags=["认证"])
 
 
-@router.post("/register", response_model=Token, summary="用户注册")
+@router.post("/register", response_model=LoginResponse, summary="用户注册")
 async def register(
     data: UserRegister,
     db: AsyncSession = Depends(get_db),
@@ -46,13 +46,14 @@ async def register(
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token_value = create_refresh_token(data={"sub": str(user.id)})
 
-    return Token(
+    return LoginResponse(
         access_token=access_token,
         refresh_token=refresh_token_value,
+        user=UserResponse.model_validate(user),
     )
 
 
-@router.post("/login", response_model=Token, summary="用户登录")
+@router.post("/login", response_model=LoginResponse, summary="用户登录")
 async def login(
     data: UserLogin,
     db: AsyncSession = Depends(get_db),
