@@ -173,8 +173,8 @@ async def approve_post(
     if post.status != "pending":
         raise BadRequestException(detail="帖子状态不正确，无法审核")
 
-    # 更新状态
-    post.status = "approved"
+    # 更新状态（审核通过 = published，与状态机和列表查询条件一致）
+    post.status = "published"
     post.updated_at = datetime.now()
 
     # 记录操作日志
@@ -213,8 +213,8 @@ async def reject_post(
     if post.status != "pending":
         raise BadRequestException(detail="帖子状态不正确，无法审核")
 
-    # 更新状态
-    post.status = "rejected"
+    # 更新状态（拒绝 = archived，归档终态，不出现在列表中）
+    post.status = "archived"
     post.updated_at = datetime.now()
 
     # 记录操作日志

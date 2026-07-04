@@ -21,7 +21,16 @@ import {
   Flag,
   CheckCircle2,
   XCircle,
+  X,
 } from 'lucide-react';
+
+// 举报类型选项
+const REPORT_OPTIONS = [
+  { value: 'fake', label: '虚假信息' },
+  { value: 'ad', label: '广告/spam' },
+  { value: 'inappropriate', label: '内容不当' },
+  { value: 'other', label: '其他' },
+];
 
 // T-B-05: 6 态状态徽章配置
 const STATUS_BADGE_CONFIG: Record<string, { variant: 'default' | 'success' | 'warning' | 'danger' | 'info'; label: string }> = {
@@ -70,6 +79,10 @@ const PostDetailPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
   const [validationStats, setValidationStats] = useState<ValidationStats | null>(null);
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [reportType, setReportType] = useState('fake');
+  const [reportDescription, setReportDescription] = useState('');
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -175,9 +188,48 @@ const PostDetailPage: React.FC = () => {
     }
   };
 
+  // 相对时间格式化：
+  // - 不到 1 分钟：刚刚
+  // - 不到 30 分钟：X 分钟前
+  // - 不到 24 小时：X 小时前
+  // - 超过 24 小时：X 天前
+  // 兼容时区错乱（diff <= 0 时显示"刚刚"）
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('zh-CN');
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    if (diff < 60000) return '刚刚';
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 30) return `${minutes}分钟前`;
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return `${hours}小时前`;
+    const days = Math.floor(diff / 86400000);
+    return `${days}天前`;
+  };
+
+  // 提交举报
+  const handleReport = async () => {
+    if (!isAuthenticated) {
+      setToast({ message: '请先登录后再举报', type: 'warning' });
+      return;
+    }
+    if (!reportDescription.trim()) {
+      setToast({ message: '请填写举报描述', type: 'warning' });
+      return;
+    }
+    try {
+      setReporting(true);
+      await interactionsApi.reportPost(Number(id), reportType, reportDescription.trim());
+      setToast({ message: '举报已提交，管理员将尽快处理', type: 'success' });
+      setShowReportForm(false);
+      setReportDescription('');
+      setReportType('fake');
+    } catch (error: any) {
+      const msg = error?.response?.data?.detail || '举报失败，请稍后重试';
+      setToast({ message: msg, type: 'error' });
+    } finally {
+      setReporting(false);
+    }
   };
 
   if (loading) {
@@ -358,10 +410,81 @@ const PostDetailPage: React.FC = () => {
         >
           {post.is_liked ? '已点赞' : '点赞'}
         </Button>
-        <Button variant="text" size="sm" icon={<Flag size={16} />}>
+        <Button
+          variant="text"
+          size="sm"
+          icon={<Flag size={16} />}
+          onClick={() => setShowReportForm(!showReportForm)}
+        >
           举报
         </Button>
       </div>
+
+      {/* 举报表单（点击举报按钮后展开） */}
+      {showReportForm && (
+        <div className="mb-6 p-4 bg-mist/60 border border-line rounded-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display font-bold text-sm text-lake">举报这条信息</h3>
+            <button
+              onClick={() => setShowReportForm(false)}
+              className="text-ink-muted hover:text-ink transition-colors"
+              aria-label="关闭举报表单"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs text-ink-muted mb-1.5">举报类型</label>
+              <div className="flex flex-wrap gap-2">
+                {REPORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setReportType(opt.value)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-all ${
+                      reportType === opt.value
+                        ? 'bg-lake text-paper border-lake'
+                        : 'bg-paper border-line text-ink-sub hover:bg-mist'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-ink-muted mb-1.5">举报描述</label>
+              <textarea
+                value={reportDescription}
+                onChange={(e) => setReportDescription(e.target.value)}
+                placeholder="请详细描述举报原因..."
+                className="w-full px-3 py-2 text-sm bg-white border border-line rounded-md resize-none focus:outline-none focus:border-lake"
+                rows={3}
+                maxLength={500}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="text"
+                size="sm"
+                onClick={() => setShowReportForm(false)}
+              >
+                取消
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleReport}
+                loading={reporting}
+                disabled={!reportDescription.trim()}
+              >
+                提交举报
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 评论区：Card 组件 */}
       <Card variant="elevated" padding="md">
