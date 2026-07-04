@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useNavigate } from 'react-router-dom';
-import { Navigation, Plus, Minus, Filter } from 'lucide-react';
-import { mapApi } from '../services/map';
+import { Navigation, Plus, Minus, Filter, X, MapPin, ArrowRight } from 'lucide-react';
+import { mapApi, type MapMarker } from '../services/map';
 import { Loading } from '../components/ui/Loading';
 
 // 分类颜色映射
@@ -51,15 +51,13 @@ const MapPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  // 选中的 marker：非 null 时右侧侧滑面板滑出
+  const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
 
   // 清除地图上的标记
   const clearMarkers = useCallback(() => {
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
-    if (popupRef.current) {
-      popupRef.current.remove();
-      popupRef.current = null;
-    }
   }, []);
 
   // 获取并更新地图标记
@@ -81,7 +79,6 @@ const MapPage: React.FC = () => {
       // 添加新标记
       data.forEach((marker) => {
         const color = CATEGORY_COLORS[marker.category_id] || '#95A5A6';
-        const categoryName = CATEGORY_NAMES[marker.category_id] || '未知';
 
         // 外层 wrapper：不要设置任何 transform，maplibre-gl 会用 transform 定位 marker
         // 形状（旋转 -45deg 变成水滴形）放到内层 pin 元素上
@@ -131,52 +128,9 @@ const MapPage: React.FC = () => {
           .setLngLat([marker.longitude, marker.latitude])
           .addTo(map.current!);
 
-        // 点击弹窗
+        // 点击打开右侧侧滑面板
         el.addEventListener('click', () => {
-          if (popupRef.current) {
-            popupRef.current.remove();
-          }
-
-          const popupContent = document.createElement('div');
-          popupContent.style.cssText = 'padding: 12px; min-width: 200px; font-family: var(--font-body);';
-          popupContent.innerHTML = `
-            <div style="font-weight: 700; font-size: 15px; margin-bottom: 6px; color: #152629; font-family: var(--font-display);">${marker.title}</div>
-            <div style="font-size: 12px; color: #40575b; margin-bottom: 4px; display: flex; align-items: center;">
-              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 3px; background: ${color}; margin-right: 6px;"></span>
-              ${categoryName}
-            </div>
-            <div style="font-size: 12px; color: #71858a; margin-bottom: 10px;">📍 ${marker.location_name}</div>
-            <a href="/posts/${marker.post_id}" style="
-              display: inline-block;
-              padding: 6px 14px;
-              background: #ff8a4c;
-              color: white;
-              border-radius: 10px;
-              font-size: 12px;
-              font-weight: 600;
-              text-decoration: none;
-              cursor: pointer;
-              box-shadow: 0 6px 14px rgba(255,138,76,0.24);
-            ">查看详情</a>
-          `;
-
-          // 处理查看详情点击
-          const link = popupContent.querySelector('a');
-          link?.addEventListener('click', (e) => {
-            e.preventDefault();
-            navigate(`/posts/${marker.post_id}`);
-          });
-
-          const popup = new maplibregl.Popup({
-            offset: 20,
-            closeButton: true,
-            maxWidth: '260px',
-          })
-            .setDOMContent(popupContent)
-            .setLngLat([marker.longitude, marker.latitude])
-            .addTo(map.current!);
-
-          popupRef.current = popup;
+          setSelectedMarker(marker);
         });
 
         markersRef.current.push(markerInstance);
@@ -380,6 +334,100 @@ const MapPage: React.FC = () => {
               <span className="text-xs text-ink-sub">加载中</span>
             </div>
           </div>
+        )}
+
+        {/* 右侧侧滑信息面板：selectedMarker 非 null 时滑入 */}
+        {selectedMarker && (
+          <>
+            {/* 半透明遮罩：移动端点击关闭 */}
+            <div
+              className="absolute inset-0 z-20 bg-ink/20 backdrop-blur-[1px] md:bg-transparent md:backdrop-blur-none"
+              onClick={() => setSelectedMarker(null)}
+            />
+            <aside
+              className="absolute top-0 right-0 bottom-0 z-30 w-full sm:w-[340px] md:w-[360px] bg-paper shadow-2xl border-l border-line flex flex-col map-slide-panel"
+            >
+              {/* 关闭按钮 */}
+              <button
+                onClick={() => setSelectedMarker(null)}
+                className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-mist/80 backdrop-blur-sm flex items-center justify-center text-ink-sub hover:text-ink hover:bg-mist transition-colors"
+                aria-label="关闭"
+              >
+                <X size={16} />
+              </button>
+
+              {/* 封面图（如有） */}
+              {selectedMarker.cover_image ? (
+                <div className="relative h-[160px] sm:h-[140px] overflow-hidden bg-mist">
+                  <img
+                    src={selectedMarker.cover_image}
+                    alt={selectedMarker.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget.parentElement!.style.display = 'none');
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent" />
+                </div>
+              ) : (
+                <div className="h-[100px] bg-gradient-to-br from-lake/15 via-mist to-lamp/10 flex items-center justify-center">
+                  <MapPin size={32} className="text-lake/50" />
+                </div>
+              )}
+
+              {/* 内容区 */}
+              <div className="flex-1 overflow-y-auto px-5 py-4">
+                {/* 分类徽章 */}
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold font-data"
+                    style={{
+                      backgroundColor: `${CATEGORY_COLORS[selectedMarker.category_id] || '#95A5A6'}20`,
+                      color: CATEGORY_COLORS[selectedMarker.category_id] || '#95A5A6',
+                    }}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: CATEGORY_COLORS[selectedMarker.category_id] || '#95A5A6' }}
+                    />
+                    {CATEGORY_NAMES[selectedMarker.category_id] || '未知'}
+                  </span>
+                </div>
+
+                {/* 标题 */}
+                <h3 className="font-display font-extrabold text-xl text-ink leading-tight mb-3 pr-8">
+                  {selectedMarker.title}
+                </h3>
+
+                {/* 位置 */}
+                <div className="flex items-start gap-2 text-sm text-ink-sub mb-4">
+                  <MapPin size={15} className="flex-shrink-0 mt-0.5 text-lamp" />
+                  <span className="leading-relaxed">{selectedMarker.location_name}</span>
+                </div>
+
+                {/* 坐标信息（小字、技术感） */}
+                <div className="font-data text-[11px] text-ink-muted bg-mist/60 rounded-md px-3 py-2 mb-5 border border-line/60">
+                  <div className="flex justify-between">
+                    <span>LAT</span>
+                    <span className="text-ink-sub">{selectedMarker.latitude.toFixed(6)}</span>
+                  </div>
+                  <div className="flex justify-between mt-0.5">
+                    <span>LNG</span>
+                    <span className="text-ink-sub">{selectedMarker.longitude.toFixed(6)}</span>
+                  </div>
+                </div>
+
+                {/* 查看详情按钮 */}
+                <button
+                  onClick={() => navigate(`/posts/${selectedMarker.post_id}`)}
+                  className="w-full flex items-center justify-center gap-2 bg-lamp text-white font-semibold py-2.5 rounded-md shadow-md hover:bg-lamp/90 transition-colors"
+                >
+                  查看详情
+                  <ArrowRight size={16} />
+                </button>
+              </div>
+            </aside>
+          </>
         )}
       </div>
     </div>
