@@ -15,6 +15,7 @@ from app.models.like import Like
 from app.models.favorite import Favorite
 from app.models.user import User
 from app.models.category import Category
+from app.models.location import Location
 from app.schemas.post import (
     PostCreate, PostUpdate, PostResponse, PostListResponse, TagBrief,
     PostTransitionCreate, PostTransitionResponse,
@@ -169,13 +170,39 @@ async def create_post(
     db: AsyncSession = Depends(get_db),
 ):
     """创建信息，需要认证"""
+    # 处理地点：优先使用 location_id；若提供 location_name + lat + lng 则自动创建 Location
+    location_id = post_data.location_id
+    if location_id is None and post_data.location_name and post_data.location_lat is not None and post_data.location_lng is not None:
+        # 在同校同坐标范围内查找是否已有同名地点（避免重复创建）
+        existing_loc = await db.execute(
+            select(Location).where(
+                Location.school_id == current_user.school_id,
+                Location.name == post_data.location_name,
+                Location.latitude == post_data.location_lat,
+                Location.longitude == post_data.location_lng,
+                Location.is_deleted == False,
+            )
+        )
+        location = existing_loc.scalar_one_or_none()
+        if location is None:
+            location = Location(
+                school_id=current_user.school_id,
+                name=post_data.location_name,
+                latitude=post_data.location_lat,
+                longitude=post_data.location_lng,
+                is_verified=False,
+            )
+            db.add(location)
+            await db.flush()
+        location_id = location.id
+
     # 创建信息
     post = Post(
         user_id=current_user.id,
         school_id=current_user.school_id,
         category_id=post_data.category_id,
         post_type_id=post_data.post_type_id or 1,  # 默认类型
-        location_id=post_data.location_id,
+        location_id=location_id,
         title=post_data.title,
         content=post_data.content,
         is_anonymous=post_data.is_anonymous,

@@ -55,7 +55,11 @@ interface CreatePostRequest {
   title: string;
   content: string;
   category_id: number;
-  location_id: number;
+  location_id?: number;
+  // 地图点选发帖：直接传地点名称+坐标，后端自动创建 Location
+  location_name?: string;
+  location_lat?: number;
+  location_lng?: number;
   post_type_id?: number;
   is_anonymous?: boolean;
   tags?: string[];

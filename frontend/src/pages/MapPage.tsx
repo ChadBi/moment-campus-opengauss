@@ -2,10 +2,31 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useNavigate } from 'react-router-dom';
-import { Navigation, Plus, Minus, Filter, X, MapPin, ArrowRight } from 'lucide-react';
+import { Navigation, Plus, Minus, Filter, X, MapPin, ArrowRight, Edit3, Send } from 'lucide-react';
 import { mapApi, type MapMarker } from '../services/map';
 import { postsApi } from '../services/posts';
 import { Loading } from '../components/ui/Loading';
+import { useAuthStore } from '../store/useAuthStore';
+import { useUIStore } from '../store/useUIStore';
+
+// 发帖表单的分类列表（与 PublishPage 一致）
+const PUBLISH_CATEGORIES = [
+  { id: 1, name: '校园美食', emoji: '🍜' },
+  { id: 2, name: '校园动物', emoji: '🐈' },
+  { id: 3, name: '打印服务', emoji: '🖨️' },
+  { id: 4, name: '失物招领', emoji: '🔍' },
+  { id: 5, name: '二手交易', emoji: '📦' },
+  { id: 6, name: '学习交流', emoji: '📚' },
+  { id: 7, name: '社团活动', emoji: '🎪' },
+  { id: 8, name: '校园设施', emoji: '🏫' },
+  { id: 9, name: '兼职实习', emoji: '💼' },
+  { id: 10, name: '校园交通', emoji: '🚌' },
+  { id: 11, name: '生活服务', emoji: '🧺' },
+  { id: 12, name: '其他', emoji: '✨' },
+];
+
+// 侧滑面板模式：null=关闭 / view=查看 marker / create=发帖
+type PanelMode = null | { type: 'view'; marker: MapMarker } | { type: 'create'; lngLat: { lng: number; lat: number } };
 
 // 分类颜色映射
 const CATEGORY_COLORS: Record<number, string> = {
@@ -43,20 +64,36 @@ const DEFAULT_ZOOM = 16;
 
 const MapPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
+  const { showToast } = useUIStore();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 用 ref 同步 isAuthenticated，避免地图 click 闭包陷阱
+  const authRef = useRef(isAuthenticated);
+  useEffect(() => {
+    authRef.current = isAuthenticated;
+  }, [isAuthenticated]);
 
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
-  // 选中的 marker：非 null 时右侧侧滑面板滑出
-  const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
-  // 选中的帖子详情（点击 marker 后异步加载）
+  // 侧滑面板模式
+  const [panel, setPanel] = useState<PanelMode>(null);
+  // 选中的帖子详情（view 模式下点击 marker 后异步加载）
   const [postDetail, setPostDetail] = useState<{ content: string } | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  // 发帖表单状态（create 模式）
+  const [publishForm, setPublishForm] = useState({
+    title: '',
+    content: '',
+    category_id: 0,
+    location_name: '',
+    is_anonymous: false,
+  });
+  const [publishing, setPublishing] = useState(false);
 
   // 清除地图上的标记
   const clearMarkers = useCallback(() => {
@@ -132,9 +169,10 @@ const MapPage: React.FC = () => {
           .setLngLat([marker.longitude, marker.latitude])
           .addTo(map.current!);
 
-        // 点击打开右侧侧滑面板 + 异步加载帖子内容
-        el.addEventListener('click', () => {
-          setSelectedMarker(marker);
+        // 点击打开右侧侧滑面板（view 模式） + 异步加载帖子内容
+        el.addEventListener('click', (e) => {
+          e.stopPropagation(); // 阻止冒泡到地图 click（避免触发发帖）
+          setPanel({ type: 'view', marker });
           setPostDetail(null);
           setDetailLoading(true);
           postsApi
@@ -189,6 +227,23 @@ const MapPage: React.FC = () => {
       setMapReady(true);
       const bounds = mapInstance.getBounds();
       fetchMarkers(bounds, selectedCategory ?? undefined);
+    });
+
+    // 地图点击空白处：登录用户打开发帖面板，未登录提示
+    mapInstance.on('click', (e) => {
+      if (!authRef.current) {
+        showToast('请先登录后再发布信息', 'info');
+        return;
+      }
+      // 重置表单
+      setPublishForm({
+        title: '',
+        content: '',
+        category_id: 0,
+        location_name: '',
+        is_anonymous: false,
+      });
+      setPanel({ type: 'create', lngLat: { lng: e.lngLat.lng, lat: e.lngLat.lat } });
     });
 
     // 地图移动时重新获取标记（防抖）
@@ -347,114 +402,302 @@ const MapPage: React.FC = () => {
           </div>
         )}
 
-        {/* 右侧侧滑信息面板：selectedMarker 非 null 时滑入 */}
-        {selectedMarker && (
+        {/* 右侧侧滑面板：view（查看 marker）/ create（发帖） */}
+        {panel && (
           <>
             {/* 半透明遮罩：移动端点击关闭 */}
             <div
               className="absolute inset-0 z-20 bg-ink/20 backdrop-blur-[1px] md:bg-transparent md:backdrop-blur-none"
-              onClick={() => setSelectedMarker(null)}
+              onClick={() => setPanel(null)}
             />
             <aside
               className="absolute top-0 right-0 bottom-0 z-30 w-full sm:w-[340px] md:w-[360px] bg-paper shadow-2xl border-l border-line flex flex-col map-slide-panel"
             >
               {/* 关闭按钮 */}
               <button
-                onClick={() => setSelectedMarker(null)}
+                onClick={() => setPanel(null)}
                 className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-mist/80 backdrop-blur-sm flex items-center justify-center text-ink-sub hover:text-ink hover:bg-mist transition-colors"
                 aria-label="关闭"
               >
                 <X size={16} />
               </button>
 
-              {/* 封面图（如有） */}
-              {selectedMarker.cover_image ? (
-                <div className="relative h-[160px] sm:h-[140px] overflow-hidden bg-mist">
-                  <img
-                    src={selectedMarker.cover_image}
-                    alt={selectedMarker.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.currentTarget.parentElement!.style.display = 'none');
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent" />
-                </div>
-              ) : (
-                <div className="h-[100px] bg-gradient-to-br from-lake/15 via-mist to-lamp/10 flex items-center justify-center">
-                  <MapPin size={32} className="text-lake/50" />
-                </div>
-              )}
+              {panel.type === 'view' && (() => {
+                const m = panel.marker;
+                return (
+                  <>
+                    {/* 封面图（如有） */}
+                    {m.cover_image ? (
+                      <div className="relative h-[160px] sm:h-[140px] overflow-hidden bg-mist">
+                        <img
+                          src={m.cover_image}
+                          alt={m.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget.parentElement!.style.display = 'none');
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent" />
+                      </div>
+                    ) : (
+                      <div className="h-[100px] bg-gradient-to-br from-lake/15 via-mist to-lamp/10 flex items-center justify-center">
+                        <MapPin size={32} className="text-lake/50" />
+                      </div>
+                    )}
 
-              {/* 内容区 */}
-              <div className="flex-1 overflow-y-auto px-5 py-4">
-                {/* 分类徽章 */}
-                <div className="flex items-center gap-2 mb-3">
-                  <span
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold font-data"
-                    style={{
-                      backgroundColor: `${CATEGORY_COLORS[selectedMarker.category_id] || '#95A5A6'}20`,
-                      color: CATEGORY_COLORS[selectedMarker.category_id] || '#95A5A6',
+                    {/* 内容区 */}
+                    <div className="flex-1 overflow-y-auto px-5 py-4">
+                      {/* 分类徽章 */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold font-data"
+                          style={{
+                            backgroundColor: `${CATEGORY_COLORS[m.category_id] || '#95A5A6'}20`,
+                            color: CATEGORY_COLORS[m.category_id] || '#95A5A6',
+                          }}
+                        >
+                          <span
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: CATEGORY_COLORS[m.category_id] || '#95A5A6' }}
+                          />
+                          {CATEGORY_NAMES[m.category_id] || '未知'}
+                        </span>
+                      </div>
+
+                      {/* 标题 */}
+                      <h3 className="font-display font-extrabold text-xl text-ink leading-tight mb-3 pr-8">
+                        {m.title}
+                      </h3>
+
+                      {/* 位置 */}
+                      <div className="flex items-start gap-2 text-sm text-ink-sub mb-4">
+                        <MapPin size={15} className="flex-shrink-0 mt-0.5 text-lamp" />
+                        <span className="leading-relaxed">{m.location_name}</span>
+                      </div>
+
+                      {/* 帖子内容 */}
+                      <div className="mb-4">
+                        <div className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-1.5">
+                          内容
+                        </div>
+                        {detailLoading ? (
+                          <div className="py-3">
+                            <Loading size="sm" />
+                          </div>
+                        ) : postDetail?.content ? (
+                          <p className="text-sm text-ink leading-relaxed whitespace-pre-line line-clamp-[12]">
+                            {postDetail.content}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-ink-muted italic">暂无内容</p>
+                        )}
+                      </div>
+
+                      {/* 坐标信息（小字、技术感） */}
+                      <div className="font-data text-[11px] text-ink-muted bg-mist/60 rounded-md px-3 py-2 mb-5 border border-line/60">
+                        <div className="flex justify-between">
+                          <span>LAT</span>
+                          <span className="text-ink-sub">{m.latitude.toFixed(6)}</span>
+                        </div>
+                        <div className="flex justify-between mt-0.5">
+                          <span>LNG</span>
+                          <span className="text-ink-sub">{m.longitude.toFixed(6)}</span>
+                        </div>
+                      </div>
+
+                      {/* 查看详情按钮 */}
+                      <button
+                        onClick={() => navigate(`/posts/${m.post_id}`)}
+                        className="w-full flex items-center justify-center gap-2 bg-lamp text-white font-semibold py-2.5 rounded-md shadow-md hover:bg-lamp/90 transition-colors"
+                      >
+                        查看详情
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
+
+              {panel.type === 'create' && (
+                <>
+                  {/* 顶部装饰条 */}
+                  <div className="h-[80px] bg-gradient-to-br from-lake/15 via-mist to-lamp/10 flex items-center px-5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-full bg-lamp/20 flex items-center justify-center">
+                        <Edit3 size={16} className="text-lamp" />
+                      </div>
+                      <div>
+                        <div className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">New Post</div>
+                        <div className="font-display font-bold text-base text-ink">在此处发布信息</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 表单 */}
+                  <form
+                    className="flex-1 overflow-y-auto px-5 py-4 space-y-4"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (publishForm.title.length < 5 || publishForm.title.length > 100) {
+                        showToast('标题长度需 5-100 字符', 'warning');
+                        return;
+                      }
+                      if (publishForm.content.length < 10 || publishForm.content.length > 5000) {
+                        showToast('内容长度需 10-5000 字符', 'warning');
+                        return;
+                      }
+                      if (!publishForm.category_id) {
+                        showToast('请选择分类', 'warning');
+                        return;
+                      }
+                      if (!publishForm.location_name.trim()) {
+                        showToast('请填写地点名称', 'warning');
+                        return;
+                      }
+                      setPublishing(true);
+                      postsApi
+                        .createPost({
+                          title: publishForm.title,
+                          content: publishForm.content,
+                          category_id: publishForm.category_id,
+                          location_name: publishForm.location_name.trim(),
+                          location_lat: panel.lngLat.lat,
+                          location_lng: panel.lngLat.lng,
+                          is_anonymous: publishForm.is_anonymous,
+                          status: 'pending',
+                        })
+                        .then(() => {
+                          showToast('已提交审核，等待管理员通过', 'success');
+                          setPanel(null);
+                          // 刷新地图标记
+                          if (map.current) {
+                            fetchMarkers(map.current.getBounds(), selectedCategory ?? undefined);
+                          }
+                        })
+                        .catch((err: unknown) => {
+                          const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || '发布失败，请稍后重试';
+                          showToast(msg, 'error');
+                        })
+                        .finally(() => setPublishing(false));
                     }}
                   >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: CATEGORY_COLORS[selectedMarker.category_id] || '#95A5A6' }}
-                    />
-                    {CATEGORY_NAMES[selectedMarker.category_id] || '未知'}
-                  </span>
-                </div>
-
-                {/* 标题 */}
-                <h3 className="font-display font-extrabold text-xl text-ink leading-tight mb-3 pr-8">
-                  {selectedMarker.title}
-                </h3>
-
-                {/* 位置 */}
-                <div className="flex items-start gap-2 text-sm text-ink-sub mb-4">
-                  <MapPin size={15} className="flex-shrink-0 mt-0.5 text-lamp" />
-                  <span className="leading-relaxed">{selectedMarker.location_name}</span>
-                </div>
-
-                {/* 帖子内容 */}
-                <div className="mb-4">
-                  <div className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-1.5">
-                    内容
-                  </div>
-                  {detailLoading ? (
-                    <div className="py-3">
-                      <Loading size="sm" />
+                    {/* 标题 */}
+                    <div>
+                      <label className="block text-sm font-medium text-ink mb-1.5">
+                        标题 <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={publishForm.title}
+                        onChange={(e) => setPublishForm({ ...publishForm, title: e.target.value })}
+                        placeholder="例如：南门小树林有小猫"
+                        maxLength={100}
+                        className="w-full px-3.5 py-2.5 bg-white/78 border border-line rounded-md text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none focus:bg-white focus:border-lake transition-all"
+                      />
                     </div>
-                  ) : postDetail?.content ? (
-                    <p className="text-sm text-ink leading-relaxed whitespace-pre-line line-clamp-[12]">
-                      {postDetail.content}
+
+                    {/* 分类 */}
+                    <div>
+                      <label className="block text-sm font-medium text-ink mb-1.5">
+                        分类 <span className="text-danger">*</span>
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {PUBLISH_CATEGORIES.map((cat) => {
+                          const isActive = publishForm.category_id === cat.id;
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              onClick={() => setPublishForm({ ...publishForm, category_id: cat.id })}
+                              className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-all ${
+                                isActive
+                                  ? 'bg-lake text-white shadow-lake'
+                                  : 'bg-mist text-ink-sub hover:bg-line'
+                              }`}
+                            >
+                              <span className="text-xs">{cat.emoji}</span>
+                              <span className="truncate">{cat.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 内容 */}
+                    <div>
+                      <label className="block text-sm font-medium text-ink mb-1.5">
+                        内容 <span className="text-danger">*</span>
+                      </label>
+                      <textarea
+                        value={publishForm.content}
+                        onChange={(e) => setPublishForm({ ...publishForm, content: e.target.value })}
+                        placeholder="请描述具体位置和详情（10-5000字符），例如：从南门进去左手边第二片小树林，常出没三只橘猫"
+                        rows={5}
+                        maxLength={5000}
+                        className="w-full px-3.5 py-2.5 bg-white/78 border border-line rounded-md text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none focus:bg-white focus:border-lake transition-all resize-none"
+                      />
+                    </div>
+
+                    {/* 地点名称 */}
+                    <div>
+                      <label className="block text-sm font-medium text-ink mb-1.5">
+                        地点名称 <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={publishForm.location_name}
+                        onChange={(e) => setPublishForm({ ...publishForm, location_name: e.target.value })}
+                        placeholder="例如：南门小树林"
+                        maxLength={100}
+                        className="w-full px-3.5 py-2.5 bg-white/78 border border-line rounded-md text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none focus:bg-white focus:border-lake transition-all"
+                      />
+                    </div>
+
+                    {/* 坐标（只读显示） */}
+                    <div className="font-data text-[11px] text-ink-muted bg-mist/60 rounded-md px-3 py-2 border border-line/60">
+                      <div className="flex justify-between">
+                        <span>LAT</span>
+                        <span className="text-ink-sub">{panel.lngLat.lat.toFixed(6)}</span>
+                      </div>
+                      <div className="flex justify-between mt-0.5">
+                        <span>LNG</span>
+                        <span className="text-ink-sub">{panel.lngLat.lng.toFixed(6)}</span>
+                      </div>
+                    </div>
+
+                    {/* 匿名 */}
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={publishForm.is_anonymous}
+                        onChange={(e) => setPublishForm({ ...publishForm, is_anonymous: e.target.checked })}
+                        className="w-4 h-4 text-lake border-line rounded focus:ring-lamp/40"
+                      />
+                      <span className="text-sm text-ink">匿名发布</span>
+                    </label>
+
+                    {/* 提交按钮 */}
+                    <button
+                      type="submit"
+                      disabled={publishing}
+                      className="w-full flex items-center justify-center gap-2 bg-lamp text-white font-semibold py-2.5 rounded-md shadow-md hover:bg-lamp/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {publishing ? (
+                        <Loading size="sm" />
+                      ) : (
+                        <>
+                          <Send size={15} />
+                          提交审核
+                        </>
+                      )}
+                    </button>
+
+                    <p className="text-[11px] text-ink-muted leading-relaxed text-center">
+                      信息提交后需管理员审核通过才会公开展示
                     </p>
-                  ) : (
-                    <p className="text-sm text-ink-muted italic">暂无内容</p>
-                  )}
-                </div>
-
-                {/* 坐标信息（小字、技术感） */}
-                <div className="font-data text-[11px] text-ink-muted bg-mist/60 rounded-md px-3 py-2 mb-5 border border-line/60">
-                  <div className="flex justify-between">
-                    <span>LAT</span>
-                    <span className="text-ink-sub">{selectedMarker.latitude.toFixed(6)}</span>
-                  </div>
-                  <div className="flex justify-between mt-0.5">
-                    <span>LNG</span>
-                    <span className="text-ink-sub">{selectedMarker.longitude.toFixed(6)}</span>
-                  </div>
-                </div>
-
-                {/* 查看详情按钮 */}
-                <button
-                  onClick={() => navigate(`/posts/${selectedMarker.post_id}`)}
-                  className="w-full flex items-center justify-center gap-2 bg-lamp text-white font-semibold py-2.5 rounded-md shadow-md hover:bg-lamp/90 transition-colors"
-                >
-                  查看详情
-                  <ArrowRight size={16} />
-                </button>
-              </div>
+                  </form>
+                </>
+              )}
             </aside>
           </>
         )}

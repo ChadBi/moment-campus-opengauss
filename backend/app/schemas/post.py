@@ -60,7 +60,11 @@ class PostCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=200, description="标题，5-200字符")
     content: str = Field(..., min_length=10, max_length=5000, description="内容描述，10-5000字符")
     category_id: int = Field(..., description="分类ID")
-    location_id: Optional[int] = Field(None, description="地点ID")
+    location_id: Optional[int] = Field(None, description="地点ID（已存在的地点）")
+    # 支持地图点选发帖：直接传地点名称+坐标，后端自动创建 Location
+    location_name: Optional[str] = Field(None, max_length=100, description="地点名称（与 location_lat/lng 配合使用，自动创建地点）")
+    location_lat: Optional[float] = Field(None, ge=-90, le=90, description="纬度（与 location_name 配合使用）")
+    location_lng: Optional[float] = Field(None, ge=-180, le=180, description="经度（与 location_name 配合使用）")
     post_type_id: Optional[int] = Field(None, description="信息类型ID")
     is_anonymous: bool = Field(default=False, description="是否匿名")
     tags: Optional[List[str]] = Field(default=None, max_length=5, description="标签列表，最多5个")
