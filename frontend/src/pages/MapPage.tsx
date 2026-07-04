@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useNavigate } from 'react-router-dom';
 import { Navigation, Plus, Minus, Filter, X, MapPin, ArrowRight } from 'lucide-react';
 import { mapApi, type MapMarker } from '../services/map';
+import { postsApi } from '../services/posts';
 import { Loading } from '../components/ui/Loading';
 
 // 分类颜色映射
@@ -53,6 +54,9 @@ const MapPage: React.FC = () => {
   const [mapReady, setMapReady] = useState(false);
   // 选中的 marker：非 null 时右侧侧滑面板滑出
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
+  // 选中的帖子详情（点击 marker 后异步加载）
+  const [postDetail, setPostDetail] = useState<{ content: string } | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   // 清除地图上的标记
   const clearMarkers = useCallback(() => {
@@ -128,9 +132,16 @@ const MapPage: React.FC = () => {
           .setLngLat([marker.longitude, marker.latitude])
           .addTo(map.current!);
 
-        // 点击打开右侧侧滑面板
+        // 点击打开右侧侧滑面板 + 异步加载帖子内容
         el.addEventListener('click', () => {
           setSelectedMarker(marker);
+          setPostDetail(null);
+          setDetailLoading(true);
+          postsApi
+            .getPost(marker.post_id)
+            .then((detail) => setPostDetail({ content: (detail as { content?: string }).content ?? '' }))
+            .catch(() => setPostDetail(null))
+            .finally(() => setDetailLoading(false));
         });
 
         markersRef.current.push(markerInstance);
@@ -403,6 +414,24 @@ const MapPage: React.FC = () => {
                 <div className="flex items-start gap-2 text-sm text-ink-sub mb-4">
                   <MapPin size={15} className="flex-shrink-0 mt-0.5 text-lamp" />
                   <span className="leading-relaxed">{selectedMarker.location_name}</span>
+                </div>
+
+                {/* 帖子内容 */}
+                <div className="mb-4">
+                  <div className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-1.5">
+                    内容
+                  </div>
+                  {detailLoading ? (
+                    <div className="py-3">
+                      <Loading size="sm" />
+                    </div>
+                  ) : postDetail?.content ? (
+                    <p className="text-sm text-ink leading-relaxed whitespace-pre-line line-clamp-[12]">
+                      {postDetail.content}
+                    </p>
+                  ) : (
+                    <p className="text-sm text-ink-muted italic">暂无内容</p>
+                  )}
                 </div>
 
                 {/* 坐标信息（小字、技术感） */}
