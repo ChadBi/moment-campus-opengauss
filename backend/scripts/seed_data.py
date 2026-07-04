@@ -125,7 +125,7 @@ POSTS_DATA = [
         "location_name": "第二食堂",
         "user_email": "user6@example.com",
         "is_anonymous": False,
-        "views": 342, "likes": 28, "is_top": True, "is_recommend": True,
+        "views": 342, "likes": 28, "is_top": False, "is_recommend": True,
         "comments": [
             {"user_email": "user3@example.com", "content": "昨天刚去吃过，确实不错！午餐肉给得超大方", "likes": 5},
             {"user_email": "user9@example.com", "content": "请问辣度选微辣会踩雷吗？不吃辣星人瑟瑟发抖", "likes": 1},
@@ -225,7 +225,7 @@ POSTS_DATA = [
         "location_name": "图书馆",
         "user_email": "user8@example.com",
         "is_anonymous": False,
-        "views": 612, "likes": 56, "is_top": True, "is_recommend": True,
+        "views": 612, "likes": 56, "is_top": False, "is_recommend": True,
         "comments": [
             {"user_email": "user4@example.com", "content": "学士今天在我书包上睡着了哈哈", "likes": 12},
             {"user_email": "user7@example.com", "content": "上周给它拍了组照片，已发朋友圈", "likes": 8},
@@ -357,7 +357,7 @@ POSTS_DATA = [
         "location_name": "文浩科学馆",
         "user_email": "user1@example.com",
         "is_anonymous": False,
-        "views": 423, "likes": 35, "is_top": True, "is_recommend": True,
+        "views": 423, "likes": 35, "is_top": False, "is_recommend": True,
         "comments": [
             {"user_email": "user3@example.com", "content": "必须去！《雷雨》是经典", "likes": 5},
             {"user_email": "user9@example.com", "content": "周五晚上正好没课，冲", "likes": 2},
@@ -457,7 +457,7 @@ POSTS_DATA = [
         "location_name": "图书馆",
         "user_email": "user4@example.com",
         "is_anonymous": False,
-        "views": 678, "likes": 52, "is_top": True, "is_recommend": False,
+        "views": 678, "likes": 52, "is_top": False, "is_recommend": False,
         "comments": [
             {"user_email": "user9@example.com", "content": "考试周必须早6:30去排队", "likes": 8},
             {"user_email": "user1@example.com", "content": "三楼24h自习室预约链接有吗？", "likes": 2},
