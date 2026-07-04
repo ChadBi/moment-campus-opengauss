@@ -26,9 +26,11 @@ const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage'));
 
 // Protected Route
 const ProtectedRoute: React.FC<{ children: React.ReactNode; requireAdmin?: boolean }> = ({ children, requireAdmin }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  // 同时检查 isAuthenticated 和 accessToken，防止 zustand persist 残留状态
+  // （isAuthenticated=true 但 accessToken 已过期/被清空时仍跳转登录）
+  const { isAuthenticated, accessToken, user } = useAuthStore();
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !accessToken) {
     return <Navigate to="/login" replace />;
   }
 

@@ -57,7 +57,10 @@ api.interceptors.response.use(
           return Promise.reject(refreshError);
         }
       } else {
-        // 无 refreshToken：未登录用户尝试需登录操作，只提示不跳转
+        // 无 refreshToken：token 过期或未登录，清登录态 + 提示
+        // logout() 后：受保护页面的 ProtectedRoute 会自动跳转 /login；
+        // 公开页面的操作则只显示 Toast，不跳转（符合"操作只提醒不跳转"原则）
+        useAuthStore.getState().logout();
         useUIStore.getState().showToast('请先登录', 'warning');
       }
     }
