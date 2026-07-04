@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { usersApi } from '../services/users';
@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Loading } from '../components/ui/Loading';
 import { Toast } from '../components/ui/Toast';
-import { Edit, LogOut, FileText, LogIn, UserCircle, CheckCircle, Award } from 'lucide-react';
+import { Edit, LogOut, FileText, LogIn, UserCircle, CheckCircle, Award, X, Camera } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,6 +19,13 @@ const ProfilePage: React.FC = () => {
   const [myPosts, setMyPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
+
+  // 编辑资料相关状态
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ nickname: '', bio: '' });
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -81,6 +88,67 @@ const ProfilePage: React.FC = () => {
     setTimeout(() => navigate('/login'), 1000);
   };
 
+  const handleStartEdit = () => {
+    if (userInfo) {
+      setEditForm({ nickname: userInfo.nickname, bio: userInfo.bio || '' });
+    }
+    setEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditing(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm.nickname.trim()) {
+      setToast({ message: '昵称不能为空', type: 'error' });
+      return;
+    }
+    setSaving(true);
+    try {
+      await usersApi.updateUser({
+        nickname: editForm.nickname.trim(),
+        bio: editForm.bio.trim(),
+      });
+      // 重新加载用户信息
+      await loadUserInfo();
+      setEditing(false);
+      setToast({ message: '资料已更新', type: 'success' });
+    } catch (error) {
+      console.error('更新资料失败:', error);
+      setToast({ message: '更新失败，请重试', type: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({ message: '图片大小不能超过 5MB', type: 'error' });
+      return;
+    }
+    setAvatarUploading(true);
+    try {
+      await usersApi.uploadAvatar(file);
+      await loadUserInfo();
+      setToast({ message: '头像已更新', type: 'success' });
+    } catch (error) {
+      console.error('上传头像失败:', error);
+      setToast({ message: '头像上传失败', type: 'error' });
+    } finally {
+      setAvatarUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-6">
@@ -112,18 +180,64 @@ const ProfilePage: React.FC = () => {
           <div className="pointer-events-none absolute -top-16 -right-12 w-56 h-56 rounded-full border-[34px] border-white/10" />
           <div className="pointer-events-none absolute -bottom-20 -left-12 w-48 h-48 rounded-full border-[28px] border-white/8" />
           <div className="relative flex items-center gap-4">
-            <Avatar
-              src={userInfo.avatar_url}
-              fallback={userInfo.nickname?.[0] || '?'}
-              size="xl"
-              className="!ring-4 !ring-white/30"
-            />
+            <div className="relative group">
+              <Avatar
+                src={userInfo.avatar_url}
+                fallback={userInfo.nickname?.[0] || '?'}
+                size="xl"
+                className="!ring-4 !ring-white/30"
+              />
+              {editing && (
+                <button
+                  type="button"
+                  onClick={handleAvatarClick}
+                  disabled={avatarUploading}
+                  className="absolute inset-0 rounded-full bg-black/50 grid place-items-center text-white hover:bg-black/60 transition-colors disabled:opacity-50"
+                  aria-label="更换头像"
+                >
+                  {avatarUploading ? (
+                    <Loading text="" />
+                  ) : (
+                    <Camera size={22} />
+                  )}
+                </button>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
+            </div>
             <div className="flex-1 min-w-0">
               <span className="eyebrow !text-white/70">CAMPUS MEMBER</span>
-              <h1 className="text-xl font-display font-bold mt-1 truncate">{userInfo.nickname}</h1>
+              {editing ? (
+                <input
+                  type="text"
+                  value={editForm.nickname}
+                  onChange={e => setEditForm({ ...editForm, nickname: e.target.value })}
+                  maxLength={32}
+                  className="w-full mt-1 px-2 py-1 rounded-md bg-white/20 text-white placeholder-white/50 border border-white/30 focus:bg-white/30 focus:outline-none font-display font-bold text-xl"
+                  placeholder="昵称"
+                />
+              ) : (
+                <h1 className="text-xl font-display font-bold mt-1 truncate">{userInfo.nickname}</h1>
+              )}
               <p className="text-white/75 text-xs mt-0.5 truncate">{userInfo.email}</p>
-              {userInfo.bio && (
-                <p className="text-white/85 text-sm mt-2 line-clamp-2">{userInfo.bio}</p>
+              {editing ? (
+                <textarea
+                  value={editForm.bio}
+                  onChange={e => setEditForm({ ...editForm, bio: e.target.value })}
+                  maxLength={200}
+                  rows={2}
+                  className="w-full mt-2 px-2 py-1 rounded-md bg-white/20 text-white placeholder-white/50 border border-white/30 focus:bg-white/30 focus:outline-none text-sm resize-none"
+                  placeholder="一句话介绍自己"
+                />
+              ) : (
+                userInfo.bio && (
+                  <p className="text-white/85 text-sm mt-2 line-clamp-2">{userInfo.bio}</p>
+                )
               )}
             </div>
           </div>
@@ -137,12 +251,46 @@ const ProfilePage: React.FC = () => {
           </div>
         </div>
         <div className="px-7 py-4 flex gap-2 bg-paper">
-          <Button variant="secondary" size="sm" icon={<Edit size={16} />}>
-            编辑资料
-          </Button>
-          <Button variant="danger" size="sm" onClick={handleLogout} icon={<LogOut size={16} />}>
-            退出登录
-          </Button>
+          {editing ? (
+            <>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleSaveEdit}
+                disabled={saving}
+                icon={<CheckCircle size={16} />}
+              >
+                {saving ? '保存中...' : '保存'}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleCancelEdit}
+                icon={<X size={16} />}
+              >
+                取消
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleStartEdit}
+                icon={<Edit size={16} />}
+              >
+                编辑资料
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleLogout}
+                icon={<LogOut size={16} />}
+              >
+                退出登录
+              </Button>
+            </>
+          )}
         </div>
       </Card>
 
