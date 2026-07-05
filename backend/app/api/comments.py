@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, text
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload, joinedload
 from typing import Optional
 from datetime import datetime
@@ -145,7 +145,7 @@ async def create_comment(
     if comment_data.reply_to_user_id is not None:
         # 回复评论：通知被回复者
         if comment_data.reply_to_user_id != current_user.id:
-            reply_notification = Notification(
+            db.add(Notification(
                 user_id=comment_data.reply_to_user_id,
                 type="comment",
                 title="有人回复了你的评论",
@@ -154,26 +154,20 @@ async def create_comment(
                 target_id=post_id,
                 actor_id=current_user.id,
                 is_read=False,
-            )
-            db.add(reply_notification)
+            ))
     elif post.user_id != current_user.id:
         # 评论帖子（非回复）：通知帖子作者
-            comment_notification = Notification(
-                user_id=post.user_id,
-                type="comment",
-                title="您的帖子有新评论",
-                content=f"{current_user.nickname} 评论了你的《{post.title}》",
-                target_type="post",
-                target_id=post_id,
-                actor_id=current_user.id,
-                is_read=False,
-            )
-            db.add(comment_notification)
+        db.add(Notification(
+            user_id=post.user_id,
+            type="comment",
+            title="您的帖子有新评论",
+            content=f"{current_user.nickname} 评论了你的《{post.title}》",
+            target_type="post",
+            target_id=post_id,
+            actor_id=current_user.id,
+            is_read=False,
+        ))
 
-    await db.commit()
-
-    # 评论后更新评论者信誉分（评论也是一种贡献）
-    await db.execute(text("SELECT sp_update_reputation(:uid)"), {"uid": current_user.id})
     await db.commit()
 
     # 重新查询以获取关联数据（预加载 replies 防止 MissingGreenlet）

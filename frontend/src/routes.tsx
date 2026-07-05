@@ -23,7 +23,6 @@ const AdminReviewPage = lazy(() => import('./pages/admin/AdminReviewPage'));
 const AdminReportsPage = lazy(() => import('./pages/admin/AdminReportsPage'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
 const AdminCategoriesPage = lazy(() => import('./pages/admin/AdminCategoriesPage'));
-const AdminTagsPage = lazy(() => import('./pages/admin/AdminTagsPage'));
 const AdminLogsPage = lazy(() => import('./pages/admin/AdminLogsPage'));
 const AdminSettingsPage = lazy(() => import('./pages/admin/AdminSettingsPage'));
 
@@ -101,7 +100,7 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="reports" element={<AdminReportsPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="categories" element={<AdminCategoriesPage />} />
-          <Route path="tags" element={<AdminTagsPage />} />
+          <Route path="tags" element={<Navigate to="/admin" replace />} />
           <Route path="logs" element={<AdminLogsPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>

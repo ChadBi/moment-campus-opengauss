@@ -23,11 +23,11 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    # 物理模型扩展字段（03_alter_tables.sql 新增，SP04 sp_update_reputation 写入）
+    # 历史物理模型字段：当前主应用不再维护信誉分，仅保留以兼容既有数据库结构。
     reputation_score: Mapped[Decimal | None] = mapped_column(
         Numeric(5, 2),
         nullable=True,
-        comment="用户信誉分（0-100），由 sp_update_reputation 计算",
+        comment="历史字段：用户信誉分（当前主应用不再维护）",
     )
 
     # 关系

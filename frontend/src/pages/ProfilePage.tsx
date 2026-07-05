@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Loading } from '../components/ui/Loading';
 import { Toast } from '../components/ui/Toast';
-import { Edit, LogOut, FileText, LogIn, UserCircle, CheckCircle, Award, X, Camera } from 'lucide-react';
+import { Edit, LogOut, FileText, LogIn, UserCircle, CheckCircle, X, Camera } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -44,7 +44,7 @@ const ProfilePage: React.FC = () => {
             <UserCircle size={40} className="text-lake" />
           </div>
           <h3 className="text-lg font-display font-bold text-ink mb-2">登录后查看个人信息</h3>
-          <p className="text-ink-sub text-sm mb-6">登录账号，记录你的校园贡献与足迹</p>
+          <p className="text-ink-sub text-sm mb-6">登录账号，记录你的发布与足迹</p>
           <Button
             variant="primary"
             icon={<LogIn size={16} />}
@@ -162,7 +162,6 @@ const ProfilePage: React.FC = () => {
   const stats = [
     { label: '已发布', value: myPosts.length, icon: <FileText size={16} />, color: 'text-lake' },
     { label: '确认有效', value: 0, icon: <CheckCircle size={16} />, color: 'text-grass' },
-    { label: '贡献值', value: Math.round(userInfo.reputation_score || 0), icon: <Award size={16} />, color: 'text-[#b89230]' },
   ];
 
   return (
@@ -230,13 +229,6 @@ const ProfilePage: React.FC = () => {
               )}
             </div>
           </div>
-          <div className="relative mt-4 inline-flex items-center gap-2 bg-white/15 rounded-full pl-2 pr-4 py-1.5">
-            <span className="w-7 h-7 rounded-full bg-lamp grid place-items-center">
-              <Award size={15} className="text-white" />
-            </span>
-            <span className="text-xs text-white/85">校园贡献值</span>
-            <span className="font-data font-bold text-base text-white">{Math.round(userInfo.reputation_score || 0)}</span>
-          </div>
         </div>
         <div className="px-6 py-4 flex gap-2 bg-paper">
           {editing ? (
@@ -282,7 +274,7 @@ const ProfilePage: React.FC = () => {
         </div>
       </Card>
 
-      <div className="grid grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         {stats.map(stat => (
           <div key={stat.label} className="bg-paper rounded-[16px] border border-line/60 p-4 text-center shadow-sm">
             <div className={`mx-auto w-8 h-8 rounded-[10px] bg-mist grid place-items-center mb-2 ${stat.color}`}>

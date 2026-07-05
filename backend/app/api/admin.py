@@ -15,6 +15,7 @@ from app.models.category import Category
 from app.models.tag import Tag
 from app.models.post_tag import PostTag
 from app.models.comment import Comment
+from app.models.notification import Notification
 from app.schemas.common import PaginatedResponse, MessageResponse
 from app.schemas.admin import (
     DashboardStats,
@@ -33,6 +34,32 @@ from app.schemas.admin import (
 from app.core.exceptions import NotFoundException, BadRequestException, ConflictException
 
 router = APIRouter(tags=["管理"])
+
+
+def add_review_notification(
+    db: AsyncSession,
+    post: Post,
+    admin: User,
+    approved: bool,
+    reason: Optional[str] = None,
+) -> None:
+    """给帖子作者写入审核结果通知。"""
+    title = "帖子审核通过" if approved else "帖子审核未通过"
+    action_text = "已审核通过并公开展示" if approved else "未通过审核"
+    content = f"你的《{post.title}》{action_text}。"
+    if reason:
+        content = f"{content}备注：{reason}"
+
+    db.add(Notification(
+        user_id=post.user_id,
+        type="audit",
+        title=title,
+        content=content[:500],
+        target_type="post",
+        target_id=post.id,
+        actor_id=admin.id,
+        is_read=False,
+    ))
 
 
 class PostBrief(BaseModel):
@@ -186,6 +213,7 @@ async def approve_post(
         detail=data.reason,
     )
     db.add(log)
+    add_review_notification(db, post, admin, approved=True, reason=data.reason)
 
     await db.commit()
 
@@ -226,6 +254,7 @@ async def reject_post(
         detail=f"拒绝原因：{data.reason}",
     )
     db.add(log)
+    add_review_notification(db, post, admin, approved=False, reason=data.reason)
 
     await db.commit()
 
@@ -1048,7 +1077,7 @@ async def batch_approve_posts(
             failed_ids.append(post_id)
             continue
 
-        post.status = "approved"
+        post.status = "published"
         post.updated_at = datetime.now()
 
         log = AdminOperationLog(
@@ -1059,6 +1088,7 @@ async def batch_approve_posts(
             detail=data.reason,
         )
         db.add(log)
+        add_review_notification(db, post, admin, approved=True, reason=data.reason)
         success_count += 1
 
     await db.commit()
@@ -1093,7 +1123,7 @@ async def batch_reject_posts(
             failed_ids.append(post_id)
             continue
 
-        post.status = "rejected"
+        post.status = "archived"
         post.updated_at = datetime.now()
 
         log = AdminOperationLog(
@@ -1104,6 +1134,7 @@ async def batch_reject_posts(
             detail=f"拒绝原因：{data.reason}",
         )
         db.add(log)
+        add_review_notification(db, post, admin, approved=False, reason=data.reason)
         success_count += 1
 
     await db.commit()

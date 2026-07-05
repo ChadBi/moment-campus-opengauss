@@ -14,7 +14,6 @@ import {
   Menu,
   X,
   FolderTree,
-  Tags,
   ScrollText,
   ChevronRight,
 } from 'lucide-react';
@@ -39,7 +38,6 @@ const MENU_ITEMS: MenuItem[] = [
   { path: '/admin/users', label: '用户管理', icon: Users, crumb: '用户管理' },
   { path: '/admin/reports', label: '举报管理', icon: Flag, crumb: '举报管理' },
   { path: '/admin/categories', label: '分类管理', icon: FolderTree, crumb: '分类管理' },
-  { path: '/admin/tags', label: '标签管理', icon: Tags, crumb: '标签管理' },
   { path: '/admin/logs', label: '操作日志', icon: ScrollText, crumb: '操作日志' },
   { path: '/admin/settings', label: '系统设置', icon: Settings, crumb: '系统设置' },
 ];

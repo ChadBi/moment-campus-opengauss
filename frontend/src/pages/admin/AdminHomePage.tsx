@@ -13,7 +13,6 @@ import {
   ScrollText,
   CheckCircle2,
   FolderTree,
-  Tags,
 } from 'lucide-react';
 
 /** 操作类型 → 中文标签 + 颜色 */
@@ -98,7 +97,6 @@ const AdminHomePage: React.FC = () => {
     { to: '/admin/reports', icon: Flag, label: '举报管理', sub: `${stats.pending_reports} 条待处理`, color: 'text-danger' },
     { to: '/admin/users', icon: Users, label: '用户管理', sub: `${stats.total_users} 个用户`, color: 'text-grass' },
     { to: '/admin/categories', icon: FolderTree, label: '分类管理', sub: '维护信息分类', color: 'text-lake' },
-    { to: '/admin/tags', icon: Tags, label: '标签管理', sub: '维护标签库', color: 'text-info' },
     { to: '/admin/logs', icon: ScrollText, label: '操作日志', sub: '查看操作记录', color: 'text-ink-sub' },
   ];
 
