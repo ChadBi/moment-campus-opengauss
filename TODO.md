@@ -15,6 +15,25 @@
 
 ## 已完成
 
+### 服务器混合部署（2026-07-05 完成）
+
+- [x] 确认华为云服务器环境：Ubuntu 22.04.5 LTS / ARM64 / Docker 29.1.3
+- [x] 安装 Docker Compose v2，并导入 ARM64 openGauss 镜像 `opengauss:7.0.0-RC3`
+- [x] 克隆项目到服务器 `/opt/moment-campus`
+- [x] 切换为混合部署方案：openGauss 容器 + 后端 systemd 物理部署 + 前端 Nginx 静态部署
+- [x] openGauss 容器仅绑定 `127.0.0.1:5432`，避免数据库公网暴露
+- [x] 服务器安装 Python/Nginx 运行依赖，后端使用 `backend/.venv`
+- [x] 上传本地构建通过的前端 `dist/` 到服务器
+- [x] 修复生产迁移链路缺失字段：`users.reputation_score`、`posts.credibility_score`
+- [x] 修复生产迁移链路旧字段残留：删除 `favorites` 表、`posts.favorite_count`、`posts.is_top`
+- [x] 修复生产迁移链路缺失字段：`validation_records.is_deleted`、`validation_records.deleted_at`
+- [x] 服务器完成 Alembic 迁移与江南大学演示数据初始化
+- [x] 服务器内部验证通过：`moment-backend`、`nginx` active，`/health`、首页、`/api/v1/posts` 本机链路正常
+- [x] 公网 HTTP 验证通过：`http://123.60.101.165/` 可访问前端，`/api/v1/posts` 返回数据
+- [x] 公网 HTTPS 验证通过：`https://campus.chaina1.com/health`、首页、`/api/v1/posts` 正常
+- [x] 申请并部署 Let's Encrypt 证书，证书有效期至 2026-10-03，certbot 自动续期已启用
+- [x] 管理员登录接口验证通过：`admin@momentcampus.com / pass123`
+
 ### 超大规模检查与Bug修复（2026-07-04 完成）
 
 - [x] 修复评论创建500错误（MissingGreenlet：Comment.replies 关系未预加载）
