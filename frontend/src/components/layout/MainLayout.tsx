@@ -19,11 +19,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   categories = [],
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // 从 store 获取登录用户信息：登录后显示头像，未登录显示登录按钮
   const user = useAuthStore((s) => s.user);
 
   return (
-    <div className="min-h-screen bg-mist md:grid md:grid-cols-[88px_minmax(0,1fr)]">
+    <div className="min-h-screen bg-mist md:grid md:grid-cols-[72px_minmax(0,1fr)]">
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -37,7 +36,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           notificationCount={notificationCount}
         />
 
-        <main className="flex-1 px-3 md:px-6 py-4 md:py-6 pb-24 md:pb-8">
+        <main className="flex-1 px-3 md:px-6 py-3 pb-20 md:pb-6">
           <div className="max-w-[1680px] mx-auto">
             <Outlet />
           </div>

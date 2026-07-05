@@ -13,18 +13,18 @@ interface CardProps {
 
 const variantStyles: Record<CardVariant, string> = {
   elevated:
-    'bg-paper/86 border border-white/80 shadow-lg backdrop-blur-xl rounded-xl hover:-translate-y-0.5 hover:shadow-xl',
+    'bg-paper border border-line/60 shadow-md rounded-[16px] hover:shadow-lg hover:-translate-y-0.5',
   outlined:
-    'bg-paper border border-line rounded-lg hover:-translate-y-0.5 hover:shadow-sm hover:border-lake/40',
+    'bg-paper border border-line rounded-[16px] hover:shadow-sm hover:-translate-y-0.5 hover:border-lake/30',
   filled:
-    'bg-mist rounded-lg hover:-translate-y-0.5 hover:shadow-sm',
+    'bg-paper-hover rounded-[16px] hover:shadow-sm hover:-translate-y-0.5',
 };
 
 const paddingStyles: Record<NonNullable<CardProps['padding']>, string> = {
   none: '',
-  sm: 'p-3',
+  sm: 'p-4',
   md: 'p-5',
-  lg: 'p-7',
+  lg: 'p-6',
 };
 
 export const Card: React.FC<CardProps> = ({
@@ -36,7 +36,7 @@ export const Card: React.FC<CardProps> = ({
   style,
 }) => {
   const baseStyles =
-    'transition-[transform,box-shadow,border-color] duration-[200ms] ease-out';
+    'transition-[transform,box-shadow,border-color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]';
   const variantStyle = variantStyles[variant];
   const paddingStyle = paddingStyles[padding];
   const clickable = onClick ? 'cursor-pointer' : '';

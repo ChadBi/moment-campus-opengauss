@@ -48,7 +48,6 @@ const RegisterPage: React.FC = () => {
 
     setLoading(true);
     try {
-      // 注册并自动登录
       const response = await authApi.register({
         email: formData.email,
         nickname: formData.nickname,
@@ -68,26 +67,18 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg-body px-4 py-10 relative overflow-hidden">
-      {/* 装饰圆 */}
-      <div className="pointer-events-none absolute -top-24 -right-20 w-72 h-72 rounded-full border-[24px] border-mist/60" />
-      <div className="pointer-events-none absolute -bottom-28 -left-20 w-80 h-80 rounded-full border-[28px] border-mist/60" />
-
-      <div className="w-full max-w-md relative">
-        {/* 品牌标志 */}
+    <div className="min-h-screen flex items-center justify-center bg-mist px-4 py-10">
+      <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-7">
-          <div className="relative w-[68px] h-[68px] rounded-[22px] bg-paper grid place-items-center shadow-md mb-4 overflow-hidden">
-            <span className="font-display font-bold text-[34px] text-lake leading-none translate-y-[-2px]">此</span>
-            <span className="absolute top-[34px] left-[16px] w-[36px] h-[12px] border-t-[3px] border-lamp rounded-full rotate-[-12deg]" />
+          <div className="relative w-[44px] h-[44px] rounded-[12px] bg-paper grid place-items-center shadow-sm mb-4 overflow-hidden">
+            <span className="font-display font-bold text-[22px] text-lake leading-none">此</span>
           </div>
-          <span className="eyebrow mb-2">JOIN CAMPUS</span>
-          <h1 className="text-2xl font-display font-bold text-lake">加入此刻校园</h1>
-          <p className="text-ink-sub text-sm mt-1.5">分享你的校园生活每一刻</p>
+          <h1 className="text-xl font-display font-bold text-lake tracking-wide">加入此刻校园</h1>
+          <p className="text-ink-muted text-sm mt-1.5">分享你的校园生活每一刻</p>
         </div>
 
-        {/* 表单卡片 */}
         <Card variant="elevated" padding="lg">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="邮箱"
               name="email"
@@ -95,7 +86,7 @@ const RegisterPage: React.FC = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="请输入邮箱"
-              icon={<Mail size={18} />}
+              icon={<Mail size={16} />}
               required
             />
 
@@ -106,7 +97,7 @@ const RegisterPage: React.FC = () => {
               value={formData.nickname}
               onChange={handleChange}
               placeholder="请输入昵称"
-              icon={<User size={18} />}
+              icon={<User size={16} />}
               required
             />
 
@@ -117,7 +108,7 @@ const RegisterPage: React.FC = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="请输入密码（至少6位）"
-              icon={<Lock size={18} />}
+              icon={<Lock size={16} />}
               required
             />
 
@@ -128,12 +119,12 @@ const RegisterPage: React.FC = () => {
               value={formData.confirmPassword}
               onChange={handleChange}
               placeholder="请再次输入密码"
-              icon={<Lock size={18} />}
+              icon={<Lock size={16} />}
               required
             />
 
             {error && (
-              <div className="text-danger text-sm text-center bg-danger/8 rounded-md py-2 px-3">
+              <div className="text-danger text-sm text-center bg-danger/8 rounded-[10px] py-2 px-3">
                 {error}
               </div>
             )}
@@ -149,9 +140,9 @@ const RegisterPage: React.FC = () => {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm">
-            <span className="text-ink-sub">已有账号？</span>
-            <Link to="/login" className="text-lamp font-medium ml-1 hover:underline">
+          <div className="mt-5 text-center text-sm">
+            <span className="text-ink-muted">已有账号？</span>
+            <Link to="/login" className="text-lake font-medium ml-1 hover:underline">
               立即登录
             </Link>
           </div>

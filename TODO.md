@@ -29,6 +29,21 @@
 - [x] API验证全部通过（帖子列表/详情/评论/回复 author字段正确）
 - [x] 前端UI验证通过（首页正确显示作者昵称）
 
+### 前端UI重新设计（水墨风优化）（2026-07-05 完成）
+
+- [x] 更新设计令牌 tokens.ts：规范色彩、字体、圆角（减少过度圆角）、阴影
+- [x] 更新 tailwind.config.js：扩展水墨风主题配置
+- [x] 更新 index.css 全局样式：增强宣纸纹理、优化墨线分割
+- [x] 重构 UI 基础组件（Button/Card/Badge/Input/Avatar/Modal/Toast/Table）
+- [x] 重构 PostDetailPage 详情页为长卷式布局，减少卡片碎片化
+- [x] 重构 HomePage 首页信息流，统一卡片样式与间距
+- [x] 调整 Header/MainLayout/Sidebar 布局组件
+- [x] 更新 Login/Register/Publish 表单页，统一表单样式
+- [x] 更新 Profile/Search/Notifications 列表页，标准化列表布局
+- [x] 更新 MapPage 地图页与侧边面板
+- [x] 统一 Admin 后台样式与设计系统
+- [x] npm run build 构建验证通过
+
 ### 管理员后台重构收尾（2026-07-04 完成）
 
 - [x] WS9 AdminTagsPage 新建：列表+搜索+筛选+编辑+官方切换+软删除+合并面板

@@ -1,0 +1,25 @@
+[Unit]
+Description= Moment Campus Backend (FastAPI)
+After=network.target postgresql.service opengauss.service
+
+[Service]
+Type=simple
+User=moment
+Group=moment
+WorkingDirectory=/opt/moment-campus/backend
+Environment="PATH=/opt/moment-campus/backend/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=-/opt/moment-campus/backend/.env.prod
+ExecStart=/opt/moment-campus/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4
+Restart=always
+RestartSec=5
+# 日志输出到journald
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=moment-backend
+
+# 安全加固
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

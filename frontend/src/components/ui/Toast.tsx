@@ -11,10 +11,10 @@ interface ToastProps {
 }
 
 const iconMap: Record<ToastType, React.ReactNode> = {
-  success: <CheckCircle size={20} className="text-grass" />,
-  error: <AlertCircle size={20} className="text-danger" />,
-  warning: <AlertTriangle size={20} className="text-sun" />,
-  info: <Info size={20} className="text-lamp" />,
+  success: <CheckCircle size={18} className="text-grass" />,
+  error: <AlertCircle size={18} className="text-danger" />,
+  warning: <AlertTriangle size={18} className="text-[#b89230]" />,
+  info: <Info size={18} className="text-lamp" />,
 };
 
 export const Toast: React.FC<ToastProps> = ({
@@ -30,16 +30,16 @@ export const Toast: React.FC<ToastProps> = ({
 
   return (
     <div
-      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-md shadow-lg max-w-[90vw] animate-fade-in bg-ink text-white border border-white/10`}
+      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-[10px] shadow-toast max-w-[90vw] animate-fade-in bg-paper border border-line/80`}
     >
       {iconMap[type]}
-      <p className="text-sm text-paper flex-1 font-sans">{message}</p>
+      <p className="text-sm text-ink flex-1 font-sans">{message}</p>
       <button
         onClick={onClose}
-        className="p-1 rounded text-paper/60 hover:text-paper hover:bg-white/10 transition-colors"
+        className="p-1 rounded text-ink-muted hover:text-ink hover:bg-paper-hover transition-colors"
         aria-label="关闭"
       >
-        <X size={16} />
+        <X size={15} />
       </button>
     </div>
   );

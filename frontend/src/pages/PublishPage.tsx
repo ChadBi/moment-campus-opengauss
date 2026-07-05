@@ -30,7 +30,6 @@ const PublishPage: React.FC = () => {
     }
   };
 
-  // 手绘风分类按钮：更新 formData.category_id（保持状态结构不变）
   const handleCategorySelect = (id: number) => {
     setFormData(prev => ({ ...prev, category_id: String(id) }));
   };
@@ -59,9 +58,9 @@ const PublishPage: React.FC = () => {
         title: formData.title,
         content: formData.content,
         category_id: Number(formData.category_id),
-        location_id: 1, // 默认地点，实际应让用户选择
+        location_id: 1,
         is_anonymous: formData.is_anonymous,
-        status, // T-B-06: draft 草稿 / pending 提交审核
+        status,
       });
       setToast({
         message: status === 'draft' ? '草稿已保存' : '已提交审核，等待管理员通过',
@@ -92,19 +91,16 @@ const PublishPage: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-2xl mx-auto px-1 py-2">
-      {/* 页面标题：楷体 */}
-      <header className="mb-7">
-        <span className="eyebrow">New Moment</span>
-        <h1 className="font-display font-extrabold text-[30px] leading-tight tracking-[0.06em] text-lake mt-2">
+    <div className="max-w-2xl mx-auto py-4">
+      <header className="mb-5 px-1">
+        <h1 className="font-display font-bold text-[24px] tracking-wide text-lake leading-tight">
           发布此刻
         </h1>
-        <p className="text-ink-sub text-sm mt-1.5">把会消失的校园经验留下来</p>
+        <p className="text-ink-muted text-sm mt-1">把会消失的校园经验留下来</p>
       </header>
 
-      {/* 表单卡片：Card variant=elevated */}
       <Card variant="elevated" padding="lg">
-        <form onSubmit={(e) => handleSubmit(e, 'pending')} className="space-y-5">
+        <form onSubmit={(e) => handleSubmit(e, 'pending')} className="space-y-4">
           <Input
             label="标题"
             name="title"
@@ -115,7 +111,6 @@ const PublishPage: React.FC = () => {
             required
           />
 
-          {/* 分类选择：手绘风按钮 */}
           <div>
             <label className="block text-sm font-medium text-ink mb-2 font-sans">
               分类 <span className="text-danger">*</span>
@@ -128,10 +123,10 @@ const PublishPage: React.FC = () => {
                     key={cat.id}
                     type="button"
                     onClick={() => handleCategorySelect(cat.id)}
-                    className={`flex items-center gap-1.5 px-3 py-2.5 rounded-md text-xs font-medium transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-[10px] text-xs font-medium transition-all ${
                       isActive
-                        ? 'bg-lake text-white shadow-lake'
-                        : 'bg-mist text-ink-sub hover:bg-line hover:-translate-y-0.5'
+                        ? 'bg-lake text-white shadow-sm'
+                        : 'bg-paper-hover text-ink-sub hover:bg-line'
                     }`}
                   >
                     <span className="text-sm">{cat.emoji}</span>
@@ -142,9 +137,8 @@ const PublishPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 内容：textarea */}
           <div>
-            <label className="block text-sm font-medium text-ink mb-2 font-sans">
+            <label className="block text-sm font-medium text-ink mb-1.5 font-sans">
               内容 <span className="text-danger">*</span>
             </label>
             <textarea
@@ -153,7 +147,7 @@ const PublishPage: React.FC = () => {
               onChange={handleChange}
               placeholder="请输入内容（10-5000字符）"
               rows={8}
-              className="w-full px-3.5 py-3 bg-white/78 border border-line rounded-md text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none focus:bg-white focus:border-lake focus:shadow-sm transition-all resize-none"
+              className="w-full px-3.5 py-3 bg-paper border border-line rounded-[10px] text-sm text-ink placeholder:text-ink-muted/60 focus:outline-none focus:border-lake transition-colors resize-none"
               required
             />
           </div>
@@ -165,7 +159,7 @@ const PublishPage: React.FC = () => {
             value={formData.location_name}
             onChange={handleChange}
             placeholder="例如：图书馆、食堂、教学楼等"
-            icon={<MapPin size={18} />}
+            icon={<MapPin size={16} />}
           />
 
           <div className="grid grid-cols-2 gap-4">
@@ -200,29 +194,26 @@ const PublishPage: React.FC = () => {
             <label className="text-sm text-ink">匿名发布</label>
           </div>
 
-          {/* 提示信息：淡绿色背景卡片 */}
-          <div className="bg-grass/12 text-[#476a51] rounded-md px-4 py-3 text-xs leading-relaxed border border-grass/20">
+          <div className="bg-grass/8 text-[#476a51] rounded-[10px] px-4 py-3 text-xs leading-relaxed border border-grass/20">
             信息会过期，也能被更新。每条信息都有"最后确认时间"，路过时点一下仍然有效，就能帮后来的人少走弯路。
             <br />
             <span className="text-[#5a8266]">提示：</span>可先"存为草稿"稍后再"提交审核"，审核通过后才会公开展示。
           </div>
 
-          <div className="flex gap-3 pt-2">
-            {/* T-B-06: 提交审核（默认） */}
+          <div className="flex gap-2 pt-2">
             <Button
               type="submit"
               variant="primary"
-              size="lg"
+              size="md"
               loading={loading}
               className="flex-1"
             >
               提交审核
             </Button>
-            {/* T-B-06: 存为草稿 */}
             <Button
               type="button"
               variant="secondary"
-              size="lg"
+              size="md"
               loading={loading}
               onClick={(e) => handleSubmit(e as unknown as React.FormEvent, 'draft')}
             >
@@ -231,7 +222,7 @@ const PublishPage: React.FC = () => {
             <Button
               type="button"
               variant="text"
-              size="lg"
+              size="md"
               onClick={() => navigate(-1)}
             >
               取消

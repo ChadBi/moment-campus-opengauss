@@ -3,29 +3,33 @@
 @tailwind utilities;
 
 :root {
-  /* 手绘水墨风配色 - 来自 Demo 设计 */
+  /* 水墨风配色 - 宣纸质感 */
   --ink: #152629;
-  --ink-2: #40575b;
-  --muted: #71858a;
-  --paper: #f8fbfa;
-  --mist: #eaf1f3;
+  --ink-2: #3d5458;
+  --muted: #6a7d81;
+  --paper: #fafcfb;
+  --mist: #f4f7f6;
+  --paper-alt: #f6f3ed;
   --lake: #174d5e;
-  --lake-2: #2f6b78;
-  --lamp: #ff8a4c;
-  --grass: #79a86b;
-  --sun: #f2c85b;
-  --line: #d4e0e2;
-  --danger: #d95f59;
+  --lake-2: #2d6270;
+  --lamp: #e67340;
+  --lamp-light: #f08a5a;
+  --grass: #73a068;
+  --sun: #dbb352;
+  --line: #d8e1e3;
+  --line-divider: #e8eded;
+  --danger: #cd5852;
 
   /* 阴影 */
-  --shadow: 0 18px 50px rgba(20, 55, 63, 0.11);
-  --shadow-sm: 0 8px 24px rgba(20, 55, 63, 0.09);
+  --shadow-sm: 0 2px 8px rgba(21, 38, 41, 0.06);
+  --shadow: 0 4px 16px rgba(21, 38, 41, 0.06), 0 1px 3px rgba(21, 38, 41, 0.04);
+  --shadow-lg: 0 8px 28px rgba(21, 38, 41, 0.10), 0 2px 6px rgba(21, 38, 41, 0.05);
 
   /* 圆角 */
-  --radius-xl: 28px;
-  --radius-lg: 20px;
-  --radius-md: 14px;
-  --radius-sm: 10px;
+  --radius-xl: 20px;
+  --radius-lg: 16px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
 
   /* 字体 */
   --font-display: "STKaiti", "KaiTi", "Noto Serif SC", serif;
@@ -55,16 +59,16 @@ body {
   overflow-x: hidden;
 }
 
-/* 纸张纹理叠加层 */
+/* 纸张纹理叠加层 - 加强到0.05可见度 */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.03;
-  background-image: radial-gradient(rgba(23, 77, 94, 0.4) 0.6px, transparent 0.6px);
-  background-size: 9px 9px;
+  opacity: 0.05;
+  background-image: radial-gradient(rgba(23, 77, 94, 0.35) 0.5px, transparent 0.5px);
+  background-size: 8px 8px;
   mix-blend-mode: multiply;
 }
 
@@ -75,8 +79,8 @@ body::before {
 
 /* 滚动条样式 */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -84,8 +88,8 @@ body::before {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cfdddf;
-  border-radius: 10px;
+  background: #cdd6d8;
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -94,15 +98,15 @@ body::before {
 
 /* 焦点样式 */
 :focus-visible {
-  outline: 3px solid rgba(255, 138, 76, 0.45);
-  outline-offset: 3px;
+  outline: 2px solid rgba(230, 115, 64, 0.5);
+  outline-offset: 2px;
 }
 
 /* 链接样式 */
 a {
   color: inherit;
   text-decoration: none;
-  transition: color 200ms ease;
+  transition: color 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* 按钮重置 */
@@ -132,93 +136,107 @@ img {
   display: block;
 }
 
-/* === 手绘风工具类 === */
+/* === 水墨风工具类 === */
 
-/* 纸张面板 */
+/* 宣纸面板 */
 .paper-panel {
-  background: rgba(248, 251, 250, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: var(--radius-xl);
+  background: var(--paper);
+  border: 1px solid rgba(216, 225, 227, 0.6);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(18px);
 }
 
-/* 标签文字 */
+/* 标签文字 - 克制使用 */
 .eyebrow {
   color: var(--muted);
-  font: 800 11px/1 var(--font-data);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font: 600 11px/1 var(--font-data);
+  letter-spacing: 0.12em;
 }
 
-/* 手绘标签 */
-.hand-tag {
-  background: #edf3f4;
+/* 印章标签 - 小方章 */
+.seal-tag {
+  background: var(--paper-hover);
   color: var(--ink-2);
-  border-radius: 999px;
-  padding: 5px 8px;
-  font-size: 10px;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 /* 品牌标志文字 */
 .brand-text {
   font: 800 28px/1 var(--font-display);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   color: var(--lake);
 }
 
-/* 噪点纹理 */
-.paper-noise {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.18;
-  z-index: 1;
-  background-image: radial-gradient(rgba(23, 77, 94, 0.22) 0.6px, transparent 0.6px);
-  background-size: 9px 9px;
-  mix-blend-mode: multiply;
+/* 淡墨分割线 */
+.ink-divider {
+  border: none;
+  height: 1px;
+  background: var(--line-divider);
+  margin: 16px 0;
+}
+
+/* 淡墨分割线 - 更淡 */
+.ink-divider-soft {
+  border: none;
+  height: 1px;
+  background: var(--line-divider);
+  margin: 12px 0;
 }
 
 /* 兼容旧引用 */
 .text-primary { color: var(--lake); }
 .bg-primary { background-color: var(--lake); }
-.bg-primary-light { background-color: var(--mist); }
+.bg-primary-light { background-color: #e7f0f1; }
 .text-error { color: var(--danger); }
 .text-warning { color: var(--sun); }
 .text-sub { color: var(--ink-2); }
 .border-default { border-color: var(--line); }
 
-/* === WS4: hover utility + 路由/卡片动效类 === */
+/* === 微交互类 === */
 .lift-on-hover {
-  @apply transition-transform duration-200 ease-out hover:-translate-y-0.5;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lift-on-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
-/* 路由切换淡入（WS5 用） */
-.route-fade-enter {
-  animation: routeFadeIn 180ms ease-out;
+/* 页面淡入 */
+.page-fade-in {
+  animation: pageFadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-@keyframes routeFadeIn {
-  from { opacity: 0; transform: translateY(4px); }
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 首页卡片入场 stagger（WS5 用） */
+/* 卡片入场 stagger */
 .stagger-card {
-  animation: staggerIn 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: cardStaggerIn 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-@keyframes staggerIn {
-  from { opacity: 0; transform: translateY(12px); }
+@keyframes cardStaggerIn {
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 /* 地图页右侧侧滑面板 */
 .map-slide-panel {
-  animation: mapSlideIn 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: mapSlideIn 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @keyframes mapSlideIn {
   from { opacity: 0; transform: translateX(100%); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* 内容区淡米色宣纸背景 */
+.content-paper {
+  background: var(--paper-alt);
+  border-radius: var(--radius-md);
+  padding: 20px;
 }
 
 @media (prefers-reduced-motion: reduce) {

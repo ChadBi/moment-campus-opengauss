@@ -1,0 +1,95 @@
+services:
+  opengauss:
+    image: opengauss:7.0.0-RC3
+    container_name: moment-opengauss
+    privileged: true
+    restart: always
+    pull_policy: never
+    environment:
+      GS_PASSWORD: "${DB_PASSWORD:-Gaussdb@123}"
+      GS_DB: "${DB_NAME:-moment_campus}"
+      GS_USERNAME: "${DB_USER:-gaussdb}"
+      GS_USER_PASSWORD: "${DB_PASSWORD:-Gaussdb@123}"
+      GS_PORT: "5432"
+    volumes:
+      - opengauss-data:/var/lib/opengauss
+    networks:
+      - moment-network
+    healthcheck:
+      test: ["CMD-SHELL", "gsql -d $${GS_DB} -U $${GS_USERNAME} -W $${GS_PASSWORD} -c 'SELECT 1;' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: moment-backend
+    restart: always
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - SECRET_KEY=${SECRET_KEY:-change-this-to-a-strong-random-secret-key-in-production}
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-gaussdb}:${DB_PASSWORD_ENCODED:-Gaussdb%40123}@opengauss:5432/${DB_NAME:-moment_campus}?sslmode=disable
+      - CORS_ORIGINS=["https://${DOMAIN:-localhost}", "http://${DOMAIN:-localhost}"]
+      - UPLOAD_DIR=/app/uploads
+      - LOG_LEVEL=INFO
+    volumes:
+      - backend-uploads:/app/uploads
+    depends_on:
+      opengauss:
+        condition: service_healthy
+    networks:
+      - moment-network
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+    container_name: moment-frontend
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - moment-network
+    expose:
+      - "80"
+
+  nginx:
+    image: nginx:alpine
+    container_name: moment-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certbot/conf:/etc/letsencrypt:ro
+      - ./nginx/certbot/www:/var/www/certbot:ro
+    depends_on:
+      - frontend
+    networks:
+      - moment-network
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+
+  certbot:
+    image: certbot/certbot
+    container_name: moment-certbot
+    volumes:
+      - ./nginx/certbot/conf:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+networks:
+  moment-network:
+    driver: bridge
+
+volumes:
+  opengauss-data:
+  backend-uploads:

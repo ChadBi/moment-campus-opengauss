@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { notificationsApi } from '../services/notifications';
 import type { Notification } from '../types';
-import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Loading } from '../components/ui/Loading';
@@ -22,31 +21,27 @@ const NotificationsPage: React.FC = () => {
     loadNotifications();
   }, [isAuthenticated]);
 
-  // 未登录状态
   if (!isAuthenticated) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <span className="eyebrow">NOTIFICATIONS</span>
-          <h1 className="text-2xl font-display font-bold text-lake mt-2">通知消息</h1>
-        </div>
-        <Card variant="elevated" padding="lg" className="text-center py-16 relative overflow-hidden">
-          <div className="pointer-events-none absolute -top-10 -right-10 w-40 h-40 rounded-full border-[18px] border-mist/60" />
-          <div className="relative">
-            <div className="w-20 h-20 mx-auto rounded-2xl bg-mist grid place-items-center mb-5">
-              <Bell size={40} className="text-lake" />
-            </div>
-            <h3 className="text-lg font-display font-bold text-ink mb-2">登录后查看通知消息</h3>
-            <p className="text-ink-sub text-sm mb-6">登录账号，及时接收评论、点赞与系统通知</p>
-            <Button
-              variant="primary"
-              icon={<LogIn size={16} />}
-              onClick={() => navigate('/login')}
-            >
-              去登录
-            </Button>
+      <div className="max-w-2xl mx-auto py-4">
+        <header className="mb-5 px-1">
+          <h1 className="font-display font-bold text-[24px] tracking-wide text-lake leading-tight">通知消息</h1>
+          <p className="text-ink-muted text-sm mt-1">登录后查看通知消息</p>
+        </header>
+        <div className="bg-paper rounded-[16px] border border-line/60 p-10 text-center shadow-sm">
+          <div className="w-20 h-20 mx-auto rounded-[16px] bg-mist grid place-items-center mb-5">
+            <Bell size={40} className="text-lake" />
           </div>
-        </Card>
+          <h3 className="text-lg font-display font-bold text-ink mb-2">登录后查看通知消息</h3>
+          <p className="text-ink-sub text-sm mb-6">登录账号，及时接收评论、点赞与系统通知</p>
+          <Button
+            variant="primary"
+            icon={<LogIn size={16} />}
+            onClick={() => navigate('/login')}
+          >
+            去登录
+          </Button>
+        </div>
       </div>
     );
   }
@@ -124,12 +119,11 @@ const NotificationsPage: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      <div className="flex items-end justify-between mb-6 gap-3">
+    <div className="max-w-2xl mx-auto py-4">
+      <div className="flex items-end justify-between mb-5 gap-3 px-1">
         <div>
-          <span className="eyebrow">NOTIFICATIONS</span>
-          <h1 className="text-2xl font-display font-bold text-lake mt-2">通知消息</h1>
-          <p className="text-ink-sub text-sm mt-1">
+          <h1 className="font-display font-bold text-[24px] tracking-wide text-lake leading-tight">通知消息</h1>
+          <p className="text-ink-muted text-sm mt-1">
             {unreadCount > 0 ? `${unreadCount} 条未读通知` : '暂无未读通知'}
           </p>
         </div>
@@ -138,7 +132,7 @@ const NotificationsPage: React.FC = () => {
             variant="secondary"
             size="sm"
             onClick={handleMarkAllAsRead}
-            icon={<CheckCheck size={16} />}
+            icon={<CheckCheck size={14} />}
           >
             全部已读
           </Button>
@@ -150,41 +144,38 @@ const NotificationsPage: React.FC = () => {
           <Loading text="加载中..." />
         </div>
       ) : notifications.length === 0 ? (
-        <Card variant="outlined" padding="lg" className="text-center py-16">
-          <div className="text-[56px] leading-none mb-4">🔔</div>
+        <div className="bg-paper rounded-[16px] border border-line/60 p-10 text-center shadow-sm">
+          <div className="text-[48px] leading-none mb-4">🔔</div>
           <h3 className="text-lg font-display font-bold text-ink mb-2">暂无通知</h3>
           <p className="text-ink-sub text-sm">新的消息会在这里出现</p>
-        </Card>
+        </div>
       ) : (
-        <div className="space-y-3">
-          {notifications.map(notification => (
-            <Card
+        <div className="bg-paper rounded-[16px] border border-line/60 shadow-sm overflow-hidden">
+          {notifications.map((notification, idx) => (
+            <div
               key={notification.id}
-              variant="elevated"
-              padding="md"
-              className={`relative overflow-hidden cursor-pointer ${
-                !notification.is_read ? '!border-lake/30' : ''
-              }`}
+              className={`relative px-5 py-4 cursor-pointer hover:bg-paper-hover transition-colors ${
+                idx > 0 ? 'border-t border-ink-divider/60' : ''
+              } ${!notification.is_read ? 'bg-lake/[0.02]' : ''}`}
               onClick={() => handleNotificationClick(notification)}
             >
-              {/* 未读左侧湖蓝色边条 */}
               {!notification.is_read && (
                 <span className="absolute left-0 top-0 bottom-0 w-1 bg-lake" />
               )}
               <div className="flex items-start gap-3">
-                <div className="w-11 h-11 rounded-xl bg-mist grid place-items-center text-xl flex-shrink-0">
+                <div className="w-10 h-10 rounded-[10px] bg-mist grid place-items-center text-lg flex-shrink-0">
                   {getNotificationIcon(notification.type)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1 gap-2">
-                    <h3 className="font-display font-semibold text-ink text-sm truncate">
+                    <h3 className="font-semibold text-ink text-sm truncate">
                       {notification.title}
                     </h3>
                     {!notification.is_read && (
                       <Badge variant="info">未读</Badge>
                     )}
                   </div>
-                  <p className="text-ink-sub text-sm mb-2 leading-relaxed">
+                  <p className="text-ink-sub text-[14px] mb-2 leading-[1.6]">
                     {notification.content}
                   </p>
                   <div className="flex items-center justify-between">
@@ -199,7 +190,7 @@ const NotificationsPage: React.FC = () => {
                           e.stopPropagation();
                           handleMarkAsRead(notification.id);
                         }}
-                        icon={<Check size={14} />}
+                        icon={<Check size={13} />}
                       >
                         标记已读
                       </Button>
@@ -207,7 +198,7 @@ const NotificationsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}

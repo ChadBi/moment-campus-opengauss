@@ -29,7 +29,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       <img
         src={src}
         alt={alt}
-        className={`rounded-md object-cover ring-1 ring-line ${sizeStyles[size]} ${className}`}
+        className={`rounded-full object-cover ring-1 ring-line/70 ${sizeStyles[size]} ${className}`}
         onError={() => setHasError(true)}
       />
     );
@@ -37,7 +37,7 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <div
-      className={`rounded-md bg-mist text-lake flex items-center justify-center font-semibold font-sans ring-1 ring-line ${sizeStyles[size]} ${className}`}
+      className={`rounded-full bg-mist text-lake flex items-center justify-center font-semibold font-sans ring-1 ring-line/70 ${sizeStyles[size]} ${className}`}
     >
       {fallback || alt?.charAt(0)?.toUpperCase() || '?'}
     </div>

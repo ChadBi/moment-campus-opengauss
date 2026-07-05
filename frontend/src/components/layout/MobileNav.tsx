@@ -18,8 +18,8 @@ export const MobileNav: React.FC = () => {
       aria-label="移动端导航"
     >
       <div
-        className="grid grid-cols-4 gap-2 bg-lake/[0.94] backdrop-blur-lg border border-white/[0.15] rounded-[20px] p-2"
-        style={{ boxShadow: '0 16px 46px rgba(20,55,63,.28)' }}
+        className="grid grid-cols-4 gap-1 bg-lake/95 border border-white/10 rounded-[16px] p-1.5"
+        style={{ boxShadow: '0 8px 32px rgba(20,55,63,.25)' }}
       >
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -29,13 +29,13 @@ export const MobileNav: React.FC = () => {
               key={item.path}
               to={item.path}
               aria-label={item.label}
-              className={`grid place-items-center gap-[3px] rounded-[13px] py-1.5 transition-colors ${
+              className={`grid place-items-center gap-0.5 rounded-[10px] py-1.5 transition-colors ${
                 isActive
                   ? 'bg-paper text-lake'
                   : 'text-white/70'
               }`}
             >
-              <Icon size={19} />
+              <Icon size={18} />
               <span className="text-[10px]">{item.label}</span>
             </Link>
           );

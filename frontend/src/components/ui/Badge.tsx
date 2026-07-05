@@ -10,11 +10,11 @@ interface BadgeProps {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  default: 'bg-mist text-ink-sub',
-  success: 'bg-grass/15 text-grass',
-  warning: 'bg-sun/18 text-sun',
-  danger: 'bg-danger/12 text-danger',
-  info: 'bg-info/12 text-info',
+  default: 'bg-paper-hover text-ink-sub',
+  success: 'bg-grass/12 text-grass',
+  warning: 'bg-sun/16 text-[#b89230]',
+  danger: 'bg-danger/10 text-danger',
+  info: 'bg-info/10 text-info',
 };
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -25,7 +25,7 @@ export const Badge: React.FC<BadgeProps> = ({
 }) => {
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold font-data tracking-wide ${variantStyles[variant]} ${className}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-[6px] text-[12px] font-medium font-sans ${variantStyles[variant]} ${className}`}
       style={style}
     >
       {children}

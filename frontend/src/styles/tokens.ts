@@ -1,52 +1,56 @@
 /**
  * 设计令牌（Design Tokens）
- * 手绘水墨风 - 基于 Demo 设计规范
+ * 手绘水墨风 - 宣纸质感、墨色层次、克制雅致
  */
 
-// 颜色系统
+// 颜色系统 - 水墨宣纸色系
 export const colors = {
-  // 墨水系
+  // 五级墨
   ink: '#152629',
-  inkSub: '#40575b',
-  muted: '#71858a',
-  inkDisabled: '#a8b4b6',
+  inkSub: '#3d5458',
+  muted: '#6a7d81',
+  inkDisabled: '#9aabae',
+  inkDivider: '#e8eded',
 
-  // 纸张/背景
-  paper: '#f8fbfa',
-  mist: '#eaf1f3',
+  // 宣纸/背景
+  paper: '#fafcfb',
+  mist: '#f4f7f6',
+  paperAlt: '#f6f3ed',
+  paperHover: '#edf1f2',
 
-  // 主色 - 湖水蓝
+  // 主色 - 墨青/湖水蓝
   lake: '#174d5e',
-  lakeLight: '#2f6b78',
+  lakeLight: '#2d6270',
   lakeDark: '#0f3a47',
 
-  // 强调色 - 灯笼橙
-  lamp: '#ff8a4c',
-  lampLight: '#ffa066',
-  lampDark: '#e6743a',
+  // 强调色 - 朱砂/灯笼橙
+  lamp: '#e67340',
+  lampLight: '#f08a5a',
+  lampDark: '#cc5f30',
 
-  // 辅助色
-  grass: '#79a86b',
-  sun: '#f2c85b',
+  // 辅助色（略降饱和度，与水墨协调）
+  grass: '#73a068',
+  sun: '#dbb352',
 
-  // 线条
-  line: '#d4e0e2',
+  // 线条 - 墨线层次
+  line: '#d8e1e3',
+  lineStrong: '#c4d0d3',
 
   // 功能色
-  danger: '#d95f59',
-  warning: '#f2c85b',
-  info: '#5d80b2',
-  success: '#79a86b',
+  danger: '#cd5852',
+  warning: '#dbb352',
+  info: '#5878a6',
+  success: '#73a068',
 
   // 分类色板
   category: {
-    food: { main: '#ef7b5c', light: '#fdf2e9' },
-    event: { main: '#8f72bd', light: '#f5eef8' },
-    service: { main: '#4d8791', light: '#eaf3f4' },
-    study: { main: '#5d80b2', light: '#eef3fa' },
-    lostFound: { main: '#de9e39', light: '#fbf3e3' },
-    club: { main: '#68a56f', light: '#edf5ef' },
-    default: { main: '#71858a', light: '#edf3f4' },
+    food: { main: '#e07454', light: '#f9ede7' },
+    event: { main: '#866cb0', light: '#f2ebf6' },
+    service: { main: '#497d86', light: '#e7f0f1' },
+    study: { main: '#5878a6', light: '#ebf0f7' },
+    lostFound: { main: '#cf9335', light: '#f8efe0' },
+    club: { main: '#639b69', light: '#ebf2ed' },
+    default: { main: '#6a7d81', light: '#edf1f2' },
   },
 } as const;
 
@@ -61,73 +65,74 @@ export const fonts = {
 
   heading: {
     h1: { mobile: '24px', desktop: '30px', lineHeight: 1.2, fontWeight: 800 },
-    h2: { mobile: '20px', desktop: '24px', lineHeight: 1.25, fontWeight: 800 },
-    h3: { mobile: '18px', desktop: '20px', lineHeight: 1.35, fontWeight: 700 },
-    h4: { mobile: '16px', desktop: '18px', lineHeight: 1.4, fontWeight: 700 },
-    h5: { mobile: '14px', desktop: '16px', lineHeight: 1.5, fontWeight: 700 },
-    h6: { mobile: '12px', desktop: '14px', lineHeight: 1.5, fontWeight: 700 },
+    h2: { mobile: '20px', desktop: '26px', lineHeight: 1.3, fontWeight: 800 },
+    h3: { mobile: '18px', desktop: '20px', lineHeight: 1.4, fontWeight: 700 },
+    h4: { mobile: '16px', desktop: '18px', lineHeight: 1.5, fontWeight: 700 },
+    h5: { mobile: '14px', desktop: '16px', lineHeight: 1.5, fontWeight: 600 },
+    h6: { mobile: '12px', desktop: '14px', lineHeight: 1.5, fontWeight: 600 },
   },
 
   body: {
-    large: { size: '16px', lineHeight: 1.65, fontWeight: 400 },
-    normal: { size: '14px', lineHeight: 1.65, fontWeight: 400 },
-    small: { size: '12px', lineHeight: 1.55, fontWeight: 400 },
-    xsmall: { size: '10px', lineHeight: 1.4, fontWeight: 400 },
+    large: { size: '16px', lineHeight: 1.7, fontWeight: 400 },
+    normal: { size: '15px', lineHeight: 1.75, fontWeight: 400 },
+    small: { size: '13px', lineHeight: 1.6, fontWeight: 400 },
+    xsmall: { size: '12px', lineHeight: 1.5, fontWeight: 500 },
   },
 } as const;
 
-// 间距系统
+// 间距系统 - 卷轴呼吸感
 export const spacing = {
   xs: '4px',
   sm: '8px',
   md: '12px',
   lg: '16px',
-  xl: '24px',
-  '2xl': '32px',
-  '3xl': '48px',
+  xl: '20px',
+  '2xl': '28px',
+  '3xl': '40px',
 } as const;
 
-// 圆角系统 - 手绘风大圆角
+// 圆角系统 - 有层次的"软"
 export const borderRadius = {
-  sm: '10px',
-  md: '14px',
-  lg: '20px',
-  xl: '28px',
-  '2xl': '32px',
+  none: '0px',
+  sm: '6px',
+  md: '10px',
+  lg: '16px',
+  xl: '20px',
   full: '9999px',
 } as const;
 
-// 阴影系统 - 柔和墨色阴影
+// 阴影系统 - 墨韵晕染
 export const shadows = {
-  sm: '0 8px 24px rgba(20, 55, 63, 0.09)',
-  md: '0 12px 32px rgba(20, 55, 63, 0.10)',
-  lg: '0 18px 50px rgba(20, 55, 63, 0.11)',
-  xl: '0 24px 64px rgba(20, 55, 63, 0.14)',
-  lamp: '0 10px 22px rgba(255, 138, 76, 0.24)',
-  lake: '0 10px 24px rgba(23, 77, 94, 0.22)',
+  sm: '0 2px 8px rgba(21, 38, 41, 0.06)',
+  md: '0 4px 16px rgba(21, 38, 41, 0.06), 0 1px 3px rgba(21, 38, 41, 0.04)',
+  lg: '0 8px 28px rgba(21, 38, 41, 0.10), 0 2px 6px rgba(21, 38, 41, 0.05)',
+  xl: '0 12px 40px rgba(21, 38, 41, 0.08)',
+  modal: '0 16px 48px rgba(21, 38, 41, 0.14)',
+  lamp: '0 6px 16px rgba(230, 115, 64, 0.22)',
+  lake: '0 6px 18px rgba(23, 77, 94, 0.18)',
 } as const;
 
 // 图标尺寸
 export const iconSize = {
   xs: '12px',
-  sm: '16px',
-  md: '20px',
-  lg: '24px',
-  xl: '32px',
-  '2xl': '48px',
+  sm: '14px',
+  md: '16px',
+  lg: '20px',
+  xl: '24px',
+  '2xl': '32px',
 } as const;
 
 // 按钮尺寸
 export const buttonSize = {
-  sm: { height: '36px', padding: '8px 14px', fontSize: '13px', iconSize: '14px', radius: '13px' },
-  md: { height: '44px', padding: '12px 17px', fontSize: '14px', iconSize: '16px', radius: '14px' },
-  lg: { height: '52px', padding: '16px 22px', fontSize: '16px', iconSize: '20px', radius: '16px' },
+  sm: { height: '36px', padding: '8px 14px', fontSize: '13px', iconSize: '14px', radius: '10px' },
+  md: { height: '40px', padding: '10px 18px', fontSize: '14px', iconSize: '16px', radius: '10px' },
+  lg: { height: '48px', padding: '14px 24px', fontSize: '16px', iconSize: '18px', radius: '10px' },
 } as const;
 
 // 输入框尺寸
 export const inputSize = {
-  md: { height: '44px', padding: '12px 13px', fontSize: '14px', radius: '13px' },
-  lg: { height: '52px', padding: '14px 16px', fontSize: '15px', radius: '14px' },
+  md: { height: '40px', padding: '10px 14px', fontSize: '14px', radius: '10px' },
+  lg: { height: '48px', padding: '12px 16px', fontSize: '15px', radius: '10px' },
 } as const;
 
 // 断点
@@ -138,11 +143,11 @@ export const breakpoints = {
   wide: '1280px',
 } as const;
 
-// 过渡动画
+// 过渡动画 - 水墨晕开般柔和
 export const transitions = {
-  fast: '150ms ease',
-  normal: '220ms ease',
-  slow: '300ms ease',
+  fast: '150ms cubic-bezier(0.16, 1, 0.3, 1)',
+  normal: '220ms cubic-bezier(0.16, 1, 0.3, 1)',
+  slow: '320ms cubic-bezier(0.16, 1, 0.3, 1)',
 } as const;
 
 // Z-index 层级

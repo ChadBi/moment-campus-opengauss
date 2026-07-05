@@ -131,19 +131,3 @@ async def get_my_posts(
         page_size=page_size,
         total=total
     )
-
-
-@router.get("/me/favorites", response_model=PaginatedResponse[PostListResponse], summary="获取我的收藏列表", deprecated=True, include_in_schema=False)
-async def get_my_favorites(
-    page: int = 1,
-    page_size: int = 20,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """[已废弃] 收藏功能已下线，返回空列表"""
-    return PaginatedResponse.create(
-        items=[],
-        page=page,
-        page_size=page_size,
-        total=0
-    )

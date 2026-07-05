@@ -39,7 +39,6 @@ const LoginPage: React.FC = () => {
       const response = await authApi.login({ email: formData.email, password: formData.password });
       setAuth(response.user, response.access_token, response.refresh_token);
       setToast({ message: '登录成功', type: 'success' });
-      // 管理员登录直接跳后台，普通用户跳首页
       const role = response.user?.role;
       const isAdmin = role === 'admin' || role === 'super_admin';
       navigate(isAdmin ? '/admin' : '/');
@@ -55,37 +54,22 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-mist px-4 py-10">
       <div className="w-full max-w-[400px]">
-        {/* 顶部品牌标志：楷体大字 "此"（湖蓝色） */}
         <div className="flex flex-col items-center mb-7">
-          <div className="relative w-[52px] h-[52px] rounded-[17px] bg-paper grid place-items-center shadow-sm overflow-hidden mb-4">
+          <div className="relative w-[44px] h-[44px] rounded-[12px] bg-paper grid place-items-center shadow-sm overflow-hidden mb-4">
             <span
-              className="font-display font-bold text-[27px] text-lake leading-none"
-              style={{ transform: 'translateY(-3px)' }}
+              className="font-display font-bold text-[22px] text-lake leading-none"
             >
               此
             </span>
-            <span
-              className="absolute rounded-full pointer-events-none"
-              style={{
-                width: '30px',
-                height: '10px',
-                border: '2px solid #ff8a4c',
-                borderColor: '#ff8a4c transparent transparent transparent',
-                transform: 'rotate(-12deg)',
-                top: '30px',
-                left: '12px',
-              }}
-            />
           </div>
-          <h1 className="font-display font-extrabold text-[28px] text-lake tracking-[0.08em] leading-none">
+          <h1 className="font-display font-bold text-[24px] text-lake tracking-wide leading-none">
             欢迎回来
           </h1>
           <p className="text-ink-muted text-sm mt-2">把会消失的校园经验留下来</p>
         </div>
 
-        {/* 表单卡片：Card variant=elevated */}
         <Card variant="elevated" padding="lg">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="邮箱"
               name="email"
@@ -93,7 +77,7 @@ const LoginPage: React.FC = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="请输入邮箱"
-              icon={<Mail size={18} />}
+              icon={<Mail size={16} />}
               required
             />
 
@@ -104,17 +88,16 @@ const LoginPage: React.FC = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="请输入密码"
-              icon={<Lock size={18} />}
+              icon={<Lock size={16} />}
               required
             />
 
             {error && (
-              <div className="text-danger text-sm text-center bg-danger/10 rounded-md py-2 px-3">
+              <div className="text-danger text-sm text-center bg-danger/8 rounded-[10px] py-2 px-3">
                 {error}
               </div>
             )}
 
-            {/* 登录按钮：Button variant=primary（灯笼橙） */}
             <Button
               type="submit"
               variant="primary"
@@ -126,15 +109,13 @@ const LoginPage: React.FC = () => {
             </Button>
           </form>
 
-          {/* 底部注册链接 */}
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-5 text-center text-sm">
             <span className="text-ink-muted">还没有账号？</span>
             <Link to="/register" className="text-lake font-medium ml-1 hover:underline">
               立即注册
             </Link>
           </div>
 
-          {/* 访客返回入口：直接回首页，不依赖浏览器历史 */}
           <button
             type="button"
             onClick={() => navigate('/')}

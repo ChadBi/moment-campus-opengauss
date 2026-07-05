@@ -93,7 +93,7 @@ export function Table<T extends Record<string, any>>({
   };
 
   return (
-    <div className={`bg-paper border border-line rounded-lg overflow-hidden ${className}`}>
+    <div className={`bg-paper border border-line rounded-md overflow-hidden ${className}`}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           {/* 表头 */}
@@ -153,7 +153,7 @@ export function Table<T extends Record<string, any>>({
                     key={key}
                     className={`border-b border-line/60 transition-colors ${
                       checked ? 'bg-lake/5' : index % 2 === 1 ? 'bg-mist/30' : 'bg-paper'
-                    } hover:bg-lake/8`}
+                    } hover:bg-mist/50`}
                   >
                     {selectable && (
                       <td className="px-4 py-3 w-12">

@@ -4,11 +4,9 @@ import { postsApi } from '../services/posts';
 import { commentsApi } from '../services/comments';
 import { interactionsApi, type ValidationStats, type ValidationType } from '../services/interactions';
 import type { Post, Comment } from '../types';
-import { Card } from '../components/ui/Card';
 import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Loading } from '../components/ui/Loading';
 import { Toast } from '../components/ui/Toast';
 import { useAuthStore } from '../store/useAuthStore';
@@ -24,7 +22,6 @@ import {
   X,
 } from 'lucide-react';
 
-// 举报类型选项
 const REPORT_OPTIONS = [
   { value: 'fake', label: '虚假信息' },
   { value: 'ad', label: '广告/spam' },
@@ -32,7 +29,6 @@ const REPORT_OPTIONS = [
   { value: 'other', label: '其他' },
 ];
 
-// T-B-05: 6 态状态徽章配置
 const STATUS_BADGE_CONFIG: Record<string, { variant: 'default' | 'success' | 'warning' | 'danger' | 'info'; label: string }> = {
   draft: { variant: 'default', label: '草稿' },
   pending: { variant: 'warning', label: '待审核' },
@@ -42,7 +38,6 @@ const STATUS_BADGE_CONFIG: Record<string, { variant: 'default' | 'success' | 'wa
   archived: { variant: 'default', label: '已归档' },
 };
 
-// T-B-05: 2 类协同验证选项（证实/证伪 互斥可切换）
 const VALIDATION_OPTIONS: Array<{
   type: ValidationType;
   label: string;
@@ -57,7 +52,7 @@ const VALIDATION_OPTIONS: Array<{
     activeLabel: '已证实',
     icon: <CheckCircle2 size={14} />,
     color: 'text-grass',
-    activeClass: 'bg-grass text-paper border-grass',
+    activeClass: 'bg-grass text-white border-grass',
   },
   {
     type: 'refutation',
@@ -65,7 +60,7 @@ const VALIDATION_OPTIONS: Array<{
     activeLabel: '已证伪',
     icon: <XCircle size={14} />,
     color: 'text-danger',
-    activeClass: 'bg-danger text-paper border-danger',
+    activeClass: 'bg-danger text-white border-danger',
   },
 ];
 
@@ -86,7 +81,6 @@ const PostDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      // loading 仅用于初始加载，避免后续刷新时整个组件树被 Loading 占位符替换导致滚动位置丢失
       setLoading(true);
       loadPost();
       loadComments();
@@ -106,7 +100,6 @@ const PostDetailPage: React.FC = () => {
     }
   };
 
-  // T-B-05: 加载协同验证统计
   const loadValidationStats = async () => {
     try {
       const stats = await interactionsApi.getValidationStats(Number(id));
@@ -116,10 +109,6 @@ const PostDetailPage: React.FC = () => {
     }
   };
 
-  // T-B-05: 提交协同验证（互斥可切换）
-  // - 当前未验证 → 新建
-  // - 当前已选同类型 → 取消
-  // - 当前已选不同类型 → 切换
   const handleValidate = async (type: ValidationType) => {
     if (!isAuthenticated) {
       setToast({ message: '请先登录后再进行验证', type: 'warning' });
@@ -188,12 +177,6 @@ const PostDetailPage: React.FC = () => {
     }
   };
 
-  // 相对时间格式化：
-  // - 不到 1 分钟：刚刚
-  // - 不到 30 分钟：X 分钟前
-  // - 不到 24 小时：X 小时前
-  // - 超过 24 小时：X 天前
-  // 兼容时区错乱（diff <= 0 时显示"刚刚"）
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -207,7 +190,6 @@ const PostDetailPage: React.FC = () => {
     return `${days}天前`;
   };
 
-  // 提交举报
   const handleReport = async () => {
     if (!isAuthenticated) {
       setToast({ message: '请先登录后再举报', type: 'warning' });
@@ -234,7 +216,7 @@ const PostDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-1 py-16">
+      <div className="max-w-2xl mx-auto py-16">
         <Loading text="加载中..." />
       </div>
     );
@@ -242,7 +224,7 @@ const PostDetailPage: React.FC = () => {
 
   if (!post) {
     return (
-      <div className="max-w-2xl mx-auto px-1 py-16 text-center">
+      <div className="max-w-2xl mx-auto py-16 text-center">
         <div className="text-5xl mb-4">⌖</div>
         <p className="font-medium text-ink mb-1.5">这条信息不存在或已失效</p>
         <p className="text-sm text-ink-muted">可能已被发布者删除，或链接有误。</p>
@@ -250,299 +232,303 @@ const PostDetailPage: React.FC = () => {
     );
   }
 
-  return (
-    <div className="max-w-2xl mx-auto px-1 py-2">
-      {/* 顶部 hero 区域：渐变背景 + 大标题(楷体) + 位置信息 */}
-      <section className="relative rounded-[22px] bg-gradient-to-br from-[#cfe3e6] to-[#e9f0d8] p-6 overflow-hidden mb-4">
-        <div className="absolute -top-[100px] -right-[60px] w-[230px] h-[230px] rounded-full border-[42px] border-white/35 pointer-events-none" />
-        <div className="relative z-10 max-w-[80%]">
-          <span className="eyebrow">{post.category?.name || '未分类'} · {formatDate(post.created_at)}</span>
-          <h1 className="font-display font-extrabold text-[26px] md:text-[30px] leading-tight text-ink mt-2.5 mb-2">
-            {post.title}
-          </h1>
-          <p className="text-ink-sub text-sm flex items-center gap-1.5">
-            <MapPin size={13} />
-            {post.location?.name || '未知地点'}
-          </p>
-        </div>
-      </section>
+  const totalValidations = validationStats?.total_count || 0;
+  const confirmPercent = totalValidations > 0 ? Math.round((validationStats?.confirmation_count || 0) / totalValidations * 100) : 0;
+  const refutePercent = totalValidations > 0 ? Math.round((validationStats?.refutation_count || 0) / totalValidations * 100) : 0;
 
-      {/* 信息卡片网格：2列布局 */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-white border border-line rounded-lg p-4">
-          <small className="block text-ink-muted text-xs mb-1.5">现在状态</small>
-          <strong className="text-sm text-ink font-medium flex items-center gap-2">
-            {post.status && STATUS_BADGE_CONFIG[post.status] ? (
+  return (
+    <div className="max-w-2xl mx-auto py-4">
+      {/* 长卷主容器 */}
+      <article className="bg-paper rounded-[16px] border border-line/60 shadow-md overflow-hidden">
+        {/* 标题区 */}
+        <header className="px-6 pt-6 pb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Badge>{post.category?.name || '未分类'}</Badge>
+            {post.status && STATUS_BADGE_CONFIG[post.status] && (
               <Badge variant={STATUS_BADGE_CONFIG[post.status].variant}>
                 {STATUS_BADGE_CONFIG[post.status].label}
               </Badge>
-            ) : (
-              <span>{post.status || '未标注'}</span>
             )}
-          </strong>
-        </div>
-        <div className="bg-white border border-line rounded-lg p-4">
-          <small className="block text-ink-muted text-xs mb-1.5">信息分类</small>
-          <strong className="text-sm text-ink font-medium">{post.category?.name || '未分类'}</strong>
-        </div>
-        <div className="bg-white border border-line rounded-lg p-4">
-          <small className="block text-ink-muted text-xs mb-1.5">协同验证</small>
-          <strong className="text-sm text-ink font-medium">
-            <span className="font-data">{validationStats?.total_count || 0}</span> 条验证 ·
-            综合状态：
-            {validationStats?.validity_status === 'valid' && <span className="text-grass"> 有效</span>}
-            {validationStats?.validity_status === 'invalid' && <span className="text-danger"> 无效</span>}
-            {validationStats?.validity_status === 'uncertain' && <span className="text-sun"> 待定</span>}
-          </strong>
-        </div>
-        <div className="bg-white border border-line rounded-lg p-4">
-          <small className="block text-ink-muted text-xs mb-1.5">贡献者</small>
-          <strong className="text-sm text-ink font-medium">{post.author?.nickname || '匿名用户'}</strong>
-        </div>
-      </div>
-
-      {/* T-B-05: 协同验证统计面板（2 类） */}
-      {validationStats && validationStats.total_count > 0 && (
-        <Card variant="elevated" padding="md" className="mb-4">
-          <h3 className="font-display font-bold text-sm text-lake mb-3 flex items-center gap-2">
-            <CheckCircle2 size={16} />
-            协同验证统计
-          </h3>
-          <div className="grid grid-cols-2 gap-3 text-center">
-            <div className="p-3 rounded-md bg-grass/8">
-              <div className="text-2xl font-data font-bold text-grass">{validationStats.confirmation_count}</div>
-              <div className="text-xs text-ink-muted mt-1">证实</div>
-            </div>
-            <div className="p-3 rounded-md bg-danger/8">
-              <div className="text-2xl font-data font-bold text-danger">{validationStats.refutation_count}</div>
-              <div className="text-xs text-ink-muted mt-1">证伪</div>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* T-B-05: 2 类协同验证操作按钮（互斥可切换） */}
-      {isAuthenticated && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {VALIDATION_OPTIONS.map(opt => {
-            const isActive = validationStats?.user_validation_type === opt.type;
-            return (
-              <button
-                key={opt.type}
-                onClick={() => handleValidate(opt.type)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border transition-all ${
-                  isActive
-                    ? opt.activeClass
-                    : `bg-paper border-line ${opt.color} hover:bg-mist`
-                }`}
-              >
-                {opt.icon}
-                {isActive ? opt.activeLabel : opt.label}
-              </button>
-            );
-          })}
-          {validationStats?.user_validation_type && (
-            <span className="text-xs text-ink-muted self-center ml-1">
-              · 再点一次取消
+            <span className="text-xs text-ink-muted flex items-center gap-1 ml-auto">
+              <Clock size={12} />
+              {formatDate(post.created_at)}
             </span>
-          )}
-        </div>
-      )}
+          </div>
 
-      {/* 作者信息 + 统计 */}
-      <Card variant="elevated" padding="md" className="mb-4">
-        <div className="flex items-center gap-3 mb-4">
-          <Avatar
-            src={post.author?.avatar_url}
-            fallback={post.author?.nickname?.[0] || '?'}
-            size="md"
-          />
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium text-ink">
+          <h1 className="font-display font-bold text-[24px] md:text-[28px] leading-[1.3] text-ink mb-4">
+            {post.title}
+          </h1>
+
+          <div className="flex items-center gap-3">
+            <Avatar
+              src={post.author?.avatar_url}
+              fallback={post.author?.nickname?.[0] || '?'}
+              size="sm"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-ink">
                 {post.author?.nickname || '匿名用户'}
-              </span>
-              <Badge variant="default">{post.category?.name || '未分类'}</Badge>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-ink-muted">
-              <span className="flex items-center gap-1">
-                <Clock size={12} />
-                {formatDate(post.created_at)}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 pt-3 border-t border-line/70 text-sm text-ink-muted">
-          <span className="flex items-center gap-1.5">
-            <Eye size={15} />
-            <span className="font-data font-bold">{post.view_count || 0}</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Heart size={15} />
-            <span className="font-data font-bold">{post.like_count || 0}</span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <MessageCircle size={15} />
-            <span className="font-data font-bold">{post.comment_count || 0}</span>
-          </span>
-        </div>
-      </Card>
-
-      {/* 内容区域：暖色背景(#fff6ec)的笔记卡片 */}
-      <div className="bg-[#fff6ec] border border-[#f5dfc8] rounded-lg p-4 mb-4">
-        <p className="text-[13px] text-[#70523b] leading-relaxed whitespace-pre-wrap">{post.content}</p>
-        {post.tags && post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {post.tags.map(tag => (
-              <span key={tag.id} className="hand-tag">#{tag.name}</span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 底部操作按钮 */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <Button
-          variant={post.is_liked ? 'danger' : 'primary'}
-          size="sm"
-          onClick={handleLike}
-          icon={<Heart size={16} />}
-        >
-          {post.is_liked ? '已点赞' : '点赞'}
-        </Button>
-        <Button
-          variant="text"
-          size="sm"
-          icon={<Flag size={16} />}
-          onClick={() => setShowReportForm(!showReportForm)}
-        >
-          举报
-        </Button>
-      </div>
-
-      {/* 举报表单（点击举报按钮后展开） */}
-      {showReportForm && (
-        <div className="mb-6 p-4 bg-mist/60 border border-line rounded-lg">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display font-bold text-sm text-lake">举报这条信息</h3>
-            <button
-              onClick={() => setShowReportForm(false)}
-              className="text-ink-muted hover:text-ink transition-colors"
-              aria-label="关闭举报表单"
-            >
-              <X size={16} />
-            </button>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs text-ink-muted mb-1.5">举报类型</label>
-              <div className="flex flex-wrap gap-2">
-                {REPORT_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setReportType(opt.value)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-medium border transition-all ${
-                      reportType === opt.value
-                        ? 'bg-lake text-paper border-lake'
-                        : 'bg-paper border-line text-ink-sub hover:bg-mist'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              </div>
+              <div className="text-xs text-ink-muted flex items-center gap-1">
+                <MapPin size={11} />
+                {post.location?.name || '未知地点'}
               </div>
             </div>
-            <div>
-              <label className="block text-xs text-ink-muted mb-1.5">举报描述</label>
-              <textarea
-                value={reportDescription}
-                onChange={(e) => setReportDescription(e.target.value)}
-                placeholder="请详细描述举报原因..."
-                className="w-full px-3 py-2 text-sm bg-white border border-line rounded-md resize-none focus:outline-none focus:border-lake"
-                rows={3}
-                maxLength={500}
-              />
+          </div>
+        </header>
+
+        {/* 墨线分隔 */}
+        <div className="mx-6 border-t border-ink-divider" />
+
+        {/* 统计与验证条 */}
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-5 text-sm text-ink-muted">
+            <span className="flex items-center gap-1.5">
+              <Eye size={15} />
+              <span className="font-data font-bold text-ink">{post.view_count || 0}</span>
+              <span className="hidden sm:inline">浏览</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Heart size={15} />
+              <span className="font-data font-bold text-ink">{post.like_count || 0}</span>
+              <span className="hidden sm:inline">赞</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <MessageCircle size={15} />
+              <span className="font-data font-bold text-ink">{post.comment_count || 0}</span>
+              <span className="hidden sm:inline">评论</span>
+            </span>
+          </div>
+
+          {totalValidations > 0 && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-ink-muted flex items-center gap-1">
+                  <CheckCircle2 size={12} className="text-grass" />
+                  协同验证
+                </span>
+                <span className="text-ink-muted">
+                  {totalValidations} 人参与
+                  {validationStats?.validity_status === 'valid' && <span className="text-grass ml-1">· 有效</span>}
+                  {validationStats?.validity_status === 'invalid' && <span className="text-danger ml-1">· 无效</span>}
+                  {validationStats?.validity_status === 'uncertain' && <span className="text-[#b89230] ml-1">· 待定</span>}
+                </span>
+              </div>
+              <div className="h-2 bg-mist rounded-full overflow-hidden flex gap-0">
+                <div
+                  className="bg-grass h-full transition-all duration-500"
+                  style={{ width: `${confirmPercent}%` }}
+                />
+                <div
+                  className="bg-danger h-full transition-all duration-500"
+                  style={{ width: `${refutePercent}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs mt-1">
+                <span className="text-grass font-medium font-data">{validationStats?.confirmation_count || 0} 证实</span>
+                <span className="text-danger font-medium font-data">{validationStats?.refutation_count || 0} 证伪</span>
+              </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="text"
-                size="sm"
-                onClick={() => setShowReportForm(false)}
-              >
-                取消
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handleReport}
-                loading={reporting}
-                disabled={!reportDescription.trim()}
-              >
-                提交举报
-              </Button>
+          )}
+
+          {isAuthenticated && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {VALIDATION_OPTIONS.map(opt => {
+                const isActive = validationStats?.user_validation_type === opt.type;
+                return (
+                  <button
+                    key={opt.type}
+                    onClick={() => handleValidate(opt.type)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-xs font-medium border transition-all ${
+                      isActive
+                        ? opt.activeClass
+                        : `bg-paper border-line ${opt.color} hover:bg-paper-hover`
+                    }`}
+                  >
+                    {opt.icon}
+                    {isActive ? opt.activeLabel : opt.label}
+                  </button>
+                );
+              })}
+              {validationStats?.user_validation_type && (
+                <span className="text-xs text-ink-muted self-center ml-1">
+                  · 再点一次取消
+                </span>
+              )}
             </div>
+          )}
+        </div>
+
+        {/* 墨线分隔 */}
+        <div className="mx-6 border-t border-ink-divider" />
+
+        {/* 正文内容 */}
+        <div className="px-6 py-5">
+          <div className="content-paper rounded-[10px] px-5 py-4 -mx-0.5">
+            <p className="text-[15px] text-ink leading-[1.8] whitespace-pre-wrap">{post.content}</p>
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-ink-divider/60">
+                {post.tags.map(tag => (
+                  <span key={tag.id} className="hand-tag">#{tag.name}</span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      )}
 
-      {/* 评论区：Card 组件 */}
-      <Card variant="elevated" padding="md">
-        <h2 className="font-display font-bold text-lg text-lake mb-4">
-          评论 <span className="font-data text-ink-muted">({comments.length})</span>
-        </h2>
+        {/* 底部操作栏 */}
+        <div className="px-6 py-4 border-t border-ink-divider flex flex-wrap gap-2">
+          <Button
+            variant={post.is_liked ? 'danger' : 'primary'}
+            size="sm"
+            onClick={handleLike}
+            icon={<Heart size={14} fill={post.is_liked ? 'currentColor' : 'none'} />}
+          >
+            {post.is_liked ? '已点赞' : '点赞'}
+          </Button>
+          <Button
+            variant="text"
+            size="sm"
+            icon={<Flag size={14} />}
+            onClick={() => setShowReportForm(!showReportForm)}
+          >
+            举报
+          </Button>
+        </div>
 
-        {isAuthenticated ? (
-          <form onSubmit={handleComment} className="mb-6">
-            <div className="flex gap-2">
-              <Input
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="写下你的评论..."
-                className="flex-1"
-              />
-              <Button type="submit" loading={submitting}>
-                发布
-              </Button>
+        {/* 举报表单 */}
+        {showReportForm && (
+          <div className="mx-6 mb-4 p-4 bg-paper-hover rounded-[10px] border border-line/80">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display font-bold text-sm text-lake">举报这条信息</h3>
+              <button
+                onClick={() => setShowReportForm(false)}
+                className="text-ink-muted hover:text-ink transition-colors"
+                aria-label="关闭举报表单"
+              >
+                <X size={16} />
+              </button>
             </div>
-          </form>
-        ) : (
-          <div className="text-center py-4 text-ink-muted text-sm mb-6 bg-mist/60 rounded-md">
-            请先登录后再评论
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-ink-muted mb-1.5">举报类型</label>
+                <div className="flex flex-wrap gap-2">
+                  {REPORT_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setReportType(opt.value)}
+                      className={`px-3 py-1.5 rounded-[10px] text-xs font-medium border transition-all ${
+                        reportType === opt.value
+                          ? 'bg-lake text-white border-lake'
+                          : 'bg-paper border-line text-ink-sub hover:bg-paper-hover'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-ink-muted mb-1.5">举报描述</label>
+                <textarea
+                  value={reportDescription}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                  placeholder="请详细描述举报原因..."
+                  className="w-full px-3 py-2 text-sm bg-paper border border-line rounded-[10px] resize-none focus:outline-none focus:border-lake transition-colors"
+                  rows={3}
+                  maxLength={500}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="text"
+                  size="sm"
+                  onClick={() => setShowReportForm(false)}
+                >
+                  取消
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleReport}
+                  loading={reporting}
+                  disabled={!reportDescription.trim()}
+                >
+                  提交举报
+                </Button>
+              </div>
+            </div>
           </div>
         )}
+      </article>
 
-        <div className="space-y-4">
+      {/* 评论区长卷 */}
+      <section className="bg-paper rounded-[16px] border border-line/60 shadow-md mt-4 overflow-hidden">
+        <div className="px-6 pt-5 pb-3">
+          <h2 className="font-display font-bold text-lg text-lake">
+            评论 <span className="font-data text-ink-muted">({comments.length})</span>
+          </h2>
+        </div>
+
+        <div className="px-6 pb-4">
+          {isAuthenticated ? (
+            <form onSubmit={handleComment} className="mb-5">
+              <div className="flex gap-2">
+                <input
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="写下你的评论..."
+                  className="flex-1 h-10 px-3.5 bg-paper border border-line rounded-[10px] text-[14px] text-ink placeholder:text-ink-muted/60 transition-colors focus:outline-none focus:border-lake"
+                />
+                <Button type="submit" loading={submitting} size="sm">
+                  发布
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="text-center py-3 text-ink-muted text-sm mb-5 bg-paper-hover rounded-[10px]">
+              请先登录后再评论
+            </div>
+          )}
+        </div>
+
+        <div className="border-t border-ink-divider">
           {comments.length === 0 ? (
-            <div className="text-center py-8">
+            <div className="text-center py-10">
               <div className="text-3xl mb-2">✎</div>
               <p className="text-ink-muted text-sm">暂无评论，快来抢沙发吧！</p>
             </div>
           ) : (
-            comments.map(comment => (
-              <div key={comment.id} className="flex gap-3">
-                <Avatar
-                  src={comment.author?.avatar_url}
-                  fallback={comment.author?.nickname?.[0] || '?'}
-                  size="sm"
-                  className="flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-ink text-sm">
-                      {comment.author?.nickname || '匿名用户'}
-                    </span>
-                    <span className="text-xs text-ink-muted font-data">
-                      {formatDate(comment.created_at)}
-                    </span>
+            <div>
+              {comments.map((comment, idx) => (
+                <div
+                  key={comment.id}
+                  className={`px-6 py-4 flex gap-3 ${idx > 0 ? 'border-t border-ink-divider/60' : ''}`}
+                >
+                  <Avatar
+                    src={comment.author?.avatar_url}
+                    fallback={comment.author?.nickname?.[0] || '?'}
+                    size="sm"
+                    className="flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-ink text-sm">
+                        {comment.author?.nickname || '匿名用户'}
+                      </span>
+                      <span className="text-xs text-ink-muted font-data">
+                        {formatDate(comment.created_at)}
+                      </span>
+                    </div>
+                    <p className="text-ink text-[14px] leading-[1.7]">{comment.content}</p>
                   </div>
-                  <p className="text-ink text-sm leading-relaxed">{comment.content}</p>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
-      </Card>
+      </section>
 
       {toast && (
         <Toast

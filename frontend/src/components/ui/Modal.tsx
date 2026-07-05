@@ -43,21 +43,21 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       <div
-        className="absolute inset-0 bg-[rgba(16,35,39,0.46)] backdrop-blur-[8px]"
+        className="absolute inset-0 bg-[rgba(21,38,41,0.45)]"
         onClick={onClose}
       />
       <div
-        className={`relative bg-paper rounded-xl shadow-xl w-full ${sizeStyles[size]} max-h-[90vh] overflow-hidden flex flex-col animate-modal-in border border-white/60`}
+        className={`relative bg-paper rounded-[16px] shadow-modal w-full ${sizeStyles[size]} max-h-[90vh] overflow-hidden flex flex-col animate-modal-in border border-line/50`}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-ink-divider">
             <h2 className="text-lg font-bold text-ink font-display tracking-wide">{title}</h2>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-md text-ink-muted hover:bg-mist hover:text-lake transition-colors"
+              className="p-1.5 rounded-[10px] text-ink-muted hover:bg-paper-hover hover:text-ink transition-colors"
               aria-label="关闭"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
         )}

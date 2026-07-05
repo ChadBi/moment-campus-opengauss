@@ -3,7 +3,6 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { postsApi } from '../services/posts';
 import type { Post } from '../types';
-import { Card } from '../components/ui/Card';
 import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
 import { Loading } from '../components/ui/Loading';
@@ -11,7 +10,6 @@ import { Button } from '../components/ui/Button';
 import { Heart, MessageCircle, Eye, MapPin, Clock } from 'lucide-react';
 import { colors as categoryColors } from '../styles/tokens';
 
-// 分类名 → tokens.ts category 色板键
 const CATEGORY_COLOR_MAP: Record<string, keyof typeof categoryColors.category> = {
   '美食': 'food', '食物': 'food', '餐饮': 'food',
   '活动': 'event', '事件': 'event',
@@ -60,7 +58,6 @@ const HomePage: React.FC = () => {
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    // 兼容时区错乱（diff <= 0 时显示"刚刚"）
     if (diff < 60000) return '刚刚';
     const minutes = Math.floor(diff / 60000);
     if (minutes < 30) return `${minutes}分钟前`;
@@ -71,80 +68,73 @@ const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-1 py-2">
-      {/* 页面标题：楷体品牌字 + 副标题 */}
-      <header className="mb-7">
-        <span className="eyebrow">Campus Feed</span>
-        <h1 className="font-display font-extrabold text-[30px] leading-tight tracking-[0.06em] text-lake mt-2">
+    <div className="max-w-2xl mx-auto py-4">
+      <header className="mb-6 px-1">
+        <h1 className="font-display font-bold text-[24px] tracking-wide text-lake leading-tight">
           此刻校园
         </h1>
-        <p className="text-ink-sub text-sm mt-1.5">把会消失的校园经验留下来</p>
+        <p className="text-ink-muted text-sm mt-1">把会消失的校园经验留下来</p>
       </header>
 
-      {/* 信息流卡片：左侧 Avatar + 右侧内容 */}
-      <div className="space-y-4">
+      <div className="space-y-0">
         {posts.map((post, index) => (
-          <Card
+          <article
             key={post.id}
-            variant="elevated"
-            padding="md"
-            className="hover:shadow-xl stagger-card"
+            className="bg-paper border border-line/60 rounded-[16px] shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer mb-3 stagger-card overflow-hidden"
             style={{ animationDelay: `${index * 40}ms` }}
             onClick={() => handlePostClick(post.id)}
           >
-            <div className="flex items-start gap-3.5">
-              <Avatar
-                src={post.author?.avatar_url}
-                fallback={post.author?.nickname?.[0] || '?'}
-                size="md"
-                className="flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="font-medium text-ink text-sm">
-                    {post.author?.nickname || '匿名用户'}
-                  </span>
-                  <Badge
-                    variant="default"
-                    style={{ backgroundColor: getCategoryColor(post.category?.name).light, color: getCategoryColor(post.category?.name).main }}
-                  >
-                    {post.category?.name || '未分类'}
-                  </Badge>
-                </div>
-                <h3 className="font-semibold text-ink mb-2 line-clamp-2 leading-snug">
-                  {post.title}
-                </h3>
-                <p className="text-ink-sub text-sm mb-3 line-clamp-3 leading-relaxed">
-                  {post.content}
-                </p>
-                <div className="flex items-center gap-4 text-xs text-ink-muted">
-                  <span className="flex items-center gap-1">
-                    <MapPin size={13} />
-                    {post.location?.name || '未知地点'}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock size={13} />
-                    {formatDate(post.created_at)}
-                  </span>
-                </div>
-                {/* 底部统计：小图标 + font-data 数字 */}
-                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-line/70 text-xs text-ink-muted">
-                  <span className="flex items-center gap-1.5">
-                    <Eye size={13} />
-                    <span className="font-data font-bold">{post.view_count || 0}</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Heart size={13} />
-                    <span className="font-data font-bold">{post.like_count || 0}</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <MessageCircle size={13} />
-                    <span className="font-data font-bold">{post.comment_count || 0}</span>
-                  </span>
-                </div>
+            <div className="px-5 pt-4 pb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Avatar
+                  src={post.author?.avatar_url}
+                  fallback={post.author?.nickname?.[0] || '?'}
+                  size="sm"
+                  className="flex-shrink-0"
+                />
+                <span className="font-medium text-ink text-sm">
+                  {post.author?.nickname || '匿名用户'}
+                </span>
+                <Badge
+                  style={{ backgroundColor: getCategoryColor(post.category?.name).light, color: getCategoryColor(post.category?.name).main }}
+                >
+                  {post.category?.name || '未分类'}
+                </Badge>
+                <span className="text-xs text-ink-muted ml-auto flex items-center gap-1">
+                  <Clock size={11} />
+                  {formatDate(post.created_at)}
+                </span>
+              </div>
+
+              <h3 className="font-semibold text-[15px] text-ink mb-1.5 line-clamp-2 leading-[1.5]">
+                {post.title}
+              </h3>
+              <p className="text-ink-sub text-[14px] line-clamp-2 leading-[1.7]">
+                {post.content}
+              </p>
+            </div>
+
+            <div className="px-5 py-2.5 border-t border-ink-divider/60 flex items-center justify-between">
+              <span className="text-xs text-ink-muted flex items-center gap-1">
+                <MapPin size={11} />
+                {post.location?.name || '未知地点'}
+              </span>
+              <div className="flex items-center gap-4 text-xs text-ink-muted">
+                <span className="flex items-center gap-1">
+                  <Eye size={12} />
+                  <span className="font-data font-bold text-ink-sub">{post.view_count || 0}</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <Heart size={12} />
+                  <span className="font-data font-bold text-ink-sub">{post.like_count || 0}</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <MessageCircle size={12} />
+                  <span className="font-data font-bold text-ink-sub">{post.comment_count || 0}</span>
+                </span>
               </div>
             </div>
-          </Card>
+          </article>
         ))}
       </div>
 
@@ -158,7 +148,6 @@ const HomePage: React.FC = () => {
         <div className="text-center py-16 text-danger">加载失败，请稍后重试</div>
       )}
 
-      {/* 空状态：大 emoji + 文字引导 */}
       {!loading && posts.length === 0 && (
         <div className="text-center py-16">
           <div className="text-5xl mb-4">⌖</div>
@@ -167,9 +156,8 @@ const HomePage: React.FC = () => {
         </div>
       )}
 
-      {/* 加载更多：Button variant=secondary */}
       {hasNextPage && posts.length > 0 && (
-        <div className="mt-7 text-center">
+        <div className="mt-6 text-center">
           <Button
             variant="secondary"
             onClick={handleLoadMore}
