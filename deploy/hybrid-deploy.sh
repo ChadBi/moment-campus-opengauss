@@ -111,8 +111,20 @@ server {
     index index.html;
     client_max_body_size 10M;
 
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript application/json image/svg+xml;
+
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
+    }
+
+    location /assets/ {
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        access_log off;
     }
 
     location /api/ {
@@ -147,12 +159,20 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
-    location /uploads/ {
+    location ^~ /uploads/ {
         alias ${PROJECT_DIR}/backend/uploads/;
+    }
+
+    location ~* \.(?:js|css|png|jpg|jpeg|gif|ico|svg|webp|avif|woff|woff2|ttf|eot)$ {
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        access_log off;
     }
 
     location / {
         try_files \$uri \$uri/ /index.html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
     }
 }
 EOF
@@ -166,8 +186,20 @@ server {
     index index.html;
     client_max_body_size 10M;
 
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript application/json image/svg+xml;
+
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
+    }
+
+    location /assets/ {
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        access_log off;
     }
 
     location /api/ {
@@ -202,12 +234,20 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
 
-    location /uploads/ {
+    location ^~ /uploads/ {
         alias ${PROJECT_DIR}/backend/uploads/;
+    }
+
+    location ~* \.(?:js|css|png|jpg|jpeg|gif|ico|svg|webp|avif|woff|woff2|ttf|eot)$ {
+        try_files \$uri =404;
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        access_log off;
     }
 
     location / {
         try_files \$uri \$uri/ /index.html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
     }
 }
 EOF
