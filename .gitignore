@@ -51,3 +51,16 @@ htmlcov/
 
 # 上传文件
 uploads/
+moment-campus.zip
+openGauss-Docker-7.0.0-RC3-x86_64.tar
+
+# 大作业交付物（项目主要参加比赛，课程设计相关材料不上传）
+docs/课程设计报告.md
+docs/此刻校园_课程设计报告.docx
+docs/课程设计模板给学生.doc
+docs/写课程设计报告要注意的问题.md
+docs/写课程设计报告要注意的问题给学生.doc
+docs/数据库课程设计考核说明.md
+docs/数据库课程设计考核说明 - 华为.doc
+docs/CONSISTENCY_CHECK_REPORT.md
+docs/"此刻校园"项目初步方案说明
