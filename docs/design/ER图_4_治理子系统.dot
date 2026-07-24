@@ -1,0 +1,50 @@
+// D. 治理子系统 E-R 图
+// 渲染命令: dot -Tpng ER图_4_治理子系统.dot -o ER图_4_治理子系统.png
+digraph ER_Governance {
+    graph [
+        rankdir=LR,
+        fontname="Microsoft YaHei",
+        fontsize=16,
+        label="D. 治理子系统 E-R 图",
+        labelloc=t,
+        nodesep=0.5,
+        ranksep=1.0
+    ];
+    node [fontname="Microsoft YaHei", fontsize=11];
+    edge [fontname="Microsoft YaHei", fontsize=10, arrowhead=none];
+
+    // 实体
+    reports       [shape=box, label="reports",       style=filled, fillcolor="#FEF2F2"];
+    notifications [shape=box, label="notifications", style=filled, fillcolor="#FEF2F2"];
+
+    // 外部实体
+    posts    [shape=box, label="posts",    style=filled, fillcolor="#FFF7ED"];
+    users    [shape=box, label="users",    style=filled, fillcolor="#EFF6FF"];
+    comments [shape=box, label="comments", style=filled, fillcolor="#F0FDF4"];
+
+    // 主码
+    pk_reports [shape=ellipse, style=filled, fillcolor=white, label=<<U>id</U>>];
+    pk_notif   [shape=ellipse, style=filled, fillcolor=white, label=<<U>id,created_at</U>>];
+
+    // 联系
+    R_report [shape=diamond, style=filled, fillcolor=white, label="举报", fontsize=10];
+    R_notify [shape=diamond, style=filled, fillcolor=white, label="通知", fontsize=10];
+
+    // 实体—主码
+    reports -> pk_reports;
+    notifications -> pk_notif;
+
+    // posts (1) — 举报 — (n) reports
+    posts -> R_report [taillabel="1", labeldistance=1.5];
+    R_report -> reports [headlabel="n", labeldistance=1.5];
+    // users (1) — 举报 — (n) reports
+    users -> R_report [taillabel="1", labeldistance=1.5];
+    // comments (0..1) — 举报 — (n) reports
+    comments -> R_report [taillabel="0..1", labeldistance=1.5];
+
+    // posts (1) — 通知 — (n) notifications
+    posts -> R_notify [taillabel="1", labeldistance=1.5];
+    R_notify -> notifications [headlabel="n", labeldistance=1.5];
+    // users (1) — 通知 — (n) notifications
+    users -> R_notify [taillabel="1", labeldistance=1.5];
+}

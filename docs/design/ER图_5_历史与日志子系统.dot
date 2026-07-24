@@ -1,0 +1,61 @@
+// E. 历史与日志子系统 E-R 图
+// 渲染命令: dot -Tpng ER图_5_历史与日志子系统.dot -o ER图_5_历史与日志子系统.png
+digraph ER_Log {
+    graph [
+        rankdir=LR,
+        fontname="Microsoft YaHei",
+        fontsize=16,
+        label="E. 历史与日志子系统 E-R 图",
+        labelloc=t,
+        nodesep=0.5,
+        ranksep=1.0
+    ];
+    node [fontname="Microsoft YaHei", fontsize=11];
+    edge [fontname="Microsoft YaHei", fontsize=10, arrowhead=none];
+
+    // 实体
+    browse_histories     [shape=box, label="browse_histories",     style=filled, fillcolor="#F5F3FF"];
+    search_histories     [shape=box, label="search_histories",     style=filled, fillcolor="#F5F3FF"];
+    admin_operation_logs [shape=box, label="admin_operation_logs", style=filled, fillcolor="#F5F3FF"];
+    archive             [shape=box, label="logs_archive",          style=filled, fillcolor="#F5F3FF"];
+
+    // 外部实体
+    users [shape=box, label="users", style=filled, fillcolor="#EFF6FF"];
+    posts [shape=box, label="posts", style=filled, fillcolor="#FFF7ED"];
+
+    // 主码
+    pk_browse    [shape=ellipse, style=filled, fillcolor=white, label=<<U>id,created_at</U>>];
+    pk_search    [shape=ellipse, style=filled, fillcolor=white, label=<<U>id,created_at</U>>];
+    pk_admin_log [shape=ellipse, style=filled, fillcolor=white, label=<<U>id,created_at</U>>];
+    pk_archive   [shape=ellipse, style=filled, fillcolor=white, label=<<U>id</U>>];
+
+    // 联系
+    R_browse  [shape=diamond, style=filled, fillcolor=white, label="浏览", fontsize=10];
+    R_search  [shape=diamond, style=filled, fillcolor=white, label="搜索", fontsize=10];
+    R_admin_op [shape=diamond, style=filled, fillcolor=white, label="操作", fontsize=10];
+    R_archive [shape=diamond, style=filled, fillcolor=white, label="归档", fontsize=10];
+
+    // 实体—主码
+    browse_histories -> pk_browse;
+    search_histories -> pk_search;
+    admin_operation_logs -> pk_admin_log;
+    archive -> pk_archive;
+
+    // users (1) — 浏览 — (n) browse_histories
+    users -> R_browse [taillabel="1", labeldistance=1.5];
+    R_browse -> browse_histories [headlabel="n", labeldistance=1.5];
+    // posts (1) — 被浏览 — (n) browse_histories
+    posts -> R_browse [taillabel="1", labeldistance=1.5];
+
+    // users (1) — 搜索 — (n) search_histories
+    users -> R_search [taillabel="1", labeldistance=1.5];
+    R_search -> search_histories [headlabel="n", labeldistance=1.5];
+
+    // users (1) — 操作 — (n) admin_operation_logs
+    users -> R_admin_op [taillabel="1", labeldistance=1.5];
+    R_admin_op -> admin_operation_logs [headlabel="n", labeldistance=1.5];
+
+    // admin_operation_logs (1) — 归档 — (n) archive
+    admin_operation_logs -> R_archive [taillabel="1", labeldistance=1.5];
+    R_archive -> archive [headlabel="n", labeldistance=1.5];
+}

@@ -1,0 +1,94 @@
+// B. 信息核心子系统 E-R 图
+// 渲染命令: dot -Tpng ER图_2_信息核心子系统.dot -o ER图_2_信息核心子系统.png
+digraph ER_Post {
+    graph [
+        rankdir=LR,
+        fontname="Microsoft YaHei",
+        fontsize=16,
+        label="B. 信息核心子系统 E-R 图",
+        labelloc=t,
+        nodesep=0.5,
+        ranksep=1.0
+    ];
+    node [fontname="Microsoft YaHei", fontsize=11];
+    edge [fontname="Microsoft YaHei", fontsize=10, arrowhead=none];
+
+    // 实体
+    posts              [shape=box, label="posts",               style=filled, fillcolor="#FFF7ED"];
+    categories         [shape=box, label="categories",         style=filled, fillcolor="#FFF7ED"];
+    post_types         [shape=box, label="post_types",         style=filled, fillcolor="#FFF7ED"];
+    tags               [shape=box, label="tags",               style=filled, fillcolor="#FFF7ED"];
+    post_images        [shape=box, label="post_images",        style=filled, fillcolor="#FFF7ED"];
+    drafts             [shape=box, label="drafts",             style=filled, fillcolor="#FFF7ED"];
+    topic_collections  [shape=box, label="topic_collections",  style=filled, fillcolor="#FFF7ED"];
+
+    // 外部实体（虚线框表示来自其他子系统）
+    users      [shape=box, label="users",      style=filled, fillcolor="#EFF6FF"];
+    schools    [shape=box, label="schools",    style=filled, fillcolor="#EFF6FF"];
+    locations  [shape=box, label="locations",  style=filled, fillcolor="#EFF6FF"];
+
+    // 主码
+    pk_posts    [shape=ellipse, style=filled, fillcolor=white, label=<<U>id,created_at</U>>];
+    pk_categories [shape=ellipse, style=filled, fillcolor=white, label=<<U>id</U>>];
+    pk_post_types [shape=ellipse, style=filled, fillcolor=white, label=<<U>id</U>>];
+    pk_tags     [shape=ellipse, style=filled, fillcolor=white, label=<<U>id</U>>];
+    pk_post_images [shape=ellipse, style=filled, fillcolor=white, label=<<U>id</U>>];
+    pk_drafts   [shape=ellipse, style=filled, fillcolor=white, label=<<U>id</U>>];
+    pk_tc       [shape=ellipse, style=filled, fillcolor=white, label=<<U>id</U>>];
+
+    // 联系
+    R_publish  [shape=diamond, style=filled, fillcolor=white, label="发布", fontsize=10];
+    R_category [shape=diamond, style=filled, fillcolor=white, label="归类", fontsize=10];
+    R_type     [shape=diamond, style=filled, fillcolor=white, label="类型", fontsize=10];
+    R_locate   [shape=diamond, style=filled, fillcolor=white, label="定位", fontsize=10];
+    R_image    [shape=diamond, style=filled, fillcolor=white, label="附图", fontsize=10];
+    R_tag      [shape=diamond, style=filled, fillcolor=white, label="标签", fontsize=10];   // M:N
+    R_draft    [shape=diamond, style=filled, fillcolor=white, label="草稿", fontsize=10];
+    R_create   [shape=diamond, style=filled, fillcolor=white, label="创建", fontsize=10];
+    R_tc_post  [shape=diamond, style=filled, fillcolor=white, label="收录", fontsize=10];   // M:N
+
+    // 实体—主码
+    posts -> pk_posts;
+    categories -> pk_categories;
+    post_types -> pk_post_types;
+    tags -> pk_tags;
+    post_images -> pk_post_images;
+    drafts -> pk_drafts;
+    topic_collections -> pk_tc;
+
+    // users (1) — 发布 — (n) posts
+    users -> R_publish [taillabel="1", labeldistance=1.5];
+    R_publish -> posts [headlabel="n", labeldistance=1.5];
+
+    // categories (1) — 归类 — (n) posts
+    categories -> R_category [taillabel="1", labeldistance=1.5];
+    R_category -> posts      [headlabel="n", labeldistance=1.5];
+
+    // post_types (1) — 类型 — (n) posts
+    post_types -> R_type [taillabel="1", labeldistance=1.5];
+    R_type -> posts      [headlabel="n", labeldistance=1.5];
+
+    // locations (0..1) — 定位 — (n) posts
+    locations -> R_locate [taillabel="0..1", labeldistance=1.5];
+    R_locate -> posts     [headlabel="n", labeldistance=1.5];
+
+    // posts (1) — 附图 — (n) post_images
+    posts -> R_image [taillabel="1", labeldistance=1.5];
+    R_image -> post_images [headlabel="n", labeldistance=1.5];
+
+    // posts (m) — 标签 — (n) tags   M:N
+    posts -> R_tag [taillabel="m", labeldistance=1.5];
+    R_tag -> tags  [headlabel="n", labeldistance=1.5];
+
+    // topic_collections (m) — 收录 — (n) posts   M:N
+    topic_collections -> R_tc_post [taillabel="m", labeldistance=1.5];
+    R_tc_post -> posts             [headlabel="n", labeldistance=1.5];
+
+    // users (1) — 草稿 — (n) drafts
+    users -> R_draft [taillabel="1", labeldistance=1.5];
+    R_draft -> drafts [headlabel="n", labeldistance=1.5];
+
+    // users (1) — 创建 — (n) topic_collections
+    users -> R_create [taillabel="1", labeldistance=1.5];
+    R_create -> topic_collections [headlabel="n", labeldistance=1.5];
+}

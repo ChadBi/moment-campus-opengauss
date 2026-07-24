@@ -1,0 +1,42 @@
+// A. 用户子系统 E-R 图
+// 渲染命令: dot -Tpng ER图_1_用户子系统.dot -o ER图_1_用户子系统.png
+digraph ER_User {
+    graph [
+        rankdir=LR,
+        fontname="Microsoft YaHei",
+        fontsize=16,
+        label="A. 用户子系统 E-R 图",
+        labelloc=t,
+        nodesep=0.5,
+        ranksep=1.0
+    ];
+    node [fontname="Microsoft YaHei", fontsize=11];
+    edge [fontname="Microsoft YaHei", fontsize=10, arrowhead=none];
+
+    // 实体
+    schools   [shape=box, label="schools",   style=filled, fillcolor="#EFF6FF"];
+    users      [shape=box, label="users",     style=filled, fillcolor="#EFF6FF"];
+    locations [shape=box, label="locations", style=filled, fillcolor="#EFF6FF"];
+
+    // 主码属性（椭圆，下划线）
+    pk_schools   [shape=ellipse, style=filled, fillcolor=white, label=<<U>id</U>>];
+    pk_users     [shape=ellipse, style=filled, fillcolor=white, label=<<U>id</U>>];
+    pk_locations [shape=ellipse, style=filled, fillcolor=white, label=<<U>id</U>>];
+
+    // 联系（菱形）
+    R_register [shape=diamond, style=filled, fillcolor=white, label="注册", fontsize=10, width=0.9, height=0.5];
+    R_contain  [shape=diamond, style=filled, fillcolor=white, label="包含", fontsize=10, width=0.9, height=0.5];
+
+    // 实体—主码
+    schools -> pk_schools;
+    users -> pk_users;
+    locations -> pk_locations;
+
+    // schools (1) — 注册 — (n) users
+    schools -> R_register [taillabel="1", labeldistance=1.5];
+    R_register -> users   [headlabel="n", labeldistance=1.5];
+
+    // schools (1) — 包含 — (n) locations
+    schools -> R_contain  [taillabel="1", labeldistance=1.5];
+    R_contain -> locations [headlabel="n", labeldistance=1.5];
+}
