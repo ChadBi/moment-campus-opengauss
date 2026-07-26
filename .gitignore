@@ -98,3 +98,12 @@ docs/数据库课程设计考核说明.md
 docs/数据库课程设计考核说明 - 华为.doc
 docs/CONSISTENCY_CHECK_REPORT.md
 docs/"此刻校园"项目初步方案说明
+
+# 回收站（rubbish/）：仅 README.md 纳入版本控制作为清理记录，
+# 其余未跟踪文件（如 *.log、xlsx_preview.txt）保持忽略状态
+rubbish/*.log
+rubbish/logs/
+rubbish/xlsx_preview.txt
+rubbish/*.tmp
+
+rubbish/update_xlsx.py

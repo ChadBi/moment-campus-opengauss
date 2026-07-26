@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-26（阶段 OPT 全部完成 + 阶段 R 进度同步）
+> 最后更新：2026-07-26（阶段 OPT 全部完成 + 阶段 R 进度同步 + xlsx 更新与 rubbish 清理）
 
 ## 状态总览
 
@@ -545,6 +545,26 @@
 - [x] 数据库 21 个模型建立
 - [x] 演示数据填充脚本（seed_data.py）
 - [x] 前后端联调通过
+
+### 仓库清理与功能清单同步（2026-07-26 完成）
+
+- [x] CLEAN-1 更新 `docs/project-audit/此刻校园功能清单与使用说明.xlsx`（8 个 sheet 全面同步最新项目状态）：
+  - 功能总表：F-004 退出/F-008 分类筛选 部分完成→已完成；F-018/F-020/F-021/F-023~F-028 已验证
+  - 页面清单：P-002 地图/P-003 搜索 缺陷已修复；P-021 AdminTagsPage 已删除
+  - 接口清单：A-004 logout 已接入前端
+  - 问题清单：32 条问题状态全部更新（30 已修复/评估/放弃）+ 新增 P2-015（CORS 5174 端口）
+  - 测试用例：TC-012/022/024/025/026 状态更新
+  - 部署与配置：C-005 CORS 双端口；C-009 AI 配置补齐
+  - 完成度统计：综合得分 7.9→8.6；完成度估算 85-88%→约92%；影响演示/上线问题数 6/7→0/0
+- [x] CLEAN-2 创建 `rubbish/` 回收站目录并移动 46 个垃圾文件：
+  - 5 个根目录早期 Demo/过时文档（创意文档.html、此刻校园_可演示Demo.html、DEVELOPMENT_TASKS.md、检查结果.json、检查结果v2.json）— `git mv` 保留历史
+  - 13 张过期 E2E 截图（AIwork/screenshots/*.png）— `git mv` 保留历史
+  - 27 个调试日志文件（backend/*.log + frontend/npm_build.log）— `Move-Item`（原 gitignored）
+  - 1 个临时预览文件（backend/xlsx_preview.txt）— `Move-Item`
+  - 1 个临时更新脚本（backend/update_xlsx.py）— `Move-Item`
+- [x] CLEAN-3 创建 [rubbish/README.md](rubbish/README.md) 详细记录 46 个文件的原始路径、当前路径、移动方式与移动日期（2026-07-26），便于日后恢复
+- [x] CLEAN-4 更新 `.gitignore` 增加 `rubbish/*.log`、`rubbish/logs/`、`rubbish/xlsx_preview.txt`、`rubbish/update_xlsx.py` 规则，防止未来误提交
+- [x] CLEAN-5 验证：前端 `npm run build` 通过（1.20s，0 error，MapPage chunk 16.06KB）；任务报告：[AIwork/仓库清理与功能清单同步任务报告.md](AIwork/仓库清理与功能清单同步任务报告.md)
 
 ## 待办（按优先级）
 
