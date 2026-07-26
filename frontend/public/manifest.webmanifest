@@ -1,0 +1,57 @@
+{
+  "name": "此刻校园 · 江南大学蠡湖校区信息共享平台",
+  "short_name": "此刻校园",
+  "description": "把会消失的校园经验留下来——发布失物招领、活动、服务、学习、社团等信息",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f7f5f0",
+  "theme_color": "#863bff",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["education", "productivity", "social"],
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "发布此刻",
+      "short_name": "发布",
+      "description": "发布新的校园信息",
+      "url": "/publish",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "搜索",
+      "short_name": "搜索",
+      "description": "搜索校园信息",
+      "url": "/search",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "地图",
+      "short_name": "地图",
+      "description": "校园地图",
+      "url": "/map",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    }
+  ]
+}
