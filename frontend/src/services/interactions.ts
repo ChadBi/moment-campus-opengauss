@@ -36,19 +36,6 @@ export const interactionsApi = {
     return response.data;
   },
 
-  // T-B-04: 状态流转
-  transitionPost: async (
-    postId: number,
-    targetStatus: string,
-    reason?: string
-  ): Promise<PostTransitionResponse> => {
-    const response = await api.post(`/posts/${postId}/transition`, {
-      target_status: targetStatus,
-      reason,
-    });
-    return response.data;
-  },
-
   // T-B-04: 获取可流转状态列表
   getAllowedTransitions: async (
     postId: number

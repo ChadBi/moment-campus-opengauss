@@ -20,6 +20,7 @@ import {
   Clock,
   Filter,
 } from 'lucide-react';
+import { formatShortDateTime } from '../../utils/date';
 
 const formatRate = (rate: number) => `${(rate * 100).toFixed(1)}%`;
 const formatNumber = (n: number) => n.toLocaleString('zh-CN');
@@ -29,19 +30,8 @@ const formatSeconds = (sec: number): string => {
   if (sec < 3600) return `${(sec / 60).toFixed(1)} 分`;
   return `${(sec / 3600).toFixed(1)} 时`;
 };
-const formatDateTime = (iso: string | null): string => {
-  if (!iso) return '-';
-  try {
-    return new Date(iso).toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
-};
+const formatDateTime = (iso: string | null): string =>
+  formatShortDateTime(iso);
 
 /** ADM-01.2: 平台首页跨校统计（仅 super_admin，入口在菜单中按角色隐藏） */
 const PlatformOverviewPage: React.FC = () => {

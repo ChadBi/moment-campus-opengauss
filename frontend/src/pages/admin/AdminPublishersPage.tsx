@@ -25,6 +25,7 @@ import {
   Search,
   ShieldCheck,
 } from 'lucide-react';
+import { formatShortDateTime } from '../../utils/date';
 
 const PAGE_SIZE = 10;
 
@@ -145,15 +146,8 @@ const AdminPublishersPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '—';
-    return new Date(dateString).toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatDate = (dateString?: string) =>
+    dateString ? formatShortDateTime(dateString) : '—';
 
   const columns: Column<PublisherAdmin>[] = [
     {

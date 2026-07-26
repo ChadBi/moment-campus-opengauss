@@ -6,6 +6,8 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { SubscribeButton } from '../components/SubscribeButton';
 import { ArrowLeft, Eye, Heart, MessageCircle, FileText } from 'lucide-react';
+import { logger } from '../utils/logger';
+import { formatRelativeTime, formatDate as formatDateAbs } from '../utils/date';
 
 const TopicDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +31,7 @@ const TopicDetailPage: React.FC = () => {
         const data = await topicsApi.getTopic(topicId);
         setTopic(data);
       } catch (err: unknown) {
-        console.error('加载专题详情失败:', err);
+        logger.error('加载专题详情失败:', err);
         const e = err as { response?: { status?: number; data?: { detail?: string } } };
         if (e?.response?.status === 404) {
           setError('专题不存在或已下线');
@@ -47,16 +49,11 @@ const TopicDetailPage: React.FC = () => {
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return '';
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '';
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    if (diff < 60000) return '刚刚';
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 60) return `${minutes}分钟前`;
-    const hours = Math.floor(diff / 3600000);
-    if (hours < 24) return `${hours}小时前`;
-    const days = Math.floor(diff / 86400000);
-    if (days < 30) return `${days}天前`;
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const days = Math.floor((now.getTime() - date.getTime()) / 86400000);
+    if (days >= 30) return formatDateAbs(dateString);
+    return formatRelativeTime(dateString);
   };
 
   if (loading) {

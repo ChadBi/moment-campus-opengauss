@@ -16,6 +16,7 @@ import { Loading } from '../components/ui/Loading';
 import { MapPin, Clock, Search, Sparkles, SlidersHorizontal, X, ChevronDown, Map as MapIcon, AlertCircle, RefreshCw, Wand2, Lightbulb, Bookmark, BookmarkPlus, History, Trash2 } from 'lucide-react';
 import { useCampusStore } from '../store/useCampusStore';
 import { useUIStore } from '../store/useUIStore';
+import { formatRelativeTime as formatDate } from '../utils/date';
 
 /**
  * DSC-01.1 + DSC-01.3 + AI-02.2 + UX-01.1: 搜索页
@@ -44,9 +45,11 @@ import { useUIStore } from '../store/useUIStore';
  *  - 普通筛选与 AI 搜索同一结果模型（已有 PostListItem）
  */
 
-const HOT_TAGS = ['食堂', '图书馆', '自习室', '快递点', '校园活动', '二手', '失物招领', '拍照打卡'];
+// P2-003: HOT_TAGS 改为多租户动态化（优先使用当前学校分类名，fallback 到通用列表）
+// 切换学校后由 useMemo 重新计算 hotTags，使搜索页推荐内容跟随学校变化
+const FALLBACK_HOT_TAGS = ['食堂', '图书馆', '自习室', '快递点', '校园活动', '二手', '失物招领', '拍照打卡'];
 
-// UX-01.1: AI 模式高频快捷问题（面向江南大学场景的自然语言示例）
+// UX-01.1: AI 模式高频快捷问题（通用自然语言示例，适用于任意校园场景）
 const QUICK_QUESTIONS = [
   '最近图书馆有什么活动？',
   '食堂今天有什么好吃的？',
@@ -862,18 +865,17 @@ const SearchPage: React.FC = () => {
     return n;
   }, [categoryId, locationId, postTypeId, status, dateFrom, dateTo, sort]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    if (diff < 60000) return '刚刚';
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 30) return `${minutes}分钟前`;
-    const hours = Math.floor(diff / 3600000);
-    if (hours < 24) return `${hours}小时前`;
-    const days = Math.floor(diff / 86400000);
-    return `${days}天前`;
-  };
+  // P2-003: 多租户热门标签 —— 优先取当前学校分类名（top 8 by sort_order）
+  // 当 categories 未加载或为空时，回退到 FALLBACK_HOT_TAGS
+  // 依赖 currentSchoolId 确保切换学校时重新计算（categories 也会随学校变化重新拉取）
+  const hotTags = useMemo(() => {
+    if (categories.length === 0) return FALLBACK_HOT_TAGS;
+    return categories
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .slice(0, 8)
+      .map((c) => c.name);
+  }, [categories, currentSchoolId]);
 
   // ===== 格式化有效性（expire_at） =====
   const formatValidity = (expireAt?: string) => {
@@ -1527,7 +1529,7 @@ const SearchPage: React.FC = () => {
               <span className="text-sm font-semibold text-ink">热门搜索</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {HOT_TAGS.map((tag) => (
+              {hotTags.map((tag) => (
                 <button
                   key={tag}
                   type="button"

@@ -1,0 +1,243 @@
+{
+  "summary": {
+    "total": 39,
+    "passed": 33,
+    "failed": 6
+  },
+  "results": [
+    {
+      "module": "认证",
+      "name": "user1 登录",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "认证",
+      "name": "登录返回 user 字段",
+      "ok": true,
+      "detail": "user_id=2"
+    },
+    {
+      "module": "认证",
+      "name": "登录返回 reputation_score",
+      "ok": true,
+      "detail": "score=65.00"
+    },
+    {
+      "module": "认证",
+      "name": "admin 登录",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "认证",
+      "name": "admin 角色",
+      "ok": true,
+      "detail": "role=admin"
+    },
+    {
+      "module": "帖子列表",
+      "name": "最新排序加载",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "帖子列表",
+      "name": "返回帖子数据",
+      "ok": true,
+      "detail": "count=20, total=31"
+    },
+    {
+      "module": "帖子列表",
+      "name": "最新排序正确",
+      "ok": true,
+      "detail": "t1=2026-07-04T08:59:47 >= t2=2026-07-04T08:08:05"
+    },
+    {
+      "module": "帖子列表",
+      "name": "无 is_top 字段",
+      "ok": true,
+      "detail": "is_top removed"
+    },
+    {
+      "module": "帖子列表",
+      "name": "无未来时间帖子",
+      "ok": true,
+      "detail": "future=0"
+    },
+    {
+      "module": "帖子列表",
+      "name": "最热排序",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "帖子列表",
+      "name": "最近排序",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "帖子详情",
+      "name": "获取详情",
+      "ok": true,
+      "detail": "post_id=31 status=200"
+    },
+    {
+      "module": "帖子详情",
+      "name": "浏览次数 >= 1",
+      "ok": true,
+      "detail": "views=3"
+    },
+    {
+      "module": "帖子详情",
+      "name": "content 无 200 字限制",
+      "ok": true,
+      "detail": "len=12"
+    },
+    {
+      "module": "点赞",
+      "name": "点赞请求",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "点赞",
+      "name": "取消点赞",
+      "ok": false,
+      "detail": "status=405"
+    },
+    {
+      "module": "验证",
+      "name": "证实请求",
+      "ok": false,
+      "detail": "status=404 body={'detail': 'Not Found'}"
+    },
+    {
+      "module": "评论",
+      "name": "创建评论",
+      "ok": false,
+      "detail": "status=500 body=Internal Server Error"
+    },
+    {
+      "module": "评论",
+      "name": "评论列表加载",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "通知",
+      "name": "通知列表加载",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "通知",
+      "name": "通知数据",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "module": "个人中心",
+      "name": "获取个人信息",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "个人中心",
+      "name": "含 reputation_score",
+      "ok": true,
+      "detail": "score=65.00"
+    },
+    {
+      "module": "个人中心",
+      "name": "贡献值 > 0",
+      "ok": true,
+      "detail": "score=65.00"
+    },
+    {
+      "module": "个人中心",
+      "name": "更新简介",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "发布帖子",
+      "name": "创建 pending 帖子",
+      "ok": true,
+      "detail": "status=201"
+    },
+    {
+      "module": "发布帖子",
+      "name": "状态为 pending",
+      "ok": true,
+      "detail": "status=pending"
+    },
+    {
+      "module": "发布帖子",
+      "name": "发帖后信誉分更新",
+      "ok": true,
+      "detail": "before=65.0 after=65.5"
+    },
+    {
+      "module": "后台管理",
+      "name": "待审核列表",
+      "ok": false,
+      "detail": "status=404"
+    },
+    {
+      "module": "后台管理",
+      "name": "待审核帖子数",
+      "ok": true,
+      "detail": "count=0"
+    },
+    {
+      "module": "后台管理",
+      "name": "标签列表",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "后台管理",
+      "name": "操作日志",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "后台管理",
+      "name": "统计信息",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "后台管理",
+      "name": "用户列表",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "地图",
+      "name": "标记列表",
+      "ok": false,
+      "detail": "status=422"
+    },
+    {
+      "module": "搜索",
+      "name": "关键词搜索",
+      "ok": false,
+      "detail": "status=0"
+    },
+    {
+      "module": "分类",
+      "name": "分类列表",
+      "ok": true,
+      "detail": "status=200"
+    },
+    {
+      "module": "地点",
+      "name": "地点列表",
+      "ok": true,
+      "detail": "status=200"
+    }
+  ]
+}

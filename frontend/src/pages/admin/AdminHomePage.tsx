@@ -26,6 +26,7 @@ import {
   ArrowRight,
   Activity,
 } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 /** 操作类型 → 中文标签 + 颜色 */
 const ACTION_LABELS: Record<string, { label: string; variant: 'success' | 'danger' | 'info' | 'warning' | 'default' }> = {
@@ -78,7 +79,7 @@ const AdminHomePage: React.FC = () => {
       setTodos(todosData);
       setRecentLogs(logsData.items);
     } catch (error) {
-      console.error('加载仪表盘数据失败:', error);
+      logger.error('加载仪表盘数据失败:', error);
     } finally {
       setLoading(false);
     }

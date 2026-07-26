@@ -19,6 +19,7 @@ import { Loading } from '../components/ui/Loading';
 import { Toast } from '../components/ui/Toast';
 import { NotificationPreferencesCard } from '../components/NotificationPreferencesCard';
 import { SubscriptionsCard } from '../components/SubscriptionsCard';
+import { logger } from '../utils/logger';
 import {
   Edit,
   LogOut,
@@ -144,7 +145,7 @@ const ProfilePage: React.FC = () => {
       // PRF-01.1: 同步刷新全局 auth store，避免其他页面显示旧昵称/头像
       setUser(response.data);
     } catch (error) {
-      console.error('加载用户信息失败:', error);
+      logger.error('加载用户信息失败:', error);
     } finally {
       setLoading(false);
     }
@@ -161,7 +162,7 @@ const ProfilePage: React.FC = () => {
       );
       setPostsPage(data);
     } catch (error) {
-      console.error('加载我的帖子失败:', error);
+      logger.error('加载我的帖子失败:', error);
       setToast({ message: '加载我的发布失败', type: 'error' });
     } finally {
       setPostsLoading(false);
@@ -175,7 +176,7 @@ const ProfilePage: React.FC = () => {
       const data = await usersApi.getMyStats();
       setStats(data);
     } catch (error) {
-      console.error('加载统计失败:', error);
+      logger.error('加载统计失败:', error);
     } finally {
       setStatsLoading(false);
     }
@@ -188,7 +189,7 @@ const ProfilePage: React.FC = () => {
       const data = await usersApi.getMyViewHistory(page, HISTORY_PAGE_SIZE);
       setHistoryPage(data);
     } catch (error) {
-      console.error('加载浏览历史失败:', error);
+      logger.error('加载浏览历史失败:', error);
     } finally {
       setHistoryLoading(false);
     }
@@ -207,7 +208,7 @@ const ProfilePage: React.FC = () => {
       }
       setAuditNoticeByPostId(map);
     } catch (error) {
-      console.error('加载审核通知失败:', error);
+      logger.error('加载审核通知失败:', error);
     }
   };
 
@@ -217,7 +218,7 @@ const ProfilePage: React.FC = () => {
       const list = await schoolsApi.listMyMemberships();
       setMemberships(list);
     } catch (error) {
-      console.error('刷新学校列表失败:', error);
+      logger.error('刷新学校列表失败:', error);
     }
   };
 
@@ -228,7 +229,7 @@ const ProfilePage: React.FC = () => {
       const pref = await recommendationsApi.getMyPreferences();
       setRecPref(pref);
     } catch (error) {
-      console.error('加载推荐隐私偏好失败:', error);
+      logger.error('加载推荐隐私偏好失败:', error);
     } finally {
       setRecPrefLoading(false);
     }
@@ -511,7 +512,7 @@ const ProfilePage: React.FC = () => {
       setEditing(false);
       setToast({ message: '资料已更新', type: 'success' });
     } catch (error) {
-      console.error('更新资料失败:', error);
+      logger.error('更新资料失败:', error);
       setToast({ message: '更新失败，请重试', type: 'error' });
     } finally {
       setSaving(false);
@@ -536,7 +537,7 @@ const ProfilePage: React.FC = () => {
       await loadUserInfo();
       setToast({ message: '头像已更新', type: 'success' });
     } catch (error) {
-      console.error('上传头像失败:', error);
+      logger.error('上传头像失败:', error);
       setToast({ message: '头像上传失败', type: 'error' });
     } finally {
       setAvatarUploading(false);

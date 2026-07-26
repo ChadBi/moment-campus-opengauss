@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { logger } from '../utils/logger';
 
 /**
  * UX-01.6: Service Worker 注册 + 新版本提示
@@ -67,7 +68,7 @@ export function useServiceWorker(): {
 
         return () => window.clearInterval(interval);
       } catch (e) {
-        console.warn('[SW] 注册失败:', e);
+        logger.warn('[SW] 注册失败:', e);
       }
     };
 

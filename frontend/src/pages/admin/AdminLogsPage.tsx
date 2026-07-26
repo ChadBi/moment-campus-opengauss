@@ -5,6 +5,8 @@ import { Badge } from '../../components/ui/Badge';
 import { Table, Pagination, type Column } from '../../components/ui/Table';
 import { adminApi, type AdminLog, type LogQueryParams } from '../../services/admin';
 import { ScrollText, Search, X, RotateCcw } from 'lucide-react';
+import { logger } from '../../utils/logger';
+import { formatDateTime } from '../../utils/date';
 
 const PAGE_SIZE = 20;
 
@@ -65,7 +67,7 @@ const AdminLogsPage: React.FC = () => {
       setTotal(data.total);
       setTotalPages(data.total_pages);
     } catch (error) {
-      console.error('加载操作日志失败:', error);
+      logger.error('加载操作日志失败:', error);
       setToast({ message: '加载操作日志失败', type: 'error' });
     } finally {
       setLoading(false);
@@ -110,16 +112,6 @@ const AdminLogsPage: React.FC = () => {
     !!filterTargetType ||
     !!filterDateFrom ||
     !!filterDateTo;
-
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   // 表格列配置
   const columns: Column<AdminLog>[] = [

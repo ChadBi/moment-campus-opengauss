@@ -7,6 +7,8 @@ import { Table, Pagination, type Column } from '../../components/ui/Table';
 import { adminApi, type UserBrief } from '../../services/admin';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Users, UserCheck, UserX } from 'lucide-react';
+import { logger } from '../../utils/logger';
+import { formatDate } from '../../utils/date';
 
 const PAGE_SIZE = 10;
 
@@ -37,7 +39,7 @@ const AdminUsersPage: React.FC = () => {
       setTotalPages(data.total_pages);
       setSelectedKeys([]);
     } catch (error) {
-      console.error('加载用户列表失败:', error);
+      logger.error('加载用户列表失败:', error);
       setToast({ message: '加载用户列表失败', type: 'error' });
     } finally {
       setLoading(false);
@@ -66,7 +68,7 @@ const AdminUsersPage: React.FC = () => {
       setToast({ message: `${action}成功`, type: 'success' });
       loadUsers(page, filterActive);
     } catch (error) {
-      console.error(`${action}失败:`, error);
+      logger.error(`${action}失败:`, error);
       setToast({ message: `${action}失败`, type: 'error' });
     }
   };
@@ -86,19 +88,11 @@ const AdminUsersPage: React.FC = () => {
       setToast({ message: result.message, type: result.failed > 0 ? 'warning' : 'success' });
       loadUsers(page, filterActive);
     } catch (error) {
-      console.error(`批量${action}失败:`, error);
+      logger.error(`批量${action}失败:`, error);
       setToast({ message: `批量${action}失败`, type: 'error' });
     } finally {
       setBatchLoading(false);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
   };
 
   // 表格列配置

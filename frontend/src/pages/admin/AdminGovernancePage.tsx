@@ -12,6 +12,8 @@ import {
 } from '../../services/admin';
 import { useUIStore } from '../../store/useUIStore';
 import { ShieldCheck, Clock, AlertTriangle, Lightbulb, Gavel } from 'lucide-react';
+import { logger } from '../../utils/logger';
+import { formatShortDateTime as formatDate } from '../../utils/date';
 
 const PAGE_SIZE = 10;
 
@@ -70,7 +72,7 @@ const AdminGovernancePage: React.FC = () => {
       setTotal(data.total);
       setTotalPages(data.total_pages);
     } catch (error) {
-      console.error('加载治理报告失败:', error);
+      logger.error('加载治理报告失败:', error);
       showToast('加载治理报告失败', 'error');
     } finally {
       setLoading(false);
@@ -129,14 +131,6 @@ const AdminGovernancePage: React.FC = () => {
       setHandling(false);
     }
   };
-
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
 
   const columns: Column<GovernanceReportBrief>[] = [
     {

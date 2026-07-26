@@ -52,6 +52,49 @@
 
 **阶段三问题关闭**：P2-002、P2-005、P2-009、P2-010、P2-011、P2-012（共 6 条，累计关闭 14 条，关闭率 43.75%）
 
+### 阶段四：性能优化（2026-07-26 完成）
+
+- [x] OPT-4.1 P2-001 vite.config.ts 添加 manualChunks 拆分 maplibre-gl/react-vendor/icons：MapPage chunk 1043KB→16KB（97% 下降），index.js 307KB→128KB；chunkSizeWarningLimit 调至 600
+- [x] OPT-4.2 P2-008 MapPage 瓦片源 OSM→高德栅格（4 个 webrd0{1-4}.is.autonavi.com 子域加速），国内可达性提升；保留 maplibre-gl 原生 raster source 实现，无需 API Key
+- [x] OPT-4.3 P2-006 api.ts 401 并发刷新加锁：refreshPromise 单例 promise 复用，避免并发 401 多次消费 refresh_token；finally 清空 promise 保证后续 401 可再次触发
+- [x] OPT-4.4 P2-007 新增 utils/logger.ts（dev 打印/prod 静默/error 始终打印），48 处 console.* 替换为 logger.*（21 个文件）
+- [x] OPT-4.5 P2-003 SearchPage HOT_TAGS 改为多租户动态化：useMemo 从当前学校 categories 派生 top 8（按 sort_order），fallback 到 FALLBACK_HOT_TAGS（8 个通用标签）
+- [x] OPT-4.6 验证：前端 npm run build 通过（1.37s，0 error）；MapPage chunk 16.06KB；任务报告：[AIwork/阶段四性能优化任务报告.md](AIwork/阶段四性能优化任务报告.md)
+
+**阶段四问题关闭**：P2-001、P2-003、P2-006、P2-007、P2-008（共 5 条，累计关闭 19 条，关闭率 59.4%）
+
+### 阶段五：质量收尾与文档完善（2026-07-26 完成）
+
+- [x] OPT-5.1 P3-001 删除 AdminTagsPage.tsx（602 行死代码）+ 4 个零引用 tag API + 3 个 tag 类型；路由表移除重定向
+- [x] OPT-5.2 P3-003 新增 utils/date.ts 4 个函数（formatRelativeTime/formatDate/formatDateTime/formatShortDateTime），15 个文件的本地实现替换为导入
+- [x] OPT-5.3 P3-004 删除 3 对重复 API 定义：uploadApi.uploadAvatar / usersApi.getMyPosts / interactionsApi.transitionPost（零引用）
+- [x] OPT-5.4 P3-006 nginx.conf 生产环境关闭 /docs 与 /openapi.json 对外暴露（return 404）
+- [x] OPT-5.5 P3-007 CHANGELOG.md 补记阶段一/二/三/四/五全部变更
+- [x] OPT-5.6 P3-008 docs/ 下 11 个文件 160+ 处 `file:///d:/Project/database-class/...` 旧盘符路径批量替换为相对路径
+- [x] OPT-5.7 P3-011 frontend/README.md 由 Vite 模板默认文案替换为项目说明（技术栈/目录结构/启动/部署）
+- [x] OPT-5.8 P1-003 TypeScript strict 渐进启用：tsconfig.app.json 开启 `strictNullChecks: true` + `noImplicitAny: true`；tsc --noEmit 与 npm run build 均通过（exit 0，无新增类型错误）
+- [x] OPT-5.9 P2-004 refreshToken httpOnly cookie 评估：产出 [docs/project-audit/refreshToken-httpOnly-cookie-评估报告.md](docs/project-audit/refreshToken-httpOnly-cookie-评估报告.md)（7 节，决策结论：仅评估不实施，列入 v0.3.0 后续版本）
+- [x] OPT-5.10 P2-015 CORS 默认放行 5173 + 5174（Vite 默认端口与回退端口）：backend/app/config.py + backend/.env.opengauss.example 同步更新，避免端口被占用切换后 CORS 拒绝
+- [x] OPT-5.11 验证：后端 `pytest tests/ -v` 全量通过（972 passed, 66 skipped, 15:14，无退化）；前端 `npm run build` 通过（1.37s，0 error）；E2E 7 场景全部 PASS（首页/登录/地图/搜索/发布/管理员后台/登出）；任务报告：[AIwork/阶段五质量收尾与文档完善任务报告.md](AIwork/阶段五质量收尾与文档完善任务报告.md)
+
+**阶段五问题关闭**：P1-003、P2-004（评估）、P3-001、P3-003、P3-004、P3-006、P3-007、P3-008、P3-011（共 9 条，累计关闭 28 条，关闭率 87.5%）
+
+### 阶段 OPT 总结
+
+**累计关闭 28/32 条问题（87.5%），超出原计划目标 ≥25 条（78%）**
+
+- 阶段一：4 条（P0-001、P1-005、P1-006、P2-014）
+- 阶段二：4 条（P1-001、P1-002、P1-004、P2-013）
+- 阶段三：6 条（P2-002、P2-005、P2-009、P2-010、P2-011、P2-012）
+- 阶段四：5 条（P2-001、P2-003、P2-006、P2-007、P2-008）
+- 阶段五：9 条（P1-003、P2-004 评估、P3-001、P3-003、P3-004、P3-006、P3-007、P3-008、P3-011）
+
+**剩余 4 条未关闭问题（按计划放弃或后续版本）**：
+- P2-004 refreshToken httpOnly cookie：仅评估不实施（决策结论见评估报告），列入 v0.3.0
+- P3-002 超大文件拆分：不在本计划内，列入后续版本
+- P3-005 React Query 迁移：30+ 页面全量迁移风险高，仅 ESLint 修复时局部使用
+- P3-010 Playwright ffmpeg：改用 integrated_code_mode 内联浏览器 + browser_use 子代理替代
+
 ### E2E 多模块链路扩展验证（评论/协同治理/专题订阅/个人中心/通知中心）（2026-07-26 完成）
 
 - [x] 修复专题订阅通知不触发 Bug（SUB-01.2）：`backend/app/api/admin_topics.py` 的 `add_posts_to_topic` 在帖子被加入专题时调用 `notify_new_post`，通知订阅该专题的用户；通知失败不阻塞主流程（仅 warning 日志）

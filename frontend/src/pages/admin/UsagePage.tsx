@@ -14,6 +14,7 @@ import {
   Mail,
   Clock,
 } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 /** 权益 key → 中文标签 */
 const ENTITLEMENT_LABELS: Record<string, string> = {
@@ -53,7 +54,7 @@ const UsagePage: React.FC = () => {
     } catch (err) {
       const message =
         err instanceof Error ? err.message : '加载用量数据失败';
-      console.error('加载用量数据失败:', err);
+      logger.error('加载用量数据失败:', err);
       showToast(message, 'error');
     } finally {
       setLoading(false);

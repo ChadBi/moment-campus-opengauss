@@ -40,9 +40,6 @@ export const usersApi = {
     });
   },
 
-  getMyPosts: (page = 1, pageSize = 20) =>
-    api.get('/users/me/posts', { params: { page, page_size: pageSize } }),
-
   /**
    * PRF-01.2: 我的真实统计（按当前学校过滤）
    * 替代前端用 6 次拉取计数拼凑的方式，一次性返回真实统计。

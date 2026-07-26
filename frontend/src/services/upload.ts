@@ -16,15 +16,4 @@ export const uploadApi = {
     });
     return response.data;
   },
-
-  uploadAvatar: async (file: File): Promise<{ avatar_url: string }> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const response = await api.post('/users/me/avatar', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  },
 };

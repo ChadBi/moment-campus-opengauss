@@ -14,7 +14,6 @@ export type {
   DashboardStats,
   AdminLog,
   CategoryAdmin,
-  TagAdmin,
   BatchOperationResult,
   PaginatedResponse,
   PostBrief,

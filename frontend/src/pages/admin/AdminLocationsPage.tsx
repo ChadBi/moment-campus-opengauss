@@ -8,6 +8,8 @@ import { Table, Pagination, type Column } from '../../components/ui/Table';
 import { adminApi, type LocationAdmin } from '../../services/admin';
 import { useUIStore } from '../../store/useUIStore';
 import { MapPin, Check, X, Search } from 'lucide-react';
+import { logger } from '../../utils/logger';
+import { formatShortDateTime as formatDate } from '../../utils/date';
 
 const PAGE_SIZE = 10;
 
@@ -42,7 +44,7 @@ const AdminLocationsPage: React.FC = () => {
       setTotal(data.total);
       setTotalPages(data.total_pages);
     } catch (error) {
-      console.error('加载地点列表失败:', error);
+      logger.error('加载地点列表失败:', error);
       showToast('加载地点列表失败', 'error');
     } finally {
       setLoading(false);
@@ -85,14 +87,6 @@ const AdminLocationsPage: React.FC = () => {
       setActingId(null);
     }
   };
-
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
 
   const columns: Column<LocationAdmin>[] = [
     {

@@ -11,7 +11,7 @@
 
 ### 1.1 配置文件
 
-[docker-compose.yml](file:///d:/Project/database-class/moment-campus/docker-compose.yml)（仓库根目录）
+[docker-compose.yml](docker-compose.yml)（仓库根目录）
 
 ### 1.2 实际配置内容
 
@@ -85,10 +85,10 @@ docker images | findstr opengauss
 
 | 文件 | 行号 | 内容 |
 | ---- | ---- | ---- |
-| [backend/app/config.py](file:///d:/Project/database-class/moment-campus/backend/app/config.py) | 12 | `DATABASE_URL: str = "sqlite+aiosqlite:///./dev.db"` |
-| [backend/.env.development](file:///d:/Project/database-class/moment-campus/backend/.env.development) | 7 | `DATABASE_URL=sqlite+aiosqlite:///./dev.db` |
-| [backend/.env.example](file:///d:/Project/database-class/moment-campus/backend/.env.example) | 7 | `DATABASE_URL=sqlite+aiosqlite:///./dev.db` |
-| [backend/alembic.ini](file:///d:/Project/database-class/moment-campus/backend/alembic.ini) | 30 | `sqlalchemy.url = sqlite+aiosqlite:///./dev.db`（实际被 `env.py` 覆盖） |
+| [backend/app/config.py](backend/app/config.py) | 12 | `DATABASE_URL: str = "sqlite+aiosqlite:///./dev.db"` |
+| [backend/.env.development](backend/.env.development) | 7 | `DATABASE_URL=sqlite+aiosqlite:///./dev.db` |
+| [backend/.env.example](backend/.env.example) | 7 | `DATABASE_URL=sqlite+aiosqlite:///./dev.db` |
+| [backend/alembic.ini](backend/alembic.ini) | 30 | `sqlalchemy.url = sqlite+aiosqlite:///./dev.db`（实际被 `env.py` 覆盖） |
 
 ### 2.2 连接信息的读取方式【已确认】
 
@@ -99,7 +99,7 @@ docker images | findstr opengauss
 
 ### 2.3 数据库连接代码【已确认】
 
-[backend/app/database.py](file:///d:/Project/database-class/moment-campus/backend/app/database.py)：
+[backend/app/database.py](backend/app/database.py)：
 
 ```python
 engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
@@ -181,7 +181,7 @@ class Settings(BaseSettings):
 
 ### 4.1 当前驱动【已确认】
 
-- `aiosqlite>=0.20.0`（在 [requirements.txt](file:///d:/Project/database-class/moment-campus/backend/requirements.txt) 第 10 行）
+- `aiosqlite>=0.20.0`（在 [requirements.txt](backend/requirements.txt) 第 10 行）
 - 仅支持 SQLite 异步访问
 
 ### 4.2 候选驱动对比【部分待验证】
@@ -315,7 +315,7 @@ asyncpg>=0.29.0
 
 ### 6.5 分页兼容性【已确认 - 无问题】
 
-[backend/app/api/posts.py](file:///d:/Project/database-class/moment-campus/backend/app/api/posts.py) 第 69-70 行：
+[backend/app/api/posts.py](backend/app/api/posts.py) 第 69-70 行：
 
 ```python
 offset = (page - 1) * page_size
@@ -334,7 +334,7 @@ SQLAlchemy 会根据 dialect 生成正确语法，openGauss 兼容。
 
 - 所有模型的主键 `id` 类型为 `Integer`（INT4）
 - 所有模型的外键字段（`user_id`、`school_id`、`post_id` 等）类型为 `BigInteger`（INT8）
-- 历史原因：[`AIwork/SQLite主键类型修改.md`](file:///d:/Project/database-class/moment-campus/AIwork/SQLite主键类型修改.md) 记录了主键从 BigInteger 改为 Integer 的过程，但外键未同步修改
+- 历史原因：[`AIwork/SQLite主键类型修改.md`](AIwork/SQLite主键类型修改.md) 记录了主键从 BigInteger 改为 Integer 的过程，但外键未同步修改
 
 **在 SQLite 中的表现**：SQLite 忽略整型尺寸（INT4 和 INT8 都映射为 `INTEGER`），无问题。
 
@@ -419,7 +419,7 @@ id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True
 
 ### 8.3 演示数据脚本改造【已确认 - 需小改】
 
-[backend/scripts/seed_data.py](file:///d:/Project/database-class/moment-campus/backend/scripts/seed_data.py) 当前：
+[backend/scripts/seed_data.py](backend/scripts/seed_data.py) 当前：
 
 ```python
 async def init_db():
@@ -439,7 +439,7 @@ async def init_db():
 
 ### 9.1 当前问题【已确认】
 
-[backend/alembic/versions/82978de89068_initial_migration_create_all_21_tables.py](file:///d:/Project/database-class/moment-campus/backend/alembic/versions/82978de89068_initial_migration_create_all_21_tables.py) 是空迁移：
+[backend/alembic/versions/82978de89068_initial_migration_create_all_21_tables.py](backend/alembic/versions/82978de89068_initial_migration_create_all_21_tables.py) 是空迁移：
 
 ```python
 def upgrade() -> None:

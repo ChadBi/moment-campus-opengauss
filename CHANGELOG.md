@@ -5,6 +5,48 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+> **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
+
+## [Unreleased] - 2026-07-26
+
+### 阶段四+五：性能优化与质量收尾
+
+- `P2-001` vite.config.ts 添加 manualChunks 拆分 maplibre-gl/react-vendor/icons，MapPage chunk 1043KB→16KB（97% 下降），index.js 307KB→128KB
+- `P2-008` MapPage 瓦片源 OSM→高德栅格（4 个 webrd0{1-4}.is.autonavi.com 子域加速），国内可达性提升
+- `P2-006` api.ts 401 并发刷新加锁：refreshPromise 单例 promise 复用，避免并发 401 多次消费 refresh_token
+- `P2-007` 新增 utils/logger.ts（dev 打印/prod 静默），48 处 console.* 替换为 logger.*（21 个文件）
+- `P2-003` SearchPage HOT_TAGS 改为多租户动态化：useMemo 从当前学校 categories 派生 top 8，fallback 到 FALLBACK_HOT_TAGS
+- `P3-001` 删除 AdminTagsPage.tsx（602 行死代码）+ 4 个零引用 tag API + 3 个 tag 类型
+- `P3-003` 新增 utils/date.ts 4 个函数（formatRelativeTime/formatDate/formatDateTime/formatShortDateTime），15 个文件的本地实现替换为导入
+- `P3-004` 删除 3 对重复 API 定义：uploadApi.uploadAvatar / usersApi.getMyPosts / interactionsApi.transitionPost（零引用）
+- `P3-006` nginx.conf 生产环境关闭 /docs 与 /openapi.json 对外暴露（return 404）
+- `P3-007` CHANGELOG.md 补记阶段一/二/三/四/五全部变更
+- `P3-008` docs/ 下 11 个文件 160+ 处 `file:///d:/Project/database-class/...` 旧盘符路径批量替换为相对路径
+- `P3-011` frontend/README.md 由 Vite 模板默认文案替换为项目说明
+
+### 阶段三：仓库卫生与部署配置
+
+- `P2-009` 7 个 verify_*.py 调试脚本迁移到 backend/tests/manual/（git mv 保留历史），.gitignore 新增 `/verify_*.py` 规则
+- `P2-010` 清理 backend/ 76 个 + 根目录 16 个调试脚本/日志（全部已被 .gitignore 覆盖）
+- `P2-012` 新增 backend/.dockerignore 与 frontend/.dockerignore，排除 .git/.venv/node_modules/tests/logs/.env 等
+- `P2-011` deploy/.env.prod.example 与 backend/.env.example 同步补齐 9 项 AI_* 变量模板；backend/.env.example 修复 SQLite 残留改为 openGauss
+- `P2-002` index.html title/description 移除江南大学硬编码，改为多租户通用文案
+- `P2-005` ProfilePage 与 AdminDashboard 的 handleLogout 改为先 await authApi.logout() 后清本地 state
+
+### 阶段二：多租户与代码质量
+
+- `P1-002` MapPage 接入 useCampusStore 学校中心点 + 分类映射动态化（categoriesApi 拉取，CATEGORY_COLORS/NAMES 保留 fallback）
+- `P1-001` 确认收藏相关代码已彻底移除（前端无残留 UI/调用，后端无残留路由）
+- `P1-004` 清零 ESLint 24 个 error（react-hooks/exhaustive-deps 等），保留 set-state-in-effect 为 warning（项目设计）
+- `P2-013` auth.py:380 移除明文 reset_token 日志，降级为 DEBUG 级别且只记 token 前 8 位
+
+### 阶段一：紧急修复
+
+- `P0-001` frontend/Dockerfile 补 `ARG VITE_API_BASE_URL=/api/v1` + `ENV VITE_API_BASE_URL=$VITE_API_BASE_URL`，修复生产构建 API 地址回退 localhost 的问题
+- `P1-005` README/docs/27 物理模型描述修正（说明为课设交付物，实际部署仅 Alembic 索引）
+- `P1-006` docs/12/13/22 头部增加「⚠️ 本文档已过时」声明
+- `P2-014` AGENTS.md「演示学校唯一」更新为三校口径（江南为主，附带 fudan/zju）
+
 ## [0.1.1] - 2026-07-04
 
 ### 变更

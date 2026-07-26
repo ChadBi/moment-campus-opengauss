@@ -7,6 +7,8 @@ import { Table, Pagination, type Column } from '../../components/ui/Table';
 import { adminApi, type JobRunRecord } from '../../services/admin';
 import { useUIStore } from '../../store/useUIStore';
 import { Wrench, Play, FlaskConical } from 'lucide-react';
+import { logger } from '../../utils/logger';
+import { formatShortDateTime } from '../../utils/date';
 
 const PAGE_SIZE = 10;
 
@@ -41,7 +43,7 @@ const AdminJobsPage: React.FC = () => {
       setTotal(data.total);
       setTotalPages(data.total_pages);
     } catch (error) {
-      console.error('加载任务记录失败:', error);
+      logger.error('加载任务记录失败:', error);
       showToast('加载任务记录失败', 'error');
     } finally {
       setLoading(false);
@@ -85,14 +87,7 @@ const AdminJobsPage: React.FC = () => {
   };
 
   const formatDate = (dateString: string | null) =>
-    dateString
-      ? new Date(dateString).toLocaleString('zh-CN', {
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      : '—';
+    dateString ? formatShortDateTime(dateString) : '—';
 
   const columns: Column<JobRunRecord>[] = [
     {

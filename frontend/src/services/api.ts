@@ -2,6 +2,7 @@ import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 import { useCampusStore } from '../store/useCampusStore';
+import { logger } from '../utils/logger';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
@@ -58,6 +59,12 @@ api.interceptors.request.use(
 // 响应拦截器：处理错误和 Token 刷新
 // 设计原则：操作类请求遇到 401 时只提醒"请登录"，不跳转页面（保留用户当前浏览上下文）。
 // 页面级跳转由 ProtectedRoute 在路由层处理，这里只负责操作层提示。
+//
+// P2-006: 并发 401 加锁 — 多个请求同时收到 401 时，只发起 1 次 /auth/refresh，
+// 其余请求等待同一个 promise 完成后复用结果，避免并发刷新导致 refresh_token 被多次消费
+// （后端 refresh 接口会签发新 refresh_token 并使旧的失效，并发刷新会导致后续请求拿到已失效 token）
+let refreshPromise: Promise<string> | null = null;
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -69,17 +76,28 @@ api.interceptors.response.use(
 
       const refreshToken = useAuthStore.getState().refreshToken;
       if (refreshToken) {
-        try {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refresh_token: refreshToken,
+        // P2-006: 若已有 refresh 进行中，复用其 promise；否则发起新的 refresh
+        if (!refreshPromise) {
+          refreshPromise = (async () => {
+            const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+              refresh_token: refreshToken,
+            });
+            const { access_token, refresh_token: new_refresh_token } = response.data;
+            const user = useAuthStore.getState().user;
+            if (user) {
+              useAuthStore.getState().setAuth(user, access_token, new_refresh_token);
+            }
+            return access_token;
+          })().finally(() => {
+            // 无论成功失败，清空 promise，让后续 401 可再次触发刷新
+            refreshPromise = null;
           });
+        } else {
+          logger.debug('并发 401 复用 refresh promise');
+        }
 
-          const { access_token, refresh_token } = response.data;
-          const user = useAuthStore.getState().user;
-          if (user) {
-            useAuthStore.getState().setAuth(user, access_token, refresh_token);
-          }
-
+        try {
+          const access_token = await refreshPromise;
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
           return api(originalRequest);
         } catch (refreshError) {

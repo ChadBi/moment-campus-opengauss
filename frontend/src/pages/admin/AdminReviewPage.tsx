@@ -12,6 +12,8 @@ import {
   type BatchOperationResult,
 } from '../../services/admin';
 import { Check, X, Eye, FileText, MapPin, User, AlertTriangle } from 'lucide-react';
+import { logger } from '../../utils/logger';
+import { formatShortDateTime as formatDate } from '../../utils/date';
 
 const PAGE_SIZE = 10;
 
@@ -52,7 +54,7 @@ const AdminReviewPage: React.FC = () => {
       setTotalPages(data.total_pages);
       setSelectedKeys([]);
     } catch (error) {
-      console.error('加载待审核帖子失败:', error);
+      logger.error('加载待审核帖子失败:', error);
       setToast({ message: '加载待审核帖子失败', type: 'error' });
     } finally {
       setLoading(false);
@@ -72,7 +74,7 @@ const AdminReviewPage: React.FC = () => {
         setApproveTemplates(tpl.approve);
         setRejectTemplates(tpl.reject);
       })
-      .catch((err) => console.error('加载原因模板失败:', err));
+      .catch((err) => logger.error('加载原因模板失败:', err));
   }, []);
 
   /** 打开审核详情（管理专用接口，pending 帖子公开详情不可见） */
@@ -82,7 +84,7 @@ const AdminReviewPage: React.FC = () => {
       const data = await adminApi.getAdminPostDetail(postId);
       setDetail(data);
     } catch (error) {
-      console.error('加载审核详情失败:', error);
+      logger.error('加载审核详情失败:', error);
       setToast({ message: '加载审核详情失败', type: 'error' });
     } finally {
       setDetailLoading(false);
@@ -131,20 +133,11 @@ const AdminReviewPage: React.FC = () => {
       setDetail(null);
       void loadPosts(page);
     } catch (error) {
-      console.error('审核操作失败:', error);
+      logger.error('审核操作失败:', error);
       setToast({ message: '审核操作失败', type: 'error' });
     } finally {
       setActionSubmitting(false);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   const isRejectAction = actionMode === 'reject' || actionMode === 'batch_reject';

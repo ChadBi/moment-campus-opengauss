@@ -10,6 +10,7 @@ import {
   type CategoryUpdateRequest,
 } from '../../services/admin';
 import { FolderTree, Plus, Pencil, Ban } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 const PAGE_SIZE = 20;
 
@@ -43,7 +44,7 @@ const AdminCategoriesPage: React.FC = () => {
       setTotal(data.total);
       setTotalPages(data.total_pages);
     } catch (error) {
-      console.error('加载分类列表失败:', error);
+      logger.error('加载分类列表失败:', error);
       setToast({ message: '加载分类列表失败', type: 'error' });
     } finally {
       setLoading(false);
@@ -132,7 +133,7 @@ const AdminCategoriesPage: React.FC = () => {
       closePanel();
       loadCategories(page, filterActive);
     } catch (error: unknown) {
-      console.error('保存分类失败:', error);
+      logger.error('保存分类失败:', error);
       const e = error as { response?: { data?: { detail?: string } } };
       const msg = e?.response?.data?.detail || '保存分类失败';
       setToast({ message: msg, type: 'error' });
@@ -149,7 +150,7 @@ const AdminCategoriesPage: React.FC = () => {
       setToast({ message: `分类「${cat.name}」已禁用`, type: 'success' });
       loadCategories(page, filterActive);
     } catch (error: unknown) {
-      console.error('禁用分类失败:', error);
+      logger.error('禁用分类失败:', error);
       const e = error as { response?: { data?: { detail?: string } } };
       const msg = e?.response?.data?.detail || '禁用分类失败';
       setToast({ message: msg, type: 'error' });

@@ -5,6 +5,7 @@ import { Toast } from './ui/Toast';
 import { subscriptionsApi } from '../services/subscriptions';
 import { useAuthStore } from '../store/useAuthStore';
 import type { SubscriptionTargetType } from '../types';
+import { logger } from '../utils/logger';
 
 interface SubscribeButtonProps {
   target_type: SubscriptionTargetType;
@@ -70,7 +71,7 @@ export const SubscribeButton: React.FC<SubscribeButtonProps> = ({
         })
         .catch((err) => {
           // 静默失败：单点状态查询失败不阻塞页面渲染
-          console.warn('订阅状态查询失败:', err);
+          logger.warn('订阅状态查询失败:', err);
         });
     }
   }, [initialSubscribed, isAuthenticated, target_type, target_id]);

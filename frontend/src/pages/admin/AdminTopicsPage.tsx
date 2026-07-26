@@ -26,6 +26,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useSchoolQueryKey } from '../../hooks/useSchoolQueryKey';
+import { logger } from '../../utils/logger';
 
 const PAGE_SIZE = 20;
 
@@ -88,7 +89,7 @@ const AdminTopicsPage: React.FC = () => {
       setTotal(data.total);
       setTotalPages(data.total_pages);
     } catch (err: unknown) {
-      console.error('加载专题列表失败:', err);
+      logger.error('加载专题列表失败:', err);
       const e = err as { response?: { data?: { detail?: string } } };
       setToast({ message: e?.response?.data?.detail || '加载专题列表失败', type: 'error' });
     } finally {
@@ -162,7 +163,7 @@ const AdminTopicsPage: React.FC = () => {
       setEditModalOpen(false);
       void loadTopics(page, statusFilter, keyword);
     } catch (err: unknown) {
-      console.error('保存专题失败:', err);
+      logger.error('保存专题失败:', err);
       const e = err as { response?: { data?: { detail?: string } } };
       setToast({ message: e?.response?.data?.detail || '保存专题失败', type: 'error' });
     } finally {
@@ -266,7 +267,7 @@ const AdminTopicsPage: React.FC = () => {
       const existingIds = new Set(arrangingTopic?.posts.map((p) => p.post_id) || []);
       setSearchedPosts(filtered.filter((p) => !existingIds.has(p.id)));
     } catch (err: unknown) {
-      console.error('搜索帖子失败:', err);
+      logger.error('搜索帖子失败:', err);
       setSearchedPosts([]);
     } finally {
       setSearching(false);

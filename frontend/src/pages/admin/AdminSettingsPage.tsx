@@ -7,6 +7,7 @@ import { Loading } from '../../components/ui/Loading';
 import { adminApi, type SchoolSettings } from '../../services/admin';
 import { useUIStore } from '../../store/useUIStore';
 import { Settings, Save, Cloud, Info, RotateCcw } from 'lucide-react';
+import { logger } from '../../utils/logger';
 
 /**
  * ADM-02.1: 校级系统设置页（后端真实存储，跨浏览器生效）
@@ -51,7 +52,7 @@ const AdminSettingsPage: React.FC = () => {
       setBrandColor(data.brand_color ?? '');
       setLogoUrl(data.logo_url ?? '');
     } catch (error) {
-      console.error('加载学校设置失败:', error);
+      logger.error('加载学校设置失败:', error);
       showToast('加载学校设置失败，请稍后重试', 'error');
     } finally {
       setLoading(false);
@@ -157,7 +158,7 @@ const AdminSettingsPage: React.FC = () => {
       setLogoUrl(updated.logo_url ?? '');
       showToast('设置已保存（全校生效）', 'success');
     } catch (error) {
-      console.error('保存学校设置失败:', error);
+      logger.error('保存学校设置失败:', error);
       showToast('保存失败，请检查网络或权限后重试', 'error');
     } finally {
       setSaving(false);

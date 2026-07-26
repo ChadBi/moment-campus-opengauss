@@ -11,6 +11,7 @@ import { Button } from '../components/ui/Button';
 import { Heart, MessageCircle, Eye, MapPin, Clock, Sparkles } from 'lucide-react';
 import { colors as categoryColors } from '../styles/tokens';
 import { useSchoolQueryKey } from '../hooks/useSchoolQueryKey';
+import { formatRelativeTime as formatDate } from '../utils/date';
 
 const CATEGORY_COLOR_MAP: Record<string, keyof typeof categoryColors.category> = {
   '美食': 'food', '食物': 'food', '餐饮': 'food',
@@ -68,19 +69,6 @@ const HomePage: React.FC = () => {
 
   const handlePostClick = (postId: number) => {
     navigate(`/posts/${postId}`);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    if (diff < 60000) return '刚刚';
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 30) return `${minutes}分钟前`;
-    const hours = Math.floor(diff / 3600000);
-    if (hours < 24) return `${hours}小时前`;
-    const days = Math.floor(diff / 86400000);
-    return `${days}天前`;
   };
 
   // REC-01.2: 推荐模式文案（前端友好提示）

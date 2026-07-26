@@ -46,6 +46,8 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
+import { logger } from '../utils/logger';
+import { formatDateTime, formatRelativeTime as formatDate } from '../utils/date';
 
 // FND-01.1: 举报类型与后端 ReportType 枚举对齐（spam/abuse/harassment/false_info/other）
 const REPORT_OPTIONS: Array<{ value: ReportType; label: string }> = [
@@ -110,28 +112,6 @@ const LOST_TYPE_LABELS: Record<string, string> = {
   found: '招领',
 };
 
-// 把 ISO 时间字符串格式化为 yyyy-MM-dd HH:mm
-function formatDateTime(iso?: string): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  if (diff < 60000) return '刚刚';
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 30) return `${minutes}分钟前`;
-  const hours = Math.floor(diff / 3600000);
-  if (hours < 24) return `${hours}小时前`;
-  const days = Math.floor(diff / 86400000);
-  return `${days}天前`;
-}
-
 // 计算距离过期还剩多久（用于有效期倒计时展示）
 function formatExpireCountdown(expireAt?: string): { text: string; expired: boolean } | null {
   if (!expireAt) return null;
@@ -187,7 +167,7 @@ const PostDetailPage: React.FC = () => {
       const response = await postsApi.getPost(Number(id));
       setPost(response as Post);
     } catch (error) {
-      console.error('加载帖子失败:', error);
+      logger.error('加载帖子失败:', error);
       setToast({ message: '加载帖子失败', type: 'error' });
     } finally {
       setLoading(false);
@@ -199,7 +179,7 @@ const PostDetailPage: React.FC = () => {
       const response = await commentsApi.getComments(Number(id));
       setComments(response.items || []);
     } catch (error) {
-      console.error('加载评论失败:', error);
+      logger.error('加载评论失败:', error);
     }
   };
 

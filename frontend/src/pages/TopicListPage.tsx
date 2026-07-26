@@ -4,6 +4,8 @@ import { topicsApi, type TopicListItem } from '../services/topics';
 import { Loading } from '../components/ui/Loading';
 import { useSchoolQueryKey } from '../hooks/useSchoolQueryKey';
 import { BookOpen, Eye, FileText } from 'lucide-react';
+import { logger } from '../utils/logger';
+import { formatDate } from '../utils/date';
 
 const PAGE_SIZE = 20;
 
@@ -24,7 +26,7 @@ const TopicListPage: React.FC = () => {
       setTopics(data.items);
       setTotalPages(data.total_pages);
     } catch (err: unknown) {
-      console.error('加载专题列表失败:', err);
+      logger.error('加载专题列表失败:', err);
       const e = err as { response?: { status?: number; data?: { detail?: string } } };
       if (e?.response?.status === 404) {
         setError('当前学校暂未开放专题');
@@ -42,12 +44,6 @@ const TopicListPage: React.FC = () => {
 
   const handleTopicClick = (id: number) => {
     navigate(`/topics/${id}`);
-  };
-
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
 
   if (loading && topics.length === 0) {

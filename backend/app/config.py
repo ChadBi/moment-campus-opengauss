@@ -39,7 +39,8 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
 
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:5173"]
+    # 默认放行 Vite 默认端口 5173 及其自动递增的回退端口 5174（避免端口被占用切换后 CORS 拒绝）
+    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:5174"]
 
     # 日志
     LOG_LEVEL: str = "INFO"

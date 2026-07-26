@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Test & lint outputs
+test-results/
+playwright-report/
+eslint-out.txt
+*.tsbuildinfo

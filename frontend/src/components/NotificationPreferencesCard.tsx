@@ -6,6 +6,7 @@ import {
 } from '../services/notifications';
 import { Button } from './ui/Button';
 import { Loading } from './ui/Loading';
+import { logger } from '../utils/logger';
 
 /**
  * UX-01.5: 通知偏好卡片
@@ -99,7 +100,7 @@ export const NotificationPreferencesCard: React.FC<
       setPreferences(data);
       onPreferencesChange?.(data);
     } catch (error) {
-      console.error('加载通知偏好失败:', error);
+      logger.error('加载通知偏好失败:', error);
       setToast({ message: '加载通知偏好失败', type: 'error' });
     } finally {
       setLoading(false);

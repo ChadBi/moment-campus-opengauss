@@ -7,6 +7,7 @@ import { Button } from './ui/Button';
 import { Loading } from './ui/Loading';
 import { Toast } from './ui/Toast';
 import type { Subscription, SubscriptionTargetType } from '../types';
+import { logger } from '../utils/logger';
 
 /**
  * SUB-01: 我的订阅卡片
@@ -61,7 +62,7 @@ export const SubscriptionsCard: React.FC = () => {
       setTotal(data.total);
       setTotalPages(data.total_pages);
     } catch (error) {
-      console.error('加载订阅列表失败:', error);
+      logger.error('加载订阅列表失败:', error);
       setToast({ message: '加载订阅列表失败', type: 'error' });
     } finally {
       setLoading(false);

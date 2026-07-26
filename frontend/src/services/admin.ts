@@ -53,18 +53,6 @@ export interface CategoryAdmin {
   post_count: number;
 }
 
-/** 标签（管理视图，含已删项） */
-export interface TagAdmin {
-  id: number;
-  name: string;
-  slug: string;
-  usage_count: number;
-  is_official: boolean;
-  is_deleted: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 /** 批量操作单项失败明细（ADM-01.4） */
 export interface BatchFailedItem {
   id: number;
@@ -393,14 +381,6 @@ export interface CategoryQueryParams {
   is_active?: boolean;
 }
 
-export interface TagQueryParams {
-  page?: number;
-  page_size?: number;
-  name?: string;
-  is_official?: boolean;
-  is_deleted?: boolean;
-}
-
 export interface UserQueryParams {
   page?: number;
   page_size?: number;
@@ -437,16 +417,6 @@ export interface CategoryUpdateRequest {
   default_validity_days?: number;
   sort_order?: number;
   is_active?: boolean;
-}
-
-export interface TagUpdateRequest {
-  name?: string;
-  is_official?: boolean;
-}
-
-export interface TagMergeRequest {
-  source_tag_ids: number[];
-  target_tag_id: number;
 }
 
 export interface BatchApproveRequest {
@@ -516,27 +486,6 @@ export const adminApi = {
 
   deleteCategory: async (id: number): Promise<{ message: string }> => {
     const response = await api.delete(`/admin/categories/${id}`);
-    return response.data;
-  },
-
-  // -------- 标签管理 --------
-  getTags: async (params?: TagQueryParams): Promise<PaginatedResponse<TagAdmin>> => {
-    const response = await api.get('/admin/tags', { params });
-    return response.data;
-  },
-
-  updateTag: async (id: number, data: TagUpdateRequest): Promise<TagAdmin> => {
-    const response = await api.put(`/admin/tags/${id}`, data);
-    return response.data;
-  },
-
-  deleteTag: async (id: number): Promise<{ message: string }> => {
-    const response = await api.delete(`/admin/tags/${id}`);
-    return response.data;
-  },
-
-  mergeTags: async (data: TagMergeRequest): Promise<BatchOperationResult> => {
-    const response = await api.post('/admin/tags/merge', data);
     return response.data;
   },
 

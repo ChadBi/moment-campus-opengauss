@@ -21,6 +21,10 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
 
+    /* P1-003: 渐进启用 strict（先 strictNullChecks + noImplicitAny） */
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+
     /* Path Mapping */
     "baseUrl": ".",
     "paths": {

@@ -11,6 +11,7 @@ import PostForm from '../components/PostForm';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 import { useCampusStore } from '../store/useCampusStore';
+import { logger } from '../utils/logger';
 
 // PUB-01.1: 分类列表改为从 API 动态拉取（按当前学校过滤），不再硬编码
 // 分类颜色映射保留作为地图标记视觉差异化用，未命中的分类回退灰色
@@ -243,18 +244,26 @@ const MapPage: React.FC = () => {
       style: {
         version: 8,
         sources: {
-          osm: {
+          // P2-008: 切换为国内可达瓦片源（高德栅格），避免 OSM 瓦片在国内加载缓慢/不可达
+          // 高德栅格瓦片无需 API Key 即可访问基础底图（适用于校园级演示场景）
+          // 如需商业使用，请申请高德 Key 并切换为官方瓦片接口
+          amap: {
             type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tiles: [
+              'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+              'https://webrd02.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+              'https://webrd03.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+              'https://webrd04.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+            ],
             tileSize: 256,
-            attribution: '&copy; OpenStreetMap contributors',
+            attribution: '&copy; 高德地图 (AMap)',
           },
         },
         layers: [
           {
-            id: 'osm-tiles',
+            id: 'amap-tiles',
             type: 'raster',
-            source: 'osm',
+            source: 'amap',
             minzoom: 0,
             maxzoom: 19,
           },
@@ -277,7 +286,7 @@ const MapPage: React.FC = () => {
     mapInstance.on('error', (e) => {
       // 仅在地图源/style 错误时降级；普通 marker 加载错误不影响主视图
       const err = (e as unknown as { error?: Error })?.error;
-      console.error('地图加载失败:', err || e);
+      logger.error('地图加载失败:', err || e);
       setMapFailed(true);
       showToast('地图加载失败，已切换到列表视图', 'error');
     });

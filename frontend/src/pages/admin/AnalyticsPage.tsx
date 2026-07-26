@@ -24,6 +24,7 @@ import {
   EyeOff,
   Activity,
 } from 'lucide-react';
+import { formatShortDateTime } from '../../utils/date';
 
 const formatRate = (rate: number): string => `${(rate * 100).toFixed(1)}%`;
 const formatNumber = (n: number): string => n.toLocaleString('zh-CN');
@@ -33,19 +34,8 @@ const formatSeconds = (sec: number): string => {
   if (sec < 3600) return `${(sec / 60).toFixed(1)} 分`;
   return `${(sec / 3600).toFixed(1)} 时`;
 };
-const formatDateTime = (iso: string | null): string => {
-  if (!iso) return '-';
-  try {
-    return new Date(iso).toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
-};
+const formatDateTime = (iso: string | null): string =>
+  formatShortDateTime(iso);
 
 /**
  * 元数据小卡：显示时间窗口/样本量/最后更新/空数据状态

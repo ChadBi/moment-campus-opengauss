@@ -5,6 +5,8 @@ import { Badge } from '../../components/ui/Badge';
 import { Table, Pagination, type Column } from '../../components/ui/Table';
 import { adminApi, type ReportBrief, type HandleReportRequest } from '../../services/admin';
 import { Flag } from 'lucide-react';
+import { logger } from '../../utils/logger';
+import { formatShortDateTime as formatDate } from '../../utils/date';
 
 const PAGE_SIZE = 10;
 
@@ -52,7 +54,7 @@ const AdminReportsPage: React.FC = () => {
       setTotal(data.total);
       setTotalPages(data.total_pages);
     } catch (error) {
-      console.error('加载举报列表失败:', error);
+      logger.error('加载举报列表失败:', error);
       setToast({ message: '加载举报列表失败', type: 'error' });
     } finally {
       setLoading(false);
@@ -93,20 +95,11 @@ const AdminReportsPage: React.FC = () => {
       closeProcessPanel();
       loadReports(page, filterStatus);
     } catch (error) {
-      console.error('处理失败:', error);
+      logger.error('处理失败:', error);
       setToast({ message: '处理失败', type: 'error' });
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   // 表格列配置

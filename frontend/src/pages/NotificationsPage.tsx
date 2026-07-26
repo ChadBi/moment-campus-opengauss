@@ -8,6 +8,8 @@ import { Button } from '../components/ui/Button';
 import { Loading } from '../components/ui/Loading';
 import { Toast } from '../components/ui/Toast';
 import { Bell, Check, CheckCheck, LogIn } from 'lucide-react';
+import { logger } from '../utils/logger';
+import { formatRelativeTime } from '../utils/date';
 
 const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -22,7 +24,7 @@ const NotificationsPage: React.FC = () => {
       const response = await notificationsApi.getNotifications();
       setNotifications(response.items as Notification[]);
     } catch (error) {
-      console.error('加载通知失败:', error);
+      logger.error('加载通知失败:', error);
       setToast({ message: '加载通知失败', type: 'error' });
     } finally {
       setLoading(false);
@@ -89,18 +91,8 @@ const NotificationsPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    if (diff < 60000) return '刚刚';
-    const minutes = Math.floor(diff / 60000);
-    if (minutes < 30) return `${minutes}分钟前`;
-    const hours = Math.floor(diff / 3600000);
-    if (hours < 24) return `${hours}小时前`;
-    const days = Math.floor(diff / 86400000);
-    return `${days}天前`;
-  };
+  const formatDate = (dateString: string) => formatRelativeTime(dateString);
+  // P3-003: formatDate 已抽取到 utils/date，这里保留别名避免大范围改名
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
