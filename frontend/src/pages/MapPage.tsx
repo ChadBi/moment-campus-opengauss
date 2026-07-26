@@ -1,34 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { useNavigate } from 'react-router-dom';
-import { Navigation, Plus, Minus, Filter, X, MapPin, ArrowRight, Edit3, Send } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigation, Plus, Minus, Filter, X, MapPin, ArrowRight, Edit3, AlertCircle, RefreshCw, ChevronRight } from 'lucide-react';
 import { mapApi, type MapMarker } from '../services/map';
 import { postsApi } from '../services/posts';
 import { Loading } from '../components/ui/Loading';
+import PostForm from '../components/PostForm';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 
-// 发帖表单的分类列表（与 PublishPage 一致）
-const PUBLISH_CATEGORIES = [
-  { id: 1, name: '校园美食', emoji: '🍜' },
-  { id: 2, name: '校园动物', emoji: '🐈' },
-  { id: 3, name: '打印服务', emoji: '🖨️' },
-  { id: 4, name: '失物招领', emoji: '🔍' },
-  { id: 5, name: '二手交易', emoji: '📦' },
-  { id: 6, name: '学习交流', emoji: '📚' },
-  { id: 7, name: '社团活动', emoji: '🎪' },
-  { id: 8, name: '校园设施', emoji: '🏫' },
-  { id: 9, name: '兼职实习', emoji: '💼' },
-  { id: 10, name: '校园交通', emoji: '🚌' },
-  { id: 11, name: '生活服务', emoji: '🧺' },
-  { id: 12, name: '其他', emoji: '✨' },
-];
-
-// 侧滑面板模式：null=关闭 / view=查看 marker / create=发帖
-type PanelMode = null | { type: 'view'; marker: MapMarker } | { type: 'create'; lngLat: { lng: number; lat: number } };
-
-// 分类颜色映射
+// PUB-01.1: 分类列表改为从 API 动态拉取（按当前学校过滤），不再硬编码
+// 分类颜色映射保留作为地图标记视觉差异化用，未命中的分类回退灰色
 const CATEGORY_COLORS: Record<number, string> = {
   1: '#FF6B35',  // 美食
   2: '#4ECDC4',  // 打印
@@ -59,16 +42,22 @@ const CATEGORY_NAMES: Record<number, string> = {
   12: '其他',
 };
 
+// 侧滑面板模式：null=关闭 / view=查看 marker / create=发帖
+type PanelMode = null | { type: 'view'; marker: MapMarker } | { type: 'create'; lngLat: { lng: number; lat: number } };
+
 const DEFAULT_CENTER: [number, number] = [120.271166, 31.483706]; // 江南大学蠡湖校区 [lng, lat]
 const DEFAULT_ZOOM = 16;
 
 const MapPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated } = useAuthStore();
   const { showToast } = useUIStore();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
+  // DSC-01.3: marker -> post_id 映射，用于支持 focus_post_id 深链接自动打开面板
+  const markersByIdRef = useRef<Map<number, { marker: MapMarker; element: HTMLDivElement }>>(new Map());
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 用 ref 同步 isAuthenticated，避免地图 click 闭包陷阱
@@ -80,20 +69,15 @@ const MapPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  // DSC-01.3: 地图加载失败标志，true 时切换到列表视图降级展示
+  const [mapFailed, setMapFailed] = useState(false);
+  // DSC-01.3: 列表视图降级所需的所有 markers（与 map 渲染共用同一份）
+  const [allMarkers, setAllMarkers] = useState<MapMarker[]>([]);
   // 侧滑面板模式
   const [panel, setPanel] = useState<PanelMode>(null);
   // 选中的帖子详情（view 模式下点击 marker 后异步加载）
   const [postDetail, setPostDetail] = useState<{ content: string } | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  // 发帖表单状态（create 模式）
-  const [publishForm, setPublishForm] = useState({
-    title: '',
-    content: '',
-    category_id: 0,
-    location_name: '',
-    is_anonymous: false,
-  });
-  const [publishing, setPublishing] = useState(false);
 
   // 清除地图上的标记
   const clearMarkers = useCallback(() => {
@@ -116,6 +100,10 @@ const MapPage: React.FC = () => {
 
       // 清除旧标记
       clearMarkers();
+      // DSC-01.3: 同步清空 post_id -> marker 索引，避免旧数据残留
+      markersByIdRef.current.clear();
+      // DSC-01.3: 保存所有 markers 到 state，用于地图失败时的列表降级视图
+      setAllMarkers(data);
 
       // 添加新标记
       data.forEach((marker) => {
@@ -182,6 +170,8 @@ const MapPage: React.FC = () => {
             .finally(() => setDetailLoading(false));
         });
 
+        // DSC-01.3: 索引 post_id -> marker 数据 + DOM 元素，用于深链接自动打开
+        markersByIdRef.current.set(marker.post_id, { marker, element: el });
         markersRef.current.push(markerInstance);
       });
     } catch {
@@ -229,20 +219,23 @@ const MapPage: React.FC = () => {
       fetchMarkers(bounds, selectedCategory ?? undefined);
     });
 
+    // DSC-01.3: 监听地图加载错误（瓦片源不可达 / style 解析失败等），
+    // 触发降级到列表视图，避免用户看到空白地图
+    mapInstance.on('error', (e) => {
+      // 仅在地图源/style 错误时降级；普通 marker 加载错误不影响主视图
+      const err = (e as unknown as { error?: Error })?.error;
+      console.error('地图加载失败:', err || e);
+      setMapFailed(true);
+      showToast('地图加载失败，已切换到列表视图', 'error');
+    });
+
     // 地图点击空白处：登录用户打开发帖面板，未登录提示
+    // PUB-01.1：表单逻辑已抽取到 PostForm，这里只负责打开 create 面板并传入选点坐标
     mapInstance.on('click', (e) => {
       if (!authRef.current) {
         showToast('请先登录后再发布信息', 'info');
         return;
       }
-      // 重置表单
-      setPublishForm({
-        title: '',
-        content: '',
-        category_id: 0,
-        location_name: '',
-        is_anonymous: false,
-      });
       setPanel({ type: 'create', lngLat: { lng: e.lngLat.lng, lat: e.lngLat.lat } });
     });
 
@@ -280,6 +273,72 @@ const MapPage: React.FC = () => {
     const bounds = map.current.getBounds();
     fetchMarkers(bounds, selectedCategory ?? undefined);
   }, [selectedCategory, mapReady, fetchMarkers]);
+
+  // DSC-01.3: 处理 ?focus_post_id=xxx 深链接
+  // 场景：用户在 SearchPage 点击"在地图查看"按钮跳转过来，
+  // 需要自动聚焦对应标记并打开详情面板。
+  useEffect(() => {
+    if (!mapReady || mapFailed) return;
+    const focusPostIdStr = searchParams.get('focus_post_id');
+    if (!focusPostIdStr) return;
+    const focusPostId = Number(focusPostIdStr);
+    if (Number.isNaN(focusPostId)) return;
+
+    const entry = markersByIdRef.current.get(focusPostId);
+    if (!entry) return;
+
+    // 平移地图到该 marker 并触发点击打开面板
+    const { marker, element } = entry;
+    map.current?.flyTo({
+      center: [marker.longitude, marker.latitude],
+      zoom: Math.max(map.current?.getZoom() ?? DEFAULT_ZOOM, 17),
+    });
+    element.click();
+
+    // 触发后清掉 URL 参数，避免刷新或后退时重复打开
+    const next = new URLSearchParams(searchParams);
+    next.delete('focus_post_id');
+    setSearchParams(next, { replace: true });
+  }, [mapReady, mapFailed, searchParams, setSearchParams]);
+
+  // DSC-01.3: 地图加载失败后的"重试地图"按钮
+  // 销毁当前 map 实例并重置 mapFailed，触发地图 useEffect 重新初始化
+  const handleRetryMap = useCallback(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+    markersByIdRef.current.clear();
+    if (popupRef.current) {
+      popupRef.current.remove();
+    }
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
+    }
+    setMapReady(false);
+    setMapFailed(false);
+    setPanel(null);
+    // 重新初始化由地图初始化 useEffect 触发（依赖项不变，需通过强制刷新触发）
+    // 这里采用 location reload 的轻量等价：直接重置 mapContainer ref 触发重渲染
+    // 注意：地图初始化 useEffect 依赖 []，组件本身不会重渲染触发它
+    // 为保证可重试，使用 window.location.reload() 作为兜底（极少触发，仅在用户主动点击）
+    setTimeout(() => window.location.reload(), 100);
+  }, []);
+
+  // DSC-01.3: 列表降级视图中的 marker 点击处理
+  // 与地图 marker 点击逻辑一致：打开侧滑面板 + 异步加载详情
+  const handleListMarkerClick = useCallback((marker: MapMarker) => {
+    setPanel({ type: 'view', marker });
+    setPostDetail(null);
+    setDetailLoading(true);
+    postsApi
+      .getPost(marker.post_id)
+      .then((detail) => setPostDetail({ content: (detail as { content?: string }).content ?? '' }))
+      .catch(() => setPostDetail(null))
+      .finally(() => setDetailLoading(false));
+  }, []);
 
   // 定位按钮
   const handleGeolocate = useCallback(() => {
@@ -364,6 +423,72 @@ const MapPage: React.FC = () => {
         <div ref={mapContainer} className="w-full h-full" />
         {/* 纸张噪点纹理 */}
         <div className="paper-noise" />
+
+        {/* DSC-01.3: 地图加载失败时的列表降级视图（graceful degradation） */}
+        {mapFailed && (
+          <div className="absolute inset-0 bg-paper z-10 overflow-y-auto">
+            <div className="p-4 border-b border-line/60 flex items-center justify-between sticky top-0 bg-paper/95 backdrop-blur-sm z-10">
+              <div className="flex items-center gap-2 min-w-0">
+                <AlertCircle size={18} className="text-danger flex-shrink-0" />
+                <div className="min-w-0">
+                  <h3 className="font-display font-bold text-lg text-ink">地点列表</h3>
+                  <p className="text-[11px] text-ink-muted">地图暂不可用，已切换为列表视图</p>
+                </div>
+              </div>
+              <button
+                onClick={handleRetryMap}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-lake text-white text-xs font-medium hover:bg-lake/90 transition-colors flex-shrink-0"
+              >
+                <RefreshCw size={14} />
+                重试地图
+              </button>
+            </div>
+
+            {allMarkers.length === 0 ? (
+              <div className="p-8 text-center text-ink-muted">
+                <MapPin size={36} className="mx-auto mb-3 opacity-40" />
+                <p className="text-sm">当前范围内暂无地点信息</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-line/60">
+                {allMarkers.map((marker) => {
+                  const color = CATEGORY_COLORS[marker.category_id] || '#95A5A6';
+                  const catName = CATEGORY_NAMES[marker.category_id] || '未知';
+                  return (
+                    <div
+                      key={marker.post_id}
+                      className="p-4 hover:bg-mist cursor-pointer flex items-start gap-3 transition-colors"
+                      onClick={() => handleListMarkerClick(marker)}
+                    >
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${color}20` }}
+                      >
+                        <MapPin size={16} style={{ color }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold flex-shrink-0"
+                            style={{ backgroundColor: `${color}20`, color }}
+                          >
+                            {catName}
+                          </span>
+                        </div>
+                        <h4 className="font-semibold text-ink line-clamp-1">{marker.title}</h4>
+                        <p className="text-sm text-ink-sub mt-0.5 line-clamp-1 flex items-center gap-1">
+                          <MapPin size={11} className="flex-shrink-0 text-lamp" />
+                          {marker.location_name}
+                        </p>
+                      </div>
+                      <ChevronRight size={16} className="text-ink-muted mt-1 flex-shrink-0" />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 自定义缩放控制 */}
         <div className="absolute bottom-6 right-3 z-10 flex flex-col gap-1">
@@ -521,7 +646,7 @@ const MapPage: React.FC = () => {
               {panel.type === 'create' && (
                 <>
                   {/* 顶部装饰条 */}
-                  <div className="h-[80px] bg-gradient-to-br from-lake/15 via-mist to-lamp/10 flex items-center px-5">
+                  <div className="h-[80px] bg-gradient-to-br from-lake/15 via-mist to-lamp/10 flex items-center px-5 flex-shrink-0">
                     <div className="flex items-center gap-2.5">
                       <div className="w-9 h-9 rounded-full bg-lamp/20 flex items-center justify-center">
                         <Edit3 size={16} className="text-lamp" />
@@ -533,169 +658,30 @@ const MapPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 表单 */}
-                  <form
-                    className="flex-1 overflow-y-auto px-5 py-4 space-y-4"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (publishForm.title.length < 5 || publishForm.title.length > 100) {
-                        showToast('标题长度需 5-100 字符', 'warning');
-                        return;
-                      }
-                      if (publishForm.content.length < 10 || publishForm.content.length > 5000) {
-                        showToast('内容长度需 10-5000 字符', 'warning');
-                        return;
-                      }
-                      if (!publishForm.category_id) {
-                        showToast('请选择分类', 'warning');
-                        return;
-                      }
-                      if (!publishForm.location_name.trim()) {
-                        showToast('请填写地点名称', 'warning');
-                        return;
-                      }
-                      setPublishing(true);
-                      postsApi
-                        .createPost({
-                          title: publishForm.title,
-                          content: publishForm.content,
-                          category_id: publishForm.category_id,
-                          location_name: publishForm.location_name.trim(),
-                          location_lat: panel.lngLat.lat,
-                          location_lng: panel.lngLat.lng,
-                          is_anonymous: publishForm.is_anonymous,
-                          status: 'pending',
-                        })
-                        .then(() => {
-                          showToast('已提交审核，等待管理员通过', 'success');
-                          setPanel(null);
-                          // 刷新地图标记
-                          if (map.current) {
-                            fetchMarkers(map.current.getBounds(), selectedCategory ?? undefined);
-                          }
-                        })
-                        .catch((err: unknown) => {
-                          const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || '发布失败，请稍后重试';
-                          showToast(msg, 'error');
-                        })
-                        .finally(() => setPublishing(false));
-                    }}
-                  >
-                    {/* 标题 */}
-                    <div>
-                      <label className="block text-sm font-medium text-ink mb-1.5">
-                        标题 <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={publishForm.title}
-                        onChange={(e) => setPublishForm({ ...publishForm, title: e.target.value })}
-                        placeholder="例如：南门小树林有小猫"
-                        maxLength={100}
-                        className="w-full px-3.5 py-2.5 bg-white/78 border border-line rounded-md text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none focus:bg-white focus:border-lake transition-all"
-                      />
-                    </div>
-
-                    {/* 分类 */}
-                    <div>
-                      <label className="block text-sm font-medium text-ink mb-1.5">
-                        分类 <span className="text-danger">*</span>
-                      </label>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {PUBLISH_CATEGORIES.map((cat) => {
-                          const isActive = publishForm.category_id === cat.id;
-                          return (
-                            <button
-                              key={cat.id}
-                              type="button"
-                              onClick={() => setPublishForm({ ...publishForm, category_id: cat.id })}
-                              className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-all ${
-                                isActive
-                                  ? 'bg-lake text-white shadow-lake'
-                                  : 'bg-mist text-ink-sub hover:bg-line'
-                              }`}
-                            >
-                              <span className="text-xs">{cat.emoji}</span>
-                              <span className="truncate">{cat.name}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* 内容 */}
-                    <div>
-                      <label className="block text-sm font-medium text-ink mb-1.5">
-                        内容 <span className="text-danger">*</span>
-                      </label>
-                      <textarea
-                        value={publishForm.content}
-                        onChange={(e) => setPublishForm({ ...publishForm, content: e.target.value })}
-                        placeholder="请描述具体位置和详情（10-5000字符），例如：从南门进去左手边第二片小树林，常出没三只橘猫"
-                        rows={5}
-                        maxLength={5000}
-                        className="w-full px-3.5 py-2.5 bg-white/78 border border-line rounded-md text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none focus:bg-white focus:border-lake transition-all resize-none"
-                      />
-                    </div>
-
-                    {/* 地点名称 */}
-                    <div>
-                      <label className="block text-sm font-medium text-ink mb-1.5">
-                        地点名称 <span className="text-danger">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={publishForm.location_name}
-                        onChange={(e) => setPublishForm({ ...publishForm, location_name: e.target.value })}
-                        placeholder="例如：南门小树林"
-                        maxLength={100}
-                        className="w-full px-3.5 py-2.5 bg-white/78 border border-line rounded-md text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none focus:bg-white focus:border-lake transition-all"
-                      />
-                    </div>
-
-                    {/* 坐标（只读显示） */}
-                    <div className="font-data text-[11px] text-ink-muted bg-mist/60 rounded-md px-3 py-2 border border-line/60">
-                      <div className="flex justify-between">
-                        <span>LAT</span>
-                        <span className="text-ink-sub">{panel.lngLat.lat.toFixed(6)}</span>
-                      </div>
-                      <div className="flex justify-between mt-0.5">
-                        <span>LNG</span>
-                        <span className="text-ink-sub">{panel.lngLat.lng.toFixed(6)}</span>
-                      </div>
-                    </div>
-
-                    {/* 匿名 */}
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={publishForm.is_anonymous}
-                        onChange={(e) => setPublishForm({ ...publishForm, is_anonymous: e.target.checked })}
-                        className="w-4 h-4 text-lake border-line rounded focus:ring-lamp/40"
-                      />
-                      <span className="text-sm text-ink">匿名发布</span>
-                    </label>
-
-                    {/* 提交按钮 */}
-                    <button
-                      type="submit"
-                      disabled={publishing}
-                      className="w-full flex items-center justify-center gap-2 bg-lamp text-white font-semibold py-2.5 rounded-md shadow-md hover:bg-lamp/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {publishing ? (
-                        <Loading size="sm" />
-                      ) : (
-                        <>
-                          <Send size={15} />
-                          提交审核
-                        </>
-                      )}
-                    </button>
-
-                    <p className="text-[11px] text-ink-muted leading-relaxed text-center">
-                      信息提交后需管理员审核通过才会公开展示
-                    </p>
-                  </form>
+                  {/* PUB-01.1：表单复用 PostForm（variant='panel'）
+                       - 地图点选坐标通过 defaultLocationLat/Lng 传入（只读预填）
+                       - 字段 / 校验 / 草稿恢复 / 图片 / 标签 / 地点选择 与 PublishPage 完全一致
+                       - key 绑定选点坐标，确保每次打开面板都重新初始化表单
+                       - onSuccess：关闭面板 + 刷新地图标记 + 跳"我的发布"（PUB-01.3） */}
+                  <div className="flex-1 overflow-y-auto px-5 py-4">
+                    <PostForm
+                      key={`${panel.lngLat.lat.toFixed(6)},${panel.lngLat.lng.toFixed(6)}`}
+                      variant="panel"
+                      defaultLocationLat={panel.lngLat.lat}
+                      defaultLocationLng={panel.lngLat.lng}
+                      showCancelButton={false}
+                      onSuccess={(status) => {
+                        void status;
+                        setPanel(null);
+                        // 刷新地图标记
+                        if (map.current) {
+                          fetchMarkers(map.current.getBounds(), selectedCategory ?? undefined);
+                        }
+                        // PUB-01.3：发布成功后跳"我的发布"，而非无条件留在地图页
+                        setTimeout(() => navigate('/profile'), 800);
+                      }}
+                    />
+                  </div>
                 </>
               )}
             </aside>

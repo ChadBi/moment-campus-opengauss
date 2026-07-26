@@ -3,6 +3,15 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { MainLayout } from './components/layout';
 import { Loading } from './components/ui';
 import { useAuthStore } from './store/useAuthStore';
+import { useSchoolSync } from './hooks/useSchoolSync';
+
+// ACC-01.1: 保留当前路径作为登录后回跳目标
+function buildLoginRedirect(): string {
+  const loc = window.location;
+  const params = new URLSearchParams(loc.search);
+  params.set('redirect', loc.pathname + loc.search);
+  return `/login?${params.toString()}`;
+}
 
 // Lazy load pages
 const loadHomePage = () => import('./pages/HomePage');
@@ -10,47 +19,82 @@ const loadMapPage = () => import('./pages/MapPage');
 const loadSearchPage = () => import('./pages/SearchPage');
 const loadPostDetailPage = () => import('./pages/PostDetailPage');
 const loadPublishPage = () => import('./pages/PublishPage');
+const loadPublishersPage = () => import('./pages/PublishersPage');
 const loadProfilePage = () => import('./pages/ProfilePage');
 const loadNotificationsPage = () => import('./pages/NotificationsPage');
 const loadLoginPage = () => import('./pages/LoginPage');
 const loadRegisterPage = () => import('./pages/RegisterPage');
+const loadForgotPasswordPage = () => import('./pages/ForgotPasswordPage');
 const loadNotFoundPage = () => import('./pages/NotFoundPage');
+// TOPIC-01.1: 用户端专题
+const loadTopicListPage = () => import('./pages/TopicListPage');
+const loadTopicDetailPage = () => import('./pages/TopicDetailPage');
 
 const HomePage = lazy(loadHomePage);
 const MapPage = lazy(loadMapPage);
 const SearchPage = lazy(loadSearchPage);
 const PostDetailPage = lazy(loadPostDetailPage);
 const PublishPage = lazy(loadPublishPage);
+const PublishersPage = lazy(loadPublishersPage);
 const ProfilePage = lazy(loadProfilePage);
 const NotificationsPage = lazy(loadNotificationsPage);
 const LoginPage = lazy(loadLoginPage);
 const RegisterPage = lazy(loadRegisterPage);
+const ForgotPasswordPage = lazy(loadForgotPasswordPage);
 const NotFoundPage = lazy(loadNotFoundPage);
+const TopicListPage = lazy(loadTopicListPage);
+const TopicDetailPage = lazy(loadTopicDetailPage);
 
 // Admin pages
 const loadAdminDashboard = () => import('./pages/admin/AdminDashboard');
 const loadAdminHomePage = () => import('./pages/admin/AdminHomePage');
 const loadAdminReviewPage = () => import('./pages/admin/AdminReviewPage');
+const loadAdminGovernancePage = () => import('./pages/admin/AdminGovernancePage');
 const loadAdminReportsPage = () => import('./pages/admin/AdminReportsPage');
 const loadAdminUsersPage = () => import('./pages/admin/AdminUsersPage');
 const loadAdminCategoriesPage = () => import('./pages/admin/AdminCategoriesPage');
+const loadAdminLocationsPage = () => import('./pages/admin/AdminLocationsPage');
+const loadAdminTopicsPage = () => import('./pages/admin/AdminTopicsPage');
+const loadAdminPublishersPage = () => import('./pages/admin/AdminPublishersPage');
+const loadAdminJobsPage = () => import('./pages/admin/AdminJobsPage');
 const loadAdminLogsPage = () => import('./pages/admin/AdminLogsPage');
 const loadAdminSettingsPage = () => import('./pages/admin/AdminSettingsPage');
+const loadUsagePage = () => import('./pages/admin/UsagePage');
+// ANA-02.2: 校级数据分析页（admin 及以上）
+const loadAnalyticsPage = () => import('./pages/admin/AnalyticsPage');
+const loadPlatformOverviewPage = () => import('./pages/admin/PlatformOverviewPage');
+const loadPlatformPlansPage = () => import('./pages/admin/PlatformPlansPage');
+const loadPlatformSchoolsPage = () => import('./pages/admin/PlatformSchoolsPage');
+const loadSchoolImportPage = () => import('./pages/admin/SchoolImportPage');
+const loadActivationFunnelPage = () => import('./pages/admin/ActivationFunnelPage');
 
 const AdminDashboard = lazy(loadAdminDashboard);
 const AdminHomePage = lazy(loadAdminHomePage);
 const AdminReviewPage = lazy(loadAdminReviewPage);
+const AdminGovernancePage = lazy(loadAdminGovernancePage);
 const AdminReportsPage = lazy(loadAdminReportsPage);
 const AdminUsersPage = lazy(loadAdminUsersPage);
 const AdminCategoriesPage = lazy(loadAdminCategoriesPage);
+const AdminLocationsPage = lazy(loadAdminLocationsPage);
+const AdminTopicsPage = lazy(loadAdminTopicsPage);
+const AdminPublishersPage = lazy(loadAdminPublishersPage);
+const AdminJobsPage = lazy(loadAdminJobsPage);
 const AdminLogsPage = lazy(loadAdminLogsPage);
 const AdminSettingsPage = lazy(loadAdminSettingsPage);
+const UsagePage = lazy(loadUsagePage);
+const AnalyticsPage = lazy(loadAnalyticsPage);
+const PlatformOverviewPage = lazy(loadPlatformOverviewPage);
+const PlatformPlansPage = lazy(loadPlatformPlansPage);
+const PlatformSchoolsPage = lazy(loadPlatformSchoolsPage);
+const SchoolImportPage = lazy(loadSchoolImportPage);
+const ActivationFunnelPage = lazy(loadActivationFunnelPage);
 
 const commonRouteLoaders = [
   loadHomePage,
   loadSearchPage,
   loadPostDetailPage,
   loadPublishPage,
+  loadPublishersPage,
   loadProfilePage,
   loadNotificationsPage,
 ];
@@ -59,11 +103,25 @@ const adminRouteLoaders = [
   loadAdminDashboard,
   loadAdminHomePage,
   loadAdminReviewPage,
+  loadAdminGovernancePage,
   loadAdminReportsPage,
   loadAdminUsersPage,
   loadAdminCategoriesPage,
+  loadAdminLocationsPage,
+  loadAdminTopicsPage,
+  loadAdminJobsPage,
   loadAdminLogsPage,
   loadAdminSettingsPage,
+  loadUsagePage,
+  loadAnalyticsPage,
+];
+
+const superAdminRouteLoaders = [
+  loadPlatformOverviewPage,
+  loadPlatformPlansPage,
+  loadPlatformSchoolsPage,
+  loadSchoolImportPage,
+  loadActivationFunnelPage,
 ];
 
 const prefetchRouteLoaders = (loaders: Array<() => Promise<unknown>>) => {
@@ -73,17 +131,22 @@ const prefetchRouteLoaders = (loaders: Array<() => Promise<unknown>>) => {
 };
 
 // Protected Route
-const ProtectedRoute: React.FC<{ children: React.ReactNode; requireAdmin?: boolean }> = ({ children, requireAdmin }) => {
+const ProtectedRoute: React.FC<{ children: React.ReactNode; requireAdmin?: boolean; requireSuperAdmin?: boolean }> = ({ children, requireAdmin, requireSuperAdmin }) => {
   // 同时检查 isAuthenticated 和 accessToken，防止 zustand persist 残留状态
   // （isAuthenticated=true 但 accessToken 已过期/被清空时仍跳转登录）
   const { isAuthenticated, accessToken, user } = useAuthStore();
 
   if (!isAuthenticated || !accessToken) {
-    return <Navigate to="/login" replace />;
+    // ACC-01.1: 记录回跳目标，登录后返回原页面
+    return <Navigate to={buildLoginRedirect()} replace />;
   }
 
   if (requireAdmin && user?.role !== 'admin' && user?.role !== 'super_admin') {
     return <Navigate to="/" replace />;
+  }
+
+  if (requireSuperAdmin && user?.role !== 'super_admin') {
+    return <Navigate to="/admin" replace />;
   }
 
   return <>{children}</>;
@@ -92,6 +155,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requireAdmin?: boole
 const RouteChunkPrefetcher: React.FC = () => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === 'super_admin';
 
   useEffect(() => {
     const commonTimer = window.setTimeout(() => {
@@ -119,6 +183,18 @@ const RouteChunkPrefetcher: React.FC = () => {
     return () => window.clearTimeout(adminTimer);
   }, [isAdmin]);
 
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      return;
+    }
+
+    const superAdminTimer = window.setTimeout(() => {
+      prefetchRouteLoaders(superAdminRouteLoaders);
+    }, 2400);
+
+    return () => window.clearTimeout(superAdminTimer);
+  }, [isSuperAdmin]);
+
   return null;
 };
 
@@ -130,6 +206,7 @@ const AnimatedRoutes: React.FC = () => {
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         {/* Protected Routes with MainLayout */}
         <Route element={<MainLayout />}>
@@ -137,6 +214,12 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/map" element={<MapPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/posts/:id" element={<PostDetailPage />} />
+          {/* ORG-01: 官方发布主体（公开主页，列表 + 详情） */}
+          <Route path="/publishers" element={<PublishersPage />} />
+          <Route path="/publishers/:publisherId" element={<PublishersPage />} />
+          {/* TOPIC-01.1: 用户端专题（列表 + 详情，仅展示已发布） */}
+          <Route path="/topics" element={<TopicListPage />} />
+          <Route path="/topics/:id" element={<TopicDetailPage />} />
 
           {/* Protected Routes */}
           <Route
@@ -176,12 +259,63 @@ const AnimatedRoutes: React.FC = () => {
         >
           <Route index element={<AdminHomePage />} />
           <Route path="review" element={<AdminReviewPage />} />
+          <Route path="governance" element={<AdminGovernancePage />} />
           <Route path="reports" element={<AdminReportsPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="categories" element={<AdminCategoriesPage />} />
           <Route path="tags" element={<Navigate to="/admin" replace />} />
+          <Route path="locations" element={<AdminLocationsPage />} />
+          {/* TOPIC-01.2: 专题管理（CRUD/排序/上下线/编排，仅 admin 及以上） */}
+          <Route path="topics" element={<AdminTopicsPage />} />
+          {/* ORG-01.2: 发布主体管理（审核/认证/撤销/成员） */}
+          <Route path="publishers" element={<AdminPublishersPage />} />
+          <Route path="jobs" element={<AdminJobsPage />} />
           <Route path="logs" element={<AdminLogsPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
+          <Route path="usage" element={<UsagePage />} />
+          {/* ANA-02.2: 校级数据分析（admin 及以上） */}
+          <Route path="analytics" element={<AnalyticsPage />} />
+          {/* super_admin 专属：平台首页/套餐/学校/导入/激活漏斗 */}
+          <Route
+            path="platform/overview"
+            element={
+              <ProtectedRoute requireSuperAdmin>
+                <PlatformOverviewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="platform/plans"
+            element={
+              <ProtectedRoute requireSuperAdmin>
+                <PlatformPlansPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="platform/schools"
+            element={
+              <ProtectedRoute requireSuperAdmin>
+                <PlatformSchoolsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="import"
+            element={
+              <ProtectedRoute requireSuperAdmin>
+                <SchoolImportPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="funnel"
+            element={
+              <ProtectedRoute requireSuperAdmin>
+                <ActivationFunnelPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* 404 */}
@@ -195,9 +329,23 @@ const AppRoutes: React.FC = () => {
   return (
     <BrowserRouter>
       <RouteChunkPrefetcher />
+      <SchoolAwareRoot />
       <AnimatedRoutes />
     </BrowserRouter>
   );
+};
+
+/**
+ * TEN-03.2: 学校感知根组件
+ *
+ * 在 BrowserRouter 内层调用 useSchoolSync，启用：
+ * - 学校目录 / memberships 自动加载
+ * - URL ?school=code 深链接解析
+ * - 切换学校时取消进行中请求 + 清除旧缓存
+ */
+const SchoolAwareRoot: React.FC = () => {
+  useSchoolSync();
+  return null;
 };
 
 export default AppRoutes;

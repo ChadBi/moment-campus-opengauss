@@ -1,44 +1,23 @@
 import { api } from './api';
+import type {
+  ValidationType,
+  ValidationStats,
+  PostTransitionResponse,
+  LikeResponse,
+  ReportType,
+} from '../types';
 
-// T-B-02: 2 类协同验证类型 + 旧 2 类别名
-export type ValidationType =
-  | 'confirmation'
-  | 'refutation'
-  // 旧 2 类别名（向后兼容）
-  | 'valid'
-  | 'invalid';
-
-// T-B-04: 协同验证统计响应
-export interface ValidationStats {
-  post_id: number;
-  // 旧 2 类兼容字段
-  valid_count: number;
-  invalid_count: number;
-  // 2 类细分计数
-  confirmation_count: number;
-  refutation_count: number;
-  total_count: number;
-  validity_status: 'valid' | 'invalid' | 'uncertain';
-  // 当前用户对此帖的验证类型（用于前端高亮按钮；null 表示未验证）
-  user_validation_type: 'confirmation' | 'refutation' | null;
-}
-
-// T-B-04: 状态流转响应
-export interface PostTransitionResponse {
-  post_id: number;
-  previous_status: string;
-  current_status: string;
-  transitioned_at: string;
-  transitioned_by: number;
-}
+// FND-01.3: 类型从 types/index.ts 统一导出，消除手写重复
+export type { ValidationType, ValidationStats, PostTransitionResponse };
 
 export const interactionsApi = {
-  likePost: async (postId: number): Promise<{ liked: boolean; like_count: number }> => {
+  // FND-01.1: 点赞响应统一为 is_liked
+  likePost: async (postId: number): Promise<LikeResponse> => {
     const response = await api.post(`/posts/${postId}/like`);
     return response.data;
   },
 
-  // T-B-02: 2 类协同验证（证实/证伪 互斥可切换）
+  // FND-01.1: 协同验证（5 类类型，当前 UI 仅展示 confirmation/refutation）
   validatePost: async (
     postId: number,
     validationType: ValidationType,
@@ -78,9 +57,10 @@ export const interactionsApi = {
     return response.data;
   },
 
+  // FND-01.1: 举报类型统一为 5 类枚举
   reportPost: async (
     postId: number,
-    reportType: string,
+    reportType: ReportType,
     description: string
   ): Promise<void> => {
     await api.post(`/posts/${postId}/report`, {

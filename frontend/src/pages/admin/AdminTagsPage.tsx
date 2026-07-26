@@ -58,7 +58,6 @@ const AdminTagsPage: React.FC = () => {
 
   const loadTags = useCallback(async (p: number, f: FilterKey, name: string) => {
     try {
-      setLoading(true);
       const params: Record<string, unknown> = { page: p, page_size: PAGE_SIZE };
       if (f === 'official') params.is_official = true;
       else if (f === 'unofficial') params.is_official = false;
@@ -78,7 +77,8 @@ const AdminTagsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadTags(page, filter, searchApplied);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadTags(page, filter, searchApplied);
   }, [page, filter, searchApplied, loadTags]);
 
   /** 触发搜索 */
@@ -118,9 +118,10 @@ const AdminTagsPage: React.FC = () => {
       setEditPanelOpen(false);
       setEditingId(null);
       loadTags(page, filter, searchApplied);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('更新标签失败:', error);
-      const msg = error.response?.data?.detail || '更新标签失败';
+      const e = error as { response?: { data?: { detail?: string } } };
+      const msg = e?.response?.data?.detail || '更新标签失败';
       setToast({ message: msg, type: 'error' });
     } finally {
       setSubmitting(false);
@@ -136,9 +137,10 @@ const AdminTagsPage: React.FC = () => {
         type: 'success',
       });
       loadTags(page, filter, searchApplied);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('切换官方标记失败:', error);
-      const msg = error.response?.data?.detail || '操作失败';
+      const e = error as { response?: { data?: { detail?: string } } };
+      const msg = e?.response?.data?.detail || '操作失败';
       setToast({ message: msg, type: 'error' });
     }
   };
@@ -154,9 +156,10 @@ const AdminTagsPage: React.FC = () => {
       await adminApi.deleteTag(tag.id);
       setToast({ message: `标签「${tag.name}」已删除`, type: 'success' });
       loadTags(page, filter, searchApplied);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('删除标签失败:', error);
-      const msg = error.response?.data?.detail || '删除失败';
+      const e = error as { response?: { data?: { detail?: string } } };
+      const msg = e?.response?.data?.detail || '删除失败';
       setToast({ message: msg, type: 'error' });
     }
   };
@@ -205,9 +208,10 @@ const AdminTagsPage: React.FC = () => {
       setMergePanelOpen(false);
       setSelectedKeys([]);
       loadTags(page, filter, searchApplied);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('合并失败:', error);
-      const msg = error.response?.data?.detail || '合并失败';
+      const e = error as { response?: { data?: { detail?: string } } };
+      const msg = e?.response?.data?.detail || '合并失败';
       setToast({ message: msg, type: 'error' });
     } finally {
       setMergeLoading(false);

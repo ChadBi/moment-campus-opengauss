@@ -1,4 +1,15 @@
 import { api } from './api';
+import type {
+  PublisherAdmin,
+  PublisherMembershipBrief,
+  PublisherVerifyAction,
+  PublisherMemberRole,
+  PublisherVerifiedStatus,
+  PublisherType,
+  PostTemplate,
+  PostTemplateCreateRequest,
+  PostTemplateScene,
+} from '../types';
 
 // ============ 类型定义 ============
 
@@ -54,13 +65,268 @@ export interface TagAdmin {
   updated_at: string;
 }
 
+/** 批量操作单项失败明细（ADM-01.4） */
+export interface BatchFailedItem {
+  id: number;
+  reason: string;
+}
+
 /** 批量操作结果 */
 export interface BatchOperationResult {
   total: number;
   success: number;
   failed: number;
   failed_ids: number[];
+  /** ADM-01.4: 每项失败明细（id + 原因） */
+  failed_items: BatchFailedItem[];
   message: string;
+}
+
+// ============ ADM-01.1: 校级待办统计 ============
+
+/** 单个待办类别：计数 + 前端跳转路径 */
+export interface TodoItem {
+  key: string;
+  label: string;
+  count: number;
+  queue_url: string;
+}
+
+/** 校级后台首页待办统计（7 类 + REL-02.3 AI 降级率采样） */
+export interface TodoStats {
+  pending_posts: number;
+  pending_reports: number;
+  unverified_locations: number;
+  expiration_reports: number;
+  conflict_reports: number;
+  update_suggestions: number;
+  failed_jobs: number;
+  total: number;
+  items: TodoItem[];
+  /** REL-02.3: 最近 24h AI 调用次数（本校） */
+  ai_calls_24h: number;
+  /** REL-02.3: 最近 24h AI 降级次数（本校） */
+  ai_fallback_24h: number;
+  /** REL-02.3: 最近 24h AI 降级率（0~1） */
+  ai_fallback_rate: number;
+}
+
+// ============ ADM-01.2: 审核详情（管理专用） ============
+
+/** 作者历史统计 */
+export interface AuthorHistoryStats {
+  total_posts: number;
+  published_posts: number;
+  rejected_posts: number;
+  report_received_count: number;
+}
+
+/** 审核详情（管理专用接口） */
+export interface AdminPostDetail {
+  id: number;
+  title: string;
+  content: string;
+  status: string;
+  is_anonymous: boolean;
+  created_at: string;
+  updated_at: string;
+  expire_at: string | null;
+  contact_info: string | null;
+  lost_type: string | null;
+  view_count: number;
+  like_count: number;
+  comment_count: number;
+  valid_count: number;
+  invalid_count: number;
+  author_id: number;
+  author_name: string | null;
+  author_email: string | null;
+  category_id: number;
+  category_name: string | null;
+  post_type_id: number;
+  post_type_name: string | null;
+  location_id: number | null;
+  location_name: string | null;
+  location_verified: boolean | null;
+  images: string[];
+  author_history: AuthorHistoryStats;
+  open_change_reports: number;
+  pending_user_reports: number;
+}
+
+// ============ ADM-01.3: 原因模板 ============
+
+/** 审核原因模板 */
+export interface ReasonTemplate {
+  code: string;
+  label: string;
+  text: string;
+}
+
+/** 通过/驳回原因模板 */
+export interface ReasonTemplateResponse {
+  approve: ReasonTemplate[];
+  reject: ReasonTemplate[];
+}
+
+// ============ ADM-01.5: 治理工作台 ============
+
+/** 治理报告队列项 */
+export interface GovernanceReportBrief {
+  id: number;
+  post_id: number;
+  post_title: string | null;
+  post_status: string | null;
+  reporter_id: number;
+  reporter_name: string | null;
+  report_type: string;
+  description: string | null;
+  evidence_url: string | null;
+  status: string;
+  handler_id: number | null;
+  handler_name: string | null;
+  handler_note: string | null;
+  handled_at: string | null;
+  created_at: string;
+}
+
+/** 处理治理报告请求 */
+export interface GovernanceHandleRequest {
+  action: 'resolve' | 'dismiss' | 'mark_expired' | 'mark_conflict';
+  reason: string;
+}
+
+// ============ ADM-01.6: 地点核验 ============
+
+/** 地点管理视图 */
+export interface LocationAdmin {
+  id: number;
+  name: string;
+  description: string | null;
+  latitude: number;
+  longitude: number;
+  floor: string | null;
+  building: string | null;
+  post_count: number;
+  is_verified: boolean;
+  created_at: string;
+}
+
+// ============ ADM-02.1: 学校设置 ============
+
+/**
+ * 学校设置响应（后端真实存储，跨浏览器生效）
+ *
+ * 对应后端 SchoolSettingsResponse：
+ *   GET /admin/settings / PUT /admin/settings
+ * school_id 由 TenantContext 决定，不暴露给前端。
+ */
+export interface SchoolSettings {
+  site_name: string | null;
+  description: string | null;
+  require_review: boolean;
+  allow_anonymous: boolean;
+  allow_comments: boolean;
+  /** 每日发布上限（0 表示不限） */
+  publish_frequency: number;
+  /** 单帖图片上限 */
+  image_limit: number;
+  /** 默认有效期天数 */
+  default_validity_days: number;
+  /** 品牌色（如 #1890ff） */
+  brand_color: string | null;
+  logo_url: string | null;
+  /** 最近一次更新时间（ISO 字符串） */
+  updated_at: string;
+}
+
+/**
+ * 更新学校设置请求（部分更新；全部字段可选）
+ *
+ * 对应后端 SchoolSettingsUpdate：未传字段保持原值；
+ * school_id 不可改（由 TenantContext 决定）。
+ */
+export interface SchoolSettingsUpdateRequest {
+  site_name?: string | null;
+  description?: string | null;
+  require_review?: boolean;
+  allow_anonymous?: boolean;
+  allow_comments?: boolean;
+  /** 0~1000，0 表示不限 */
+  publish_frequency?: number;
+  /** 0~20 */
+  image_limit?: number;
+  /** 1~3650 */
+  default_validity_days?: number;
+  brand_color?: string | null;
+  logo_url?: string | null;
+}
+
+// ============ GOV-02: 任务运行记录 ============
+
+/** 任务运行记录 */
+export interface JobRunRecord {
+  id: number;
+  job_name: string;
+  status: string;
+  started_at: string;
+  finished_at: string | null;
+  processed_count: number;
+  failed_count: number;
+  error_message: string | null;
+  triggered_by: string;
+  triggered_user_id: number | null;
+  dry_run: boolean;
+  metadata: string | null;
+  duration_seconds: number | null;
+}
+
+// ============ ADM-01.2: 平台首页跨校统计 ============
+
+/** 单校 AI 调用统计 */
+export interface SchoolAIStat {
+  school_id: number;
+  school_code: string | null;
+  school_name: string | null;
+  ai_calls: number;
+  fallback_calls: number;
+  fallback_rate: number;
+}
+
+/** 异常租户项 */
+export interface AbnormalTenantItem {
+  school_id: number;
+  school_code: string | null;
+  school_name: string | null;
+  reasons: string[];
+}
+
+/** 学校开通记录 */
+export interface ActivationRecordItem {
+  school_id: number | null;
+  school_code: string | null;
+  school_name: string | null;
+  operator_id: number | null;
+  plan_code: string | null;
+  created_at: string;
+}
+
+/** 平台首页跨校统计 */
+export interface PlatformOverview {
+  school_total: number;
+  school_active: number;
+  school_inactive: number;
+  active_members: number;
+  pending_posts: number;
+  pending_reports: number;
+  open_change_reports: number;
+  governance_total: number;
+  ai_stats: SchoolAIStat[];
+  ai_calls_total: number;
+  ai_fallback_total: number;
+  ai_fallback_rate: number;
+  abnormal_tenants: AbnormalTenantItem[];
+  activation_records: ActivationRecordItem[];
 }
 
 /** 分页响应 */
@@ -327,4 +593,331 @@ export const adminApi = {
     const response = await api.post('/admin/users/batch-toggle-active', data);
     return response.data;
   },
+
+  // -------- ADM-01.1: 校级待办统计 --------
+  getTodos: async (): Promise<TodoStats> => {
+    const response = await api.get<TodoStats>('/admin/todos');
+    return response.data;
+  },
+
+  // -------- ADM-01.2: 审核详情（管理专用接口） --------
+  getAdminPostDetail: async (id: number): Promise<AdminPostDetail> => {
+    const response = await api.get<AdminPostDetail>(`/admin/posts/${id}`);
+    return response.data;
+  },
+
+  // -------- ADM-01.3: 审核原因模板 --------
+  getReviewTemplates: async (): Promise<ReasonTemplateResponse> => {
+    const response = await api.get<ReasonTemplateResponse>('/admin/review/templates');
+    return response.data;
+  },
+
+  // -------- ADM-01.5: 治理工作台 --------
+  getGovernanceReports: async (params?: {
+    page?: number;
+    page_size?: number;
+    report_type?: string;
+    status?: string;
+  }): Promise<PaginatedResponse<GovernanceReportBrief>> => {
+    const response = await api.get('/admin/governance/reports', { params });
+    return response.data;
+  },
+
+  handleGovernanceReport: async (
+    id: number,
+    data: GovernanceHandleRequest,
+  ): Promise<GovernanceReportBrief> => {
+    const response = await api.put(`/admin/governance/reports/${id}/handle`, data);
+    return response.data;
+  },
+
+  // -------- ADM-01.6: 地点核验 --------
+  getAdminLocations: async (params?: {
+    page?: number;
+    page_size?: number;
+    is_verified?: boolean;
+    keyword?: string;
+  }): Promise<PaginatedResponse<LocationAdmin>> => {
+    const response = await api.get('/admin/locations', { params });
+    return response.data;
+  },
+
+  verifyLocation: async (id: number, isVerified: boolean): Promise<LocationAdmin> => {
+    const response = await api.put(`/admin/locations/${id}/verify`, null, {
+      params: { is_verified: isVerified },
+    });
+    return response.data;
+  },
+
+  // -------- ADM-02.1: 学校设置（后端真实存储，跨浏览器生效） --------
+  getSchoolSettings: async (): Promise<SchoolSettings> => {
+    const response = await api.get<SchoolSettings>('/admin/settings');
+    return response.data;
+  },
+
+  updateSchoolSettings: async (
+    data: SchoolSettingsUpdateRequest,
+  ): Promise<SchoolSettings> => {
+    const response = await api.put<SchoolSettings>('/admin/settings', data);
+    return response.data;
+  },
+
+  // -------- GOV-02: 任务运行记录 --------
+  getJobRecords: async (params?: {
+    page?: number;
+    page_size?: number;
+    status?: string;
+  }): Promise<PaginatedResponse<JobRunRecord>> => {
+    const response = await api.get('/admin/jobs/expire-posts/records', { params });
+    return response.data;
+  },
+
+  triggerExpirePostsJob: async (dryRun: boolean): Promise<JobRunRecord> => {
+    const response = await api.post('/admin/jobs/expire-posts', { dry_run: dryRun });
+    return response.data;
+  },
+
+  // -------- TOPIC-01.2: 专题管理（CRUD/排序/上下线/编排） --------
+
+  /** 专题管理响应（含全部状态） */
+  // 类型定义见下方 export interface TopicAdmin / TopicAdminDetail
+
+  getAdminTopics: async (params?: {
+    page?: number;
+    page_size?: number;
+    status?: 'draft' | 'published' | 'archived';
+    keyword?: string;
+  }): Promise<PaginatedResponse<TopicAdmin>> => {
+    const response = await api.get('/admin/topics', { params });
+    return response.data;
+  },
+
+  getAdminTopic: async (id: number): Promise<TopicAdminDetail> => {
+    const response = await api.get(`/admin/topics/${id}`);
+    return response.data;
+  },
+
+  createTopic: async (data: TopicCreateRequest): Promise<TopicAdmin> => {
+    const response = await api.post('/admin/topics', data);
+    return response.data;
+  },
+
+  updateTopic: async (id: number, data: TopicUpdateRequest): Promise<TopicAdmin> => {
+    const response = await api.put(`/admin/topics/${id}`, data);
+    return response.data;
+  },
+
+  deleteTopic: async (id: number): Promise<{ message: string }> => {
+    const response = await api.delete(`/admin/topics/${id}`);
+    return response.data;
+  },
+
+  /** 批量排序专题 */
+  sortTopics: async (items: Array<{ id: number; sort_order: number }>): Promise<{ message: string }> => {
+    const response = await api.put('/admin/topics/sort', { items });
+    return response.data;
+  },
+
+  /** 上线专题（draft/archived → published） */
+  publishTopic: async (id: number): Promise<TopicAdmin> => {
+    const response = await api.put(`/admin/topics/${id}/publish`);
+    return response.data;
+  },
+
+  /** 下线专题（published → archived） */
+  archiveTopic: async (id: number): Promise<TopicAdmin> => {
+    const response = await api.put(`/admin/topics/${id}/archive`);
+    return response.data;
+  },
+
+  /** 向专题添加帖子（仅同校已发布帖子可添加） */
+  addPostsToTopic: async (
+    topicId: number,
+    posts: Array<{ post_id: number; sort_order: number }>
+  ): Promise<TopicAdminDetail> => {
+    const response = await api.post(`/admin/topics/${topicId}/posts`, { posts });
+    return response.data;
+  },
+
+  /** 从专题移除帖子 */
+  removePostFromTopic: async (topicId: number, postId: number): Promise<TopicAdminDetail> => {
+    const response = await api.delete(`/admin/topics/${topicId}/posts/${postId}`);
+    return response.data;
+  },
+
+  /** 调整专题内帖子的排序 */
+  sortTopicPosts: async (
+    topicId: number,
+    posts: Array<{ post_id: number; sort_order: number }>
+  ): Promise<TopicAdminDetail> => {
+    const response = await api.put(`/admin/topics/${topicId}/posts/sort`, { posts });
+    return response.data;
+  },
+
+  // ============ ORG-01.2: 官方发布主体管理 ============
+
+  /** 发布主体管理列表（含 pending/verified/revoked/rejected） */
+  getPublishers: async (params?: {
+    page?: number;
+    page_size?: number;
+    verified_status?: PublisherVerifiedStatus;
+    type?: PublisherType;
+    keyword?: string;
+  }): Promise<PaginatedResponse<PublisherAdmin>> => {
+    const response = await api.get<PaginatedResponse<PublisherAdmin>>('/admin/publishers', { params });
+    return response.data;
+  },
+
+  /** 发布主体管理详情 */
+  getPublisherDetail: async (id: number): Promise<PublisherAdmin> => {
+    const response = await api.get<PublisherAdmin>(`/admin/publishers/${id}`);
+    return response.data;
+  },
+
+  /** 审核/认证/撤销/恢复发布主体（ORG-01.2 状态流转） */
+  verifyPublisher: async (
+    id: number,
+    action: PublisherVerifyAction,
+    note?: string,
+  ): Promise<PublisherAdmin> => {
+    const response = await api.put<PublisherAdmin>(`/admin/publishers/${id}/verify`, {
+      action,
+      note,
+    });
+    return response.data;
+  },
+
+  /** 软删除发布主体 */
+  deletePublisher: async (id: number): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>(`/admin/publishers/${id}`);
+    return response.data;
+  },
+
+  /** 发布主体成员列表 */
+  getPublisherMembers: async (publisherId: number): Promise<PublisherMembershipBrief[]> => {
+    const response = await api.get<PublisherMembershipBrief[]>(
+      `/admin/publishers/${publisherId}/members`,
+    );
+    return response.data;
+  },
+
+  /** 添加成员（admin 直接指定） */
+  addPublisherMember: async (
+    publisherId: number,
+    userId: number,
+    role: PublisherMemberRole = 'member',
+  ): Promise<PublisherMembershipBrief> => {
+    const response = await api.post<PublisherMembershipBrief>(
+      `/admin/publishers/${publisherId}/members`,
+      { user_id: userId, role },
+    );
+    return response.data;
+  },
+
+  /** 更新成员角色 */
+  updatePublisherMember: async (
+    publisherId: number,
+    userId: number,
+    role: PublisherMemberRole,
+  ): Promise<PublisherMembershipBrief> => {
+    const response = await api.put<PublisherMembershipBrief>(
+      `/admin/publishers/${publisherId}/members/${userId}`,
+      { role },
+    );
+    return response.data;
+  },
+
+  /** 移除成员 */
+  removePublisherMember: async (
+    publisherId: number,
+    userId: number,
+  ): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>(
+      `/admin/publishers/${publisherId}/members/${userId}`,
+    );
+    return response.data;
+  },
+
+  // -------- 模板管理（admin） --------
+
+  /** 模板管理列表（含禁用项，含主体专属） */
+  getTemplates: async (params?: {
+    page?: number;
+    page_size?: number;
+    scene?: PostTemplateScene;
+    publisher_id?: number;
+    is_active?: boolean;
+  }): Promise<PaginatedResponse<PostTemplate>> => {
+    const response = await api.get<PaginatedResponse<PostTemplate>>('/admin/templates', { params });
+    return response.data;
+  },
+
+  /** 创建模板（publisher_id 为空=学校级公共模板） */
+  createTemplate: async (data: PostTemplateCreateRequest): Promise<PostTemplate> => {
+    const response = await api.post<PostTemplate>('/admin/templates', data);
+    return response.data;
+  },
+
+  /** 禁用模板（软删除 is_active=False） */
+  deleteTemplate: async (id: number): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>(`/admin/templates/${id}`);
+    return response.data;
+  },
 };
+
+// ============ TOPIC-01.2: 专题类型定义 ============
+
+/** 专题状态（3 态） */
+export type TopicStatus = 'draft' | 'published' | 'archived';
+
+/** 专题管理响应（后端 TopicAdminResponse） */
+export interface TopicAdmin {
+  id: number;
+  title: string;
+  description?: string | null;
+  cover_url?: string | null;
+  school_id: number;
+  creator_id: number;
+  creator_name?: string | null;
+  post_count: number;
+  view_count: number;
+  status: TopicStatus;
+  sort_order: number;
+  published_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 管理端专题内的帖子项（后端 TopicPostAdminItem） */
+export interface TopicPostAdminItem {
+  id: number;
+  topic_collection_id: number;
+  post_id: number;
+  post_title?: string | null;
+  post_status?: string | null;
+  post_school_id?: number | null;
+  sort_order: number;
+  created_at: string;
+}
+
+/** 专题管理详情（后端 TopicAdminDetail，含关联帖子列表） */
+export interface TopicAdminDetail extends TopicAdmin {
+  posts: TopicPostAdminItem[];
+}
+
+/** 创建专题请求（后端 TopicCreate） */
+export interface TopicCreateRequest {
+  title: string;
+  description?: string | null;
+  cover_url?: string | null;
+  sort_order?: number;
+  status?: TopicStatus;
+}
+
+/** 更新专题请求（后端 TopicUpdate，部分更新） */
+export interface TopicUpdateRequest {
+  title?: string;
+  description?: string | null;
+  cover_url?: string | null;
+  sort_order?: number;
+}

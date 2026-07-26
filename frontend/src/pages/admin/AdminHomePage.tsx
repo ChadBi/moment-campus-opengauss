@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { adminApi, type DashboardStats, type AdminLog } from '../../services/admin';
+import {
+  adminApi,
+  type DashboardStats,
+  type AdminLog,
+  type TodoStats,
+} from '../../services/admin';
 import {
   FileText,
   Users,
@@ -13,6 +18,13 @@ import {
   ScrollText,
   CheckCircle2,
   FolderTree,
+  MapPin,
+  Clock,
+  AlertTriangle,
+  Lightbulb,
+  Wrench,
+  ArrowRight,
+  Activity,
 } from 'lucide-react';
 
 /** 操作类型 → 中文标签 + 颜色 */
@@ -28,25 +40,42 @@ const ACTION_LABELS: Record<string, { label: string; variant: 'success' | 'dange
   update_tag: { label: '更新标签', variant: 'info' },
   delete_tag: { label: '删除标签', variant: 'danger' },
   merge_tag: { label: '合并标签', variant: 'warning' },
+  verify_location: { label: '核验地点', variant: 'success' },
+  unverify_location: { label: '取消核验', variant: 'warning' },
+  governance_resolve: { label: '治理-已解决', variant: 'success' },
+  governance_dismiss: { label: '治理-驳回', variant: 'default' },
+  governance_mark_expired: { label: '治理-确认过期', variant: 'warning' },
+  governance_mark_conflict: { label: '治理-确认冲突', variant: 'danger' },
+};
+
+/** ADM-01.1: 待办类别 → 图标与颜色 */
+const TODO_META: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; color: string; bgColor: string }> = {
+  pending_posts: { icon: FileText, color: 'text-sun', bgColor: 'bg-sun/15' },
+  pending_reports: { icon: Flag, color: 'text-danger', bgColor: 'bg-danger/10' },
+  unverified_locations: { icon: MapPin, color: 'text-lake', bgColor: 'bg-lake/10' },
+  expiration_reports: { icon: Clock, color: 'text-lamp', bgColor: 'bg-lamp/10' },
+  conflict_reports: { icon: AlertTriangle, color: 'text-danger', bgColor: 'bg-danger/10' },
+  update_suggestions: { icon: Lightbulb, color: 'text-info', bgColor: 'bg-info/10' },
+  failed_jobs: { icon: Wrench, color: 'text-ink-sub', bgColor: 'bg-mist' },
 };
 
 const AdminHomePage: React.FC = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [todos, setTodos] = useState<TodoStats | null>(null);
   const [recentLogs, setRecentLogs] = useState<AdminLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
+  // FND-01.4: 函数声明移到 useEffect 之前；setLoading 移出 effect 避免同步 setState
   const loadData = async () => {
     try {
-      setLoading(true);
-      const [statsData, logsData] = await Promise.all([
+      const [statsData, todosData, logsData] = await Promise.all([
         adminApi.getStats(),
+        adminApi.getTodos(),
         adminApi.getLogs({ page: 1, page_size: 6 }),
       ]);
       setStats(statsData);
+      setTodos(todosData);
       setRecentLogs(logsData.items);
     } catch (error) {
       console.error('加载仪表盘数据失败:', error);
@@ -54,6 +83,11 @@ const AdminHomePage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadData();
+  }, []);
 
   if (loading) {
     return (
@@ -107,6 +141,118 @@ const AdminHomePage: React.FC = () => {
         <h1 className="text-2xl font-bold text-ink">仪表盘</h1>
         <p className="text-ink-sub text-sm mt-1">系统概览与快速操作</p>
       </div>
+
+      {/* ADM-01.1: 待办事项（7 类，点击卡片进入对应筛选队列） */}
+      {todos && (
+        <Card variant="outlined" padding="md">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-ink flex items-center gap-2">
+              <CheckCircle2 size={18} className="text-lamp" />
+              待办事项
+              {todos.total > 0 && (
+                <Badge variant="warning">{todos.total} 项待处理</Badge>
+              )}
+            </h2>
+            {todos.total === 0 && (
+              <span className="text-xs text-ink-muted">全部处理完毕</span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+            {todos.items.map((item) => {
+              const meta = TODO_META[item.key] || TODO_META.pending_posts;
+              const Icon = meta.icon;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => navigate(item.queue_url)}
+                  className={`group text-left p-3 rounded-md border transition-all ${
+                    item.count > 0
+                      ? 'border-line bg-paper hover:border-lake hover:shadow-sm'
+                      : 'border-line/50 bg-mist/40 opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className={`${meta.bgColor} p-2 rounded-md`}>
+                      <Icon className={meta.color} size={16} />
+                    </div>
+                    <ArrowRight
+                      size={14}
+                      className="text-ink-disabled group-hover:text-lake transition-colors"
+                    />
+                  </div>
+                  <p
+                    className={`mt-2 text-xl font-bold ${
+                      item.count > 0 ? 'text-ink' : 'text-ink-muted'
+                    }`}
+                  >
+                    {item.count}
+                  </p>
+                  <p className="text-xs text-ink-muted mt-0.5 truncate">{item.label}</p>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* REL-02.3: AI 降级率监控（最近 24h 本校采样） */}
+      {todos && (
+        <Card variant="outlined" padding="md">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-ink flex items-center gap-2">
+              <Activity size={18} className="text-lake" />
+              AI 监控（最近 24h）
+            </h2>
+            {todos.ai_calls_24h === 0 ? (
+              <span className="text-xs text-ink-muted">暂无调用</span>
+            ) : todos.ai_fallback_rate >= 0.5 ? (
+              <Badge variant="danger">降级率高</Badge>
+            ) : todos.ai_fallback_rate >= 0.2 ? (
+              <Badge variant="warning">降级率偏高</Badge>
+            ) : (
+              <Badge variant="success">正常</Badge>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-3 rounded-md border border-line bg-paper">
+              <p className="text-xs text-ink-muted">调用次数</p>
+              <p className="mt-1 text-2xl font-bold text-ink">
+                {todos.ai_calls_24h}
+              </p>
+            </div>
+            <div className="p-3 rounded-md border border-line bg-paper">
+              <p className="text-xs text-ink-muted">降级次数</p>
+              <p
+                className={`mt-1 text-2xl font-bold ${
+                  todos.ai_fallback_24h > 0 ? 'text-lamp' : 'text-ink'
+                }`}
+              >
+                {todos.ai_fallback_24h}
+              </p>
+            </div>
+            <div className="p-3 rounded-md border border-line bg-paper">
+              <p className="text-xs text-ink-muted">降级率</p>
+              <p
+                className={`mt-1 text-2xl font-bold ${
+                  todos.ai_fallback_rate >= 0.5
+                    ? 'text-danger'
+                    : todos.ai_fallback_rate >= 0.2
+                    ? 'text-lamp'
+                    : 'text-grass'
+                }`}
+              >
+                {(todos.ai_fallback_rate * 100).toFixed(1)}%
+              </p>
+            </div>
+          </div>
+          {todos.ai_fallback_rate >= 0.5 && todos.ai_calls_24h >= 5 && (
+            <p className="mt-3 text-xs text-danger flex items-center gap-1">
+              <AlertTriangle size={12} />
+              AI 降级率 ≥50%，建议检查 AI 配置（AI_PROVIDER / API Key）或网络连通性
+            </p>
+          )}
+        </Card>
+      )}
 
       {/* 统计卡片网格 */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">

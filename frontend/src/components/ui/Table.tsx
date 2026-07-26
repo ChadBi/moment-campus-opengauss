@@ -10,7 +10,12 @@ export interface Column<T> {
   title: string;
   /** 列宽 */
   width?: string | number;
-  /** 自定义渲染 */
+  /**
+   * 自定义渲染。
+   * value 类型为 any 是泛型表格的合理取舍——列的值由 key 动态索引得到，
+   * 编译期无法推断具体类型；调用方应在 render 内部收窄类型。
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   render?: (value: any, row: T, index: number) => React.ReactNode;
   /** 对齐方式 */
   align?: 'left' | 'center' | 'right';
@@ -46,7 +51,8 @@ const getRowKey = <T,>(row: T, rowKey: TableProps<T>['rowKey']): string | number
     return rowKey(row);
   }
   const field = rowKey || 'id';
-  return (row as any)[field];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (row as Record<string, any>)[field] as string | number;
 };
 
 const alignClass = (align?: 'left' | 'center' | 'right'): string => {
@@ -57,7 +63,7 @@ const alignClass = (align?: 'left' | 'center' | 'right'): string => {
 
 // ============ Table 组件（泛型） ============
 
-export function Table<T extends Record<string, any>>({
+export function Table<T extends object>({
   columns,
   data,
   rowKey = 'id',
@@ -166,7 +172,8 @@ export function Table<T extends Record<string, any>>({
                       </td>
                     )}
                     {columns.map((col) => {
-                      const value = (row as any)[col.key];
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const value = (row as Record<string, any>)[col.key];
                       const content = col.render ? col.render(value, row, index) : value;
                       return (
                         <td

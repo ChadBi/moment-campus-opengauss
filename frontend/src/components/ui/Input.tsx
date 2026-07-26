@@ -5,6 +5,8 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   icon?: React.ReactNode;
+  /** UX-01.7: 描述元素 ID（用于 aria-describedby 关联提示文本） */
+  describedby?: string;
 }
 
 export const Input: React.FC<InputProps> = ({
@@ -13,9 +15,16 @@ export const Input: React.FC<InputProps> = ({
   icon,
   className = '',
   id,
+  describedby,
   ...props
 }) => {
   const inputId = id || `input-${label?.toLowerCase().replace(/\s+/g, '-')}`;
+  // UX-01.7: 错误提示元素 ID（aria-describedby 关联）
+  const errorId = `${inputId}-error`;
+  // 合并 aria-describedby：既包含外部传入的提示，也包含错误提示
+  const ariaDescribedby = [describedby, error ? errorId : null]
+    .filter(Boolean)
+    .join(' ') || undefined;
 
   return (
     <div className="w-full">
@@ -25,12 +34,12 @@ export const Input: React.FC<InputProps> = ({
           className="block text-sm font-medium text-ink mb-1.5 font-sans"
         >
           {label}
-          {props.required && <span className="text-danger ml-1">*</span>}
+          {props.required && <span className="text-danger ml-1" aria-hidden="true">*</span>}
         </label>
       )}
       <div className="relative">
         {icon && (
-          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none">
+          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" aria-hidden="true">
             {icon}
           </div>
         )}
@@ -41,12 +50,18 @@ export const Input: React.FC<InputProps> = ({
               ? 'border-danger focus:border-danger'
               : 'border-line'
           } ${className}`}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={ariaDescribedby}
           {...props}
         />
       </div>
       {error && (
-        <div className="flex items-center gap-1 mt-1.5 text-danger text-xs font-sans">
-          <AlertCircle size={13} />
+        <div
+          id={errorId}
+          role="alert"
+          className="flex items-center gap-1 mt-1.5 text-danger text-xs font-sans"
+        >
+          <AlertCircle size={13} aria-hidden="true" />
           <span>{error}</span>
         </div>
       )}

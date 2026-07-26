@@ -31,7 +31,6 @@ const AdminUsersPage: React.FC = () => {
 
   const loadUsers = useCallback(async (p: number, active?: boolean) => {
     try {
-      setLoading(true);
       const data = await adminApi.getUsers({ page: p, page_size: PAGE_SIZE, is_active: active });
       setUsers(data.items);
       setTotal(data.total);
@@ -46,7 +45,8 @@ const AdminUsersPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadUsers(page, filterActive);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadUsers(page, filterActive);
   }, [page, filterActive, loadUsers]);
 
   /** 单条切换状态 */

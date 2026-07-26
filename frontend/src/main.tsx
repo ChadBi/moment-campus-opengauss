@@ -5,6 +5,8 @@ import { X, CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import AppRoutes from './routes';
 import { useUIStore } from './store/useUIStore';
 import type { ToastType } from './store/useUIStore';
+import { UpdatePrompt } from './components/UpdatePrompt';
+import { InstallPrompt } from './components/InstallPrompt';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -61,6 +63,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AppRoutes />
       <GlobalToast />
+      <UpdatePrompt />
+      <InstallPrompt />
     </QueryClientProvider>
   </React.StrictMode>
 );

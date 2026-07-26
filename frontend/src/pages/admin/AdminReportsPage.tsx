@@ -47,7 +47,6 @@ const AdminReportsPage: React.FC = () => {
 
   const loadReports = useCallback(async (p: number, status?: string) => {
     try {
-      setLoading(true);
       const data = await adminApi.getReports({ page: p, page_size: PAGE_SIZE, status });
       setReports(data.items);
       setTotal(data.total);
@@ -61,7 +60,8 @@ const AdminReportsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadReports(page, filterStatus);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadReports(page, filterStatus);
   }, [page, filterStatus, loadReports]);
 
   /** 打开处理面板 */

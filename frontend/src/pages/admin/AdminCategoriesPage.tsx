@@ -38,7 +38,6 @@ const AdminCategoriesPage: React.FC = () => {
 
   const loadCategories = useCallback(async (p: number, active?: boolean) => {
     try {
-      setLoading(true);
       const data = await adminApi.getCategories({ page: p, page_size: PAGE_SIZE, is_active: active });
       setCategories(data.items);
       setTotal(data.total);
@@ -52,7 +51,8 @@ const AdminCategoriesPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadCategories(page, filterActive);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadCategories(page, filterActive);
   }, [page, filterActive, loadCategories]);
 
   /** 打开新建面板 */
@@ -131,9 +131,10 @@ const AdminCategoriesPage: React.FC = () => {
       }
       closePanel();
       loadCategories(page, filterActive);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('保存分类失败:', error);
-      const msg = error.response?.data?.detail || '保存分类失败';
+      const e = error as { response?: { data?: { detail?: string } } };
+      const msg = e?.response?.data?.detail || '保存分类失败';
       setToast({ message: msg, type: 'error' });
     } finally {
       setSubmitting(false);
@@ -147,9 +148,10 @@ const AdminCategoriesPage: React.FC = () => {
       await adminApi.deleteCategory(cat.id);
       setToast({ message: `分类「${cat.name}」已禁用`, type: 'success' });
       loadCategories(page, filterActive);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('禁用分类失败:', error);
-      const msg = error.response?.data?.detail || '禁用分类失败';
+      const e = error as { response?: { data?: { detail?: string } } };
+      const msg = e?.response?.data?.detail || '禁用分类失败';
       setToast({ message: msg, type: 'error' });
     }
   };

@@ -1,101 +1,199 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { Settings, Save, Database, Info } from 'lucide-react';
+import { Loading } from '../../components/ui/Loading';
+import { adminApi, type SchoolSettings } from '../../services/admin';
+import { useUIStore } from '../../store/useUIStore';
+import { Settings, Save, Cloud, Info, RotateCcw } from 'lucide-react';
 
-/** 本地配置 Schema */
-interface LocalSettings {
-  site_name: string;
-  site_description: string;
-  max_posts_per_user: number;
-  max_images_per_post: number;
-  require_approval: boolean;
-  enable_comments: boolean;
-  enable_anonymous: boolean;
-}
-
-const STORAGE_KEY = 'moment_campus_admin_settings';
-
-const DEFAULT_SETTINGS: LocalSettings = {
-  site_name: '此刻校园',
-  site_description: '校园生活信息平台',
-  max_posts_per_user: 50,
-  max_images_per_post: 9,
-  require_approval: true,
-  enable_comments: true,
-  enable_anonymous: true,
-};
-
-/** 从 localStorage 加载配置 */
-const loadSettings = (): LocalSettings => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_SETTINGS;
-    const parsed = JSON.parse(raw);
-    // 合并默认值，防止旧版本缺字段
-    return { ...DEFAULT_SETTINGS, ...parsed };
-  } catch {
-    return DEFAULT_SETTINGS;
-  }
-};
-
+/**
+ * ADM-02.1: 校级系统设置页（后端真实存储，跨浏览器生效）
+ *
+ * - 设置存于 school_settings 表，由 TenantContext 决定 school_id
+ * - admin/super_admin 可读可写；普通 user 403（路由守卫已拦截）
+ * - 修改后端记录审计日志（old/new/operator），前端不参与存储
+ */
 const AdminSettingsPage: React.FC = () => {
-  const [settings, setSettings] = useState<LocalSettings>(DEFAULT_SETTINGS);
-  const [loaded, setLoaded] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const showToast = useUIStore((s) => s.showToast);
+
+  const [settings, setSettings] = useState<SchoolSettings | null>(null);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // 加载本地配置
-  useEffect(() => {
-    setSettings(loadSettings());
-    setLoaded(true);
-  }, []);
+  // 表单字段（独立维护，便于部分更新与比对）
+  const [siteName, setSiteName] = useState('');
+  const [description, setDescription] = useState('');
+  const [requireReview, setRequireReview] = useState(true);
+  const [allowAnonymous, setAllowAnonymous] = useState(true);
+  const [allowComments, setAllowComments] = useState(true);
+  const [publishFrequency, setPublishFrequency] = useState(10);
+  const [imageLimit, setImageLimit] = useState(9);
+  const [defaultValidityDays, setDefaultValidityDays] = useState(30);
+  const [brandColor, setBrandColor] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
 
-  /** 保存到 localStorage */
-  const handleSave = () => {
+  /** 从后端加载设置并同步到表单状态 */
+  const loadSettings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await adminApi.getSchoolSettings();
+      setSettings(data);
+      setSiteName(data.site_name ?? '');
+      setDescription(data.description ?? '');
+      setRequireReview(data.require_review);
+      setAllowAnonymous(data.allow_anonymous);
+      setAllowComments(data.allow_comments);
+      setPublishFrequency(data.publish_frequency);
+      setImageLimit(data.image_limit);
+      setDefaultValidityDays(data.default_validity_days);
+      setBrandColor(data.brand_color ?? '');
+      setLogoUrl(data.logo_url ?? '');
+    } catch (error) {
+      console.error('加载学校设置失败:', error);
+      showToast('加载学校设置失败，请稍后重试', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
+
+  /** 校验数值范围（与后端 Pydantic 约束一致） */
+  const validate = (): string | null => {
+    if (!siteName.trim() && siteName.length > 100) {
+      return '站点名称不能超过 100 个字符';
+    }
+    if (publishFrequency < 0 || publishFrequency > 1000) {
+      return '每日发布上限需在 0~1000 之间';
+    }
+    if (imageLimit < 0 || imageLimit > 20) {
+      return '单帖图片上限需在 0~20 之间';
+    }
+    if (defaultValidityDays < 1 || defaultValidityDays > 3650) {
+      return '默认有效期天数需在 1~3650 之间';
+    }
+    if (brandColor && brandColor.length > 20) {
+      return '品牌色长度不能超过 20';
+    }
+    if (logoUrl && logoUrl.length > 500) {
+      return 'Logo URL 长度不能超过 500';
+    }
+    return null;
+  };
+
+  /** 收集表单中相对原始值发生变化的字段（部分更新） */
+  const buildPayload = (): Record<string, unknown> => {
+    if (!settings) return {};
+    const payload: Record<string, unknown> = {};
+
+    // 文本字段：空字符串统一转为 null（与后端 Optional[str] 对齐）
+    const nextSiteName = siteName.trim() || null;
+    if ((settings.site_name ?? null) !== nextSiteName) {
+      payload.site_name = nextSiteName;
+    }
+    const nextDescription = description.trim() || null;
+    if ((settings.description ?? null) !== nextDescription) {
+      payload.description = nextDescription;
+    }
+    if (settings.require_review !== requireReview) {
+      payload.require_review = requireReview;
+    }
+    if (settings.allow_anonymous !== allowAnonymous) {
+      payload.allow_anonymous = allowAnonymous;
+    }
+    if (settings.allow_comments !== allowComments) {
+      payload.allow_comments = allowComments;
+    }
+    if (settings.publish_frequency !== publishFrequency) {
+      payload.publish_frequency = publishFrequency;
+    }
+    if (settings.image_limit !== imageLimit) {
+      payload.image_limit = imageLimit;
+    }
+    if (settings.default_validity_days !== defaultValidityDays) {
+      payload.default_validity_days = defaultValidityDays;
+    }
+    const nextBrandColor = brandColor.trim() || null;
+    if ((settings.brand_color ?? null) !== nextBrandColor) {
+      payload.brand_color = nextBrandColor;
+    }
+    const nextLogoUrl = logoUrl.trim() || null;
+    if ((settings.logo_url ?? null) !== nextLogoUrl) {
+      payload.logo_url = nextLogoUrl;
+    }
+    return payload;
+  };
+
+  const handleSave = async () => {
+    const err = validate();
+    if (err) {
+      showToast(err, 'error');
+      return;
+    }
+    const payload = buildPayload();
+    if (Object.keys(payload).length === 0) {
+      showToast('未检测到变更，无需保存', 'info');
+      return;
+    }
+
     setSaving(true);
     try {
-      // 简单校验
-      if (!settings.site_name.trim()) {
-        setToast({ message: '站点名称不能为空', type: 'error' });
-        setSaving(false);
-        return;
-      }
-      if (settings.max_posts_per_user < 0 || settings.max_images_per_post < 0) {
-        setToast({ message: '数值限制不能为负数', type: 'error' });
-        setSaving(false);
-        return;
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-      setToast({ message: '设置已保存（仅本浏览器生效）', type: 'success' });
+      const updated = await adminApi.updateSchoolSettings(payload);
+      setSettings(updated);
+      // 同步表单为后端权威值
+      setSiteName(updated.site_name ?? '');
+      setDescription(updated.description ?? '');
+      setRequireReview(updated.require_review);
+      setAllowAnonymous(updated.allow_anonymous);
+      setAllowComments(updated.allow_comments);
+      setPublishFrequency(updated.publish_frequency);
+      setImageLimit(updated.image_limit);
+      setDefaultValidityDays(updated.default_validity_days);
+      setBrandColor(updated.brand_color ?? '');
+      setLogoUrl(updated.logo_url ?? '');
+      showToast('设置已保存（全校生效）', 'success');
     } catch (error) {
-      console.error('保存设置失败:', error);
-      setToast({ message: '保存失败，请检查浏览器存储权限', type: 'error' });
+      console.error('保存学校设置失败:', error);
+      showToast('保存失败，请检查网络或权限后重试', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  /** 恢复默认 */
+  /** 重置为最近一次从后端拉取的值（不写后端） */
   const handleReset = () => {
-    if (!window.confirm('确定恢复所有设置为默认值吗？')) return;
-    setSettings(DEFAULT_SETTINGS);
-    localStorage.removeItem(STORAGE_KEY);
-    setToast({ message: '已恢复默认设置（未保存）', type: 'success' });
+    if (!settings) return;
+    if (!window.confirm('确定放弃当前未保存的修改吗？')) return;
+    setSiteName(settings.site_name ?? '');
+    setDescription(settings.description ?? '');
+    setRequireReview(settings.require_review);
+    setAllowAnonymous(settings.allow_anonymous);
+    setAllowComments(settings.allow_comments);
+    setPublishFrequency(settings.publish_frequency);
+    setImageLimit(settings.image_limit);
+    setDefaultValidityDays(settings.default_validity_days);
+    setBrandColor(settings.brand_color ?? '');
+    setLogoUrl(settings.logo_url ?? '');
+    showToast('已恢复到最近一次保存值', 'info');
   };
 
-  if (!loaded) {
+  if (loading) {
     return (
-      <div className="py-16 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-ink-muted">
-          <div className="w-5 h-5 border-2 border-lake/30 border-t-lake rounded-full animate-spin" />
-          <span>加载中...</span>
-        </div>
+      <div className="flex items-center justify-center py-16">
+        <Loading />
       </div>
     );
   }
+
+  const updatedAtText = settings
+    ? new Date(settings.updated_at).toLocaleString('zh-CN', {
+        hour12: false,
+      })
+    : '—';
 
   return (
     <div className="space-y-4">
@@ -103,11 +201,11 @@ const AdminSettingsPage: React.FC = () => {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-ink">系统设置</h1>
-          <p className="text-ink-sub text-sm mt-1">管理系统配置</p>
+          <p className="text-ink-sub text-sm mt-1">管理本校系统配置</p>
         </div>
-        <Badge variant="warning">
-          <Database size={12} className="mr-1" />
-          前端本地配置
+        <Badge variant="success">
+          <Cloud size={12} className="mr-1" />
+          后端存储·跨浏览器生效
         </Badge>
       </div>
 
@@ -116,8 +214,9 @@ const AdminSettingsPage: React.FC = () => {
         <div className="flex items-start gap-2 text-sm text-ink-sub">
           <Info size={16} className="text-info flex-shrink-0 mt-0.5" />
           <p>
-            当前设置为浏览器本地配置，仅影响本机展示与校验逻辑，不会同步到后端。
-            如需全局生效，请联系开发人员将其迁移至后端配置表。
+            设置存于后端 <code className="px-1 py-0.5 bg-paper rounded text-xs">school_settings</code> 表，
+            对全校所有浏览器立即生效。修改将记录审计日志（旧值/新值/操作者）。
+            学校身份由 TenantContext 决定，无法在请求中篡改。
           </p>
         </div>
       </Card>
@@ -131,13 +230,53 @@ const AdminSettingsPage: React.FC = () => {
         <div className="space-y-4">
           <Input
             label="站点名称"
-            value={settings.site_name}
-            onChange={(e) => setSettings({ ...settings, site_name: e.target.value })}
+            value={siteName}
+            onChange={(e) => setSiteName(e.target.value)}
+            placeholder="如：此刻校园·江南"
+            maxLength={100}
           />
+          <div className="w-full">
+            <label className="block text-sm font-medium text-ink mb-1.5 font-sans">
+              站点说明
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="简要描述本站点定位与用途"
+              rows={3}
+              className="w-full px-3.5 py-2.5 bg-paper border border-line rounded-[10px] text-[14px] text-ink placeholder:text-ink-muted/60 transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus:outline-none focus:border-lake resize-none"
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* 品牌设置 */}
+      <Card variant="outlined" padding="md">
+        <h2 className="text-lg font-semibold text-ink mb-4">品牌设置</h2>
+        <div className="space-y-4">
           <Input
-            label="站点描述"
-            value={settings.site_description}
-            onChange={(e) => setSettings({ ...settings, site_description: e.target.value })}
+            label="品牌色"
+            value={brandColor}
+            onChange={(e) => setBrandColor(e.target.value)}
+            placeholder="如：#1890ff"
+            maxLength={20}
+          />
+          {brandColor && (
+            <div className="flex items-center gap-2 text-sm text-ink-sub">
+              <span>预览：</span>
+              <span
+                className="inline-block w-6 h-6 rounded border border-line"
+                style={{ backgroundColor: brandColor }}
+              />
+              <span className="font-mono">{brandColor}</span>
+            </div>
+          )}
+          <Input
+            label="Logo URL"
+            value={logoUrl}
+            onChange={(e) => setLogoUrl(e.target.value)}
+            placeholder="https://..."
+            maxLength={500}
           />
         </div>
       </Card>
@@ -147,25 +286,31 @@ const AdminSettingsPage: React.FC = () => {
         <h2 className="text-lg font-semibold text-ink mb-4">内容限制</h2>
         <div className="space-y-4">
           <Input
-            label="每用户最大信息数"
+            label="每日发布上限（0 表示不限）"
             type="number"
-            value={settings.max_posts_per_user.toString()}
+            min={0}
+            max={1000}
+            value={publishFrequency.toString()}
             onChange={(e) =>
-              setSettings({
-                ...settings,
-                max_posts_per_user: parseInt(e.target.value) || 0,
-              })
+              setPublishFrequency(parseInt(e.target.value, 10) || 0)
             }
           />
           <Input
-            label="每条信息最大图片数"
+            label="单帖图片上限"
             type="number"
-            value={settings.max_images_per_post.toString()}
+            min={0}
+            max={20}
+            value={imageLimit.toString()}
+            onChange={(e) => setImageLimit(parseInt(e.target.value, 10) || 0)}
+          />
+          <Input
+            label="默认有效期天数"
+            type="number"
+            min={1}
+            max={3650}
+            value={defaultValidityDays.toString()}
             onChange={(e) =>
-              setSettings({
-                ...settings,
-                max_images_per_post: parseInt(e.target.value) || 0,
-              })
+              setDefaultValidityDays(parseInt(e.target.value, 10) || 1)
             }
           />
         </div>
@@ -177,19 +322,25 @@ const AdminSettingsPage: React.FC = () => {
         <div className="space-y-3">
           {[
             {
-              key: 'require_approval' as const,
+              key: 'requireReview' as const,
               label: '新信息需要审核',
               desc: '开启后用户发布的信息需管理员审核才可见',
+              value: requireReview,
+              setter: setRequireReview,
             },
             {
-              key: 'enable_comments' as const,
-              label: '启用评论功能',
+              key: 'allowComments' as const,
+              label: '允许评论',
               desc: '允许用户对信息进行评论',
+              value: allowComments,
+              setter: setAllowComments,
             },
             {
-              key: 'enable_anonymous' as const,
+              key: 'allowAnonymous' as const,
               label: '允许匿名发布',
               desc: '用户可选择匿名身份发布信息',
+              value: allowAnonymous,
+              setter: setAllowAnonymous,
             },
           ].map((item) => (
             <label
@@ -198,18 +349,16 @@ const AdminSettingsPage: React.FC = () => {
             >
               <input
                 type="checkbox"
-                checked={settings[item.key]}
-                onChange={(e) =>
-                  setSettings({ ...settings, [item.key]: e.target.checked })
-                }
+                checked={item.value}
+                onChange={(e) => item.setter(e.target.checked)}
                 className="w-4 h-4 mt-0.5 rounded border-line text-lake focus:ring-lake/30 cursor-pointer"
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-ink">{item.label}</p>
                 <p className="text-xs text-ink-muted mt-0.5">{item.desc}</p>
               </div>
-              <Badge variant={settings[item.key] ? 'success' : 'default'}>
-                {settings[item.key] ? '已开启' : '已关闭'}
+              <Badge variant={item.value ? 'success' : 'default'}>
+                {item.value ? '已开启' : '已关闭'}
               </Badge>
             </label>
           ))}
@@ -217,28 +366,28 @@ const AdminSettingsPage: React.FC = () => {
       </Card>
 
       {/* 操作按钮 */}
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="text" onClick={handleReset}>
-          恢复默认
-        </Button>
-        <Button variant="primary" onClick={handleSave} loading={saving}>
-          <Save size={16} className="mr-2" />
-          保存设置
-        </Button>
-      </div>
-
-      {/* Toast */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <div
-            className={`px-4 py-3 rounded-lg shadow-lg text-sm ${
-              toast.type === 'success' ? 'bg-grass text-paper' : 'bg-danger text-paper'
-            }`}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-ink-muted">
+          最近更新：{updatedAtText}
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="text"
+            onClick={handleReset}
+            icon={<RotateCcw size={14} />}
           >
-            {toast.message}
-          </div>
+            放弃修改
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSave}
+            loading={saving}
+            icon={<Save size={16} />}
+          >
+            保存设置
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 };

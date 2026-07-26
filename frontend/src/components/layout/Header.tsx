@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Menu, Plus } from 'lucide-react';
 import { Avatar } from '../ui';
+import { SchoolSwitcher } from './SchoolSwitcher';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -18,28 +19,43 @@ export const Header: React.FC<HeaderProps> = ({
   notificationCount = 0,
 }) => {
   return (
-    <header className="sticky top-0 z-30 bg-paper/95 backdrop-blur-sm border-b border-line/60">
+    <header
+      className="sticky top-0 z-30 bg-paper/95 backdrop-blur-sm border-b border-line/60"
+      role="banner"
+    >
       <div className="max-w-[1680px] mx-auto px-3 md:px-6 py-2.5 md:py-3">
         <div className="flex items-center justify-between gap-3 md:gap-5">
-          <div className="flex items-baseline gap-2.5 whitespace-nowrap">
-            <h1 className="font-display font-bold text-[20px] md:text-[24px] tracking-wide text-lake leading-none">
+          <div className="flex items-center gap-2.5 whitespace-nowrap min-w-0">
+            <h1 className="font-display font-bold text-[20px] md:text-[24px] tracking-wide text-lake leading-none flex-shrink-0">
               此刻校园
             </h1>
-            <small className="hidden lg:inline text-ink-muted text-xs">
+            <small className="hidden lg:inline text-ink-muted text-xs flex-shrink-0">
               把会消失的校园经验留下来
             </small>
+            {/* TEN-03.3：学校切换组件，与标题同行，便于跨校切换 */}
+            <div className="hidden md:block flex-shrink-0">
+              <SchoolSwitcher />
+            </div>
           </div>
 
           <div className="flex justify-end items-center gap-1 md:gap-1.5">
+            {/* 移动端学校切换器，与桌面端分离避免挤压 */}
+            <div className="md:hidden">
+              <SchoolSwitcher />
+            </div>
+
             {user && (
               <Link
                 to="/notifications"
-                className="relative w-10 h-10 rounded-[10px] bg-paper border border-line/80 grid place-items-center hover:bg-paper-hover transition-colors"
-                aria-label="通知"
+                className="relative w-10 h-10 rounded-[10px] bg-paper border border-line/80 grid place-items-center hover:bg-paper-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-lake focus-visible:ring-offset-2"
+                aria-label={notificationCount > 0 ? `通知（${notificationCount} 条未读）` : '通知'}
               >
-                <Bell size={17} className="text-ink-sub" />
+                <Bell size={17} className="text-ink-sub" aria-hidden="true" />
                 {notificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-danger text-white text-[10px] font-bold rounded-full grid place-items-center">
+                  <span
+                    className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-danger text-white text-[10px] font-bold rounded-full grid place-items-center"
+                    aria-hidden="true"
+                  >
                     {notificationCount > 99 ? '99+' : notificationCount}
                   </span>
                 )}
@@ -48,17 +64,17 @@ export const Header: React.FC<HeaderProps> = ({
 
             <Link
               to="/publish"
-              className="h-10 px-4 rounded-[10px] bg-lamp text-white font-medium text-sm inline-flex items-center gap-1.5 shadow-lamp hover:bg-lamp-dark transition-colors active:scale-[0.98]"
+              className="h-10 px-4 rounded-[10px] bg-lamp text-white font-medium text-sm inline-flex items-center gap-1.5 shadow-lamp hover:bg-lamp-dark transition-colors active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-lamp focus-visible:ring-offset-2"
             >
-              <Plus size={17} />
+              <Plus size={17} aria-hidden="true" />
               <span className="hidden md:inline">发布此刻</span>
             </Link>
 
             {user ? (
               <Link
                 to="/profile"
-                className="w-10 h-10 rounded-[10px] overflow-hidden border border-line/80 bg-paper grid place-items-center hover:bg-paper-hover transition-colors"
-                aria-label={user.nickname}
+                className="w-10 h-10 rounded-[10px] overflow-hidden border border-line/80 bg-paper grid place-items-center hover:bg-paper-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-lake focus-visible:ring-offset-2"
+                aria-label={`个人中心：${user.nickname}`}
               >
                 <Avatar
                   src={user.avatar_url}
@@ -69,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <Link
                 to="/login"
-                className="h-10 px-4 rounded-[10px] bg-lake text-white font-medium text-sm inline-flex items-center hover:bg-lake-dark transition-colors active:scale-[0.98]"
+                className="h-10 px-4 rounded-[10px] bg-lake text-white font-medium text-sm inline-flex items-center hover:bg-lake-dark transition-colors active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-lake focus-visible:ring-offset-2"
               >
                 登录
               </Link>
@@ -77,10 +93,11 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={onMenuClick}
-              className="md:hidden w-10 h-10 rounded-[10px] bg-paper border border-line/80 grid place-items-center hover:bg-paper-hover transition-colors"
+              className="md:hidden w-10 h-10 rounded-[10px] bg-paper border border-line/80 grid place-items-center hover:bg-paper-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-lake focus-visible:ring-offset-2"
               aria-label="打开菜单"
+              aria-haspopup="menu"
             >
-              <Menu size={18} className="text-ink" />
+              <Menu size={18} className="text-ink" aria-hidden="true" />
             </button>
           </div>
         </div>

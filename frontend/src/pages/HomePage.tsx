@@ -1,14 +1,16 @@
 import React from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { postsApi } from '../services/posts';
-import type { Post } from '../types';
+import { recommendationsApi } from '../services/recommendations';
+import type { Post, RecommendationItem } from '../types';
 import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
 import { Loading } from '../components/ui/Loading';
 import { Button } from '../components/ui/Button';
-import { Heart, MessageCircle, Eye, MapPin, Clock } from 'lucide-react';
+import { Heart, MessageCircle, Eye, MapPin, Clock, Sparkles } from 'lucide-react';
 import { colors as categoryColors } from '../styles/tokens';
+import { useSchoolQueryKey } from '../hooks/useSchoolQueryKey';
 
 const CATEGORY_COLOR_MAP: Record<string, keyof typeof categoryColors.category> = {
   '美食': 'food', '食物': 'food', '餐饮': 'food',
@@ -25,6 +27,18 @@ const getCategoryColor = (name?: string) => {
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const schoolKey = useSchoolQueryKey();
+
+  // REC-01.1: 首页"为你推荐"区块（仅首页第一屏，取前 5 条）
+  // 与 posts feed 分开查询，避免分页耦合
+  const {
+    data: recData,
+    isLoading: recLoading,
+  } = useQuery({
+    queryKey: [...schoolKey, 'recommendations', 'home'],
+    queryFn: () => recommendationsApi.getRecommendations(1, 5),
+    staleTime: 60 * 1000, // 1 分钟内不重复请求
+  });
 
   const {
     data,
@@ -34,7 +48,7 @@ const HomePage: React.FC = () => {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['posts', 'feed'],
+    queryKey: [...schoolKey, 'posts', 'feed'],
     queryFn: ({ pageParam = 1 }) => postsApi.getPosts({ page: pageParam, page_size: 20 }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
@@ -42,6 +56,8 @@ const HomePage: React.FC = () => {
   });
 
   const posts = (data?.pages.flatMap(p => p.items) ?? []) as Post[];
+  const recItems: RecommendationItem[] = recData?.items ?? [];
+  const recMode = recData?.mode;
   const loading = isLoading || isFetchingNextPage;
 
   const handleLoadMore = () => {
@@ -67,6 +83,26 @@ const HomePage: React.FC = () => {
     return `${days}天前`;
   };
 
+  // REC-01.2: 推荐模式文案（前端友好提示）
+  const getModeHint = () => {
+    if (!recMode) return null;
+    if (recMode.personalized) {
+      return '基于你的浏览/搜索/订阅偏好';
+    }
+    switch (recMode.reason_code) {
+      case 'cold_start_guest':
+        return '登录后开启个性化推荐';
+      case 'cold_start_disabled':
+        return '已关闭个性化，展示本校热门/最新';
+      case 'cold_start_no_history':
+        return '多浏览帖子，开启个性化推荐';
+      default:
+        return null;
+    }
+  };
+
+  const modeHint = getModeHint();
+
   return (
     <div className="max-w-2xl mx-auto py-4">
       <header className="mb-6 px-1">
@@ -76,6 +112,87 @@ const HomePage: React.FC = () => {
         <p className="text-ink-muted text-sm mt-1">把会消失的校园经验留下来</p>
       </header>
 
+      {/* REC-01.1: 为你推荐区块 */}
+      {recLoading ? (
+        <div className="mb-6 py-4">
+          <Loading text="正在为你推荐..." />
+        </div>
+      ) : recItems.length > 0 ? (
+        <section className="mb-6 bg-paper border border-lake/30 rounded-[18px] shadow-sm overflow-hidden">
+          <div className="px-5 pt-4 pb-3 bg-gradient-to-br from-lake/[0.06] to-mist/40 border-b border-line/60">
+            <div className="flex items-center gap-2 mb-1">
+              <Sparkles size={18} className="text-lake" />
+              <h2 className="font-display font-bold text-[17px] text-lake">为你推荐</h2>
+              {recMode?.personalized && (
+                <span className="ml-auto text-[10px] text-lake bg-lake/10 px-2 py-0.5 rounded-[6px]">
+                  个性化
+                </span>
+              )}
+            </div>
+            {modeHint && (
+              <p className="text-[11px] text-ink-muted">{modeHint}</p>
+            )}
+          </div>
+          <div className="divide-y divide-ink-divider/60">
+            {recItems.map((item) => (
+              <article
+                key={item.id}
+                className="px-5 py-3 hover:bg-paper-hover transition-colors cursor-pointer"
+                onClick={() => handlePostClick(item.id)}
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Avatar
+                    src={item.author?.avatar_url}
+                    fallback={item.author?.nickname?.[0] || '?'}
+                    size="sm"
+                    className="flex-shrink-0"
+                  />
+                  <span className="font-medium text-ink text-sm">
+                    {item.author?.nickname || '匿名用户'}
+                  </span>
+                  <Badge
+                    style={{
+                      backgroundColor: getCategoryColor(item.category?.name).light,
+                      color: getCategoryColor(item.category?.name).main,
+                    }}
+                  >
+                    {item.category?.name || '未分类'}
+                  </Badge>
+                  {/* REC-01.1: 推荐原因 */}
+                  <span className="ml-auto text-[10px] text-lake bg-lake/10 px-1.5 py-0.5 rounded-[6px] flex items-center gap-0.5 flex-shrink-0">
+                    <Sparkles size={9} />
+                    {item.reason}
+                  </span>
+                </div>
+                <h3 className="font-semibold text-[14px] text-ink mb-1 line-clamp-1 leading-[1.5]">
+                  {item.title}
+                </h3>
+                <p className="text-ink-sub text-[13px] line-clamp-1 leading-[1.6]">
+                  {item.content}
+                </p>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-[11px] text-ink-muted flex items-center gap-1">
+                    <MapPin size={10} />
+                    {item.location?.name || '未知地点'}
+                  </span>
+                  <div className="flex items-center gap-3 text-[11px] text-ink-muted">
+                    <span className="flex items-center gap-0.5">
+                      <Eye size={11} />
+                      <span className="font-data font-bold text-ink-sub">{item.view_count || 0}</span>
+                    </span>
+                    <span className="flex items-center gap-0.5">
+                      <Heart size={11} />
+                      <span className="font-data font-bold text-ink-sub">{item.like_count || 0}</span>
+                    </span>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {/* 普通信息流（最新/最热/...） */}
       <div className="space-y-0">
         {posts.map((post, index) => (
           <article
@@ -148,7 +265,7 @@ const HomePage: React.FC = () => {
         <div className="text-center py-16 text-danger">加载失败，请稍后重试</div>
       )}
 
-      {!loading && posts.length === 0 && (
+      {!loading && posts.length === 0 && recItems.length === 0 && (
         <div className="text-center py-16">
           <div className="text-5xl mb-4">⌖</div>
           <p className="font-medium text-ink mb-1.5">这里还没有校园经验</p>

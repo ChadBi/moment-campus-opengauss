@@ -60,7 +60,6 @@ const AdminLogsPage: React.FC = () => {
 
   const loadLogs = useCallback(async (p: number, params: LogQueryParams) => {
     try {
-      setLoading(true);
       const data = await adminApi.getLogs({ ...params, page: p, page_size: PAGE_SIZE });
       setLogs(data.items);
       setTotal(data.total);
@@ -74,7 +73,8 @@ const AdminLogsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadLogs(page, applied);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadLogs(page, applied);
   }, [page, applied, loadLogs]);
 
   /** 应用筛选 */

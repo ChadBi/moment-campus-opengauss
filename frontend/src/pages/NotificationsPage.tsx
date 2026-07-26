@@ -16,9 +16,23 @@ const NotificationsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
 
+  // FND-01.4: 函数声明移到 useEffect 之前，避免 access-before-declaration
+  const loadNotifications = async () => {
+    try {
+      const response = await notificationsApi.getNotifications();
+      setNotifications(response.items as Notification[]);
+    } catch (error) {
+      console.error('加载通知失败:', error);
+      setToast({ message: '加载通知失败', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated) return;
-    loadNotifications();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadNotifications();
   }, [isAuthenticated]);
 
   if (!isAuthenticated) {
@@ -46,25 +60,12 @@ const NotificationsPage: React.FC = () => {
     );
   }
 
-  const loadNotifications = async () => {
-    try {
-      setLoading(true);
-      const response = await notificationsApi.getNotifications();
-      setNotifications(response.items as Notification[]);
-    } catch (error) {
-      console.error('加载通知失败:', error);
-      setToast({ message: '加载通知失败', type: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleMarkAsRead = async (id: number) => {
     try {
       await notificationsApi.markAsRead(id);
-      loadNotifications();
+      void loadNotifications();
       setToast({ message: '已标记为已读', type: 'success' });
-    } catch (error) {
+    } catch {
       setToast({ message: '操作失败', type: 'error' });
     }
   };
@@ -72,9 +73,9 @@ const NotificationsPage: React.FC = () => {
   const handleMarkAllAsRead = async () => {
     try {
       await notificationsApi.markAllAsRead();
-      loadNotifications();
+      void loadNotifications();
       setToast({ message: '已全部标记为已读', type: 'success' });
-    } catch (error) {
+    } catch {
       setToast({ message: '操作失败', type: 'error' });
     }
   };
@@ -111,6 +112,15 @@ const NotificationsPage: React.FC = () => {
         return '🔔';
       case 'audit':
         return '📋';
+      // SUB-01.2: 四类订阅通知（新内容/更新/过期/冲突）
+      case 'subscription_new':
+        return '🔔';
+      case 'subscription_update':
+        return '🔄';
+      case 'subscription_expired':
+        return '⌛';
+      case 'subscription_conflict':
+        return '⚠️';
       default:
         return '📩';
     }
