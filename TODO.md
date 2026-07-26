@@ -17,6 +17,36 @@
 
 ## 已完成
 
+### E2E 全链路自动化测试与 Bug 修复（2026-07-26 完成）
+
+- [x] E2E-01 super_admin 角色 Bug 修复：`backend/scripts/seed_data.py` 中 `admin@momentcampus.com` 的 `role` 由 `admin` 改为 `super_admin`；并用临时脚本 `fix_super_admin.py`（用完即删）直接 UPDATE 数据库现存值，使 `/platform/*` 接口与平台菜单立即恢复
+- [x] E2E-02 平台路由 404 Bug 修复：`frontend/src/routes.tsx` 新增 `<Route path="platform" element={<Navigate to="/admin/platform/overview" replace />} />`，父路径自动重定向到默认子页面（`replace` 避免在历史栈中留下无效记录）
+- [x] E2E-03 AI 搜索 Mock Provider 动态响应 Bug 修复：`backend/app/ai/provider.py` 的 `MockAIProvider` 改造为根据 prompt 类型动态生成响应
+  - 新增 `_extract_user_query` / `_extract_publish_draft` / `_extract_first_noun` / `_generate_dynamic_response` 4 个方法
+  - 搜索意图：提取用户查询→抽取核心关键词（停用词表覆盖疑问词与时间词）→返回 `keyword=核心词、sort=relevance` 的意图 JSON
+  - 发布建议：返回 `suggestions=null`（不修改原文）
+  - `set_response` 注入的固定响应优先级最高，确保 63 项单元测试断言不破坏
+- [x] E2E-04 回归测试：`tests/test_ai_provider_unit.py`（17）+ `tests/test_ai_search.py`（21）+ `tests/test_ai_publish.py`（25）共 63 项全部 PASS，无回归
+- [x] E2E-05 前端 E2E 测试（integrated_code_mode 内联浏览器）覆盖 18 个场景全部 PASS：
+  - 登录与首页 / 发帖全流程（保存草稿→提交审核→admin 通过→通知→首页可见）
+  - 评论与回复（user1 评论→user2 回复→评论树正确显示）
+  - 协同治理（confirmation 证实有效 + update 更新建议提交成功，详情页正确显示协同记录）
+  - 跨校隔离（江南大学与复旦大学首页内容完全隔离；跨校访问帖子返回 404）
+  - AI 智能搜索（"图书馆开放时间"返回 1 条结果；"食堂今天有什么菜"返回 4 条结果；含分数与匹配理由）
+  - 普通搜索（"图书馆"返回 4 条相关结果）
+  - 通知中心 / 地图功能（31 个地点标记）/ 专题订阅 / 个人中心
+  - 官方发布主体（用户侧申请创建→提交成功→管理员后台看到待认证申请）
+  - 平台总览（三校数据：学校数 3、活跃成员 26、内容治理量 11、AI 降级率 8.3%）
+  - 学校开通 / 套餐管理 / 校级数据分析 / 平台审计 / 举报管理
+- [x] E2E-06 Git 提交（3 次）：
+  - `fix(admin): 修复super_admin权限与平台路由重定向`
+  - `docs: 精简 AGENTS.md 完成标准第3条MCP测试说明`
+  - `fix(ai): MockAIProvider 支持根据用户查询动态生成响应`
+- [x] 任务报告：
+  - [AIwork/E2E测试Bug修复任务报告_super_admin权限与平台路由重定向.md](AIwork/E2E测试Bug修复任务报告_super_admin权限与平台路由重定向.md)
+  - [AIwork/E2E测试Bug修复任务报告_AI搜索MockProvider动态响应.md](AIwork/E2E测试Bug修复任务报告_AI搜索MockProvider动态响应.md)
+  - [AIwork/E2E全链路自动化测试与Bug修复汇总报告.md](AIwork/E2E全链路自动化测试与Bug修复汇总报告.md)
+
 ### REL-02 性能、安全、ready/version、结构化日志与 AI 监控（本地）（2026-07-25 完成）
 
 - [x] REL-02.1 健康检查与版本接口（本地开发辅助，非生产发布门禁）：
