@@ -546,7 +546,7 @@ async def add_posts_to_topic(
 
     added: list[int] = []
     for ref in data.posts:
-        await _assert_post_in_same_school_published(db, ref.post_id, tenant)
+        post = await _assert_post_in_same_school_published(db, ref.post_id, tenant)
 
         # 校验是否已关联
         existing = await db.scalar(
@@ -568,6 +568,20 @@ async def add_posts_to_topic(
         )
         db.add(tcp)
         added.append(ref.post_id)
+
+        # SUB-01.2: 帖子被加入专题时，通知订阅该专题的用户
+        # （审核通过时的 notify_new_post 只能覆盖 category/location 订阅者，
+        #   此处补充 topic 订阅者的通知，幂等：已发过 subscription_new 的不会重复）
+        try:
+            from app.services.subscription_notifier import notify_new_post
+            # 重新加载 post 对象（_assert_post_in_same_school_published 返回的 post 已在 session 中）
+            await notify_new_post(db, post, actor_id=admin.id)
+        except Exception as exc:
+            # 通知失败不应阻塞专题编排主流程，仅记录日志
+            import logging
+            logging.getLogger(__name__).warning(
+                "notify_new_post on add_posts_to_topic failed: %s", exc
+            )
 
     # 更新 post_count
     topic.post_count = await _recalc_topic_post_count(db, topic.id)

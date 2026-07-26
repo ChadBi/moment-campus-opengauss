@@ -17,6 +17,21 @@
 
 ## 已完成
 
+### E2E 多模块链路扩展验证（评论/协同治理/专题订阅/个人中心/通知中心）（2026-07-26 完成）
+
+- [x] 修复专题订阅通知不触发 Bug（SUB-01.2）：`backend/app/api/admin_topics.py` 的 `add_posts_to_topic` 在帖子被加入专题时调用 `notify_new_post`，通知订阅该专题的用户；通知失败不阻塞主流程（仅 warning 日志）
+- [x] 评论模块 E2E 链路验证（`verify_comments.py`）：创建顶级评论 + 回复 + 嵌套列表 + 软删除 + 越权 403 + 通知触发（帖子评论通知 / 回复通知）全部通过
+- [x] 协同治理 5 类验证 E2E 链路验证（`verify_governance.py`）：
+  - 2 类互斥投票（confirmation/refutation）+ 替换语义 + 作者禁投 403 + 聚合统计（uncertain/invalid 状态）
+  - 3 类问题报告（update/expiration_report/conflict_report）+ 重复拒绝 400 + 列表齐全
+  - 报告处理：admin 流转 resolved/in_review + 作者标记 resolved + 作者非 resolved 流转 403 + 普通用户 403
+  - 帖子详情 governance 聚合正确
+- [x] 个人中心 E2E 链路验证（`verify_profile.py`）：资料编辑 + 持久化 + 6 态筛选 + 求和校验 + 真实统计 + 浏览历史（写入/唯一约束/删除/清空）+ 通知偏好切换
+- [x] 通知中心 E2E 链路验证（`verify_notifications.py`）：未读数 + 按已读/类型筛选 + 单条已读（幂等）+ 全部已读 + 不存在 404 + 越权 404 + 安全通道全关 400 + digest_time 校验
+- [x] 后端 `pytest tests/ -v` 全量通过：972 passed, 66 skipped（895.82s）
+- [x] 前端 `npm run build` 通过：✓ built in 23.67s
+- [x] 任务报告：[AIwork/评论协同治理专题订阅个人中心通知中心E2E链路测试任务报告.md](AIwork/评论协同治理专题订阅个人中心通知中心E2E链路测试任务报告.md)
+
 ### E2E 全链路自动化测试与 Bug 修复（2026-07-26 完成）
 
 - [x] E2E-01 super_admin 角色 Bug 修复：`backend/scripts/seed_data.py` 中 `admin@momentcampus.com` 的 `role` 由 `admin` 改为 `super_admin`；并用临时脚本 `fix_super_admin.py`（用完即删）直接 UPDATE 数据库现存值，使 `/platform/*` 接口与平台菜单立即恢复
