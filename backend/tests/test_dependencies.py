@@ -26,25 +26,34 @@ class TestGetCurrentUserOptional:
     async def test_no_token_returns_none_anonymous_access(
         self, no_token_client: AsyncClient, test_school: dict
     ):
-        """无 token 时访问公开接口应成功（get_current_user_optional 返回 None）"""
+        """无 token 时访问公开接口应成功（get_current_user_optional 返回 None）
+
+        TEN-02.1：游客必须显式提供 X-School-Code 头解析学校上下文。
+        """
         # GET /posts 是公开接口，使用 get_current_user_optional
-        response = await no_token_client.get("/api/v1/posts")
+        response = await no_token_client.get(
+            "/api/v1/posts",
+            headers={"X-School-Code": test_school["code"]},
+        )
         assert response.status_code == 200
 
     @pytest.mark.asyncio
     async def test_invalid_token_treated_as_anonymous(
-        self, no_token_client: AsyncClient
+        self, no_token_client: AsyncClient, test_school: dict
     ):
         """无效 token 时 get_current_user_optional 返回 None，不报错"""
         response = await no_token_client.get(
             "/api/v1/posts",
-            headers={"Authorization": "Bearer invalidtoken123"},
+            headers={
+                "Authorization": "Bearer invalidtoken123",
+                "X-School-Code": test_school["code"],
+            },
         )
         assert response.status_code == 200
 
     @pytest.mark.asyncio
     async def test_expired_token_treated_as_anonymous(
-        self, no_token_client: AsyncClient, test_user: dict
+        self, no_token_client: AsyncClient, test_user: dict, test_school: dict
     ):
         """过期 token 被当作未登录处理（不抛 401）"""
         # 创建一个已过期的 access token
@@ -57,7 +66,10 @@ class TestGetCurrentUserOptional:
         # 直接用畸形 token 测试
         response = await no_token_client.get(
             "/api/v1/posts",
-            headers={"Authorization": "Bearer expired.invalid.token"},
+            headers={
+                "Authorization": "Bearer expired.invalid.token",
+                "X-School-Code": test_school["code"],
+            },
         )
         assert response.status_code == 200
 

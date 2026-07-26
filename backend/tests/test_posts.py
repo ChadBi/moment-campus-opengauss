@@ -3,9 +3,15 @@ from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_list_posts_empty(client: AsyncClient):
-    """Test listing posts when there are none returns empty list."""
-    response = await client.get("/api/v1/posts")
+async def test_list_posts_empty(client: AsyncClient, test_school: dict):
+    """Test listing posts when there are none returns empty list.
+
+    TEN-02: 需通过 X-School-Code 头提供租户上下文，否则列表接口返回 404。
+    """
+    response = await client.get(
+        "/api/v1/posts",
+        headers={"X-School-Code": test_school["code"]},
+    )
     assert response.status_code == 200
     data = response.json()
     assert "items" in data
@@ -35,7 +41,11 @@ async def test_list_posts_with_data(client: AsyncClient, db_session, test_user: 
     await db_session.commit()
     await db_session.refresh(post)
 
-    response = await client.get("/api/v1/posts")
+    # TEN-02: 通过 X-School-Code 头提供租户上下文
+    response = await client.get(
+        "/api/v1/posts",
+        headers={"X-School-Code": test_school["code"]},
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["total"] >= 1
@@ -58,7 +68,11 @@ async def test_list_posts_pagination(client: AsyncClient, auth_headers: dict, te
             headers=auth_headers,
         )
 
-    response = await client.get("/api/v1/posts?page=1&page_size=2")
+    # TEN-02: 列表查询需带 auth_headers 以解析当前学校（用户 membership）
+    response = await client.get(
+        "/api/v1/posts?page=1&page_size=2",
+        headers=auth_headers,
+    )
     assert response.status_code == 200
     data = response.json()
     assert len(data["items"]) <= 2
@@ -67,9 +81,15 @@ async def test_list_posts_pagination(client: AsyncClient, auth_headers: dict, te
 
 
 @pytest.mark.asyncio
-async def test_get_post_detail(client: AsyncClient, test_post: dict):
-    """Test getting a specific post by ID."""
-    response = await client.get(f"/api/v1/posts/{test_post['id']}")
+async def test_get_post_detail(client: AsyncClient, auth_headers: dict, test_post: dict):
+    """Test getting a specific post by ID.
+
+    FND-03.1: test_post 默认 pending，仅作者/管理员可见，需携带 auth_headers。
+    """
+    response = await client.get(
+        f"/api/v1/posts/{test_post['id']}",
+        headers=auth_headers,
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == test_post["id"]
@@ -78,12 +98,21 @@ async def test_get_post_detail(client: AsyncClient, test_post: dict):
 
 
 @pytest.mark.asyncio
-async def test_get_post_detail_increments_view(client: AsyncClient, test_post: dict):
-    """Test that viewing a post increments view_count."""
-    response1 = await client.get(f"/api/v1/posts/{test_post['id']}")
+async def test_get_post_detail_increments_view(client: AsyncClient, auth_headers: dict, test_post: dict):
+    """Test that viewing a post increments view_count.
+
+    FND-03.1: test_post 默认 pending，仅作者/管理员可见，需携带 auth_headers。
+    """
+    response1 = await client.get(
+        f"/api/v1/posts/{test_post['id']}",
+        headers=auth_headers,
+    )
     view_count_1 = response1.json()["view_count"]
 
-    response2 = await client.get(f"/api/v1/posts/{test_post['id']}")
+    response2 = await client.get(
+        f"/api/v1/posts/{test_post['id']}",
+        headers=auth_headers,
+    )
     view_count_2 = response2.json()["view_count"]
 
     assert view_count_2 == view_count_1 + 1

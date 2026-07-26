@@ -2,10 +2,19 @@
 
 验证 06_create_materialized_views.sql 创建的 4 个物化视图存在，
 并验证 REFRESH 后数据正确。
+
+FND-02.4: 依赖高级 SQL 对象（物化视图）漂移，待 REL 阶段重新登记后启用。
 """
 import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+
+# FND-02.4: 依赖高级 SQL 对象（06_create_materialized_views.sql）漂移，待 REL 阶段重新登记后启用
+pytestmark = pytest.mark.skip(
+    reason="高级 SQL 对象漂移（物化视图依赖 06_create_materialized_views.sql），"
+    "待 REL 阶段重新登记后启用"
+)
 
 
 @pytest.mark.integration

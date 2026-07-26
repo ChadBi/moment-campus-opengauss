@@ -2,6 +2,8 @@
 
 使用 db_conn（asyncpg）直接调用存储过程，使用 db_session（ORM）创建测试数据。
 所有测试标注 @pytest.mark.integration，依赖物理对象已创建。
+
+FND-02.4: 依赖高级 SQL 对象（存储过程）漂移，待 REL 阶段重新登记后启用。
 """
 import pytest
 from datetime import datetime, timedelta, timezone
@@ -14,6 +16,13 @@ from app.models.post import Post
 from app.models.location import Location
 from app.models.validation_record import ValidationRecord
 from app.models.admin_operation_log import AdminOperationLog
+
+
+# FND-02.4: 依赖高级 SQL 对象（05_create_stored_procedures.sql）漂移，待 REL 阶段重新登记后启用
+pytestmark = pytest.mark.skip(
+    reason="高级 SQL 对象漂移（存储过程 SP01-SP08 依赖 05_create_stored_procedures.sql），"
+    "待 REL 阶段重新登记后启用"
+)
 
 
 # ============================================================

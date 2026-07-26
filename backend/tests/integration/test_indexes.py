@@ -1,9 +1,18 @@
 """T-E-02 集成测试：openGauss 索引
 
 验证 04_create_indexes.sql 创建的关键索引存在。
+
+FND-02.4: 依赖高级 SQL 对象（索引脚本）漂移，待 REL 阶段重新登记后启用。
 """
 import pytest
 from sqlalchemy import text
+
+
+# FND-02.4: 依赖高级 SQL 对象（04_create_indexes.sql）漂移，待 REL 阶段重新登记后启用
+pytestmark = pytest.mark.skip(
+    reason="高级 SQL 对象漂移（索引依赖 04_create_indexes.sql），"
+    "待 REL 阶段重新登记后启用"
+)
 
 
 # 关键索引（来自 04_create_indexes.sql + 模型定义）

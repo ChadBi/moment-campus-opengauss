@@ -8,6 +8,7 @@ async def test_approve_post_creates_audit_notification(
     auth_headers: dict,
     admin_headers: dict,
     test_post: dict,
+    test_school: dict,
 ):
     """管理员审核通过后，帖子作者能在通知中心看到审核通知。"""
     response = await client.put(
@@ -17,7 +18,11 @@ async def test_approve_post_creates_audit_notification(
     )
     assert response.status_code == 200
 
-    detail_response = await client.get(f"/api/v1/posts/{test_post['id']}")
+    # ACC-01.1: 游客访问需携带学校上下文（X-School-Code）
+    detail_response = await client.get(
+        f"/api/v1/posts/{test_post['id']}",
+        headers={"X-School-Code": test_school["code"]},
+    )
     assert detail_response.status_code == 200
     assert detail_response.json()["status"] == "published"
 

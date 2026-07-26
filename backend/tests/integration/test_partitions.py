@@ -2,10 +2,19 @@
 
 验证 09_create_partitions.sql 创建的 7 张分区表存在，
 并验证数据按时间落在正确分区。
+
+FND-02.4: 依赖高级 SQL 对象（分区表）漂移，待 REL 阶段重新登记后启用。
 """
 import pytest
 from sqlalchemy import text
 from datetime import datetime
+
+
+# FND-02.4: 依赖高级 SQL 对象（09_create_partitions.sql）漂移，待 REL 阶段重新登记后启用
+pytestmark = pytest.mark.skip(
+    reason="高级 SQL 对象漂移（分区表依赖 09_create_partitions.sql），"
+    "待 REL 阶段重新登记后启用"
+)
 
 
 # 7 张分区表

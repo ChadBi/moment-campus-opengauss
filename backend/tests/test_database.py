@@ -29,10 +29,15 @@ class TestBase:
         assert len(table_names) >= 15
 
     def test_base_metadata_contains_core_tables(self):
-        """关键表已注册"""
+        """关键表已注册
+
+        FND-02.3: favorites 表已移除（收藏功能删除）。
+        """
         tables = set(Base.metadata.tables.keys())
-        expected = {"users", "posts", "categories", "schools", "comments", "likes", "favorites"}
+        expected = {"users", "posts", "categories", "schools", "comments", "likes"}
         assert expected.issubset(tables)
+        # favorites 表不应存在（已删除）
+        assert "favorites" not in tables
 
     def test_base_metadata_contains_validation_records(self):
         """validation_records 表已注册"""

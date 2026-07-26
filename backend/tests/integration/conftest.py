@@ -1,16 +1,33 @@
 """集成测试专用 fixture
 
+FND-02.4: 依赖高级 SQL 对象（表空间/分区/物化视图/存储过程/触发器）的集成测试
+在未安装高级对象时全部跳过，不与核心 API 测试混合。
+
 为 openGauss 物理对象（SP/TR/MV）集成测试提供：
 - db_conn: asyncpg 原生连接，用于调用存储过程（绕过 ORM）
 - ensure_physical_objects: session 级检查，缺失物理对象时 skip
 - refresh_mvs: 每用例后刷新物化视图
 """
+import os
+from urllib.parse import urlparse
+
 import pytest
 import pytest_asyncio
 import asyncpg
 from sqlalchemy import text
 
-from tests.conftest import test_engine
+from tests.conftest import test_engine, TEST_DATABASE_URL
+
+
+# 从 TEST_DATABASE_URL 解析连接参数供 asyncpg 使用
+# URL 形如 postgresql+asyncpg://gaussdb:Gaussdb%40123@localhost:5432/moment_campus_test
+_parsed = urlparse(TEST_DATABASE_URL.replace("+asyncpg", ""))
+_TEST_DB_HOST = _parsed.hostname or "localhost"
+_TEST_DB_PORT = _parsed.port or 5432
+_TEST_DB_USER = _parsed.username or "gaussdb"
+# asyncpg 接受原始密码（无需 URL 解码，urlparse 已自动解码 %40 → @）
+_TEST_DB_PASSWORD = _parsed.password or ""
+_TEST_DB_NAME = _parsed.path.lstrip("/") if _parsed.path else "moment_campus_test"
 
 
 class _AutoCommitProxy:
@@ -59,15 +76,15 @@ class _AutoCommitProxy:
 async def db_conn():
     """提供 asyncpg 原生连接（已包装为自动提交），用于调用存储过程（绕过 ORM）。
 
-    密码含 @，使用关键字参数传递以避免 DSN 解析错误。
+    FND-02: 连接独立测试库（从 TEST_DATABASE_URL 解析），不连开发库。
     asyncpg 0.31.0 无 set_autocommit，用 _AutoCommitProxy 包装实现自动提交。
     """
     conn = await asyncpg.connect(
-        host="localhost",
-        port=5432,
-        user="gaussdb",
-        password="Gaussdb@123",
-        database="moment_campus",
+        host=_TEST_DB_HOST,
+        port=_TEST_DB_PORT,
+        user=_TEST_DB_USER,
+        password=_TEST_DB_PASSWORD,
+        database=_TEST_DB_NAME,
     )
     proxy = _AutoCommitProxy(conn)
     try:
@@ -84,6 +101,9 @@ async def ensure_physical_objects():
     - 存储过程 sp_recalc_credibility
     - 物化视图 mv_post_validation_stats
     - 触发器 trg_validation_after_insert
+
+    FND-02.4: 测试库仅通过 Base.metadata.create_all() 创建 ORM 表，
+    不含高级 SQL 对象，故此 fixture 会跳过。
     """
     async with test_engine.connect() as conn:
         sp_exists = (

@@ -159,9 +159,9 @@ class TestCanTransitionIllegal:
         """published 不能回退到 draft"""
         assert can_transition("published", "draft") is False
 
-    def test_published_cannot_back_to_pending(self):
-        """published 不能回退到 pending"""
-        assert can_transition("published", "pending") is False
+    def test_published_can_back_to_pending(self):
+        """FND-03.2: published → pending 合法（已发布帖子实质修改后回审）"""
+        assert can_transition("published", "pending") is True
 
     def test_expired_cannot_to_draft_or_pending(self):
         """expired 不能回到 draft/pending"""
@@ -212,9 +212,12 @@ class TestGetAllowedTransitions:
         assert allowed == {"published", "draft", "archived"}
 
     def test_published_allowed(self):
-        """published 允许流转到 expired / conflict / archived"""
+        """FND-03.2: published 允许流转到 pending / expired / conflict / archived
+
+        pending 用于实质修改后回审；expired/conflict/archived 用于过期/冲突/归档。
+        """
         allowed = get_allowed_transitions("published")
-        assert allowed == {"expired", "conflict", "archived"}
+        assert allowed == {"pending", "expired", "conflict", "archived"}
 
     def test_expired_allowed(self):
         """expired 允许流转到 published / archived"""

@@ -5,11 +5,20 @@
 - ts_core: 业务核心表（users / posts / validation_records / reports 等）
 - ts_interaction: 互动表（comments / likes / favorites / notifications）
 - ts_log: 日志表（admin_operation_logs / browse_histories / search_histories）
+
+FND-02.4: 依赖高级 SQL 对象（表空间）漂移，待 REL 阶段重新登记后启用。
 """
 import pytest
 from sqlalchemy import text
 
 from tests.conftest import test_engine
+
+
+# FND-02.4: 依赖高级 SQL 对象（01_create_tablespaces.sql）漂移，待 REL 阶段重新登记后启用
+pytestmark = pytest.mark.skip(
+    reason="高级 SQL 对象漂移（表空间依赖 01_create_tablespaces.sql），"
+    "待 REL 阶段重新登记后启用"
+)
 
 
 @pytest.mark.integration

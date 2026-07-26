@@ -29,18 +29,22 @@ class TestPostCreate:
         p = PostCreate(title="测试标题五字以上", content="内容至少要十个字符哦", category_id=1)
         assert p.status == "pending"
 
-    def test_invalid_status_published_rejected(self):
-        """非法：status=published 被拒绝（创建时不能直接发布）"""
-        with pytest.raises(ValidationError):
-            PostCreate(title="测试标题五字以上", content="内容至少要十个字符哦", category_id=1, status="published")
+    def test_create_only_allows_draft_or_pending(self):
+        """PostCreate 创建时只允许 draft / pending（FND-01.2 schema 层强制）
 
-    def test_invalid_status_expired_rejected(self):
-        with pytest.raises(ValidationError):
-            PostCreate(title="测试标题五字以上", content="内容至少要十个字符哦", category_id=1, status="expired")
+        FND-01.2: schema 层 validate_create_status 校验器拒绝
+        published/expired/conflict/archived；其余 4 态由状态机服务统一流转。
+        PostStatusEnum 定义全部 6 态，但创建时仅 draft/pending 合法。
+        """
+        # draft / pending 合法
+        for status in ["draft", "pending"]:
+            p = PostCreate(title="测试标题五字以上", content="内容至少要十个字符哦", category_id=1, status=status)
+            assert p.status == status
 
-    def test_invalid_status_archived_rejected(self):
-        with pytest.raises(ValidationError):
-            PostCreate(title="测试标题五字以上", content="内容至少要十个字符哦", category_id=1, status="archived")
+        # 其余 4 态在创建时被 schema 校验器拒绝
+        for status in ["published", "expired", "conflict", "archived"]:
+            with pytest.raises(ValidationError, match="draft 或 pending"):
+                PostCreate(title="测试标题五字以上", content="内容至少要十个字符哦", category_id=1, status=status)
 
     def test_title_too_short_rejected(self):
         """标题少于 5 字符被拒绝"""
@@ -105,17 +109,36 @@ class TestPostTransitionCreate:
 
 
 class TestValidationCreate:
-    """ValidationCreate Schema（5 类 + 3 别名）"""
+    """ValidationCreate Schema（5 类正式 + 2 别名 + uncertain）
 
-    def test_valid_five_types(self):
-        """5 类正式类型"""
-        for vtype in ["confirmation", "refutation", "update", "expiration_report", "conflict_report"]:
+    FND-01.1: schema 层定义完整 5 类供 GOV-01 post_change_reports 使用；
+    validation_records 表只处理 confirmation/refutation（2 类互斥投票）的限制
+    由 API 层强制，schema 层不限制。
+    """
+
+    def test_valid_two_types(self):
+        """2 类正式类型"""
+        for vtype in ["confirmation", "refutation"]:
             v = ValidationCreate(validation_type=vtype)
             assert v.validation_type == vtype
 
-    def test_valid_three_aliases(self):
-        """3 类旧别名"""
-        for vtype in ["valid", "invalid", "uncertain"]:
+    def test_valid_two_aliases(self):
+        """2 类旧别名（valid→confirmation / invalid→refutation 由 API 归一化）"""
+        for vtype in ["valid", "invalid"]:
+            v = ValidationCreate(validation_type=vtype)
+            assert v.validation_type == vtype
+
+    def test_all_five_types_accepted_by_schema(self):
+        """schema 层接受全部 5 类 + 别名 + uncertain（FND-01.1 契约）
+
+        FND-01 阶段 schema 层定义完整 5 类供 GOV-01 post_change_reports 使用；
+        validation_records 表只处理 confirmation/refutation 的限制由 API 层强制。
+        """
+        for vtype in [
+            "confirmation", "refutation",
+            "update", "expiration_report", "conflict_report",
+            "valid", "invalid", "uncertain",
+        ]:
             v = ValidationCreate(validation_type=vtype)
             assert v.validation_type == vtype
 
@@ -141,19 +164,15 @@ class TestValidationCreate:
 
 
 class TestValidationStatsResponse:
-    """ValidationStatsResponse Schema"""
+    """ValidationStatsResponse Schema（2 类计数）"""
 
     def test_default_all_zero(self):
-        """默认所有计数为 0"""
+        """默认所有计数为 0（仅 2 类字段）"""
         s = ValidationStatsResponse(post_id=1)
         assert s.valid_count == 0
         assert s.invalid_count == 0
-        assert s.uncertain_count == 0
         assert s.confirmation_count == 0
         assert s.refutation_count == 0
-        assert s.update_count == 0
-        assert s.expiration_report_count == 0
-        assert s.conflict_report_count == 0
         assert s.total_count == 0
 
     def test_default_validity_status(self):

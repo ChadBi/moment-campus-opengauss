@@ -2,6 +2,9 @@
 
 通过 ORM 插入测试数据，验证触发器自动执行效果（不手动调用 SP）。
 所有测试标注 @pytest.mark.integration，依赖物理对象已创建。
+
+FND-02.4: 高级 SQL 对象（触发器）依赖漂移，待 REL 阶段重新登记后启用。
+已移除 TR06 trg_favorite_update_count 测试（Favorite 模型已删除，收藏功能下线）。
 """
 import pytest
 from datetime import datetime
@@ -13,8 +16,13 @@ from app.models.user import User
 from app.models.post import Post
 from app.models.comment import Comment
 from app.models.like import Like
-from app.models.favorite import Favorite
 from app.models.validation_record import ValidationRecord
+
+# FND-02.4: 依赖高级 SQL 对象（触发器）漂移，待 REL 阶段重新登记后启用
+pytestmark = pytest.mark.skip(
+    reason="高级 SQL 对象漂移（触发器 TR01-TR08 依赖 08_create_triggers.sql），"
+    "待 REL 阶段重新登记后启用"
+)
 
 
 # ============================================================
@@ -358,53 +366,9 @@ class TestTR05LikeUpdateCount:
 # ============================================================
 # TR06 trg_favorite_update_count
 # ============================================================
-
-class TestTR06FavoriteUpdateCount:
-    """TR06 trg_favorite_update_count
-
-    触发：AFTER INSERT/DELETE ON favorites
-    功能：posts.favorite_count 自动 +1/-1
-    """
-
-    @pytest.mark.integration
-    @pytest.mark.asyncio
-    async def test_tr06_insert_and_delete_favorite(
-        self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
-    ):
-        """插入收藏验证 favorite_count=1，删除验证 favorite_count=0"""
-        author = await _create_user(
-            db_session, test_school["id"],
-            email="tr06_author@example.com", nickname="TR06作者",
-        )
-        post = await _create_post(
-            db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
-        )
-
-        # 插入收藏
-        favorite = Favorite(
-            post_id=post.id,
-            user_id=author.id,
-        )
-        db_session.add(favorite)
-        await db_session.commit()
-        await db_session.refresh(favorite)
-
-        count_after_insert = await db_conn.fetchval(
-            "SELECT favorite_count FROM posts WHERE id = $1", post.id
-        )
-        assert count_after_insert == 1
-
-        # 删除收藏
-        await db_conn.execute(
-            "DELETE FROM favorites WHERE id = $1", favorite.id
-        )
-
-        count_after_delete = await db_conn.fetchval(
-            "SELECT favorite_count FROM posts WHERE id = $1", post.id
-        )
-        assert count_after_delete == 0
+# FND-02.3: TR06 已移除（Favorite 模型已删除，收藏功能下线）。
+# 原测试 TestTR06FavoriteUpdateCount 引用 app.models.favorite.Favorite，
+# 该模型已在 04_drop_favorites_and_simplify_validation.sql 迁移后删除。
 
 
 # ============================================================

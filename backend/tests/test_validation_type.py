@@ -1,6 +1,8 @@
-"""T-B-02 协同验证类型扩展单元测试
+"""T-B-02 协同验证类型定义单元测试（2 类精简版）
 
-覆盖 5 类验证类型定义、别名映射、归一化函数。
+FND-02.3: 修正为当前 2 类表逻辑现状。
+当前 validation_type 只有 2 类（confirmation/refutation），
+update/expiration_report/conflict_report 为历史废弃类型（数据库存量保留但不接受新提交）。
 """
 import pytest
 
@@ -13,31 +15,42 @@ from app.core.validation_type import (
 
 
 class TestValidationTypeConstants:
-    """5 类验证类型常量定义完整性"""
+    """2 类验证类型常量定义完整性"""
 
-    def test_all_five_types_defined(self):
-        """5 类全部定义"""
+    def test_all_two_types_defined(self):
+        """2 类全部定义"""
         assert ValidationType.CONFIRMATION == "confirmation"
         assert ValidationType.REFUTATION == "refutation"
-        assert ValidationType.UPDATE == "update"
-        assert ValidationType.EXPIRATION_REPORT == "expiration_report"
-        assert ValidationType.CONFLICT_REPORT == "conflict_report"
 
-    def test_all_tuple_contains_exactly_five(self):
-        """ALL 元组恰好包含 5 个类型，无重复"""
-        assert len(ValidationType.ALL) == 5
-        assert len(set(ValidationType.ALL)) == 5
+    def test_all_tuple_contains_exactly_two(self):
+        """ALL 元组恰好包含 2 个类型，无重复"""
+        assert len(ValidationType.ALL) == 2
+        assert len(set(ValidationType.ALL)) == 2
 
     def test_all_types_fit_in_string_20(self):
         """所有类型值长度 <= 20（数据库字段为 String(20)）"""
         for vtype in ValidationType.ALL:
             assert len(vtype) <= 20, f"类型 {vtype} 长度超过 20"
 
-    def test_longest_type_expiration_report(self):
-        """最长类型为 expiration_report（17 字符），String(20) 足够"""
-        max_len = max(len(t) for t in ValidationType.ALL)
-        assert max_len == 17  # expiration_report
-        assert max_len <= 20
+    def test_deprecated_types_not_in_all(self):
+        """历史废弃类型不在 ALL 元组中但仍定义为类属性（FND-01 契约 + GOV-01）
+
+        FND-01.1 契约：UPDATE/EXPIRATION_REPORT/CONFLICT_REPORT 仍定义为类属性，
+        供 schema 层（ValidationTypeEnum）与 GOV-01（post_change_reports 表）使用。
+        ALL 元组仅含 2 类（validation_records 表处理的互斥投票）。
+        """
+        # 这些常量仍定义（FND-01 契约 + GOV-01）
+        assert hasattr(ValidationType, "UPDATE")
+        assert hasattr(ValidationType, "EXPIRATION_REPORT")
+        assert hasattr(ValidationType, "CONFLICT_REPORT")
+        # 但不在 ALL 元组中（validation_records 只处理 2 类）
+        assert "update" not in ValidationType.ALL
+        assert "expiration_report" not in ValidationType.ALL
+        assert "conflict_report" not in ValidationType.ALL
+        # ALL_FIVE 包含全部 5 类（schema 契约）
+        assert "update" in ValidationType.ALL_FIVE
+        assert "expiration_report" in ValidationType.ALL_FIVE
+        assert "conflict_report" in ValidationType.ALL_FIVE
 
 
 class TestIsValidValidationType:
@@ -45,14 +58,20 @@ class TestIsValidValidationType:
 
     @pytest.mark.parametrize("vtype", list(ValidationType.ALL))
     def test_valid_canonical_types(self, vtype):
-        """5 个正式类型全部有效"""
+        """2 个正式类型全部有效"""
         assert is_valid_validation_type(vtype) is True
 
     def test_aliases_valid(self):
-        """旧 3 类别名有效"""
+        """旧 2 类别名有效"""
         assert is_valid_validation_type("valid") is True
         assert is_valid_validation_type("invalid") is True
-        assert is_valid_validation_type("uncertain") is True
+
+    def test_deprecated_types_invalid(self):
+        """历史废弃类型（update/expiration_report/conflict_report/uncertain）不再视为有效"""
+        assert is_valid_validation_type("update") is False
+        assert is_valid_validation_type("expiration_report") is False
+        assert is_valid_validation_type("conflict_report") is False
+        assert is_valid_validation_type("uncertain") is False
 
     def test_invalid_type(self):
         """非法类型值无效"""
@@ -66,10 +85,9 @@ class TestNormalizeValidationType:
     """normalize_validation_type 函数"""
 
     def test_normalize_aliases(self):
-        """旧 3 类别名归一化为新 5 类正式名"""
+        """旧 2 类别名归一化为正式名"""
         assert normalize_validation_type("valid") == "confirmation"
         assert normalize_validation_type("invalid") == "refutation"
-        assert normalize_validation_type("uncertain") == "update"
 
     def test_normalize_canonical_unchanged(self):
         """正式名归一化后不变"""
@@ -77,8 +95,11 @@ class TestNormalizeValidationType:
             assert normalize_validation_type(vtype) == vtype
 
     def test_normalize_unknown_unchanged(self):
-        """未知值原样返回"""
+        """未知值原样返回（含历史废弃类型）"""
         assert normalize_validation_type("unknown") == "unknown"
+        # 历史废弃类型不在别名映射中，原样返回
+        assert normalize_validation_type("update") == "update"
+        assert normalize_validation_type("uncertain") == "uncertain"
 
 
 class TestLegacyCountMapping:
@@ -92,33 +113,20 @@ class TestLegacyCountMapping:
         """refutation 计入 invalid_count"""
         assert ValidationType.REFUTATION in ValidationType.LEGACY_NEGATIVE_COUNT_TYPES
 
-    def test_update_not_in_legacy_sets(self):
-        """update 不计入旧字段"""
-        assert ValidationType.UPDATE not in ValidationType.LEGACY_POSITIVE_COUNT_TYPES
-        assert ValidationType.UPDATE not in ValidationType.LEGACY_NEGATIVE_COUNT_TYPES
-
-    def test_expiration_report_not_in_legacy_sets(self):
-        """expiration_report 不计入旧字段"""
-        assert ValidationType.EXPIRATION_REPORT not in ValidationType.LEGACY_POSITIVE_COUNT_TYPES
-        assert ValidationType.EXPIRATION_REPORT not in ValidationType.LEGACY_NEGATIVE_COUNT_TYPES
-
-    def test_conflict_report_not_in_legacy_sets(self):
-        """conflict_report 不计入旧字段"""
-        assert ValidationType.CONFLICT_REPORT not in ValidationType.LEGACY_POSITIVE_COUNT_TYPES
-        assert ValidationType.CONFLICT_REPORT not in ValidationType.LEGACY_NEGATIVE_COUNT_TYPES
+    def test_legacy_sets_only_contain_two_types(self):
+        """LEGACY 计数集合仅含 2 类正式类型"""
+        assert ValidationType.LEGACY_POSITIVE_COUNT_TYPES == {ValidationType.CONFIRMATION}
+        assert ValidationType.LEGACY_NEGATIVE_COUNT_TYPES == {ValidationType.REFUTATION}
 
 
 class TestGetCanonicalTypes:
     """get_canonical_types 函数"""
 
-    def test_returns_five_types(self):
-        """返回 5 个正式类型"""
+    def test_returns_two_types(self):
+        """返回 2 个正式类型"""
         types = get_canonical_types()
-        assert len(types) == 5
-        assert types == {
-            "confirmation", "refutation", "update",
-            "expiration_report", "conflict_report"
-        }
+        assert len(types) == 2
+        assert types == {"confirmation", "refutation"}
 
     def test_returns_copy(self):
         """返回集合的副本，修改不影响内部状态"""
@@ -140,11 +148,6 @@ class TestBackwardCompatibility:
         """旧值 invalid 仍可用，归一化为 refutation"""
         assert is_valid_validation_type("invalid") is True
         assert normalize_validation_type("invalid") == "refutation"
-
-    def test_old_uncertain_alias_works(self):
-        """旧值 uncertain 仍可用，归一化为 update"""
-        assert is_valid_validation_type("uncertain") is True
-        assert normalize_validation_type("uncertain") == "update"
 
     def test_legacy_count_mapping_preserves_old_behavior(self):
         """旧 valid/invalid 计数行为被保留"""
