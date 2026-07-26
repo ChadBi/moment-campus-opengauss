@@ -374,10 +374,11 @@ async def forgot_password(
         db.add(prt)
         await db.commit()
 
-        # 本地开发：日志输出 Token 便于调试
-        logger.info(
-            "ACC-01.3 forgot-password: user_id=%s email=%s token=%s expires_at=%s",
-            user.id, user.email, reset_token_value, expires_at,
+        # P2-013: 日志仅记 token 前 8 位用于排查匹配，不输出完整明文 token
+        # 降级为 DEBUG 级别，生产环境 LOG_LEVEL=INFO 时不会输出
+        logger.debug(
+            "ACC-01.3 forgot-password: user_id=%s email=%s token_prefix=%s*** expires_at=%s",
+            user.id, user.email, reset_token_value[:8] if reset_token_value else "N/A", expires_at,
         )
 
     # 统一返回 message（不泄露账号存在性）

@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Navigation, Plus, Minus, Filter, X, MapPin, ArrowRight, Edit3, AlertCircle, RefreshCw, ChevronRight } from 'lucide-react';
 import { mapApi, type MapMarker } from '../services/map';
 import { postsApi } from '../services/posts';
+import { categoriesApi, type CategoryListItem } from '../services/categories';
 import { Loading } from '../components/ui/Loading';
 import PostForm from '../components/PostForm';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
+import { useCampusStore } from '../store/useCampusStore';
 
 // PUB-01.1: 分类列表改为从 API 动态拉取（按当前学校过滤），不再硬编码
 // 分类颜色映射保留作为地图标记视觉差异化用，未命中的分类回退灰色
@@ -45,14 +47,18 @@ const CATEGORY_NAMES: Record<number, string> = {
 // 侧滑面板模式：null=关闭 / view=查看 marker / create=发帖
 type PanelMode = null | { type: 'view'; marker: MapMarker } | { type: 'create'; lngLat: { lng: number; lat: number } };
 
-const DEFAULT_CENTER: [number, number] = [120.271166, 31.483706]; // 江南大学蠡湖校区 [lng, lat]
-const DEFAULT_ZOOM = 16;
+// P1-002: 兜底中心点/缩放级别（仅当 useCampusStore.currentSchoolCenter 为 null 时使用）
+// 江南大学蠡湖校区坐标 [lng, lat]
+const FALLBACK_CENTER: [number, number] = [120.271166, 31.483706];
+const FALLBACK_ZOOM = 16;
 
 const MapPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated } = useAuthStore();
   const { showToast } = useUIStore();
+  // P1-002: 从全局 store 读取当前学校中心点/缩放，支持多租户切换
+  const { currentSchoolCenter, currentSchoolZoom } = useCampusStore();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
@@ -65,6 +71,53 @@ const MapPage: React.FC = () => {
   useEffect(() => {
     authRef.current = isAuthenticated;
   }, [isAuthenticated]);
+
+  // P1-002: 计算当前应使用的中心点/缩放（优先 store，兜底 FALLBACK）
+  // 使用 useMemo 避免 conditional 引用变化导致 useEffect 依赖抖动
+  const activeCenter: [number, number] = useMemo(
+    () =>
+      currentSchoolCenter
+        ? [currentSchoolCenter.lng, currentSchoolCenter.lat]
+        : FALLBACK_CENTER,
+    [currentSchoolCenter]
+  );
+  const activeZoom = currentSchoolZoom ?? FALLBACK_ZOOM;
+  // 用 ref 保存最新的 activeCenter/activeZoom，供初始化 useEffect 与切换 useEffect 共享
+  const activeCenterRef = useRef(activeCenter);
+  const activeZoomRef = useRef(activeZoom);
+  useEffect(() => {
+    activeCenterRef.current = activeCenter;
+    activeZoomRef.current = activeZoom;
+  }, [activeCenter, activeZoom]);
+
+  // P1-002: 动态拉取当前学校的分类列表（依赖 currentSchoolId，切换学校时重新拉取）
+  // CATEGORY_COLORS / CATEGORY_NAMES 保留作为 API 未返回或延迟时的 fallback
+  const currentSchoolId = useCampusStore((s) => s.currentSchoolId);
+  const [categories, setCategories] = useState<CategoryListItem[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    categoriesApi
+      .listCategories()
+      .then((data) => {
+        if (!cancelled) setCategories(data);
+      })
+      .catch(() => {
+        // 拉取失败保留空数组，UI 会回退到 CATEGORY_NAMES 硬编码兜底
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentSchoolId]);
+
+  // 优先从动态 categories 查找分类名，fallback 到硬编码 CATEGORY_NAMES
+  const getCategoryName = useCallback(
+    (categoryId: number): string => {
+      const dyn = categories.find((c) => c.id === categoryId)?.name;
+      if (dyn) return dyn;
+      return CATEGORY_NAMES[categoryId] || '未知';
+    },
+    [categories]
+  );
 
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
@@ -207,8 +260,8 @@ const MapPage: React.FC = () => {
           },
         ],
       },
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
+      center: activeCenterRef.current,
+      zoom: activeZoomRef.current,
     });
 
     mapInstance.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
@@ -267,6 +320,25 @@ const MapPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // P1-002: 监听学校切换，地图 flyTo 到新中心点并重新拉取 markers
+  useEffect(() => {
+    if (!map.current || !mapReady) return;
+    map.current.flyTo({
+      center: activeCenter,
+      zoom: activeZoom,
+      duration: 800,
+    });
+    // 飞行结束后 moveend 事件会自动触发 fetchMarkers
+    // 但为保险起见，延迟 850ms 后主动拉取一次
+    const timer = setTimeout(() => {
+      if (!map.current) return;
+      const bounds = map.current.getBounds();
+      fetchMarkers(bounds, selectedCategory ?? undefined);
+    }, 850);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSchoolCenter, currentSchoolZoom]);
+
   // 分类变化时重新获取标记
   useEffect(() => {
     if (!map.current || !mapReady) return;
@@ -291,7 +363,7 @@ const MapPage: React.FC = () => {
     const { marker, element } = entry;
     map.current?.flyTo({
       center: [marker.longitude, marker.latitude],
-      zoom: Math.max(map.current?.getZoom() ?? DEFAULT_ZOOM, 17),
+      zoom: Math.max(map.current?.getZoom() ?? activeZoomRef.current, 17),
     });
     element.click();
 
@@ -351,10 +423,10 @@ const MapPage: React.FC = () => {
         });
       },
       () => {
-        // 定位失败，回到默认位置
+        // 定位失败，回到当前学校中心点（P1-002: 多租户适配）
         map.current!.flyTo({
-          center: DEFAULT_CENTER,
-          zoom: DEFAULT_ZOOM,
+          center: activeCenterRef.current,
+          zoom: activeZoomRef.current,
         });
       }
     );
@@ -398,20 +470,23 @@ const MapPage: React.FC = () => {
           >
             全部
           </button>
-          {Object.entries(CATEGORY_NAMES).map(([id, name]) => {
-            const numId = Number(id);
-            const color = CATEGORY_COLORS[numId];
+          {(categories.length > 0
+            ? categories.map((c) => ({ id: c.id, name: c.name }))
+            : Object.entries(CATEGORY_NAMES).map(([id, name]) => ({ id: Number(id), name }))
+          ).map((item) => {
+            const numId = item.id;
+            const color = CATEGORY_COLORS[numId] || '#95A5A6';
             const isActive = selectedCategory === numId;
             return (
               <button
-                key={id}
+                key={numId}
                 onClick={() => setSelectedCategory(isActive ? null : numId)}
                 className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                   isActive ? 'text-white shadow-sm' : 'text-ink-sub hover:bg-line'
                 }`}
                 style={isActive ? { backgroundColor: color } : { backgroundColor: `${color}18` }}
               >
-                {name}
+                {item.name}
               </button>
             );
           })}
@@ -453,7 +528,7 @@ const MapPage: React.FC = () => {
               <div className="divide-y divide-line/60">
                 {allMarkers.map((marker) => {
                   const color = CATEGORY_COLORS[marker.category_id] || '#95A5A6';
-                  const catName = CATEGORY_NAMES[marker.category_id] || '未知';
+                  const catName = getCategoryName(marker.category_id);
                   return (
                     <div
                       key={marker.post_id}
@@ -585,7 +660,7 @@ const MapPage: React.FC = () => {
                             className="w-1.5 h-1.5 rounded-full"
                             style={{ backgroundColor: CATEGORY_COLORS[m.category_id] || '#95A5A6' }}
                           />
-                          {CATEGORY_NAMES[m.category_id] || '未知'}
+                          {getCategoryName(m.category_id)}
                         </span>
                       </div>
 

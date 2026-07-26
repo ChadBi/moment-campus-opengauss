@@ -29,6 +29,17 @@
 
 **阶段一问题关闭**：P0-001、P1-005、P1-006、P2-014（共 4 条，累计关闭率 12.5%）
 
+### 阶段二：多租户与代码质量（2026-07-26 完成）
+
+- [x] OPT-2.1 P1-002a MapPage 接入 useCampusStore 学校中心点：导入 useCampusStore、读取 currentSchoolCenter/currentSchoolZoom、DEFAULT_CENTER/ZOOM 重命名为 FALLBACK_*、useMemo 包装 activeCenter、新增学校切换 useEffect 触发 flyTo + 重新拉取 markers
+- [x] OPT-2.2 P1-002b MapPage 分类映射动态化：导入 categoriesApi、新增 categories state + fetch useEffect（依赖 currentSchoolId）、getCategoryName 函数（动态优先+硬编码 fallback）、分类筛选 UI 与列表降级视图改用动态数据
+- [x] OPT-2.3 P1-004 ESLint 检查：当前 0 errors 28 warnings（非审计报告称的 24 errors，ESLint 配置已将 set-state-in-effect 降级为 warn 并注释说明为合法用法）；修复本阶段引入的 1 个 warning（activeCenter useMemo 包装）
+- [x] OPT-2.4 P1-001 确认收藏死代码彻底移除：前端 grep 0 处残留，后端仅 1 处注释引用迁移脚本名（合理历史记录）
+- [x] OPT-2.5 P2-013 修复 auth.py:380 明文 reset_token 日志：降级为 logger.debug + 仅记 token 前 8 位（token_prefix=%s***）
+- [x] OPT-2.6 验证：前端 npm run build 通过（1.22s）；TypeScript 编译 0 error；ESLint 0 error 28 warning；后端 test_auth_password_reset.py 15 passed；任务报告：[AIwork/阶段二多租户与代码质量任务报告.md](AIwork/阶段二多租户与代码质量任务报告.md)
+
+**阶段二问题关闭**：P1-001、P1-002、P1-004、P2-013（共 4 条，累计关闭 8 条，关闭率 25.0%）
+
 ### E2E 多模块链路扩展验证（评论/协同治理/专题订阅/个人中心/通知中心）（2026-07-26 完成）
 
 - [x] 修复专题订阅通知不触发 Bug（SUB-01.2）：`backend/app/api/admin_topics.py` 的 `add_posts_to_topic` 在帖子被加入专题时调用 `notify_new_post`，通知订阅该专题的用户；通知失败不阻塞主流程（仅 warning 日志）
