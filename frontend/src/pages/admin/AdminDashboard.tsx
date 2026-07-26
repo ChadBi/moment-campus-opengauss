@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
+import { authApi } from '../../services/auth';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -88,7 +89,14 @@ const AdminDashboard: React.FC = () => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
-  const handleLogout = () => {
+  // P2-005: 登出先调后端 /auth/logout（让后端有机会失效 refresh token / 写黑名单），
+  // 再清本地 state；后端调用失败不阻塞前端登出
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // 后端登出失败不阻塞本地登出
+    }
     logout();
     navigate('/login');
   };

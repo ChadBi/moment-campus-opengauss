@@ -1,0 +1,87 @@
+# P2-012: backend .dockerignore
+# 避免 COPY . . 把垃圾文件 / 测试 / 密钥 / 虚拟环境打入镜像
+# 镜像只需 app/ + requirements.txt + 必要配置；uploads/ 由 Dockerfile 运行时 mkdir
+
+# 版本控制
+.git
+.gitignore
+.gitattributes
+
+# Python 虚拟环境与缓存
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage/
+
+# 测试与调试脚本（生产镜像不需要）
+tests/
+tests/manual/
+pytest_output*.txt
+pytest_*.log
+*_output.log
+*_output.txt
+test_*.py
+!app/**
+check_*.py
+debug_*.py
+diag_*.py
+diagnose_*.py
+_cleanup_*.py
+_reset_*.py
+_truncate_*.py
+_kill_*.py
+_repro_*.py
+run_test_groups.py
+
+# 日志与临时文件
+*.log
+*.txt
+logs/
+tmp/
+temp/
+*.tmp
+
+# 环境变量（密钥不能进入镜像）
+.env
+.env.*
+!.env.example
+
+# IDE / 编辑器
+.vscode/
+.idea/
+.trae/
+*.swp
+*.swo
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 文档（生产镜像不需要）
+docs/
+*.md
+!app/**/*.md
+
+# Docker 自身
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# 上传目录（运行时由 Dockerfile mkdir）
+uploads/

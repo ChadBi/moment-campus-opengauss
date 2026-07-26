@@ -56,6 +56,8 @@ backend/diagnose_*.py
 backend/truncate_test_db.py
 backend/test_*.py
 !backend/tests/test_*.py
+# P2-009: 根目录禁止 verify_*.py 调试脚本（已统一移至 backend/tests/manual/）
+/verify_*.py
 backend/pytest_*.txt
 backend/tests_analytics_*.txt
 backend/analytics_result.xml

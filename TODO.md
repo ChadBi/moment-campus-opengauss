@@ -40,6 +40,18 @@
 
 **阶段二问题关闭**：P1-001、P1-002、P1-004、P2-013（共 4 条，累计关闭 8 条，关闭率 25.0%）
 
+### 阶段三：仓库卫生与部署配置（2026-07-26 完成）
+
+- [x] OPT-3.1 P2-009 移动 7 个 verify_*.py 调试脚本到 backend/tests/manual/（git mv 保留历史），.gitignore 新增 `/verify_*.py` 规则防止根目录再次堆积
+- [x] OPT-3.2 P2-010 清理 backend/ 与根目录调试日志/脚本：删除 76 个 backend/ 调试脚本+日志+输出（_*.py/check_*.py/debug_*.py/diag_*.py/pytest_*.log 等）+ 16 个根目录日志/txt（sub01_*.log/test_*.log 等），全部已被 .gitignore 覆盖（无 git tracked 文件被删）
+- [x] OPT-3.3 P2-012 新增 backend/.dockerignore 与 frontend/.dockerignore：排除 .git/.venv/node_modules/tests/logs/.env/IDE 配置等，避免 COPY . . 把垃圾文件/密钥/测试打入镜像
+- [x] OPT-3.4 P2-011 补齐 AI_* 环境变量模板（9 项）：deploy/.env.prod.example 与 backend/.env.example 同步补齐 AI_PROVIDER/AI_API_KEY/AI_API_BASE/AI_MODEL/AI_TIMEOUT/AI_MAX_TOKENS/AI_MAX_RETRIES/AI_CIRCUIT_FAILURE_THRESHOLD/AI_CIRCUIT_RESET_SECONDS；backend/.env.example 顺带修复 SQLite 残留引用改为 openGauss
+- [x] OPT-3.5 P2-002 index.html 通用化文案：title 由「此刻校园 · 江南大学蠡湖校区信息共享平台」改为「此刻校园 · 校园信息共享平台」；description 移除江南大学硬编码改为「多租户校园信息共享平台」
+- [x] OPT-3.6 P2-005 authApi.logout 接入后端：ProfilePage 与 AdminDashboard 的 handleLogout 改为先 await authApi.logout()（让后端有机会失效 refresh token / 写黑名单），再清本地 state；后端调用失败不阻塞本地登出（网络异常/后端宕机仍能本地登出）
+- [x] OPT-3.7 验证：前端 npm run build 通过（1.73s，0 error）；ProfilePage/AdminDashboard ESLint 0 error 2 warning（pre-existing 模式）；后端 config 加载验证 9 项 AI_* 默认值正确；任务报告：[AIwork/阶段三仓库卫生与部署配置任务报告.md](AIwork/阶段三仓库卫生与部署配置任务报告.md)
+
+**阶段三问题关闭**：P2-002、P2-005、P2-009、P2-010、P2-011、P2-012（共 6 条，累计关闭 14 条，关闭率 43.75%）
+
 ### E2E 多模块链路扩展验证（评论/协同治理/专题订阅/个人中心/通知中心）（2026-07-26 完成）
 
 - [x] 修复专题订阅通知不触发 Bug（SUB-01.2）：`backend/app/api/admin_topics.py` 的 `add_posts_to_topic` 在帖子被加入专题时调用 `notify_new_post`，通知订阅该专题的用户；通知失败不阻塞主流程（仅 warning 日志）

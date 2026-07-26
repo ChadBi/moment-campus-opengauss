@@ -8,6 +8,7 @@ import { postsApi } from '../services/posts';
 import { notificationsApi } from '../services/notifications';
 import { schoolsApi } from '../services/schools';
 import { recommendationsApi } from '../services/recommendations';
+import { authApi } from '../services/auth';
 import { useSwitchSchool } from '../hooks/useSchoolSync';
 import type { User, Post, PostStatus, PaginatedResponse, RecommendationPreference } from '../types';
 import { Card } from '../components/ui/Card';
@@ -470,7 +471,14 @@ const ProfilePage: React.FC = () => {
     );
   }
 
-  const handleLogout = () => {
+  // P2-005: 登出先调后端 /auth/logout（让后端有机会失效 refresh token / 写黑名单），
+  // 再清本地 state；后端调用失败不阻塞前端登出（网络异常/后端宕机时仍能本地登出）
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // 后端登出失败不阻塞本地登出（refresh token 后续自然过期）
+    }
     logout();
     setToast({ message: '已退出登录', type: 'success' });
     setTimeout(() => navigate('/login'), 1000);
