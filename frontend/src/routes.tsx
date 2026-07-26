@@ -276,6 +276,8 @@ const AnimatedRoutes: React.FC = () => {
           {/* ANA-02.2: 校级数据分析（admin 及以上） */}
           <Route path="analytics" element={<AnalyticsPage />} />
           {/* super_admin 专属：平台首页/套餐/学校/导入/激活漏斗 */}
+          {/* Bug#2 修复：/admin/platform 自动重定向到 /admin/platform/overview */}
+          <Route path="platform" element={<Navigate to="/admin/platform/overview" replace />} />
           <Route
             path="platform/overview"
             element={

@@ -138,7 +138,7 @@ JIANGNAN_LOCATIONS = [
 
 # 江南大学用户清单（1 管理员 + 10 普通用户，昵称/bio 模拟真实学生身份）
 JIANGNAN_USERS = [
-    {"email": "admin@momentcampus.com", "nickname": "校园运营组", "role": "admin",
+    {"email": "admin@momentcampus.com", "nickname": "校园运营组", "role": "super_admin",
      "bio": "此刻校园平台运营组，负责内容审核与平台维护"},
     {"email": "user1@example.com", "nickname": "江南小李", "role": "user",
      "bio": "计算机学院大三 | 校园信息搬运工"},
