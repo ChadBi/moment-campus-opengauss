@@ -1,8 +1,33 @@
 # API 接口规范
 
-> 此刻校园 · Moment Campus  
-> 版本：1.0  
+> 此刻校园 · Moment Campus
+> 版本：1.0
 > 最后更新：2026-06-18
+
+---
+
+## ⚠️ 文档过时声明（2026-07-26 修订）
+
+> **本文档已过时，请勿作为开发或验收依据。**
+
+**过时内容**：
+
+- 本文档定义的统一响应格式、错误码、接口列表与实际实现**根本不符**
+- 实际后端已有 **156 个 API 端点**，本文档仅覆盖早期设计的部分接口
+- 缺失 9+ 类接口：admin/platform/publishers/admin_topics/map/upload/analytics/search/health 等
+- 响应格式实际未采用本文档定义的统一包装
+
+**正确参考资料**：
+
+| 资料 | 位置 | 说明 |
+|------|------|------|
+| OpenAPI 文档（实时） | `http://localhost:8000/docs` | FastAPI 自动生成，权威源 |
+| OpenAPI JSON | `http://localhost:8000/openapi.json` | 可导入 Postman/Apifox |
+| 后端路由代码 | `backend/app/api/` | 24 个路由模块，含 router.py 汇总 |
+| 前端 API 调用 | `frontend/src/services/` | 19 个 service 文件，152 个 API 函数 |
+| 接口契约审计 | [docs/project-audit/此刻校园项目全量排查报告.md](project-audit/此刻校园项目全量排查报告.md) §7 §9 | 156 接口清单与前后端契约核对 |
+
+---
 
 ## 1. 文档概述
 

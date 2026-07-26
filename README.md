@@ -184,7 +184,7 @@ pytest tests/ -v
 
 - **前端**：React + TypeScript + Vite + Tailwind CSS + MapLibre GL JS
 - **后端**：Python + FastAPI + SQLAlchemy 2.0（async）+ asyncpg
-- **数据库**：openGauss 7.0.0-RC3 轻量版（Docker 部署，含表空间/分区/存储过程/触发器/物化视图物理模型，唯一数据库）
+- **数据库**：openGauss 7.0.0-RC3 轻量版（Docker 部署，唯一数据库）
 - **认证**：JWT + 3 级角色层级（user / admin / super_admin）
 - **地图**：MapLibre GL JS / Leaflet
 
@@ -193,7 +193,7 @@ pytest tests/ -v
 - **6 态状态机**：draft / pending / published / expired / conflict / archived，13 条合法流转规则，普通用户与管理员分级权限
 - **5 类协同验证**：confirmation（证实）/ refutation（证伪）/ update（补充更新）/ expiration_report（过期上报）/ conflict_report（冲突上报），兼容旧别名
 - **RBAC 权限矩阵**：user < admin < super_admin 层级向下兼容，`require_role()` 依赖工厂统一校验
-- **openGauss 物理模型**：4 表空间 / 66 索引 / 8 存储过程 / 8 触发器 / 4 物化视图 / 7 分区表（详见 [docs/27_数据库物理模型设计.md](docs/27_数据库物理模型设计.md)）
+- **数据库物理模型**：实际部署使用 Alembic 迁移脚本创建的 41 张表 + 231 个索引；表空间/存储过程/触发器/物化视图/分区表为课设交付物（脚本见 `backend/scripts/opengauss/`，未在生产数据库执行，原因见 [docs/27_数据库物理模型设计.md](docs/27_数据库物理模型设计.md) 头部说明）
 
 ## 项目状态
 

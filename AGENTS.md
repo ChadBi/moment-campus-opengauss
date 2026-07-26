@@ -8,7 +8,7 @@
 - 每次更新 `TODO.md` 都必须提交 Git 代码，提交信息说明完成了什么功能、修复了什么 Bug、更新了哪些文档或配置。
 - 删除数据库时，把数据库文件移动到 `delete/` 文件夹统一处理；openGauss 容器用 `docker compose down -v opengauss`。
 - 数据库唯一：openGauss 7.0.0-RC3 轻量版（已彻底移除 SQLite）。
-- 演示学校唯一：江南大学（code=`jiangnan`，map_zoom=16）。
+- 演示学校：江南大学为主（code=`jiangnan`，map_zoom=16），附带 fudan/zju 两所学校用于多租户演示（共 3 校，详见 docs/project-audit/此刻校园项目全量排查报告.md §6.2）。
 - Post 状态机：6 态（draft/pending/published/expired/conflict/archived）；协同验证：5 类（confirmation/refutation/update/expiration_report/conflict_report）。
 - 权限：user < admin < super_admin，统一通过 `app/core/permissions.py` 的 `require_role()` 校验。
 - 启动：后端 `uvicorn app.main:app --reload`（需 `$env:APP_ENV = "opengauss"`）；前端 `npm run dev`。

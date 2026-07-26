@@ -15,7 +15,19 @@
 
 **阶段 C / D：已放弃** — 按用户决策（2026-07-02），整个阶段 C（创新点）与阶段 D（扩展能力）全部放弃，按最小 MVP 交付。SQLite 已彻底移除，全面转移至 openGauss。
 
+**阶段 OPT：项目优化（基于全量排查报告）** — 进行中（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 至 2026-08-09，5 阶段 32 条问题）
+
 ## 已完成
+
+### 阶段一：紧急修复（2026-07-26 完成）
+
+- [x] OPT-1.1 P0-001 修复 frontend/Dockerfile ARG VITE_API_BASE_URL 缺失（生产构建断裂）：增加 `ARG VITE_API_BASE_URL=/api/v1` + `ENV VITE_API_BASE_URL=$VITE_API_BASE_URL`，让 docker-compose.prod.yml 传入的同源 /api/v1 生效
+- [x] OPT-1.2 P1-005 更新 README + docs/27 物理模型描述：README §技术栈/§核心特性 修正；docs/27 头部新增「课设交付物说明」对比表与未执行原因
+- [x] OPT-1.3 P1-006 声明 docs/12/13/22 废弃：3 份过时文档头部新增「⚠️ 文档过时声明」，引导至 OpenAPI/backend/app/models/AGENTS.md 等正确资料
+- [x] OPT-1.4 P2-014 更新 AGENTS.md 三校口径：「演示学校唯一：江南大学」改为「江南大学为主，附带 fudan/zju 用于多租户演示（共 3 校）」
+- [x] OPT-1.5 前端 `npm run build` 通过（1.36s，0 error）；任务报告：[AIwork/阶段一紧急修复任务报告.md](AIwork/阶段一紧急修复任务报告.md)
+
+**阶段一问题关闭**：P0-001、P1-005、P1-006、P2-014（共 4 条，累计关闭率 12.5%）
 
 ### E2E 多模块链路扩展验证（评论/协同治理/专题订阅/个人中心/通知中心）（2026-07-26 完成）
 
