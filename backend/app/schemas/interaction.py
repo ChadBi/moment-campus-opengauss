@@ -3,6 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 
 from app.schemas.post import UserBrief
+from app.schemas.enums import ReportType
 
 
 # 点赞响应
@@ -13,14 +14,28 @@ class LikeResponse(BaseModel):
 
 
 # 有效性确认创建
+# FND-01.1: schema 层定义完整 5 类验证类型枚举，供 GOV-01 使用。
+# 当前 validation_record 表逻辑仍只处理 confirmation/refutation（2 类互斥投票），
+# update/expiration_report/conflict_report 将由 GOV-01 的 post_change_reports 表承载。
 class ValidationCreate(BaseModel):
     validation_type: str = Field(
         ...,
-        pattern="^(confirmation|refutation|valid|invalid)$",
-        description="协同验证类型（2 类）：confirmation（证实）/ refutation（证伪）。"
-                    "向后兼容旧值：valid→confirmation / invalid→refutation"
+        pattern="^(confirmation|refutation|update|expiration_report|conflict_report|valid|invalid|uncertain)$",
+        description="协同验证类型（5 类）：confirmation（证实）/ refutation（证伪）/ "
+                    "update（更新建议）/ expiration_report（过期报告）/ conflict_report（冲突报告）。"
+                    "向后兼容旧值：valid→confirmation / invalid→refutation / uncertain→原样保留"
     )
     comment: Optional[str] = Field(None, max_length=500, description="备注说明，最多500字符")
+
+
+# 举报创建（FND-01.1: 使用共享 ReportType 枚举统一举报类型）
+class ReportCreate(BaseModel):
+    report_type: ReportType = Field(
+        ...,
+        description="举报类型：spam（垃圾信息）/ abuse（滥用）/ harassment（骚扰）/ "
+                    "false_info（虚假信息）/ other（其他）"
+    )
+    description: Optional[str] = Field(None, max_length=1000, description="举报描述，最多1000字符")
 
 
 # 有效性确认响应

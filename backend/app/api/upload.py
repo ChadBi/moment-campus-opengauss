@@ -1,3 +1,14 @@
+"""FND-03.4: 上传安全
+
+安全策略：
+1. 按文件内容 magic bytes 识别真实格式，不信任客户端声明的 content_type
+2. 仅允许 JPEG / PNG / GIF 三类图片
+3. 单文件大小 ≤ MAX_UPLOAD_SIZE（默认 5MB）
+4. 像素尺寸 ≤ MAX_IMAGE_DIMENSION（默认 8000px），最小 1x1
+5. 用 Pillow 重新编码图片（去除 EXIF/恶意 payload、规范化图片结构）
+6. 文件名使用 uuid4 + 真实扩展名，杜绝路径穿越
+7. 拒绝非图片或可疑文件
+"""
 import os
 import uuid
 from fastapi import APIRouter, Depends, UploadFile, File
@@ -22,19 +33,106 @@ class UploadResponse(BaseModel):
     url: str = Field(..., description="图片URL")
     thumbnail_url: Optional[str] = Field(None, description="缩略图URL")
     filename: str = Field(..., description="文件名")
-    file_size: int = Field(..., description="文件大小（字节）")
+    file_size: int = Field(..., description="文件大小（字节，重新编码后）")
 
 
-# 允许的图片格式
-ALLOWED_CONTENT_TYPES = {
-    "image/jpeg": "jpg",
-    "image/jpg": "jpg",
-    "image/png": "png",
-    "image/gif": "gif",
-}
+# FND-03.4: 限制常量
+MAX_FILE_SIZE = settings.MAX_UPLOAD_SIZE  # 默认 5MB
+MAX_IMAGE_DIMENSION = 8000  # 单边最大像素
+MIN_IMAGE_DIMENSION = 1     # 单边最小像素
+THUMBNAIL_SIZE = (300, 300)
 
-# 最大文件大小：5MB
-MAX_FILE_SIZE = settings.MAX_UPLOAD_SIZE
+
+# magic bytes → (canonical_format, file_extension)
+# 仅允许这三类图片格式；其他一律拒绝
+_MAGIC_SIGNATURES: tuple[tuple[bytes, str, str], ...] = (
+    (b"\xff\xd8\xff", "JPEG", "jpg"),
+    (b"\x89PNG\r\n\x1a\n", "PNG", "png"),
+    (b"GIF87a", "GIF", "gif"),
+    (b"GIF89a", "GIF", "gif"),
+)
+
+
+def _detect_format_by_magic(content: bytes) -> Optional[tuple[str, str]]:
+    """通过 magic bytes 检测图片真实格式
+
+    Returns:
+        (PIL_format, extension) 或 None（非图片/不支持的格式）
+    """
+    for signature, fmt, ext in _MAGIC_SIGNATURES:
+        if content.startswith(signature):
+            return fmt, ext
+    return None
+
+
+def _validate_image_content(content: bytes) -> tuple[Image.Image, str, str]:
+    """完整校验图片内容并返回 (PIL Image, format, extension)
+
+    校验项：
+        - magic bytes 必须匹配 JPEG/PNG/GIF 之一
+        - Pillow verify() 必须通过
+        - 像素尺寸限制
+    """
+    detected = _detect_format_by_magic(content)
+    if detected is None:
+        raise BadRequestException(
+            detail="文件不是有效的图片或格式不受支持，仅允许 jpg/png/gif"
+        )
+    fmt, ext = detected
+
+    try:
+        # verify() 检查图片完整性（不实际解码像素）
+        image = Image.open(BytesIO(content))
+        image.verify()
+    except Exception:
+        raise BadRequestException(detail="文件不是有效的图片（解码失败）")
+
+    # verify() 后图像对象已被消耗，重新打开用于实际处理
+    try:
+        image = Image.open(BytesIO(content))
+        image.load()
+    except Exception:
+        raise BadRequestException(detail="文件不是有效的图片（解码失败）")
+
+    # 像素尺寸校验
+    width, height = image.size
+    if width < MIN_IMAGE_DIMENSION or height < MIN_IMAGE_DIMENSION:
+        raise BadRequestException(
+            detail=f"图片尺寸过小：{width}x{height}，最小要求 {MIN_IMAGE_DIMENSION}x{MIN_IMAGE_DIMENSION}"
+        )
+    if width > MAX_IMAGE_DIMENSION or height > MAX_IMAGE_DIMENSION:
+        raise BadRequestException(
+            detail=f"图片尺寸过大：{width}x{height}，最大允许 {MAX_IMAGE_DIMENSION}x{MAX_IMAGE_DIMENSION}"
+        )
+
+    # 校验 PIL 识别出的格式与 magic bytes 一致（双重校验，防伪造）
+    if image.format != fmt:
+        raise BadRequestException(
+            detail="文件内容与声明的格式不一致，疑似伪造"
+        )
+
+    return image, fmt, ext
+
+
+def _reencode_image(image: Image.Image, fmt: str, ext: str) -> bytes:
+    """用 Pillow 重新编码图片，去除 EXIF/恶意 payload 并规范化结构
+
+    - JPEG/PNG 转为 RGB（去除 alpha 通道）后保存
+    - GIF 保持动画格式（save_all=True）
+    """
+    buffer = BytesIO()
+    if fmt == "GIF":
+        # GIF 保持原格式，保留动画
+        image.save(buffer, format="GIF", save_all=True)
+    elif fmt == "PNG":
+        # PNG 支持 RGBA，保留透明通道
+        save_image = image if image.mode in ("RGB", "RGBA") else image.convert("RGBA")
+        save_image.save(buffer, format="PNG")
+    else:
+        # JPEG 不支持 alpha，转为 RGB
+        save_image = image if image.mode == "RGB" else image.convert("RGB")
+        save_image.save(buffer, format="JPEG", quality=90)
+    return buffer.getvalue()
 
 
 @router.post("/upload/image", response_model=UploadResponse)
@@ -44,81 +142,90 @@ async def upload_image(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    上传图片
-    验证格式和大小，保存到 uploads，返回 URL
-    支持 jpg, png, gif 格式，最大 5MB
-    自动生成缩略图
-    """
-    # 验证文件类型
-    if file.content_type not in ALLOWED_CONTENT_TYPES:
-        raise BadRequestException(
-            detail=f"不支持的图片格式：{file.content_type}，仅支持 jpg, png, gif"
-        )
+    上传图片（FND-03.4 安全加固）
 
-    # 读取文件内容
+    安全策略：
+        - 按文件内容 magic bytes 识别真实格式，不信任 content_type
+        - 仅允许 JPEG / PNG / GIF
+        - 单文件 ≤ 5MB
+        - 像素 ≤ 8000x8000
+        - 用 Pillow 重新编码（去除 EXIF/恶意 payload）
+        - 文件名 = uuid4 + 真实扩展名，杜绝路径穿越
+        - 自动生成 300x300 缩略图
+    """
+    # COM-01.2: 权益校验——上传前必须确认学校有 active 订阅；
+    # storage_mb 软限制的精确用量统计暂未接入（需汇总 uploads 目录大小），留扩展点由 COM-02 完善。
+    from app.core.entitlement import EntitlementService
+    ent_svc = await EntitlementService.create(db, current_user.school_id)
+    if not ent_svc.has_active_subscription:
+        raise BadRequestException(detail="当前学校未开通有效套餐，无法上传图片")
+
+    # 1. 读取文件内容
     content = await file.read()
     file_size = len(content)
 
-    # 验证文件大小
+    # 2. 文件大小限制（先校验尺寸，避免对超大文件做后续处理）
     if file_size > MAX_FILE_SIZE:
         raise BadRequestException(
-            detail=f"图片大小超过限制：{file_size / 1024 / 1024:.2f}MB，最大允许 5MB"
+            detail=f"图片大小超过限制：{file_size / 1024 / 1024:.2f}MB，"
+                   f"最大允许 {MAX_FILE_SIZE / 1024 / 1024:.2f}MB"
         )
+    if file_size == 0:
+        raise BadRequestException(detail="文件为空")
 
-    # 验证文件内容是否为有效图片
+    # 3. FND-03.4: 按内容识别格式 + Pillow 完整校验 + 像素限制
+    image, fmt, ext = _validate_image_content(content)
+
+    # 4. FND-03.4: 重新编码图片（去除 EXIF/恶意 payload，规范化结构）
     try:
-        image = Image.open(BytesIO(content))
-        image.verify()
-        # 重新打开，因为 verify() 会消耗图片
-        image = Image.open(BytesIO(content))
+        reencoded_content = _reencode_image(image, fmt, ext)
     except Exception:
-        raise BadRequestException(detail="文件不是有效的图片")
+        raise BadRequestException(detail="图片重新编码失败，请检查文件是否损坏")
 
-    # 生成唯一文件名
-    ext = ALLOWED_CONTENT_TYPES[file.content_type]
-    unique_filename = f"{uuid.uuid4().hex}.{ext}"
+    # 5. FND-03.4: 生成安全文件名（uuid + 真实扩展名），杜绝路径穿越
+    safe_filename = f"{uuid.uuid4().hex}.{ext}"
 
-    # 确保上传目录存在
+    # 6. 确保上传目录存在
     upload_dir = os.path.abspath(settings.UPLOAD_DIR)
     os.makedirs(upload_dir, exist_ok=True)
 
-    # 保存原图
-    file_path = os.path.join(upload_dir, unique_filename)
+    # 7. 保存重新编码后的原图
+    file_path = os.path.join(upload_dir, safe_filename)
     with open(file_path, "wb") as f:
-        f.write(content)
+        f.write(reencoded_content)
 
-    # 生成缩略图
+    final_size = len(reencoded_content)
+
+    # 8. 生成缩略图
     thumbnail_url = None
     try:
-        # 缩略图尺寸
-        thumb_size = (300, 300)
-        thumb_filename = f"thumb_{unique_filename}"
+        thumb_filename = f"thumb_{safe_filename}"
         thumb_path = os.path.join(upload_dir, thumb_filename)
 
-        # 创建缩略图
-        thumb = image.copy()
-        thumb.thumbnail(thumb_size, Image.Resampling.LANCZOS)
+        # 重新打开原图用于缩略图（前面 image 已被 save 消耗）
+        thumb_image = Image.open(BytesIO(reencoded_content))
+        thumb_image.thumbnail(THUMBNAIL_SIZE, Image.Resampling.LANCZOS)
 
-        # 保存缩略图（如果是 GIF，保持原格式；否则转为 JPEG）
-        if ext == "gif":
-            thumb.save(thumb_path, format="GIF", save_all=True)
+        if fmt == "GIF":
+            thumb_image.save(thumb_path, format="GIF", save_all=True)
+        elif fmt == "PNG":
+            save_thumb = thumb_image if thumb_image.mode in ("RGB", "RGBA") else thumb_image.convert("RGBA")
+            save_thumb.save(thumb_path, format="PNG")
         else:
-            # 转换为 RGB（如果是 RGBA）
-            if thumb.mode in ("RGBA", "P"):
-                thumb = thumb.convert("RGB")
-            thumb.save(thumb_path, format="JPEG", quality=85)
+            save_thumb = thumb_image if thumb_image.mode == "RGB" else thumb_image.convert("RGB")
+            save_thumb.save(thumb_path, format="JPEG", quality=85)
 
         thumbnail_url = f"/uploads/{thumb_filename}"
     except Exception:
         # 缩略图生成失败不影响原图上传
         pass
 
-    # 构建 URL
-    url = f"/uploads/{unique_filename}"
+    # 9. 构建 URL
+    url = f"/uploads/{safe_filename}"
 
     return UploadResponse(
         url=url,
         thumbnail_url=thumbnail_url,
-        filename=unique_filename,
-        file_size=file_size,
+        filename=safe_filename,
+        file_size=final_size,
     )

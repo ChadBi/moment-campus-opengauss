@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, List
 from datetime import datetime
+
+from app.schemas.enums import PostStatusEnum
 
 
 # 关联数据的简化响应
@@ -26,6 +28,8 @@ class LocationBrief(BaseModel):
     name: str
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    building: Optional[str] = None
+    floor: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -75,14 +79,32 @@ class PostCreate(BaseModel):
     lost_type: Optional[str] = Field(None, max_length=10, description="丢失类型")
     contact_info: Optional[str] = Field(None, max_length=255, description="联系方式")
     # T-B-06: 支持创建时指定初始状态（draft 草稿 / pending 提交审核）
-    status: Optional[str] = Field(
-        default="pending",
-        pattern="^(draft|pending)$",
+    # FND-01.2: 创建时只允许 draft / pending；其余 4 态由状态机服务管理。
+    status: Optional[PostStatusEnum] = Field(
+        default=PostStatusEnum.PENDING,
         description="初始状态：draft（存为草稿）/ pending（提交审核，默认）",
     )
+    # ORG-01: 关联官方发布主体（可选；非空表示由认证主体发布，仍走原状态机审核，认证不代表免审）
+    publisher_id: Optional[int] = Field(None, description="官方发布主体 ID（可选，关联已认证主体）")
+
+    @field_validator("status")
+    @classmethod
+    def validate_create_status(cls, v: Optional[PostStatusEnum]) -> PostStatusEnum:
+        """FND-01.2: 创建时只允许 draft 或 pending，其余状态由状态机服务统一管理。"""
+        if v is None:
+            return PostStatusEnum.PENDING
+        allowed = {PostStatusEnum.DRAFT, PostStatusEnum.PENDING}
+        if v not in allowed:
+            raise ValueError(
+                "创建时 status 只能为 draft 或 pending；"
+                "published/expired/conflict/archived 必须通过状态机服务流转。"
+            )
+        return v
 
 
 # 更新信息
+# FND-01.2: 移除 status / is_recommend 字段——状态变化只走状态机服务（FND-03），
+# is_recommend 由管理员后台单独管理。客户端传入这两个字段会被 Pydantic 默认忽略。
 class PostUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=5, max_length=200, description="标题")
     content: Optional[str] = Field(None, min_length=10, max_length=5000, description="内容描述")
@@ -97,8 +119,6 @@ class PostUpdate(BaseModel):
     activity_end_at: Optional[datetime] = Field(None, description="活动结束时间")
     lost_type: Optional[str] = Field(None, max_length=10, description="丢失类型")
     contact_info: Optional[str] = Field(None, max_length=255, description="联系方式")
-    status: Optional[str] = Field(None, max_length=20, description="状态")
-    is_recommend: Optional[bool] = Field(None, description="是否推荐")
 
 
 # 信息响应（包含关联数据）
@@ -109,6 +129,8 @@ class PostResponse(BaseModel):
     category_id: int
     post_type_id: Optional[int] = None
     location_id: Optional[int] = None
+    # ORG-01: 关联官方发布主体 ID（None 表示普通用户发布）
+    publisher_id: Optional[int] = None
     title: str
     content: str
     is_anonymous: bool
@@ -138,6 +160,11 @@ class PostResponse(BaseModel):
     # 前端需要的额外字段
     is_liked: bool = Field(default=False, description="当前用户是否已点赞")
 
+    # GOV-01.4: 协同治理聚合（验证数量/时间/说明/处理状态）
+    governance: Optional["GovernanceSummary"] = Field(
+        default=None, description="协同治理聚合（仅详情端点返回）"
+    )
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -148,6 +175,8 @@ class PostListResponse(BaseModel):
     title: str
     content: str = Field(description="内容（完整内容，前端用 CSS line-clamp 控制显示行数）")
     is_anonymous: bool = False
+    # PUB-02: 列表项携带状态（我的发布按状态分组展示草稿/待审核/已发布等）
+    status: str = "published"
     category: Optional[CategoryBrief] = None
     location: Optional[LocationBrief] = None
     author: Optional[UserBrief] = None
@@ -170,8 +199,8 @@ class PostTransitionCreate(BaseModel):
     target_status: str = Field(
         ...,
         pattern="^(draft|pending|published|expired|conflict|archived|pending_review)$",
-        description="目标状态：draft/pending/published/expired/conflict/archived。"
-                    "pending_review 为 pending 的别名，将被归一化",
+        description="目标状态（6 态）：draft/pending/published/expired/conflict/archived。"
+                    "pending_review 为 pending 的历史别名，将被归一化为 pending",
     )
     reason: Optional[str] = Field(None, max_length=500, description="流转原因（可选）")
 
@@ -185,3 +214,14 @@ class PostTransitionResponse(BaseModel):
     transitioned_by: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# GOV-01.4: 循环依赖处理——底部延迟导入 GovernanceSummary 并重建
+# PostResponse.governance 使用前向引用 "GovernanceSummary"；
+# schemas.governance 在其底部延迟导入 UserBrief，任一模块先导入均可成立。
+# ============================================================
+from app.schemas.governance import GovernanceSummary  # noqa: E402
+
+PostResponse.model_rebuild()
+

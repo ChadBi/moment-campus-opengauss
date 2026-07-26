@@ -9,7 +9,10 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.category import Category
 from app.models.location import Location
+from app.models.post_type import PostType
 from app.models.school import School
+from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
+from app.core.exceptions import NotFoundException
 
 router = APIRouter(tags=["分类"])
 
@@ -33,30 +36,49 @@ class LocationResponse(BaseModel):
     description: Optional[str] = Field(None, description="描述")
     building: Optional[str] = Field(None, description="建筑物")
     floor: Optional[str] = Field(None, description="楼层")
+    is_verified: bool = Field(..., description="是否已核验")
+
+
+class PostTypeResponse(BaseModel):
+    """信息类型响应（PUB-01.1：发布表单动态数据来源）
+
+    PostType 为全局共享配置（无 school_id），所有学校共用同一套信息类型。
+    """
+    id: int = Field(..., description="类型ID")
+    name: str = Field(..., description="类型名称")
+    code: str = Field(..., description="类型代码")
+    description: Optional[str] = Field(None, description="描述")
+    sort_order: int = Field(..., description="排序")
 
 
 class LocationCreate(BaseModel):
-    """创建地点"""
+    """创建地点（TEN-02.1: school_id 字段被忽略，强制使用 TenantContext 解析的学校）"""
     name: str = Field(..., min_length=1, max_length=100, description="地点名称")
     latitude: float = Field(..., description="纬度")
     longitude: float = Field(..., description="经度")
     description: Optional[str] = Field(None, max_length=500, description="描述")
     building: Optional[str] = Field(None, max_length=100, description="建筑物")
     floor: Optional[str] = Field(None, max_length=10, description="楼层")
-    school_id: int = Field(..., description="学校ID")
+    school_id: Optional[int] = Field(None, description="学校ID（已废弃，由租户上下文决定）")
 
 
 @router.get("/categories", response_model=List[CategoryResponse])
 async def get_categories(
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     获取分类列表
-    返回所有启用的分类，按排序字段排序
+    返回当前学校所有启用的分类，按排序字段排序
+
+    TEN-02.3：按当前学校过滤，跨校分类不会出现
     """
     query = (
         select(Category)
-        .where(Category.is_active == True)
+        .where(
+            Category.is_active == True,
+            Category.school_id == tenant.school_id,
+        )
         .order_by(Category.sort_order, Category.id)
     )
     result = await db.execute(query)
@@ -77,19 +99,23 @@ async def get_categories(
 
 @router.get("/locations", response_model=List[LocationResponse])
 async def get_locations(
-    school_id: Optional[int] = Query(None, description="学校ID"),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     获取地点列表
-    支持按学校筛选
+
+    TEN-02.3：按当前学校过滤，跨校地点不会出现
+    PUB-01.2：返回 is_verified 字段，前端用于区分已核验地点与用户自建地点
     """
-    query = select(Location).where(Location.is_deleted == False)
-
-    if school_id:
-        query = query.where(Location.school_id == school_id)
-
-    query = query.order_by(Location.name)
+    query = (
+        select(Location)
+        .where(
+            Location.is_deleted == False,
+            Location.school_id == tenant.school_id,
+        )
+        .order_by(Location.name)
+    )
 
     result = await db.execute(query)
     locations = result.scalars().all()
@@ -103,8 +129,40 @@ async def get_locations(
             description=loc.description,
             building=loc.building,
             floor=loc.floor,
+            is_verified=loc.is_verified,
         )
         for loc in locations
+    ]
+
+
+@router.get("/post-types", response_model=List[PostTypeResponse])
+async def get_post_types(
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """
+    获取信息类型列表（PUB-01.1：发布表单动态数据来源）
+
+    PostType 为全局共享配置（无 school_id 字段），所有学校共用。
+    依赖 TenantContext 仅用于确保请求已关联到一所学校（与 categories/locations 一致）。
+    """
+    query = (
+        select(PostType)
+        .where(PostType.is_active == True)
+        .order_by(PostType.sort_order, PostType.id)
+    )
+    result = await db.execute(query)
+    post_types = result.scalars().all()
+
+    return [
+        PostTypeResponse(
+            id=pt.id,
+            name=pt.name,
+            code=pt.code,
+            description=pt.description,
+            sort_order=pt.sort_order,
+        )
+        for pt in post_types
     ]
 
 
@@ -113,22 +171,17 @@ async def create_location(
     data: LocationCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     创建地点
     需要用户认证
-    """
-    # 验证学校是否存在
-    school_query = select(School).where(School.id == data.school_id, School.is_active == True)
-    school_result = await db.execute(school_query)
-    school = school_result.scalar_one_or_none()
-    if not school:
-        from app.core.exceptions import NotFoundException
-        raise NotFoundException(detail="学校不存在")
 
-    # 创建地点
+    TEN-02.1: 忽略 body 里的 school_id，强制使用 TenantContext 解析的学校
+    """
+    # TEN-02.1: 强制使用 tenant.school_id（忽略 body 里的 school_id 字段）
     location = Location(
-        school_id=data.school_id,
+        school_id=tenant.school_id,
         name=data.name,
         latitude=data.latitude,
         longitude=data.longitude,
@@ -149,4 +202,5 @@ async def create_location(
         description=location.description,
         building=location.building,
         floor=location.floor,
+        is_verified=location.is_verified,
     )

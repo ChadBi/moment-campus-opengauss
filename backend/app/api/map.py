@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload, joinedload
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from app.database import get_db
 from app.models.post import Post
+from app.models.post_image import PostImage
 from app.models.location import Location
+from app.core.tenant import TenantContext, get_tenant_context
 
 router = APIRouter(tags=["地图"])
 
@@ -30,12 +33,17 @@ async def get_map_markers(
     west: float = Query(..., description="边界西经度"),
     category_id: Optional[int] = Query(None, description="分类ID"),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     获取地图标记
     根据经纬度边界返回标记，最多100个
+
+    DSC-01.2: 预加载 post_images 关联，消除每帖单独查询封面图的 N+1。
+    TEN-02.3：按当前学校过滤，跨校标记不会出现
     """
-    # 查询边界内的地点
+    # 查询边界内的地点（TEN-02.3: 强制按当前学校过滤）
+    # DSC-01.2: 使用 selectinload 预加载 PostImage，避免每帖单独查封面图
     query = (
         select(Location, Post)
         .join(Post, Post.location_id == Location.id)
@@ -43,11 +51,14 @@ async def get_map_markers(
             Location.is_deleted == False,
             Post.is_deleted == False,
             Post.status == "published",
+            Post.school_id == tenant.school_id,
+            Location.school_id == tenant.school_id,
             Location.latitude <= north,
             Location.latitude >= south,
             Location.longitude <= east,
             Location.longitude >= west,
         )
+        .options(selectinload(Post.post_images))
         .limit(100)
     )
 
@@ -55,21 +66,21 @@ async def get_map_markers(
         query = query.where(Post.category_id == category_id)
 
     result = await db.execute(query)
-    rows = result.all()
+    rows = result.unique().all()
 
     markers = []
     for location, post in rows:
-        # 获取封面图
-        from app.models.post_image import PostImage
-        image_query = (
-            select(PostImage)
-            .where(PostImage.post_id == post.id, PostImage.is_deleted == False)
-            .order_by(PostImage.sort_order)
-            .limit(1)
-        )
-        image_result = await db.execute(image_query)
-        first_image = image_result.scalar_one_or_none()
-        cover_image = first_image.image_url if first_image else None
+        # DSC-01.2: 从预加载的 post_images 中取第一张作为封面（按 sort_order 排序）
+        # post_images 已通过 selectinload 一次性加载，无额外查询
+        cover_image = None
+        if post.post_images:
+            # selectinload 默认按主键顺序返回，取 sort_order 最小的
+            sorted_images = sorted(
+                [img for img in post.post_images if not img.is_deleted],
+                key=lambda x: x.sort_order,
+            )
+            if sorted_images:
+                cover_image = sorted_images[0].image_url
 
         markers.append(MapMarker(
             post_id=post.id,

@@ -127,10 +127,239 @@ class BatchToggleActiveRequest(BaseModel):
     reason: Optional[str] = Field(None, max_length=500, description="操作原因")
 
 
+class BatchFailedItem(BaseModel):
+    """ADM-01.4: 批量操作单项失败明细（成功/失败/原因不静默跳过）"""
+    id: int = Field(..., description="失败的目标ID")
+    reason: str = Field(..., description="失败原因")
+
+
 class BatchOperationResponse(BaseModel):
     """批量操作响应"""
     total: int = Field(default=0, description="总数")
     success: int = Field(default=0, description="成功数")
     failed: int = Field(default=0, description="失败数")
     failed_ids: List[int] = Field(default_factory=list, description="失败的目标ID列表")
+    failed_items: List[BatchFailedItem] = Field(
+        default_factory=list, description="ADM-01.4: 每项失败明细（id + 原因）"
+    )
     message: str = Field(default="批量操作完成")
+
+
+# ============ ADM-01.1: 校级待办统计 ============
+class TodoItem(BaseModel):
+    """单个待办类别：计数 + 前端跳转路径（带筛选条件）"""
+    key: str = Field(..., description="待办类别标识")
+    label: str = Field(..., description="中文名称")
+    count: int = Field(default=0, description="待办数量")
+    queue_url: str = Field(..., description="前端队列路径（含筛选参数）")
+
+
+class TodoStats(BaseModel):
+    """ADM-01.1: 校级后台首页待办统计
+
+    7 类待办：待审核 / 待处理举报 / 待核验地点 / 过期报告 / 冲突报告 /
+    更新建议 / 异常任务（最近失败的任务运行记录）。
+
+    REL-02.3: 额外返回本校最近 24h AI 调用降级率（采样监控），
+    降级率 ≥50% 时由前端高亮提示。
+    """
+    pending_posts: int = Field(default=0, description="待审核内容数")
+    pending_reports: int = Field(default=0, description="待处理举报数")
+    unverified_locations: int = Field(default=0, description="待核验地点数")
+    expiration_reports: int = Field(default=0, description="未结案过期报告数")
+    conflict_reports: int = Field(default=0, description="未结案冲突报告数")
+    update_suggestions: int = Field(default=0, description="未结案更新建议数")
+    failed_jobs: int = Field(default=0, description="最近失败任务数（24h 内）")
+    total: int = Field(default=0, description="待办合计")
+    items: List[TodoItem] = Field(default_factory=list, description="待办卡片（含跳转路径）")
+    # REL-02.3: AI 降级率（最近 24h 本校采样）
+    ai_calls_24h: int = Field(default=0, description="最近 24h AI 调用次数（本校）")
+    ai_fallback_24h: int = Field(default=0, description="最近 24h AI 降级次数（本校）")
+    ai_fallback_rate: float = Field(default=0.0, description="最近 24h AI 降级率（0~1）")
+
+
+# ============ ADM-01.2: 审核详情（管理专用接口） ============
+class AuthorHistoryStats(BaseModel):
+    """作者历史统计（审核详情辅助判断）"""
+    total_posts: int = 0
+    published_posts: int = 0
+    rejected_posts: int = 0
+    report_received_count: int = 0
+
+
+class AdminPostDetail(BaseModel):
+    """ADM-01.2: 审核详情（管理专用，不依赖公开帖子详情）
+
+    含完整内容、分类、地点、有效期、图片、作者历史与治理概况。
+    """
+    id: int
+    title: str
+    content: str
+    status: str
+    is_anonymous: bool
+    created_at: datetime
+    updated_at: datetime
+    expire_at: Optional[datetime] = None
+    contact_info: Optional[str] = None
+    lost_type: Optional[str] = None
+    view_count: int = 0
+    like_count: int = 0
+    comment_count: int = 0
+    valid_count: int = 0
+    invalid_count: int = 0
+    # 关联信息
+    author_id: int
+    author_name: Optional[str] = None
+    author_email: Optional[str] = None
+    category_id: int
+    category_name: Optional[str] = None
+    post_type_id: int
+    post_type_name: Optional[str] = None
+    location_id: Optional[int] = None
+    location_name: Optional[str] = None
+    location_verified: Optional[bool] = None
+    images: List[str] = Field(default_factory=list, description="图片 URL 列表")
+    # 审核辅助
+    author_history: AuthorHistoryStats = Field(default_factory=AuthorHistoryStats)
+    open_change_reports: int = Field(default=0, description="未结案问题报告数")
+    pending_user_reports: int = Field(default=0, description="待处理用户举报数")
+
+
+# ============ ADM-01.3: 原因模板 ============
+class ReasonTemplate(BaseModel):
+    """审核原因模板"""
+    code: str = Field(..., description="模板标识")
+    label: str = Field(..., description="模板标题")
+    text: str = Field(..., description="模板内容（可直接作为 reason）")
+
+
+class ReasonTemplateResponse(BaseModel):
+    """通过/驳回原因模板"""
+    approve: List[ReasonTemplate] = Field(default_factory=list)
+    reject: List[ReasonTemplate] = Field(default_factory=list)
+
+
+# ============ ADM-01.5: 治理工作台（3 类问题报告队列） ============
+class GovernanceReportBrief(BaseModel):
+    """治理报告队列项（跨帖子管理视图）"""
+    id: int
+    post_id: int
+    post_title: Optional[str] = None
+    post_status: Optional[str] = None
+    reporter_id: int
+    reporter_name: Optional[str] = None
+    report_type: str = Field(..., description="update / expiration_report / conflict_report")
+    description: Optional[str] = None
+    evidence_url: Optional[str] = None
+    status: str = Field(..., description="open / in_review / resolved / dismissed")
+    handler_id: Optional[int] = None
+    handler_name: Optional[str] = None
+    handler_note: Optional[str] = None
+    handled_at: Optional[datetime] = None
+    created_at: datetime
+
+
+class GovernanceHandleRequest(BaseModel):
+    """处理治理报告请求
+
+    action 语义：
+    - resolve: 标记已解决（不改帖子状态）
+    - dismiss: 驳回报告（不改帖子状态）
+    - mark_expired: 确认过期 → 帖子转 expired，报告 resolved
+    - mark_conflict: 确认冲突 → 帖子转 conflict，报告 resolved
+    """
+    action: str = Field(
+        ..., pattern="^(resolve|dismiss|mark_expired|mark_conflict)$",
+        description="处理动作",
+    )
+    reason: str = Field(..., min_length=1, max_length=500, description="处理说明")
+
+
+# ============ ADM-01.6: 地点核验 ============
+class LocationAdminResponse(BaseModel):
+    """地点管理视图"""
+    id: int
+    name: str
+    description: Optional[str] = None
+    latitude: float
+    longitude: float
+    floor: Optional[str] = None
+    building: Optional[str] = None
+    post_count: int = 0
+    is_verified: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============ ADM-02.1: 学校设置 ============
+class SchoolSettingsResponse(BaseModel):
+    """学校设置响应（ADM-02.1）
+
+    后端真实存储，跨浏览器生效；body 里的 school_id 由 TenantContext 决定，
+    不暴露给前端。
+    """
+    site_name: Optional[str] = Field(None, description="站点名称")
+    description: Optional[str] = Field(None, description="站点说明")
+    require_review: bool = Field(..., description="新信息是否需要审核")
+    allow_anonymous: bool = Field(..., description="是否允许匿名发布")
+    allow_comments: bool = Field(..., description="是否允许评论")
+    publish_frequency: int = Field(..., description="每日发布上限（0 表示不限）")
+    image_limit: int = Field(..., description="单帖图片上限")
+    default_validity_days: int = Field(..., description="默认有效期天数")
+    brand_color: Optional[str] = Field(None, description="品牌色（如 #1890ff）")
+    logo_url: Optional[str] = Field(None, description="Logo URL")
+    updated_at: datetime = Field(..., description="最近一次更新时间")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SchoolSettingsUpdate(BaseModel):
+    """更新学校设置请求（部分更新；全部字段可选）
+
+    ADM-02.1: PUT /admin/settings 仅接收允许修改的字段；
+    school_id 不可改（由 TenantContext 决定）。
+    """
+    site_name: Optional[str] = Field(None, max_length=100, description="站点名称")
+    description: Optional[str] = Field(None, description="站点说明")
+    require_review: Optional[bool] = Field(None, description="新信息是否需要审核")
+    allow_anonymous: Optional[bool] = Field(None, description="是否允许匿名发布")
+    allow_comments: Optional[bool] = Field(None, description="是否允许评论")
+    publish_frequency: Optional[int] = Field(
+        None, ge=0, le=1000, description="每日发布上限（0 表示不限）"
+    )
+    image_limit: Optional[int] = Field(
+        None, ge=0, le=20, description="单帖图片上限"
+    )
+    default_validity_days: Optional[int] = Field(
+        None, ge=1, le=3650, description="默认有效期天数"
+    )
+    brand_color: Optional[str] = Field(None, max_length=20, description="品牌色")
+    logo_url: Optional[str] = Field(None, max_length=500, description="Logo URL")
+
+
+# ============ GOV-02: 任务运行记录 ============
+class ExpirePostsJobRequest(BaseModel):
+    """GOV-02.2: 手动触发过期任务请求"""
+    dry_run: bool = Field(default=False, description="dry-run 模式：只报告不执行")
+
+
+class JobRunRecordResponse(BaseModel):
+    """GOV-02.2: 任务运行记录响应"""
+    id: int
+    job_name: str
+    status: str = Field(description="running / success / failed")
+    started_at: datetime
+    finished_at: Optional[datetime] = None
+    processed_count: int = 0
+    failed_count: int = 0
+    error_message: Optional[str] = None
+    triggered_by: str
+    triggered_user_id: Optional[int] = None
+    dry_run: bool = False
+    metadata: Optional[str] = Field(None, description="JSON 文本（额外元数据）")
+    duration_seconds: Optional[float] = Field(
+        None, description="耗时（秒），由 finished_at - started_at 计算"
+    )
+
+    model_config = ConfigDict(from_attributes=True)

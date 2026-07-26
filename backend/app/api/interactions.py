@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
-from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.database import get_db
@@ -18,9 +17,11 @@ from app.schemas.interaction import (
     ValidationCreate,
     ValidationResponse,
     ValidationStatsResponse,
+    ReportCreate,
 )
 from app.schemas.common import MessageResponse
 from app.core.exceptions import NotFoundException, BadRequestException
+from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.core.validation_type import (
     normalize_validation_type,
     ValidationType,
@@ -29,30 +30,27 @@ from app.core.validation_type import (
 router = APIRouter(tags=["互动"])
 
 
-class ReportCreateSchema(BaseModel):
-    report_type: str = Field(
-        ...,
-        pattern="^(spam|abuse|harassment|false_info|other)$",
-        description="举报类型：spam（垃圾信息）/ abuse（滥用）/ harassment（骚扰）/ false_info（虚假信息）/ other（其他）"
-    )
-    description: Optional[str] = Field(None, max_length=1000, description="举报描述，最多1000字符")
-
-
 @router.post("/posts/{post_id}/like", response_model=LikeResponse)
 async def toggle_like(
     post_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     点赞/取消点赞（切换）
     如果已点赞则取消点赞，如果未点赞则点赞
+
+    TEN-02.3：跨校帖子统一返回 404。
     """
     # 查询帖子
     result = await db.execute(select(Post).where(Post.id == post_id, Post.is_deleted == False))
     post = result.scalar_one_or_none()
     if not post:
         raise NotFoundException(detail="帖子不存在")
+
+    # TEN-02.3: 资源级租户校验——跨校对象统一 404
+    check_resource_in_tenant(post.school_id, tenant)
 
     # 查询是否已点赞
     result = await db.execute(
@@ -106,6 +104,7 @@ async def create_validation(
     data: ValidationCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     协同验证（2 类互斥可切换）
@@ -116,12 +115,17 @@ async def create_validation(
     - 已有不同类型记录 → 删除原记录，新建新类型（切换）
 
     向后兼容旧值：valid→confirmation / invalid→refutation
+
+    TEN-02.3：跨校帖子统一返回 404。
     """
     # 查询帖子
     result = await db.execute(select(Post).where(Post.id == post_id, Post.is_deleted == False))
     post = result.scalar_one_or_none()
     if not post:
         raise NotFoundException(detail="帖子不存在")
+
+    # TEN-02.3: 资源级租户校验——跨校对象统一 404
+    check_resource_in_tenant(post.school_id, tenant)
 
     # 归一化验证类型（别名 → 正式名）
     canonical_type = normalize_validation_type(data.validation_type)
@@ -203,19 +207,25 @@ async def create_validation(
 @router.post("/posts/{post_id}/report", response_model=MessageResponse)
 async def create_report(
     post_id: int,
-    data: ReportCreateSchema,
+    data: ReportCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
     创建举报
     用户可以举报帖子
+
+    TEN-02.3：跨校帖子统一返回 404。
     """
     # 查询帖子
     result = await db.execute(select(Post).where(Post.id == post_id, Post.is_deleted == False))
     post = result.scalar_one_or_none()
     if not post:
         raise NotFoundException(detail="帖子不存在")
+
+    # TEN-02.3: 资源级租户校验——跨校对象统一 404
+    check_resource_in_tenant(post.school_id, tenant)
 
     # 检查是否已举报
     result = await db.execute(
@@ -229,11 +239,11 @@ async def create_report(
     if existing_report:
         raise BadRequestException(detail="您已举报过该帖子，请等待处理")
 
-    # 创建举报
+    # 创建举报（report_type 为 ReportType 枚举，取其字符串值存入数据库）
     report = Report(
         post_id=post_id,
         reporter_id=current_user.id,
-        report_type=data.report_type,
+        report_type=data.report_type.value,
         description=data.description,
         status="pending",
     )
@@ -261,6 +271,7 @@ async def get_validation_stats(
     post_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """获取帖子的协同验证统计（2 类计数 + 当前用户验证类型）
 
@@ -270,6 +281,8 @@ async def get_validation_stats(
     - total_count: 总验证数（仅计入 confirmation + refutation + 旧别名）
     - validity_status: 综合有效性状态（valid/invalid/uncertain）
     - user_validation_type: 当前用户对此帖的验证类型（confirmation/refutation/None）
+
+    TEN-02.3：跨校帖子统一返回 404。
     """
     # 查询帖子
     result = await db.execute(
@@ -278,6 +291,9 @@ async def get_validation_stats(
     post = result.scalar_one_or_none()
     if not post:
         raise NotFoundException(detail="帖子不存在")
+
+    # TEN-02.3: 资源级租户校验——跨校对象统一 404
+    check_resource_in_tenant(post.school_id, tenant)
 
     # 按 validation_type 分组计数
     result = await db.execute(

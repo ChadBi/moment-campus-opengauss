@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func, or_, and_
 from sqlalchemy.orm import selectinload, joinedload
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, timedelta
+from math import radians, cos, sin, asin, sqrt
 
 from app.database import get_db
 from app.dependencies import get_current_user, get_current_user_optional
@@ -15,15 +16,29 @@ from app.models.like import Like
 from app.models.user import User
 from app.models.category import Category
 from app.models.location import Location
+from app.models.validation_record import ValidationRecord
+from app.models.post_change_report import PostChangeReport
+# PRF-01.3: 浏览历史按学校隔离，详情访问时写入
+from app.models.browse_history import BrowseHistory
+# ORG-01: 关联官方发布主体
+from app.models.publisher_profile import PublisherProfile
+from app.models.publisher_membership import PublisherMembership
 from app.schemas.post import (
     PostCreate, PostUpdate, PostResponse, PostListResponse, TagBrief,
+    PostImageBrief,
     PostTransitionCreate, PostTransitionResponse,
 )
+from app.schemas.ai import AIPublishSuggestRequest, AIPublishSuggestionResponse
+from app.schemas.governance import GovernanceSummary, ChangeReportResponse
 from app.schemas.common import PaginatedResponse
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 from app.core.post_status import (
     can_transition, normalize_status, get_allowed_transitions, PostStatus,
+    is_substantial_change,
 )
+from app.core.permissions import is_admin
+from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
+from app.services.ai_publish import execute_publish_suggestion
 
 router = APIRouter(prefix="/posts", tags=["信息"])
 
@@ -33,35 +48,126 @@ def generate_slug(name: str) -> str:
     return name.lower().replace(" ", "-").strip()
 
 
+# ============================================================
+# FND-03.1 + TEN-02.3: 帖子可见性策略 + 租户可见性
+# ============================================================
+# 公开访问（游客/非作者）：
+#   - published：可见
+#   - expired：默认可见（保留展示，便于历史回溯；如需隐藏由后续配置控制）
+#   - draft / pending / archived / conflict：不可见 → 404
+# 作者：可看自己所有状态
+# 管理员：可看本校所有状态（TEN-02.3：跨校对象 → 404）
+_PUBLIC_VISIBLE_STATUSES = {PostStatus.PUBLISHED, PostStatus.EXPIRED}
+
+
+def can_view_post(post: Post, current_user: User | None) -> bool:
+    """集中判断 current_user 是否可查看指定 post（FND-03.1 + TEN-02.3）
+
+    策略：
+        1. 已软删除的帖子：任何人都不可见（应在外层先过滤，本函数保守返回 False）
+        2. 公开可见状态（published / expired）：任何人都可见
+        3. 作者本人：可见自己所有状态
+        4. 管理员（admin/super_admin）：可见所有状态
+           注：跨校对象的访问由 TenantContext + check_resource_in_tenant 在路由层拦截，
+           本函数只负责状态/作者可见性，不再做本校校验（避免双重判断）。
+
+    Args:
+        post: 帖子对象
+        current_user: 当前用户（None 表示游客）
+
+    Returns:
+        True 表示可见
+    """
+    if post is None or post.is_deleted:
+        return False
+
+    if post.status in _PUBLIC_VISIBLE_STATUSES:
+        return True
+
+    if current_user is None:
+        return False
+
+    # 作者本人可见自己所有状态
+    if post.user_id == current_user.id:
+        return True
+
+    # 管理员可见所有状态（含 draft/pending/archived/conflict）
+    if is_admin(current_user):
+        return True
+
+    return False
+
+
 @router.get("", response_model=PaginatedResponse[PostListResponse], summary="获取信息列表")
 async def get_posts(
     page: int = Query(default=1, ge=1, description="页码"),
     page_size: int = Query(default=20, ge=1, le=100, description="每页数量"),
     category_id: Optional[int] = Query(default=None, description="分类ID"),
+    location_id: Optional[int] = Query(default=None, description="地点ID"),
     post_type_id: Optional[int] = Query(default=None, description="信息类型ID"),
-    status: Optional[str] = Query(default=None, description="状态"),
-    sort: str = Query(default="latest", description="排序方式: latest/hottest/nearest"),
+    status: Optional[str] = Query(
+        default=None,
+        pattern="^(published|expired|valid)$",
+        description="有效状态筛选：published（仅已发布）/ expired（仅已过期）/ valid（两者皆显示，默认）",
+    ),
+    date_from: Optional[datetime] = Query(default=None, description="起始时间（created_at >=）"),
+    date_to: Optional[datetime] = Query(default=None, description="截止时间（created_at <=）"),
+    sort: str = Query(
+        default="latest",
+        pattern="^(latest|hottest|nearest|active)$",
+        description="排序方式: latest（最新）/ hottest（最热）/ nearest（最近活动）/ active（综合活动）",
+    ),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """获取信息列表，支持分页、筛选和排序"""
-    # 基础查询
-    query = select(Post).where(Post.is_deleted == False, Post.status == "published")
+    """获取信息列表，支持分页、筛选和排序
+
+    DSC-01.1: 普通搜索/列表支持分类/地点/帖子类型/有效状态/时间/排序。
+    TEN-02.3：按当前学校过滤，跨校帖子不会出现在列表中。
+
+    有效状态筛选：
+        - published: 仅显示已发布（status=published）
+        - expired: 仅显示已过期（status=expired，仍可对外展示便于历史回溯）
+        - valid 或不传：显示 published + expired（默认对外可见集合）
+    """
+    # 基础查询：当前学校 + 未删除 + 对外可见状态（published + expired）
+    # DSC-01.1: status 参数决定具体可见集合
+    if status == "published":
+        visible_statuses = ["published"]
+    elif status == "expired":
+        visible_statuses = ["expired"]
+    else:
+        # valid 或默认：published + expired
+        visible_statuses = ["published", "expired"]
+
+    query = select(Post).where(
+        Post.is_deleted == False,
+        Post.status.in_(visible_statuses),
+        Post.school_id == tenant.school_id,
+    )
 
     # 筛选
     if category_id is not None:
         query = query.where(Post.category_id == category_id)
+    if location_id is not None:
+        query = query.where(Post.location_id == location_id)
     if post_type_id is not None:
         query = query.where(Post.post_type_id == post_type_id)
-    if status is not None:
-        query = query.where(Post.status == status)
+    if date_from is not None:
+        query = query.where(Post.created_at >= date_from)
+    if date_to is not None:
+        query = query.where(Post.created_at <= date_to)
 
     # 排序
     if sort == "latest":
         query = query.order_by(Post.created_at.desc())
     elif sort == "hottest":
         query = query.order_by(Post.like_count.desc(), Post.created_at.desc())
+    elif sort == "active":
+        # DSC-01.1: 最近活动 = 评论+点赞+浏览综合活跃度，按 updated_at 优先
+        query = query.order_by(Post.updated_at.desc(), Post.created_at.desc())
     elif sort == "nearest":
-        # 按距离排序需要 location，这里简化为按更新时间排序
+        # DSC-01.1: nearest 简化为按 updated_at 排序（真正地理距离排序需 location_id 参数走专用端点）
         query = query.order_by(Post.updated_at.desc())
     else:
         query = query.order_by(Post.created_at.desc())
@@ -75,11 +181,12 @@ async def get_posts(
     offset = (page - 1) * page_size
     query = query.offset(offset).limit(page_size)
 
-    # 预加载关联数据
+    # 预加载关联数据（DSC-01.2: 消除 N+1）
     query = query.options(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
+        joinedload(Post.post_type),
         selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
@@ -117,10 +224,20 @@ async def get_post(
     post_id: int,
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """获取信息详情，增加浏览次数"""
-    # 查询信息
-    query = select(Post).where(Post.id == post_id, Post.is_deleted == False)
+    """获取信息详情，增加浏览次数
+
+    FND-03.1 可见性策略（由 can_view_post 集中判断）：
+        - 公开访问（游客/非作者）：仅 published / expired 可见
+        - 作者：可见自己所有状态
+        - 管理员：可见所有状态
+        - 草稿/待审/归档/冲突 帖子对无权限用户返回 404（不泄露存在性）
+
+    TEN-02.3：跨校对象统一返回 404（不返回 403 以免泄露存在性）
+    """
+    # 查询信息（含已软删除，由 can_view_post 统一判断）
+    query = select(Post).where(Post.id == post_id)
     query = query.options(
         joinedload(Post.user),
         joinedload(Post.category),
@@ -136,8 +253,42 @@ async def get_post(
     if post is None:
         raise NotFoundException(detail="信息不存在")
 
-    # 增加浏览次数
+    # TEN-02.3: 资源级租户校验——跨校对象统一 404
+    check_resource_in_tenant(post.school_id, tenant)
+
+    # FND-03.1: 可见性校验——不通过则返回 404（不泄露存在性）
+    if not can_view_post(post, current_user):
+        raise NotFoundException(detail="信息不存在")
+
+    # 增加浏览次数（仅在可见时才计入）
     post.view_count += 1
+
+    # PRF-01.3: 登录用户记录浏览历史（按当前学校隔离）
+    # 同一用户在同一学校对同一帖子只保留一条记录，更新 viewed_at
+    if current_user is not None:
+        now_ts = datetime.now()
+        existing = (
+            await db.execute(
+                select(BrowseHistory).where(
+                    BrowseHistory.user_id == current_user.id,
+                    BrowseHistory.school_id == tenant.school_id,
+                    BrowseHistory.post_id == post.id,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            existing.viewed_at = now_ts
+        else:
+            db.add(
+                BrowseHistory(
+                    user_id=current_user.id,
+                    school_id=tenant.school_id,
+                    post_id=post.id,
+                    viewed_at=now_ts,
+                    created_at=now_ts,
+                )
+            )
+
     await db.commit()
     await db.refresh(post, attribute_names=["view_count"])
 
@@ -153,6 +304,11 @@ async def get_post(
     response = PostResponse.model_validate(post)
     response.is_liked = is_liked
 
+    # DSC-02.1: 游客不返回联系方式（敏感字段按权限脱敏）
+    # 游客只能看到公开字段；登录用户（含作者/管理员）可见完整 contact_info
+    if tenant.is_guest:
+        response.contact_info = None
+
     # 设置作者信息（匿名时隐藏）
     if post.is_anonymous:
         response.author = None
@@ -163,7 +319,128 @@ async def get_post(
     if post.post_tags:
         response.tags = [TagBrief.model_validate(pt.tag) for pt in post.post_tags if pt.tag]
 
+    # DSC-02.1: 设置图片列表（按 sort_order 排序，前端轮播依赖）
+    # post_images 关系已通过 selectinload 预加载
+    if post.post_images:
+        response.images = [
+            PostImageBrief.model_validate(img)
+            for img in sorted(post.post_images, key=lambda i: i.sort_order)
+        ]
+    else:
+        response.images = []
+
+    # GOV-01.4: 协同治理聚合（验证数量/时间/说明/处理状态）
+    # 聚合 validation_records（2 类投票）+ post_change_reports（3 类问题报告）
+    # DSC-02.1: 登录用户额外返回 user_validation_type，游客恒为 None
+    response.governance = await _build_governance_summary(db, post_id, current_user)
+
     return response
+
+
+async def _build_governance_summary(
+    db: AsyncSession,
+    post_id: int,
+    current_user: Optional[User] = None,
+) -> GovernanceSummary:
+    """GOV-01.4: 构造帖子详情的协同治理聚合
+
+    - 投票计数（confirmation/refutation）+ 综合有效性状态
+    - 问题报告总数 / 待处理数 / 最近 10 条（含处理状态）
+    - DSC-02.1: 登录用户额外返回 user_validation_type；游客恒为 None
+    """
+    # 投票按类型分组计数
+    val_result = await db.execute(
+        select(
+            ValidationRecord.validation_type,
+            func.count(ValidationRecord.id).label("cnt"),
+        )
+        .where(ValidationRecord.post_id == post_id)
+        .group_by(ValidationRecord.validation_type)
+    )
+    val_counts = {row[0]: row[1] for row in val_result.all()}
+    confirmation_count = val_counts.get("confirmation", 0) + val_counts.get("valid", 0)
+    refutation_count = val_counts.get("refutation", 0) + val_counts.get("invalid", 0)
+    total_validation_count = confirmation_count + refutation_count
+    if confirmation_count > refutation_count:
+        validity_status = "valid"
+    elif refutation_count > confirmation_count:
+        validity_status = "invalid"
+    elif total_validation_count > 0:
+        validity_status = "uncertain"
+    else:
+        validity_status = "valid"
+
+    # 问题报告：总数 + 待处理数 + 最近 10 条
+    pcr_total_result = await db.execute(
+        select(func.count(PostChangeReport.id)).where(PostChangeReport.post_id == post_id)
+    )
+    change_reports_total = pcr_total_result.scalar() or 0
+
+    pcr_open_result = await db.execute(
+        select(func.count(PostChangeReport.id)).where(
+            PostChangeReport.post_id == post_id,
+            PostChangeReport.status.in_(["open", "in_review"]),
+        )
+    )
+    change_reports_open = pcr_open_result.scalar() or 0
+
+    pcr_result = await db.execute(
+        select(PostChangeReport)
+        .where(PostChangeReport.post_id == post_id)
+        .order_by(PostChangeReport.created_at.desc())
+        .limit(10)
+        .options(selectinload(PostChangeReport.reporter), selectinload(PostChangeReport.handler))
+    )
+    reports = pcr_result.scalars().all()
+    from app.schemas.post import UserBrief
+    recent_change_reports = [
+        ChangeReportResponse(
+            id=r.id,
+            post_id=r.post_id,
+            reporter_id=r.reporter_id,
+            report_type=r.report_type,
+            description=r.description,
+            evidence_url=r.evidence_url,
+            status=r.status,
+            handler_id=r.handler_id,
+            handler_note=r.handler_note,
+            handled_at=r.handled_at,
+            created_at=r.created_at,
+            updated_at=r.updated_at,
+            reporter=UserBrief(id=r.reporter.id, nickname=r.reporter.nickname, avatar_url=r.reporter.avatar_url)
+            if r.reporter else None,
+            handler=UserBrief(id=r.handler.id, nickname=r.handler.nickname, avatar_url=r.handler.avatar_url)
+            if r.handler else None,
+        )
+        for r in reports
+    ]
+
+    # DSC-02.1: 登录用户返回其投票类型（用于前端高亮"已证实/已证伪"按钮）
+    # 游客（current_user is None）恒为 None，前端据此隐藏投票按钮
+    user_validation_type = None
+    if current_user is not None:
+        uvr = await db.execute(
+            select(ValidationRecord.validation_type).where(
+                ValidationRecord.post_id == post_id,
+                ValidationRecord.user_id == current_user.id,
+            )
+        )
+        row = uvr.scalar_one_or_none()
+        if row:
+            # 归一化旧别名（valid→confirmation / invalid→refutation）
+            from app.core.validation_type import normalize_validation_type
+            user_validation_type = normalize_validation_type(row)
+
+    return GovernanceSummary(
+        confirmation_count=confirmation_count,
+        refutation_count=refutation_count,
+        total_validation_count=total_validation_count,
+        validity_status=validity_status,
+        user_validation_type=user_validation_type,
+        change_reports_total=change_reports_total,
+        change_reports_open=change_reports_open,
+        recent_change_reports=recent_change_reports,
+    )
 
 
 @router.post("", response_model=PostResponse, status_code=201, summary="创建信息")
@@ -171,15 +448,43 @@ async def create_post(
     post_data: PostCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """创建信息，需要认证"""
-    # 处理地点：优先使用 location_id；若提供 location_name + lat + lng 则自动创建 Location
+    """创建信息，需要认证
+
+    TEN-02.1: 写请求忽略 body 里的 school_id，强制使用 TenantContext 解析的学校。
+    TEN-02.3: 校验 category / location 必须属于当前学校，否则 404。
+    """
+    # TEN-02.1: 强制使用 tenant.school_id（忽略 body 里的 school_id 字段）
+    school_id = tenant.school_id
+
+    # TEN-02.3: 校验分类属于当前学校（跨校分类 → 404，不泄露存在性）
+    cat_result = await db.execute(
+        select(Category).where(Category.id == post_data.category_id)
+    )
+    category = cat_result.scalar_one_or_none()
+    if category is None:
+        raise NotFoundException(detail="分类不存在")
+    check_resource_in_tenant(category.school_id, tenant)
+
+    # TEN-02.3: 校验 location_id（若提供）属于当前学校
     location_id = post_data.location_id
+    if location_id is not None:
+        loc_result = await db.execute(
+            select(Location).where(Location.id == location_id, Location.is_deleted == False)
+        )
+        loc = loc_result.scalar_one_or_none()
+        if loc is None:
+            raise NotFoundException(detail="地点不存在")
+        check_resource_in_tenant(loc.school_id, tenant)
+        location_id = loc.id
+
+    # 处理地点：若提供 location_name + lat + lng 则自动创建 Location（自动归入当前学校）
     if location_id is None and post_data.location_name and post_data.location_lat is not None and post_data.location_lng is not None:
         # 在同校同坐标范围内查找是否已有同名地点（避免重复创建）
         existing_loc = await db.execute(
             select(Location).where(
-                Location.school_id == current_user.school_id,
+                Location.school_id == school_id,
                 Location.name == post_data.location_name,
                 Location.latitude == post_data.location_lat,
                 Location.longitude == post_data.location_lng,
@@ -189,7 +494,7 @@ async def create_post(
         location = existing_loc.scalar_one_or_none()
         if location is None:
             location = Location(
-                school_id=current_user.school_id,
+                school_id=school_id,
                 name=post_data.location_name,
                 latitude=post_data.location_lat,
                 longitude=post_data.location_lng,
@@ -199,13 +504,42 @@ async def create_post(
             await db.flush()
         location_id = location.id
 
-    # 创建信息
+    # ORG-01: 校验 publisher_id（若提供）属于当前学校且当前用户为该主体成员
+    # 关键约束：
+    #   - publisher 必须在本校（跨校 → 404，不泄露存在性）
+    #   - 当前用户必须是该 publisher 的成员（owner/admin/member）
+    #   - publisher 状态不限（pending/verified/revoked/rejected 均可关联，
+    #     因为认证不代表内容免审，状态机仍走原审核流程）
+    publisher_id = post_data.publisher_id
+    if publisher_id is not None:
+        pub_result = await db.execute(
+            select(PublisherProfile).where(
+                PublisherProfile.id == publisher_id,
+                PublisherProfile.is_deleted == False,
+            )
+        )
+        publisher = pub_result.scalar_one_or_none()
+        if publisher is None:
+            raise NotFoundException(detail="发布主体不存在")
+        check_resource_in_tenant(publisher.school_id, tenant)
+        # 校验当前用户是否为该主体成员
+        membership_result = await db.execute(
+            select(PublisherMembership).where(
+                PublisherMembership.publisher_id == publisher_id,
+                PublisherMembership.user_id == current_user.id,
+            )
+        )
+        if membership_result.scalar_one_or_none() is None:
+            raise ForbiddenException(detail="仅发布主体成员可代表该主体发布")
+
+    # 创建信息（强制使用 tenant.school_id，不信任 body）
     post = Post(
         user_id=current_user.id,
-        school_id=current_user.school_id,
+        school_id=school_id,
         category_id=post_data.category_id,
         post_type_id=post_data.post_type_id or 1,  # 默认类型
         location_id=location_id,
+        publisher_id=publisher_id,  # ORG-01: 关联官方发布主体（None 表示普通用户发布）
         title=post_data.title,
         content=post_data.content,
         is_anonymous=post_data.is_anonymous,
@@ -219,10 +553,7 @@ async def create_post(
 
     # 如果没有设置过期时间，使用分类的默认有效期
     if post.expire_at is None:
-        cat_result = await db.execute(select(Category).where(Category.id == post.category_id))
-        category = cat_result.scalar_one_or_none()
-        if category:
-            post.expire_at = datetime.now() + timedelta(days=category.default_validity_days)
+        post.expire_at = datetime.now() + timedelta(days=category.default_validity_days)
 
     db.add(post)
     await db.flush()  # 获取 post.id
@@ -294,8 +625,19 @@ async def update_post(
     post_data: PostUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """更新信息，需要认证，验证所有权"""
+    """更新信息，需要认证，验证所有权
+
+    FND-03.2: 状态变化只走状态机服务。
+        - 已 published 的帖子若被实质修改（title/content/category_id/post_type_id/
+          location_*/lost_type），自动通过状态机 published → pending 回审
+        - 非实质字段（expire_at/activity_*/contact_info/is_anonymous/tags/image_urls）
+          修改不触发回审
+        - 本接口不允许直接修改 status 字段（PostUpdate schema 已移除 status）
+
+    TEN-02.3: 跨校对象 → 404；category_id 修改时校验新分类属于当前学校。
+    """
     # 查询信息
     query = select(Post).where(Post.id == post_id, Post.is_deleted == False)
     query = query.options(
@@ -313,14 +655,53 @@ async def update_post(
     if post is None:
         raise NotFoundException(detail="信息不存在")
 
-    # 验证所有权
+    # TEN-02.3: 资源级租户校验——跨校对象统一 404
+    check_resource_in_tenant(post.school_id, tenant)
+
+    # TEN-02.3: 若修改 category_id，校验新分类属于当前学校
+    update_data = post_data.model_dump(exclude_unset=True)
+    if "category_id" in update_data and update_data["category_id"] is not None:
+        cat_result = await db.execute(
+            select(Category).where(Category.id == update_data["category_id"])
+        )
+        new_category = cat_result.scalar_one_or_none()
+        if new_category is None:
+            raise NotFoundException(detail="分类不存在")
+        check_resource_in_tenant(new_category.school_id, tenant)
+
+    # TEN-02.3: 若修改 location_id，校验新地点属于当前学校
+    if "location_id" in update_data and update_data["location_id"] is not None:
+        loc_result = await db.execute(
+            select(Location).where(
+                Location.id == update_data["location_id"],
+                Location.is_deleted == False,
+            )
+        )
+        new_loc = loc_result.scalar_one_or_none()
+        if new_loc is None:
+            raise NotFoundException(detail="地点不存在")
+        check_resource_in_tenant(new_loc.school_id, tenant)
+
+    # 验证所有权（管理员无权直接修改用户帖子正文，应走审核/状态机流程）
     if post.user_id != current_user.id:
         raise ForbiddenException(detail="没有权限修改此信息")
 
-    # 更新字段
-    update_data = post_data.model_dump(exclude_unset=True)
+    # 已归档帖子不可修改（终态）
+    if post.status == PostStatus.ARCHIVED:
+        raise BadRequestException(detail="已归档的帖子不可修改")
 
-    # 处理标签更新
+    # update_data 已在前面租户校验阶段计算，此处直接复用
+    # 收集实际发生变化的实质字段（用于判断是否触发回审）
+    # 注意：location_name/lat/lng 是 PostUpdate 的字段，但 Post 模型上没有这些字段
+    # 它们用于"自动创建 Location 并关联 location_id"，等价于修改 location_id，视为实质修改
+    changed_substantial_fields: set = set()
+
+    def _record_change(field_name: str, new_value) -> None:
+        old_value = getattr(post, field_name, None)
+        if old_value != new_value:
+            changed_substantial_fields.add(field_name)
+
+    # 处理标签更新（附属数据，不触发回审）
     if "tags" in update_data:
         tags = update_data.pop("tags")
         # 删除旧的关联
@@ -356,7 +737,7 @@ async def update_post(
                 db.add(post_tag)
                 tag.usage_count += 1
 
-    # 处理图片更新
+    # 处理图片更新（附属数据，不触发回审）
     if "image_urls" in update_data:
         image_urls = update_data.pop("image_urls")
         # 删除旧的图片
@@ -377,10 +758,55 @@ async def update_post(
                 )
                 db.add(post_image)
 
-    # 更新其他字段
+    # 处理 location_name + lat + lng（自动创建/关联 Location，等价于修改 location_id）
+    if "location_name" in update_data or "location_lat" in update_data or "location_lng" in update_data:
+        loc_name = update_data.pop("location_name", None)
+        loc_lat = update_data.pop("location_lat", None)
+        loc_lng = update_data.pop("location_lng", None)
+        if loc_name and loc_lat is not None and loc_lng is not None:
+            # 同校同坐标范围内查找已有同名地点（TEN-02.1: 使用 tenant.school_id）
+            existing_loc = await db.execute(
+                select(Location).where(
+                    Location.school_id == tenant.school_id,
+                    Location.name == loc_name,
+                    Location.latitude == loc_lat,
+                    Location.longitude == loc_lng,
+                    Location.is_deleted == False,
+                )
+            )
+            location = existing_loc.scalar_one_or_none()
+            if location is None:
+                location = Location(
+                    school_id=tenant.school_id,
+                    name=loc_name,
+                    latitude=loc_lat,
+                    longitude=loc_lng,
+                    is_verified=False,
+                )
+                db.add(location)
+                await db.flush()
+            # 视为修改了 location_id
+            update_data["location_id"] = location.id
+
+    # 更新其他字段（含 title/content/category_id/post_type_id/location_id/lost_type 等实质字段）
     for field, value in update_data.items():
         if hasattr(post, field):
+            _record_change(field, value)
             setattr(post, field, value)
+        else:
+            # 未识别字段不视为实质修改
+            changed_substantial_fields.discard(field)
+
+    # FND-03.2: 已 published 的帖子若被实质修改，通过状态机走 published → pending 回审
+    if post.status == PostStatus.PUBLISHED and is_substantial_change(changed_substantial_fields):
+        if not can_transition(PostStatus.PUBLISHED, PostStatus.PENDING):
+            raise BadRequestException(detail="状态机不允许 published → pending 流转")
+        post.status = PostStatus.PENDING
+        post.updated_at = datetime.now()
+        # SUB-01.2: 重要更新订阅通知（published → pending 回审时触发，告知订阅者内容在更新中）
+        # 与状态变更同事务提交；幂等保证同一订阅者对同一帖子只收到首条更新通知
+        from app.services.subscription_notifier import notify_post_updated
+        await notify_post_updated(db, post, actor_id=current_user.id)
 
     await db.commit()
 
@@ -413,8 +839,17 @@ async def delete_post(
     post_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """删除信息（软删除），需要认证，验证所有权"""
+    """删除信息（软删除 + 状态机归档），需要认证，验证所有权
+
+    FND-03.2: 删除采用 is_deleted=True + 状态置 archived（通过状态机校验），
+    不引入第 7 种 deleted 状态。
+    - 已 archived 终态：仅设置 is_deleted，不再触发状态机
+    - 其他非终态：通过状态机流转到 archived
+
+    TEN-02.3: 跨校对象 → 404
+    """
     # 查询信息
     query = select(Post).where(Post.id == post_id, Post.is_deleted == False)
     result = await db.execute(query)
@@ -423,13 +858,26 @@ async def delete_post(
     if post is None:
         raise NotFoundException(detail="信息不存在")
 
+    # TEN-02.3: 资源级租户校验——跨校对象统一 404
+    check_resource_in_tenant(post.school_id, tenant)
+
     # 验证所有权
     if post.user_id != current_user.id:
         raise ForbiddenException(detail="没有权限删除此信息")
 
-    # 软删除
+    # 软删除标记
     post.is_deleted = True
     post.deleted_at = datetime.now()
+
+    # FND-03.2: 通过状态机将非终态帖子流转到 archived（不写第 7 种 deleted 状态）
+    if post.status != PostStatus.ARCHIVED:
+        if not can_transition(post.status, PostStatus.ARCHIVED):
+            # 状态机不允许直接归档（理论上不会发生：所有非终态都允许 → archived）
+            raise BadRequestException(
+                detail=f"当前状态 {post.status} 不允许归档"
+            )
+        post.status = PostStatus.ARCHIVED
+        post.updated_at = datetime.now()
 
     await db.commit()
 
@@ -451,10 +899,13 @@ async def get_post_allowed_transitions(
     post_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """获取当前状态下可流转的目标状态列表（T-B-04）
 
     普通用户与管理员返回相同的可流转集合，但实际能否流转由 transition 接口按权限校验。
+
+    TEN-02.3: 跨校对象 → 404
     """
     result = await db.execute(
         select(Post).where(Post.id == post_id, Post.is_deleted == False)
@@ -462,6 +913,9 @@ async def get_post_allowed_transitions(
     post = result.scalar_one_or_none()
     if not post:
         raise NotFoundException(detail="信息不存在")
+
+    # TEN-02.3: 资源级租户校验
+    check_resource_in_tenant(post.school_id, tenant)
 
     allowed = get_allowed_transitions(post.status)
     return {
@@ -481,6 +935,7 @@ async def transition_post_status(
     data: PostTransitionCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """流转信息状态（6 态状态机）
 
@@ -490,6 +945,8 @@ async def transition_post_status(
     - 已归档（archived）为终态，任何人都不可流转
 
     流转合法性由 app.core.post_status.can_transition 校验。
+
+    TEN-02.3: 跨校对象 → 404；普通 admin 无权操作其他学校的帖子（resource校验拦截）
     """
     result = await db.execute(
         select(Post).where(Post.id == post_id, Post.is_deleted == False)
@@ -497,6 +954,9 @@ async def transition_post_status(
     post = result.scalar_one_or_none()
     if not post:
         raise NotFoundException(detail="信息不存在")
+
+    # TEN-02.3: 资源级租户校验——跨校对象统一 404（super_admin 已通过 tenant 跨校访问）
+    check_resource_in_tenant(post.school_id, tenant)
 
     previous_status = post.status
     target = normalize_status(data.target_status)
@@ -528,6 +988,21 @@ async def transition_post_status(
     post.status = target
     post.updated_at = datetime.now()
 
+    # SUB-01.2: 订阅通知触发（与状态流转同事务提交，保证一致性）
+    # - → published：新帖通知（首次发布或重新发布；幂等）
+    # - → expired：过期通知（管理员手动标记过期；自动任务由 expire_posts_job 单独触发）
+    # - → conflict：冲突通知（管理员通过状态机直接标记冲突）
+    # 普通用户仅可 draft → pending/archived，不会触发上述任一分支
+    from app.services.subscription_notifier import (
+        notify_new_post, notify_post_expired, notify_post_conflict,
+    )
+    if target == PostStatus.PUBLISHED and previous_status != PostStatus.PUBLISHED:
+        await notify_new_post(db, post, actor_id=current_user.id)
+    elif target == PostStatus.EXPIRED and previous_status != PostStatus.EXPIRED:
+        await notify_post_expired(db, post, actor_id=current_user.id)
+    elif target == PostStatus.CONFLICT and previous_status != PostStatus.CONFLICT:
+        await notify_post_conflict(db, post, actor_id=current_user.id)
+
     try:
         await db.commit()
     except Exception:
@@ -543,3 +1018,52 @@ async def transition_post_status(
         transitioned_at=post.updated_at,
         transitioned_by=current_user.id,
     )
+
+
+# ============================================================
+# AI-03.1: AI 辅助发布建议
+# ============================================================
+@router.post(
+    "/ai-suggest",
+    response_model=AIPublishSuggestionResponse,
+    summary="AI 辅助发布建议（AI-03）",
+)
+async def ai_suggest_post(
+    payload: AIPublishSuggestRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """AI 辅助发布建议：草稿 → 结构化建议（不修改原文）
+
+    流程：
+    1. TenantContext 取校（三校隔离）
+    2. 确定性敏感信息检测（手机/邮箱/身份证/银行卡/QQ）→ sensitive_warnings + findings
+    3. 缺失字段检测（标题/正文/分类/地点/有效期/活动时间/联系方式）
+    4. 加载当前学校分类与标签白名单
+    5. 输入过短或无可建议内容 → fallback（仍返回敏感检测 + 缺失提示）
+    6. 否则调用 invoke_ai（PUBLISH_SUGGESTION_SCHEMA 约束）解析建议
+    7. 白名单校验分类/标签（非法值丢弃，不报错）
+    8. 任一步失败 → fallback=true，仍返回敏感检测结果（确定性，不依赖模型）
+    9. 记录 ai_invocation_logs（成功/失败均记录）
+
+    安全约束：
+    - **不修改原文**：返回的是"建议"，由前端逐项确认采纳
+    - **不改坐标/状态**：本接口不修改 Post 任何字段
+    - **不自动过审**：不调用状态机，不影响审核流程
+    - **失败不阻塞**：fallback=true 时前端仍可继续手动发布
+    - **三校隔离**：school_id 强制取自 TenantContext；分类/标签白名单只来自当前学校
+    - **不引用其他学校数据**：提示词只含当前学校的分类/标签白名单
+
+    限流：建议由 RateLimitMiddleware 配置 10 次/分钟（与 AI 搜索一致）。
+    """
+    trace_id = getattr(request.state, "request_id", "") or None
+    response = await execute_publish_suggestion(
+        request=payload,
+        tenant=tenant,
+        db=db,
+        user=current_user,
+        trace_id=trace_id,
+    )
+    return response
