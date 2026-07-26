@@ -77,10 +77,11 @@ async def get_current_admin(
     获取当前管理员用户（admin 或 super_admin）
     如果用户不是管理员，抛出 403 异常
 
-    Note: T-X-01 后推荐使用 require_role(Role.ADMIN) 替代本函数
+    FND-03.3: 内部委托给 require_role(Role.ADMIN) 以统一权限校验入口，
+    后续 TEN-02 可在此基础上叠加租户/资源校验。
+    保留此函数仅为兼容既有依赖注入，新代码请直接使用 require_role(Role.ADMIN)。
     """
-    from app.core.permissions import is_admin
-    if not is_admin(user):
-        raise ForbiddenException(detail="没有权限执行此操作，需要管理员权限")
-
-    return user
+    from app.core.permissions import require_role, Role
+    check = require_role(Role.ADMIN)
+    # check 是一个 async 函数，签名 _check_role(user: User)
+    return await check(user=user)

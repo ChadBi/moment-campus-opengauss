@@ -44,6 +44,35 @@ class Settings(BaseSettings):
     # 日志
     LOG_LEVEL: str = "INFO"
 
+    # ANA-01: 产品事件环境标记
+    # 值域：production / demo / test / seed
+    # 未显式配置时按 APP_ENV 推导：APP_ENV=opengauss → demo；APP_ENV=test → test；其余按字面值
+    ANALYTICS_ENV: str = ""
+
+    # ============================================================
+    # AI-01: AI Provider 配置
+    # 本地开发默认 mock（不依赖外部 API Key）；生产用 openai。
+    # 密钥仅服务端环境变量，不进前端、不进日志、不进 git。
+    # ============================================================
+    # Provider 类型：mock / openai（默认 mock，确保无 API Key 也能运行测试）
+    AI_PROVIDER: str = "mock"
+    # OpenAI API Key（仅 openai 模式需要，mock 模式可留空）
+    AI_API_KEY: str = ""
+    # OpenAI API Base URL（可选，用于兼容代理/自建网关）
+    AI_API_BASE: str = ""
+    # 模型名
+    AI_MODEL: str = "gpt-4o-mini"
+    # 超时（秒，单次请求）
+    AI_TIMEOUT: float = 15.0
+    # 单次请求最大输出 Token
+    AI_MAX_TOKENS: int = 1024
+    # 最大重试次数（指数退避：1s, 2s, 4s）；不含首次调用
+    AI_MAX_RETRIES: int = 3
+    # 熔断：连续失败次数达到阈值后熔断
+    AI_CIRCUIT_FAILURE_THRESHOLD: int = 5
+    # 熔断恢复时间（秒）
+    AI_CIRCUIT_RESET_SECONDS: int = 60
+
     class Config:
         env_file = _env_file
         extra = "ignore"

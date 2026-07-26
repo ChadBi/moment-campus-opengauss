@@ -141,3 +141,39 @@ def require_role(required_role: str) -> Callable:
         return user
 
     return _check_role
+
+
+# ============================================================
+# TEN-02.2: 租户内有效角色（实际实现位于 app.core.tenant，
+# 避免与 TenantContext 形成循环导入；此处提供委托接口便于从 permissions 导入）
+# ============================================================
+def get_effective_role(user, tenant) -> str:
+    """获取用户在当前租户内的有效角色（委托给 app.core.tenant.get_effective_role）
+
+    规则：
+        - super_admin：平台角色优先，跨校仍为 super_admin
+        - 其他用户：取租户内的成员角色（admin/member）；非该校成员视为 guest
+        - 普通 admin 无权操作其他学校（由 TenantContext 解析时校验 membership）
+
+    Args:
+        user: 当前用户（None 表示游客）
+        tenant: TenantContext 实例
+
+    Returns:
+        super_admin / admin / user / guest
+    """
+    from app.core.tenant import get_effective_role as _impl
+    return _impl(user, tenant)
+
+
+def check_resource_in_tenant(resource_school_id, tenant) -> None:
+    """资源级租户校验：跨校访问统一返回 404（委托给 app.core.tenant.check_resource_in_tenant）
+
+    用法：
+        post = await db.scalar(select(Post).where(Post.id == post_id))
+        if post is None:
+            raise NotFoundException(...)
+        check_resource_in_tenant(post.school_id, tenant)  # 跨校 → 404
+    """
+    from app.core.tenant import check_resource_in_tenant as _impl
+    _impl(resource_school_id, tenant)

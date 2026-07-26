@@ -23,6 +23,13 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # ACC-01.3: 重置密码后将此字段设为 now()，refresh 端点校验 token iat >= 此时间，
+    # 实现"旧刷新令牌失效"。NULL 表示不限制（兼容历史用户与历史 token）。
+    refresh_tokens_invalid_before: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="ACC-01.3: 此时间之前签发的 refresh token 全部失效（重置密码时设置）",
+    )
     # 历史物理模型字段：当前主应用不再维护信誉分，仅保留以兼容既有数据库结构。
     reputation_score: Mapped[Decimal | None] = mapped_column(
         Numeric(5, 2),
@@ -45,6 +52,12 @@ class User(Base):
     search_histories: Mapped[list["SearchHistory"]] = relationship(back_populates="user")
     admin_operation_logs: Mapped[list["AdminOperationLog"]] = relationship(back_populates="admin")
     topic_collections: Mapped[list["TopicCollection"]] = relationship(back_populates="creator")
+    # ACC-01.3: 找回密码 Token（一对多）
+    password_reset_tokens: Mapped[list["PasswordResetToken"]] = relationship(back_populates="user")
+    # UX-01.5: 通知偏好（一对一）
+    notification_preference: Mapped["NotificationPreference | None"] = relationship(back_populates="user", uselist=False)
+    # REC-01.2: 推荐隐私偏好（一对一）
+    recommendation_preference: Mapped["UserRecommendationPreference | None"] = relationship(back_populates="user", uselist=False)
 
     __table_args__ = (
         Index("idx_user_school", "school_id"),

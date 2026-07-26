@@ -1,17 +1,21 @@
-"""协同验证类型定义（T-B-02 精简版）
+"""协同验证类型定义（FND-01 扩展版）
 
-2 类协同验证类型：
-- confirmation: 证实（用户确认信息真实有效）
-- refutation: 证伪（用户指出信息有误）
+5 类协同验证类型（FND-01.1 契约）：
+- confirmation: 证实（用户确认信息真实有效）—— 互斥投票
+- refutation: 证伪（用户指出信息有误）—— 互斥投票
+- update: 更新建议（提供更新信息）—— 问题报告
+- expiration_report: 过期报告（报告信息已过期）—— 问题报告
+- conflict_report: 冲突报告（报告与其他信息冲突）—— 问题报告
 
-每用户对每帖只能有一条验证记录，可在两类之间切换或取消。
+当前运行逻辑（FND-01 阶段）：
+- validation_records 表只处理 confirmation/refutation（2 类互斥投票）
+- update/expiration_report/conflict_report 的完整语义由 GOV-01 实现（新增 post_change_reports 表）
+- schema 层（app/schemas/enums.py ValidationTypeEnum）已定义完整 5 类供前端契约使用
 
 向后兼容映射：
 - valid       → confirmation
 - invalid     → refutation
-
-历史类型（已废弃，数据库存量数据保留但不接受新提交）：
-- update / expiration_report / conflict_report / uncertain
+- uncertain   → 原样保留（历史废弃值，不接受新提交）
 """
 from typing import Set
 
@@ -22,13 +26,35 @@ class ValidationType:
     所有值长度 <= 20，与数据库 validation_type 字段 String(20) 对应。
     """
 
+    # === 2 类互斥投票（validation_records 表当前处理） ===
     CONFIRMATION = "confirmation"            # 证实
     REFUTATION = "refutation"                # 证伪
 
-    # 全部正式类型（2 类）
+    # === 3 类问题报告（GOV-01 将新增 post_change_reports 表承载） ===
+    UPDATE = "update"                        # 更新建议
+    EXPIRATION_REPORT = "expiration_report"  # 过期报告
+    CONFLICT_REPORT = "conflict_report"      # 冲突报告
+
+    # 当前 validation_records 表处理的正式类型（2 类互斥投票）
     ALL: tuple = (
         CONFIRMATION,
         REFUTATION,
+    )
+
+    # 完整 5 类正式类型（FND-01.1 契约；供 schema 层与 GOV-01 使用）
+    ALL_FIVE: tuple = (
+        CONFIRMATION,
+        REFUTATION,
+        UPDATE,
+        EXPIRATION_REPORT,
+        CONFLICT_REPORT,
+    )
+
+    # 3 类问题报告类型（GOV-01 将启用）
+    REPORT_TYPES: tuple = (
+        UPDATE,
+        EXPIRATION_REPORT,
+        CONFLICT_REPORT,
     )
 
     # 别名映射：旧值 → 正式名（向后兼容）

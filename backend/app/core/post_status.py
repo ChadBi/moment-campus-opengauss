@@ -49,18 +49,48 @@ class PostStatus:
 # 依据 docs/21 T-B-01 验收标准与 docs/25 状态机图：
 #   draft      → pending / archived              （用户提交审核或放弃）
 #   pending    → published / draft / archived    （管理员审核通过/驳回/放弃）
-#   published  → expired / conflict / archived   （自动过期/冲突检测/管理员归档）
+#   published  → pending / expired / conflict / archived
+#              （FND-03.2: 实质修改回审 pending / 自动过期 / 冲突检测 / 管理员归档）
 #   expired    → published / archived            （用户续期/管理员归档）
 #   conflict   → published / archived            （管理员裁定后恢复/归档）
 #   archived   → （终态，不可流转）
+#
+# FND-03.2 说明：
+#   - published → pending 仅用于「已发布帖子被作者实质修改后自动回审」场景，
+#     由 update_post API 在检测到实质字段变更时通过状态机服务触发，禁止其他路径直接写入。
+#   - 删除走 is_deleted=True + 任意非终态 → archived（由状态机校验），
+#     不引入第 7 种 deleted 状态。
 _TRANSITIONS: dict = {
     PostStatus.DRAFT:     {PostStatus.PENDING, PostStatus.ARCHIVED},
     PostStatus.PENDING:   {PostStatus.PUBLISHED, PostStatus.DRAFT, PostStatus.ARCHIVED},
-    PostStatus.PUBLISHED: {PostStatus.EXPIRED, PostStatus.CONFLICT, PostStatus.ARCHIVED},
+    PostStatus.PUBLISHED: {PostStatus.PENDING, PostStatus.EXPIRED, PostStatus.CONFLICT, PostStatus.ARCHIVED},
     PostStatus.EXPIRED:   {PostStatus.PUBLISHED, PostStatus.ARCHIVED},
     PostStatus.CONFLICT:  {PostStatus.PUBLISHED, PostStatus.ARCHIVED},
     PostStatus.ARCHIVED:  set(),  # 终态
 }
+
+
+# FND-03.2: 实质修改字段集合——已发布帖子修改这些字段时必须回 pending 重新审核
+# 不含：expire_at（续期不回审）、activity_*_at（活动时间修正不回审）、
+#       contact_info（联系方式更新不回审）、is_anonymous（可由作者随时切换）、
+#       tags/image_urls（附属数据，不改变信息主体语义）
+SUBSTANTIAL_FIELDS: frozenset = frozenset({
+    "title", "content", "category_id", "post_type_id",
+    "location_id", "location_name", "location_lat", "location_lng",
+    "lost_type",
+})
+
+
+def is_substantial_change(changed_fields: set) -> bool:
+    """判断字段变更集合是否包含实质修改（需要回审）
+
+    Args:
+        changed_fields: 已发生变更的字段名集合
+
+    Returns:
+        True 若包含任一实质字段
+    """
+    return bool(changed_fields & SUBSTANTIAL_FIELDS)
 
 
 def normalize_status(status: str) -> str:

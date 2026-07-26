@@ -44,6 +44,40 @@ tmp/
 temp/
 *.tmp
 
+# 调试与诊断脚本（开发过程产物，不纳入版本控制）
+backend/_*.py
+backend/_*.txt
+backend/check_*.py
+backend/cleanup_db.py
+backend/debug_*.py
+backend/diag_*.py
+backend/diag_*.txt
+backend/diagnose_*.py
+backend/truncate_test_db.py
+backend/test_*.py
+!backend/tests/test_*.py
+backend/pytest_*.txt
+backend/tests_analytics_*.txt
+backend/analytics_result.xml
+backend/rec01_*.txt
+backend/sub01_*.xml
+backend/sub01_*.txt
+backend/test_groups_*.txt
+backend/run_test_groups.py
+backend/scripts/_*.py
+backend/tests/_*.py
+backend/tests/_debug_*.py
+backend/tests/_rebuild_test_db.py
+backend/tests/test_debug_*.py
+backend/tests/test_diag_*.py
+
+# 前端调试输出
+frontend/eslint_result.json
+frontend/lint_*.txt
+frontend/tsc_out.txt
+lint_output.txt
+pytest_output.txt
+
 # 测试覆盖率
 coverage/
 htmlcov/

@@ -20,22 +20,28 @@ def get_password_hash(password: str) -> str:
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
+    now = datetime.utcnow()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = now + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire, "type": "access"})
+        expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    # ACC-01.3: iat 用于 refresh 端点校验 token 是否在 password reset 之前签发。
+    # 存 float timestamp（带微秒精度），避免同一秒内 reset + 新 token 签发时误判。
+    to_encode.update({"exp": expire, "iat": now.timestamp(), "type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 
 def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
+    now = datetime.utcnow()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = now + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire, "type": "refresh"})
+        expire = now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    # ACC-01.3: iat 用于 refresh 端点校验 token 是否在 password reset 之前签发。
+    # 存 float timestamp（带微秒精度），避免同一秒内 reset + 新 token 签发时误判。
+    to_encode.update({"exp": expire, "iat": now.timestamp(), "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 

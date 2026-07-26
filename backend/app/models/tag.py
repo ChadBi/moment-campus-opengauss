@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, String, Boolean, DateTime, Integer, Index
+from sqlalchemy import BigInteger, String, Boolean, DateTime, Integer, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 
@@ -9,8 +9,9 @@ class Tag(Base):
     __tablename__ = "tags"
 
     id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
-    slug: Mapped[str] = mapped_column(String(60), unique=True, nullable=False, index=True)
+    school_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("schools.id"), nullable=False, default=1)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    slug: Mapped[str] = mapped_column(String(60), nullable=False)
     usage_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_official: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
@@ -20,10 +21,11 @@ class Tag(Base):
 
     # 关系
     post_tags: Mapped[list["PostTag"]] = relationship(back_populates="tag")
+    school: Mapped["School"] = relationship()
 
     __table_args__ = (
-        Index("idx_tag_name", "name", unique=True),
-        Index("idx_tag_slug", "slug", unique=True),
+        Index("idx_tag_school_name", "school_id", "name", unique=True),
+        Index("idx_tag_school_slug", "school_id", "slug", unique=True),
         Index("idx_tag_usage", "usage_count"),
         Index("idx_tag_official", "is_official"),
     )

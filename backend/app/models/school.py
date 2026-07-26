@@ -27,6 +27,10 @@ class School(Base):
     posts: Mapped[list["Post"]] = relationship(back_populates="school")
     locations: Mapped[list["Location"]] = relationship(back_populates="school")
     topic_collections: Mapped[list["TopicCollection"]] = relationship(back_populates="school")
+    memberships: Mapped[list["SchoolMembership"]] = relationship(back_populates="school")
+    invitations: Mapped[list["SchoolInvitation"]] = relationship(back_populates="school")
+    settings: Mapped["SchoolSettings | None"] = relationship(back_populates="school", uselist=False)
+    domains: Mapped[list["SchoolDomain"]] = relationship(back_populates="school")
 
     __table_args__ = (
         Index("idx_school_active", "is_active"),
