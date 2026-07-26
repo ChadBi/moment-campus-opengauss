@@ -27,7 +27,7 @@
 
 1. 检查代码，修复已发现的问题。
 2. 运行相关测试（后端 `pytest tests/ -v`，前端 `npm run build`），确认主要功能和完整链路正常。
-3. 使用 MCP 工具 `integrated_code_mode` 的 `Exec` 进行端到端自动化操作测试：在前后端启动（后端 `http://localhost:8000`、前端 `http://localhost:5173`）的前提下，通过 `run_mcp(server_name="integrated_code_mode", tool_name="Exec", args={"code": "..."})` 调用浏览器工具（如 `browser_navigate`、`browser_snapshot`、`browser_click`、`browser_type` 等）模拟真实用户操作，验证关键链路（登录、发布 Post、协同验证、权限校验等）的 UI 与交互正常；涉及登录、CAPTCHA 等敏感操作时改用 `browser_waiting_for_user_interaction` 让用户接管。测试过程与结果需写入任务报告的"测试与验证"一节。
+3. 使用 MCP 工具 `integrated_code_mode`进行端到端自动化操作测试：前后端启动后，通过 `run_mcp` 调用浏览器工具模拟真实用户操作，验证登录、发布 Post、协同验证、权限校验等关键链路的 UI 与交互正常。结果写入任务报告"测试与验证"一节。
 4. 更新相关文档及 `TODO.md`。
 5. 在 `AIwork/` 目录新增中文命名的任务报告（8 节模板见 `.trae/rules/AIWORK_RULES.md`）。
 
