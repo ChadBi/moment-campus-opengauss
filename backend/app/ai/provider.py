@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -432,7 +433,10 @@ class MockAIProvider(AIProvider):
     通过 set_response 预设返回内容；通过 set_exception 注入异常类型；
     通过 set_delay 注入延迟（用于测试超时）。
 
-    默认返回一个符合 SEARCH_INTENT_SCHEMA 的 JSON 串。
+    默认行为（未调用 set_response 时）：
+    - 识别 prompt 类型（搜索意图 / 发布建议），基于用户实际输入动态生成响应，
+      使本地开发环境（AI_PROVIDER=mock）的 AI 搜索/发布建议功能可用。
+    - 调用 set_response 后切换为"固定响应"模式，便于测试断言。
     """
 
     name = "mock"
@@ -450,6 +454,7 @@ class MockAIProvider(AIProvider):
             max_retries=max_retries,
             circuit=circuit or CircuitBreaker(failure_threshold=5, reset_seconds=60),
         )
+        # 固定响应回退（仅当 _generate_dynamic_response 无法识别 prompt 时使用）
         self._response: str = json.dumps(
             {
                 "intent": "查找失物招领信息",
@@ -464,6 +469,8 @@ class MockAIProvider(AIProvider):
             },
             ensure_ascii=False,
         )
+        # 是否被 set_response 覆盖（True 时关闭动态生成，便于测试断言）
+        self._response_overridden: bool = False
         self._exception: Optional[Exception] = None
         self._exception_factory: Optional[Any] = None
         self._delay: Optional[float] = None
@@ -472,8 +479,9 @@ class MockAIProvider(AIProvider):
 
     # ----- 配置 -----
     def set_response(self, content: str) -> None:
-        """预设模型返回的原始文本。"""
+        """预设模型返回的原始文本（关闭动态生成，便于测试断言）。"""
         self._response = content
+        self._response_overridden = True
         self._exception = None
         self._exception_factory = None
 
@@ -494,6 +502,134 @@ class MockAIProvider(AIProvider):
         """注入延迟（模拟慢响应，配合小 timeout 测试超时）。"""
         self._delay = seconds
 
+    # ----- 动态响应生成（本地开发 mock 模式可用） -----
+    @staticmethod
+    def _extract_user_query(prompt: str) -> Optional[str]:
+        """从搜索意图 prompt 中提取用户原始查询。
+
+        prompt 末尾为：
+            # 用户查询
+            {query}
+        """
+        marker = "# 用户查询"
+        idx = prompt.rfind(marker)
+        if idx < 0:
+            return None
+        query = prompt[idx + len(marker):].strip()
+        return query or None
+
+    @staticmethod
+    def _extract_publish_draft(prompt: str) -> Optional[dict[str, Any]]:
+        """从发布建议 prompt 中提取草稿原文（标题/正文）。
+
+        prompt 中包含：
+            # 用户草稿
+            标题：xxx
+            正文：xxx
+        """
+        marker = "# 用户草稿"
+        idx = prompt.rfind(marker)
+        if idx < 0:
+            return None
+        block = prompt[idx + len(marker):].strip()
+        title: Optional[str] = None
+        content: Optional[str] = None
+        for line in block.splitlines():
+            line = line.strip()
+            if line.startswith("标题：") or line.startswith("标题:"):
+                title = line.split("：", 1)[-1].split(":", 1)[-1].strip() or None
+            elif line.startswith("正文：") or line.startswith("正文:"):
+                content = line.split("：", 1)[-1].split(":", 1)[-1].strip() or None
+        if title is None and content is None:
+            return None
+        return {"title": title, "content": content}
+
+    @staticmethod
+    def _extract_first_noun(query: str, max_len: int = 12) -> str:
+        """从用户查询中提取核心关键词（用于 mock 模式检索）。
+
+        策略：
+        1. 去除常见疑问/停用词与时间词
+        2. 优先取连续中文字符片段
+        3. 截断到 max_len
+        """
+        if not query:
+            return ""
+        # 去除常见疑问词、停用词与时间词（避免把"今天""什么时候"当作关键词）
+        stop_words = [
+            "什么", "怎么", "怎样", "如何", "哪里", "哪儿", "哪个",
+            "为什么", "是不是", "有没有", "请问", "麻烦", "一下",
+            "的", "了", "吗", "呢", "啊", "吧", "是", "在", "有",
+            "今天", "明天", "昨天", "后天", "前天",
+            "这周", "下周", "上周", "本周",
+            "这个月", "下个月", "上个月",
+            "时候", "时间", "时候的",
+            "现在", "目前", "当前",
+            "几", "多少",
+        ]
+        cleaned = query
+        for w in stop_words:
+            cleaned = cleaned.replace(w, " ")
+        # 取最长的连续中文/字母数字片段
+        segments = re.findall(r"[\u4e00-\u9fa5A-Za-z0-9]+", cleaned)
+        if not segments:
+            # 回退：原 query 的中文片段
+            segments = re.findall(r"[\u4e00-\u9fa5]+", query) or [query[:max_len]]
+        # 选最长的片段
+        segments.sort(key=len, reverse=True)
+        keyword = segments[0][:max_len]
+        return keyword
+
+    def _generate_dynamic_response(self, prompt: str) -> str:
+        """根据 prompt 类型动态生成响应（本地开发 mock 模式可用）。
+
+        - 搜索意图 prompt（"你是校园信息搜索助手"）：提取用户查询，返回 keyword=核心词
+        - 发布建议 prompt（"你是校园信息发布助手"）：返回 null 建议不动原文
+        - 其他：回退到固定响应 self._response
+        """
+        # 1. 搜索意图
+        if "你是校园信息搜索助手" in prompt:
+            user_query = self._extract_user_query(prompt) or ""
+            keyword = self._extract_first_noun(user_query) or user_query[:12]
+            return json.dumps(
+                {
+                    "intent": f"查找与「{keyword}」相关的校园信息" if keyword else "校园信息搜索",
+                    "filters": {
+                        "keyword": keyword or None,
+                        "category": None,
+                        "sort": "relevance",
+                        "date_from": None,
+                        "date_to": None,
+                        "map_bounds": None,
+                    },
+                    "reasons": [
+                        f"按相关度排序匹配「{keyword}」的校园信息" if keyword else "按相关度排序校园信息"
+                    ],
+                },
+                ensure_ascii=False,
+            )
+
+        # 2. 发布建议
+        if "你是校园信息发布助手" in prompt:
+            # 不修改原文，给出最小可用建议
+            return json.dumps(
+                {
+                    "suggestions": {
+                        "title": None,
+                        "summary": None,
+                        "category": None,
+                        "tags": [],
+                        "default_validity_days": 30,
+                    },
+                    "missing_info": [],
+                    "sensitive_warnings": [],
+                },
+                ensure_ascii=False,
+            )
+
+        # 3. 回退：固定响应
+        return self._response
+
     # ----- 实现 -----
     async def _invoke(self, prompt: str, options: AIInvokeOptions) -> AIInvokeResult:
         self.call_count += 1
@@ -506,11 +642,16 @@ class MockAIProvider(AIProvider):
                 raise exc
         if self._exception is not None:
             raise self._exception
+        # 响应选择：set_response 覆盖 > 动态生成 > 固定默认
+        if self._response_overridden:
+            content = self._response
+        else:
+            content = self._generate_dynamic_response(prompt)
         return AIInvokeResult(
-            content=self._response,
+            content=content,
             model="mock-model",
             input_tokens=len(prompt) // 4,
-            output_tokens=len(self._response) // 4,
+            output_tokens=len(content) // 4,
         )
 
 
