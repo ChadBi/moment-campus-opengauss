@@ -401,10 +401,6 @@ class TestSubstantialChangeUnit:
         """修改 category_id 触发回审"""
         assert is_substantial_change({"category_id"}) is True
 
-    def test_post_type_id_is_substantial(self):
-        """修改 post_type_id 触发回审"""
-        assert is_substantial_change({"post_type_id"}) is True
-
     def test_location_id_is_substantial(self):
         """修改 location_id 触发回审"""
         assert is_substantial_change({"location_id"}) is True
@@ -429,7 +425,7 @@ class TestSubstantialChangeUnit:
     def test_substantial_fields_definition(self):
         """SUBSTANTIAL_FIELDS 包含全部实质字段且不含非实质字段"""
         expected = {
-            "title", "content", "category_id", "post_type_id",
+            "title", "content", "category_id",
             "location_id", "location_name", "location_lat", "location_lng",
             "lost_type",
         }

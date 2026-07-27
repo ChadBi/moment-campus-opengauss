@@ -232,7 +232,7 @@ class TestPostUpdateContract:
         fields = set(PostUpdate.model_fields.keys())
         expected = {
             "title", "content", "category_id", "location_id",
-            "post_type_id", "is_anonymous", "tags", "image_urls",
+            "is_anonymous", "tags", "image_urls",
             "expire_at", "activity_start_at", "activity_end_at",
             "lost_type", "contact_info",
         }
@@ -410,7 +410,7 @@ class TestAPIReportTypeContract:
         assert response.status_code in (200, 201)
 
     @pytest.mark.asyncio
-    async def test_report_with_all_five_types(self, client, auth_headers, test_category, test_post_type):
+    async def test_report_with_all_five_types(self, client, auth_headers, test_category):
         """全部 5 类举报类型均可提交（每类用不同帖子避免重复举报拦截）"""
         for rt in ["spam", "abuse", "harassment", "false_info", "other"]:
             # 每次创建新帖子，避免同一用户对同一帖子的重复举报拦截
@@ -420,7 +420,6 @@ class TestAPIReportTypeContract:
                     "title": f"举报测试帖子-{rt}",
                     "content": f"用于测试{rt}举报类型的内容至少十字",
                     "category_id": test_category["id"],
-                    "post_type_id": test_post_type["id"],
                 },
                 headers=auth_headers,
             )
@@ -459,7 +458,7 @@ class TestAPIPostStatusContract:
     """API 帖子状态契约"""
 
     @pytest.mark.asyncio
-    async def test_create_post_default_pending(self, client, auth_headers, test_category, test_post_type):
+    async def test_create_post_default_pending(self, client, auth_headers, test_category):
         """不传 status 默认 pending"""
         response = await client.post(
             "/api/v1/posts",
@@ -467,7 +466,6 @@ class TestAPIPostStatusContract:
                 "title": "默认状态测试标题",
                 "content": "默认状态测试内容至少十字",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
             },
             headers=auth_headers,
         )
@@ -476,7 +474,7 @@ class TestAPIPostStatusContract:
         assert data["status"] == "pending"
 
     @pytest.mark.asyncio
-    async def test_create_post_with_draft(self, client, auth_headers, test_category, test_post_type):
+    async def test_create_post_with_draft(self, client, auth_headers, test_category):
         """显式传 status=draft 创建草稿"""
         response = await client.post(
             "/api/v1/posts",
@@ -484,7 +482,6 @@ class TestAPIPostStatusContract:
                 "title": "草稿状态测试标题",
                 "content": "草稿状态测试内容至少十字",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
                 "status": "draft",
             },
             headers=auth_headers,
@@ -493,7 +490,7 @@ class TestAPIPostStatusContract:
         assert response.json()["status"] == "draft"
 
     @pytest.mark.asyncio
-    async def test_create_post_rejects_published(self, client, auth_headers, test_category, test_post_type):
+    async def test_create_post_rejects_published(self, client, auth_headers, test_category):
         """创建时 status=published 被拒绝"""
         response = await client.post(
             "/api/v1/posts",
@@ -501,7 +498,6 @@ class TestAPIPostStatusContract:
                 "title": "发布状态测试标题",
                 "content": "发布状态测试内容至少十字",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
                 "status": "published",
             },
             headers=auth_headers,

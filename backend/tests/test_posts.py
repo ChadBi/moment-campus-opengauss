@@ -20,7 +20,7 @@ async def test_list_posts_empty(client: AsyncClient, test_school: dict):
 
 
 @pytest.mark.asyncio
-async def test_list_posts_with_data(client: AsyncClient, db_session, test_user: dict, test_school: dict, test_category: dict, test_post_type: dict):
+async def test_list_posts_with_data(client: AsyncClient, db_session, test_user: dict, test_school: dict, test_category: dict):
     """Test listing posts returns published posts."""
     from app.models.post import Post
     from app.core.security import decode_token
@@ -32,7 +32,6 @@ async def test_list_posts_with_data(client: AsyncClient, db_session, test_user: 
         user_id=user_id,
         school_id=test_school["id"],
         category_id=test_category["id"],
-        post_type_id=test_post_type["id"],
         title="已发布的帖子",
         content="这是已发布帖子的内容，至少十个字符",
         status="published",
@@ -53,7 +52,7 @@ async def test_list_posts_with_data(client: AsyncClient, db_session, test_user: 
 
 
 @pytest.mark.asyncio
-async def test_list_posts_pagination(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict, test_post_type: dict):
+async def test_list_posts_pagination(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict):
     """Test pagination parameters work correctly."""
     # Create multiple posts
     for i in range(3):
@@ -63,7 +62,6 @@ async def test_list_posts_pagination(client: AsyncClient, auth_headers: dict, te
                 "title": f"分页测试帖子 {i}",
                 "content": "这是分页测试帖子的内容，至少十个字符",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
             },
             headers=auth_headers,
         )
@@ -126,7 +124,7 @@ async def test_get_post_not_found(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_create_post_authenticated(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict, test_post_type: dict):
+async def test_create_post_authenticated(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict):
     """Test creating a post with authentication."""
     response = await client.post(
         "/api/v1/posts",
@@ -134,7 +132,6 @@ async def test_create_post_authenticated(client: AsyncClient, auth_headers: dict
             "title": "新创建的帖子",
             "content": "这是新创建帖子的内容，至少十个字符",
             "category_id": test_category["id"],
-            "post_type_id": test_post_type["id"],
             "is_anonymous": False,
         },
         headers=auth_headers,
@@ -148,7 +145,7 @@ async def test_create_post_authenticated(client: AsyncClient, auth_headers: dict
 
 
 @pytest.mark.asyncio
-async def test_create_post_unauthenticated(client: AsyncClient, test_category: dict, test_post_type: dict):
+async def test_create_post_unauthenticated(client: AsyncClient, test_category: dict):
     """Test creating a post without authentication returns 401."""
     response = await client.post(
         "/api/v1/posts",
@@ -156,14 +153,13 @@ async def test_create_post_unauthenticated(client: AsyncClient, test_category: d
             "title": "未认证帖子",
             "content": "这个帖子不应该被创建",
             "category_id": test_category["id"],
-            "post_type_id": test_post_type["id"],
         },
     )
     assert response.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_create_post_with_tags(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict, test_post_type: dict):
+async def test_create_post_with_tags(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict):
     """Test creating a post with tags."""
     response = await client.post(
         "/api/v1/posts",
@@ -171,7 +167,6 @@ async def test_create_post_with_tags(client: AsyncClient, auth_headers: dict, te
             "title": "带标签的帖子",
             "content": "这是带标签帖子的内容，至少十个字符",
             "category_id": test_category["id"],
-            "post_type_id": test_post_type["id"],
             "tags": ["测试", "标签"],
         },
         headers=auth_headers,
@@ -222,7 +217,7 @@ async def test_update_post_not_found(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_delete_post_owner(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict, test_post_type: dict):
+async def test_delete_post_owner(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict):
     """Test deleting a post as the owner."""
     # Create a post to delete
     create_response = await client.post(
@@ -231,7 +226,6 @@ async def test_delete_post_owner(client: AsyncClient, auth_headers: dict, test_s
             "title": "待删除的帖子",
             "content": "这个帖子将被删除，至少十个字符",
             "category_id": test_category["id"],
-            "post_type_id": test_post_type["id"],
         },
         headers=auth_headers,
     )

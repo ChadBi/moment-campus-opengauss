@@ -376,7 +376,6 @@ class TestSuspendReactivateSchool:
     async def test_suspend_then_write_rejected(
         self, client: AsyncClient, super_admin_headers: dict,
         auth_headers: dict, test_school: dict, test_category: dict,
-        test_post_type: dict,
     ):
         """暂停学校后，普通用户发帖被拒绝（tenant.py 404）。
 
@@ -391,7 +390,6 @@ class TestSuspendReactivateSchool:
                 "title": "暂停前发帖",
                 "content": "学校正常时发帖应成功",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
             },
         )
         assert r_before.status_code == 201, r_before.text
@@ -412,7 +410,6 @@ class TestSuspendReactivateSchool:
                 "title": "暂停后发帖",
                 "content": "学校暂停时应被拒绝",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
             },
         )
         assert r_after.status_code == 404, r_after.text
@@ -433,7 +430,6 @@ class TestSuspendReactivateSchool:
                 "title": "恢复后发帖",
                 "content": "学校恢复后发帖应重新成功",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
             },
         )
         assert r_recover.status_code == 201, r_recover.text

@@ -115,7 +115,6 @@ async def _create_post_with_status(
     user_id: int,
     school_id: int,
     category_id: int,
-    post_type_id: int,
     status: str,
 ) -> Post:
     """直接在 DB 创建指定状态的帖子"""
@@ -123,7 +122,6 @@ async def _create_post_with_status(
         user_id=user_id,
         school_id=school_id,
         category_id=category_id,
-        post_type_id=post_type_id,
         title=f"测试帖子-{status}",
         content=f"这是 {status} 状态的测试帖子内容，至少十个字符",
         status=status,
@@ -137,7 +135,7 @@ async def _create_post_with_status(
 @pytest.mark.asyncio
 async def test_get_published_post_anonymous(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """FND-03.1: 游客可见 published 帖子"""
     from app.core.security import decode_token
@@ -145,7 +143,7 @@ async def test_get_published_post_anonymous(
 
     post = await _create_post_with_status(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"], PostStatus.PUBLISHED,
+        test_category["id"], PostStatus.PUBLISHED,
     )
 
     # TEN-02.1：游客必须显式提供 X-School-Code 头解析学校上下文
@@ -160,7 +158,7 @@ async def test_get_published_post_anonymous(
 @pytest.mark.asyncio
 async def test_get_expired_post_anonymous(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """FND-03.1: 游客可见 expired 帖子（允许展示过期内容）"""
     from app.core.security import decode_token
@@ -168,7 +166,7 @@ async def test_get_expired_post_anonymous(
 
     post = await _create_post_with_status(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"], PostStatus.EXPIRED,
+        test_category["id"], PostStatus.EXPIRED,
     )
 
     # TEN-02.1：游客必须显式提供 X-School-Code 头解析学校上下文
@@ -182,7 +180,7 @@ async def test_get_expired_post_anonymous(
 @pytest.mark.asyncio
 async def test_get_draft_post_anonymous_404(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """FND-03.1: 游客访问 draft 帖子返回 404（不泄露存在性）"""
     from app.core.security import decode_token
@@ -190,7 +188,7 @@ async def test_get_draft_post_anonymous_404(
 
     post = await _create_post_with_status(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"], PostStatus.DRAFT,
+        test_category["id"], PostStatus.DRAFT,
     )
 
     response = await client.get(f"/api/v1/posts/{post.id}")
@@ -200,7 +198,7 @@ async def test_get_draft_post_anonymous_404(
 @pytest.mark.asyncio
 async def test_get_pending_post_anonymous_404(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """FND-03.1: 游客访问 pending 帖子返回 404"""
     from app.core.security import decode_token
@@ -208,7 +206,7 @@ async def test_get_pending_post_anonymous_404(
 
     post = await _create_post_with_status(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"], PostStatus.PENDING,
+        test_category["id"], PostStatus.PENDING,
     )
 
     response = await client.get(f"/api/v1/posts/{post.id}")
@@ -218,7 +216,7 @@ async def test_get_pending_post_anonymous_404(
 @pytest.mark.asyncio
 async def test_get_archived_post_anonymous_404(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """FND-03.1: 游客访问 archived 帖子返回 404"""
     from app.core.security import decode_token
@@ -226,7 +224,7 @@ async def test_get_archived_post_anonymous_404(
 
     post = await _create_post_with_status(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"], PostStatus.ARCHIVED,
+        test_category["id"], PostStatus.ARCHIVED,
     )
 
     response = await client.get(f"/api/v1/posts/{post.id}")
@@ -236,7 +234,7 @@ async def test_get_archived_post_anonymous_404(
 @pytest.mark.asyncio
 async def test_get_conflict_post_anonymous_404(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """FND-03.1: 游客访问 conflict 帖子返回 404"""
     from app.core.security import decode_token
@@ -244,7 +242,7 @@ async def test_get_conflict_post_anonymous_404(
 
     post = await _create_post_with_status(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"], PostStatus.CONFLICT,
+        test_category["id"], PostStatus.CONFLICT,
     )
 
     response = await client.get(f"/api/v1/posts/{post.id}")
@@ -292,7 +290,7 @@ async def test_admin_can_view_other_user_pending(
 @pytest.mark.asyncio
 async def test_view_count_not_incremented_on_404(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """FND-03.1: 不可见时浏览次数不应增加"""
     from app.core.security import decode_token
@@ -300,7 +298,7 @@ async def test_view_count_not_incremented_on_404(
 
     post = await _create_post_with_status(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"], PostStatus.PENDING,
+        test_category["id"], PostStatus.PENDING,
     )
     original_view_count = post.view_count
 

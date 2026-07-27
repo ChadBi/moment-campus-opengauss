@@ -28,7 +28,6 @@ from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.category import Category
-from app.models.post_type import PostType
 from app.models.post import Post
 from app.models.location import Location
 from app.models.product_plan import ProductPlan
@@ -118,14 +117,6 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return category
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    """创建信息类型（全局共享）"""
-    pt = PostType(name=name, code=code, is_active=True)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 async def _create_location(
     db: AsyncSession, school_id: int, name: str, lat: float, lng: float
 ) -> Location:
@@ -147,7 +138,6 @@ async def _create_post(
     user_id: int,
     school_id: int,
     category_id: int,
-    post_type_id: int,
     title: str,
     status: str = PostStatus.PUBLISHED,
     location_id: int | None = None,
@@ -157,7 +147,6 @@ async def _create_post(
         user_id=user_id,
         school_id=school_id,
         category_id=category_id,
-        post_type_id=post_type_id,
         location_id=location_id,
         title=title,
         content=f"{title} 的内容，至少十个字符",
@@ -191,9 +180,6 @@ async def three_schools(db_session: AsyncSession) -> dict:
     for sid in (school_a.id, school_b.id, school_c.id):
         await _assign_operations_subscription(db_session, sid)
 
-    # 全局共享的信息类型
-    pt = await _create_post_type(db_session, "普通信息", "normal")
-
     # 每校 1 分类 + 1 地点
     cat_a = await _create_category(db_session, school_a.id, "A 校失物", "a-lost")
     cat_b = await _create_category(db_session, school_b.id, "B 校失物", "b-lost")
@@ -224,11 +210,11 @@ async def three_schools(db_session: AsyncSession) -> dict:
     super_admin = await _create_user(db_session, "super@example.com", "超管", school_a.id, role="super_admin")
 
     # 每校 1 已发布帖子 + 1 待审核帖子
-    post_a_pub = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, pt.id, "A 校已发布帖子", PostStatus.PUBLISHED, loc_a.id)
-    post_a_pending = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, pt.id, "A 校待审核帖子", PostStatus.PENDING, loc_a.id)
-    post_b_pub = await _create_post(db_session, user_b.id, school_b.id, cat_b.id, pt.id, "B 校已发布帖子", PostStatus.PUBLISHED, loc_b.id)
-    post_b_pending = await _create_post(db_session, user_b.id, school_b.id, cat_b.id, pt.id, "B 校待审核帖子", PostStatus.PENDING, loc_b.id)
-    post_c_pub = await _create_post(db_session, user_c.id, school_c.id, cat_c.id, pt.id, "C 校已发布帖子", PostStatus.PUBLISHED, loc_c.id)
+    post_a_pub = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, "A 校已发布帖子", PostStatus.PUBLISHED, loc_a.id)
+    post_a_pending = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, "A 校待审核帖子", PostStatus.PENDING, loc_a.id)
+    post_b_pub = await _create_post(db_session, user_b.id, school_b.id, cat_b.id, "B 校已发布帖子", PostStatus.PUBLISHED, loc_b.id)
+    post_b_pending = await _create_post(db_session, user_b.id, school_b.id, cat_b.id, "B 校待审核帖子", PostStatus.PENDING, loc_b.id)
+    post_c_pub = await _create_post(db_session, user_c.id, school_c.id, cat_c.id, "C 校已发布帖子", PostStatus.PUBLISHED, loc_c.id)
 
     await db_session.commit()
 
@@ -263,7 +249,6 @@ async def three_schools(db_session: AsyncSession) -> dict:
             "admin_a": {"id": admin_a.id, "token": _make_token(admin_a.id), "school_id": school_a.id},
             "super": {"id": super_admin.id, "token": _make_token(super_admin.id), "school_id": school_a.id},
         },
-        "post_type_id": pt.id,
     }
 
 
@@ -665,7 +650,6 @@ class TestWriteIgnoresBodySchoolId:
                 "title": "新帖子测试隔离",
                 "content": "这是测试内容，至少十个字符",
                 "category_id": three_schools["categories"]["a"]["id"],
-                "post_type_id": three_schools["post_type_id"],
                 "is_anonymous": False,
                 "school_id": three_schools["schools"]["b"]["id"],  # 应被忽略
             },
@@ -709,7 +693,6 @@ class TestWriteIgnoresBodySchoolId:
                 "title": "跨校分类测试",
                 "content": "这是测试内容，至少十个字符",
                 "category_id": three_schools["categories"]["b"]["id"],  # B 校分类
-                "post_type_id": three_schools["post_type_id"],
                 "is_anonymous": False,
             },
             headers=headers,
@@ -933,7 +916,6 @@ class TestNoCrossSchoolWrite:
                 "title": "跨校分类不应创建",
                 "content": "这是测试内容，至少十个字符",
                 "category_id": three_schools["categories"]["b"]["id"],
-                "post_type_id": three_schools["post_type_id"],
             },
             headers=headers,
         )

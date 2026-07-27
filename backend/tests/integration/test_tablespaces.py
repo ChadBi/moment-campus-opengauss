@@ -1,7 +1,7 @@
 """T-E-02 集成测试：openGauss 表空间（4 个）
 
 验证 01_create_tablespaces.sql 创建的 4 个表空间存在：
-- ts_system: 配置类表（schools / categories / post_types / tags / locations）
+- ts_system: 配置类表（schools / categories / tags / locations）
 - ts_core: 业务核心表（users / posts / validation_records / reports 等）
 - ts_interaction: 互动表（comments / likes / favorites / notifications）
 - ts_log: 日志表（admin_operation_logs / browse_histories / search_histories）

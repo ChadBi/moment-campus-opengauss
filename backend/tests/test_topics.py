@@ -24,7 +24,6 @@ from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.category import Category
-from app.models.post_type import PostType
 from app.models.post import Post
 from app.models.topic_collection import TopicCollection
 from app.models.topic_collection_post import TopicCollectionPost
@@ -91,21 +90,14 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return c
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 async def _create_post(
     db: AsyncSession,
-    user_id: int, school_id: int, category_id: int, post_type_id: int,
+    user_id: int, school_id: int, category_id: int,
     title: str, status: str = PostStatus.PUBLISHED,
 ) -> Post:
     p = Post(
         user_id=user_id, school_id=school_id,
-        category_id=category_id, post_type_id=post_type_id,
+        category_id=category_id,
         title=title, content=f"{title} 的内容，至少十个字符",
         status=status,
     )
@@ -146,7 +138,7 @@ async def topic_setup(db_session: AsyncSession) -> dict:
             "topic_collection_posts", "topic_collections",
             "school_subscriptions", "school_memberships", "school_invitations",
             "school_settings", "school_domains",
-            "posts", "categories", "post_types", "tags", "post_tags",
+            "posts", "categories", "tags", "post_tags",
             "post_images", "locations", "comments", "likes",
             "validation_records", "reports", "post_change_reports",
             "notifications", "notification_preferences",
@@ -187,8 +179,6 @@ async def topic_setup(db_session: AsyncSession) -> dict:
     for sid in (school_a.id, school_b.id):
         await _assign_operations_subscription(db_session, sid)
 
-    pt = await _create_post_type(db_session, "普通信息", "normal")
-
     cat_a = await _create_category(db_session, school_a.id, "A 校失物", "a-lost")
     cat_b = await _create_category(db_session, school_b.id, "B 校失物", "b-lost")
 
@@ -201,11 +191,11 @@ async def topic_setup(db_session: AsyncSession) -> dict:
     await _create_membership(db_session, admin_a.id, school_a.id, "admin")
     await _create_membership(db_session, admin_b.id, school_b.id, "admin")
 
-    post_a_pub = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, pt.id, "A 校已发布帖子", PostStatus.PUBLISHED)
-    post_a_pub2 = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, pt.id, "A 校已发布帖子 2", PostStatus.PUBLISHED)
-    post_a_pending = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, pt.id, "A 校待审核帖子", PostStatus.PENDING)
-    post_a_expired = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, pt.id, "A 校已过期帖子", PostStatus.EXPIRED)
-    post_b_pub = await _create_post(db_session, user_b.id, school_b.id, cat_b.id, pt.id, "B 校已发布帖子", PostStatus.PUBLISHED)
+    post_a_pub = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, "A 校已发布帖子", PostStatus.PUBLISHED)
+    post_a_pub2 = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, "A 校已发布帖子 2", PostStatus.PUBLISHED)
+    post_a_pending = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, "A 校待审核帖子", PostStatus.PENDING)
+    post_a_expired = await _create_post(db_session, user_a.id, school_a.id, cat_a.id, "A 校已过期帖子", PostStatus.EXPIRED)
+    post_b_pub = await _create_post(db_session, user_b.id, school_b.id, cat_b.id, "B 校已发布帖子", PostStatus.PUBLISHED)
 
     await db_session.commit()
 
@@ -215,7 +205,6 @@ async def topic_setup(db_session: AsyncSession) -> dict:
             "b": {"id": school_b.id, "code": school_b.code},
         },
         "categories": {"a": cat_a.id, "b": cat_b.id},
-        "post_type_id": pt.id,
         "posts": {
             "a_pub": post_a_pub.id,
             "a_pub2": post_a_pub2.id,
