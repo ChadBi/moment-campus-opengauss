@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useCampusStore } from '../store/useCampusStore';
 
 /**
@@ -15,11 +16,14 @@ import { useCampusStore } from '../store/useCampusStore';
  *     queryKey: [...schoolKey, 'posts', 'feed'],
  *     ...
  *   });
+ *
+ * 注意：返回值经过 useMemo 稳定化，schoolId 不变时引用稳定，
+ * 避免作为 useEffect dep 触发无限重渲染。
  */
 
 export function useSchoolQueryKey(): [string, number | null] {
   const schoolId = useCampusStore((s) => s.currentSchoolId);
-  return ['school', schoolId];
+  return useMemo(() => ['school', schoolId] as [string, number | null], [schoolId]);
 }
 
 /**

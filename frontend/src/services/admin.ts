@@ -9,6 +9,7 @@ import type {
   PostTemplate,
   PostTemplateCreateRequest,
   PostTemplateScene,
+  PostImageBrief,
 } from '../types';
 
 // ============ 类型定义 ============
@@ -131,14 +132,11 @@ export interface AdminPostDetail {
   author_email: string | null;
   category_id: number;
   category_name: string | null;
-  post_type_id: number;
-  post_type_name: string | null;
   location_id: number | null;
   location_name: string | null;
   location_verified: boolean | null;
-  images: string[];
+  images: PostImageBrief[];
   author_history: AuthorHistoryStats;
-  open_change_reports: number;
   pending_user_reports: number;
 }
 

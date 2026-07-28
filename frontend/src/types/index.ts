@@ -378,6 +378,7 @@ export interface PlatformPlan {
 export interface PlatformSubscription {
   id: number;
   school_id: number;
+  school_name?: string | null;
   plan_id: number;
   plan_code?: string | null;
   plan_name?: string | null;

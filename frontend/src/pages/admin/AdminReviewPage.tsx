@@ -325,10 +325,10 @@ const AdminReviewPage: React.FC = () => {
             {/* 图片 */}
             {detail.images.length > 0 && (
               <div className="flex gap-2 flex-wrap">
-                {detail.images.map((url, idx) => (
+                {detail.images.map((img, idx) => (
                   <img
-                    key={idx}
-                    src={url}
+                    key={img.id || idx}
+                    src={img.image_url}
                     alt={`图片 ${idx + 1}`}
                     className="w-24 h-24 object-cover rounded-md border border-line"
                   />
@@ -339,9 +339,9 @@ const AdminReviewPage: React.FC = () => {
             {/* 元信息 */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
               <div>
-                <p className="text-xs text-ink-muted">分类 / 类型</p>
+                <p className="text-xs text-ink-muted">分类</p>
                 <p className="text-ink mt-0.5">
-                  {detail.category_name || '未分类'} / {detail.post_type_name || '-'}
+                  {detail.category_name || '未分类'}
                 </p>
               </div>
               <div>
@@ -379,7 +379,6 @@ const AdminReviewPage: React.FC = () => {
                   本帖治理概况
                 </p>
                 <div className="flex gap-4 text-sm">
-                  <span className="text-ink">未结案报告 {detail.open_change_reports}</span>
                   <span className="text-danger">待处理举报 {detail.pending_user_reports}</span>
                 </div>
               </div>

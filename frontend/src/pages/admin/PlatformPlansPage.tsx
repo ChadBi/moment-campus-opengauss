@@ -305,7 +305,7 @@ const PlatformPlansPage: React.FC = () => {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-ink-muted border-b border-line">
-                    <th className="py-3 px-4 font-medium">学校 ID</th>
+                    <th className="py-3 px-4 font-medium">学校</th>
                     <th className="py-3 px-4 font-medium">套餐</th>
                     <th className="py-3 px-4 font-medium">状态</th>
                     <th className="py-3 px-4 font-medium">开始时间</th>
@@ -320,7 +320,13 @@ const PlatformPlansPage: React.FC = () => {
                       key={sub.id}
                       className="border-b border-line/50 last:border-b-0 hover:bg-paper-hover/50"
                     >
-                      <td className="py-3 px-4 text-ink">#{sub.school_id}</td>
+                      <td className="py-3 px-4 text-ink">
+                        {sub.school_name ? (
+                          <span>{sub.school_name}</span>
+                        ) : (
+                          <span className="text-ink-muted">#{sub.school_id}</span>
+                        )}
+                      </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1.5">
                           <span className="text-ink font-medium">

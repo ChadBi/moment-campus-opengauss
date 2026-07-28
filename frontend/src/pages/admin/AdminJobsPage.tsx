@@ -51,7 +51,7 @@ const AdminJobsPage: React.FC = () => {
   }, [status, showToast]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
     void loadRecords(page);
   }, [page, loadRecords]);
 
@@ -64,7 +64,6 @@ const AdminJobsPage: React.FC = () => {
     }
     setSearchParams(next);
     setPage(1);
-    setLoading(true);
   };
 
   const handleTrigger = async (dryRun: boolean) => {
