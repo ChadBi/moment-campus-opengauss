@@ -20,6 +20,7 @@ from app.models.notification import Notification
 from app.models.school_membership import SchoolMembership
 from app.models.school_settings import SchoolSettings
 from app.schemas.common import PaginatedResponse, MessageResponse
+from app.schemas.post import PostImageBrief  # Task 2.3: 审核详情图片 URL 规范化
 from app.schemas.admin import (
     DashboardStats,
     AdminLogResponse,
@@ -836,14 +837,22 @@ async def get_admin_post_detail(
         raise NotFoundException(detail="帖子不存在")
     _check_post_in_admin_school(post, tenant)
 
-    # 图片
+    # 图片（Task 2.3: 返回完整 PostImageBrief 列表，与公开详情一致，含 thumbnail_url/sort_order）
     image_rows = await db.execute(
-        select(PostImage.image_url).where(
+        select(PostImage).where(
             PostImage.post_id == post_id,
             PostImage.is_deleted == False,
         ).order_by(PostImage.sort_order.asc())
     )
-    images = [row[0] for row in image_rows.all()]
+    images = [
+        PostImageBrief(
+            id=img.id,
+            image_url=img.image_url,
+            thumbnail_url=img.thumbnail_url,
+            sort_order=img.sort_order,
+        )
+        for img in image_rows.scalars().all()
+    ]
 
     # 作者历史统计（同校范围）
     author_posts = await db.execute(

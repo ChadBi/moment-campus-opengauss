@@ -12,6 +12,8 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
+from app.schemas.post import PostImageBrief
+
 
 # ============ 仪表盘统计 ============
 class DashboardStats(BaseModel):
@@ -191,7 +193,10 @@ class AdminPostDetail(BaseModel):
     location_id: Optional[int] = None
     location_name: Optional[str] = None
     location_verified: Optional[bool] = None
-    images: List[str] = Field(default_factory=list, description="图片 URL 列表")
+    images: List[PostImageBrief] = Field(
+        default_factory=list,
+        description="图片列表（Task 2.3: 与公开详情一致，含 thumbnail_url/sort_order）",
+    )
     # 审核辅助
     author_history: AuthorHistoryStats = Field(default_factory=AuthorHistoryStats)
     pending_user_reports: int = Field(default=0, description="待处理用户举报数")
