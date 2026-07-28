@@ -21,10 +21,9 @@ from math import ceil
 from app.database import get_db
 from app.dependencies import get_current_user, get_current_user_optional
 from app.models.post import Post
-from app.models.post_tag import PostTag
 from app.models.user import User
 from app.schemas.common import PaginatedResponse, MessageResponse
-from app.schemas.post import PostListResponse, TagBrief
+from app.schemas.post import PostListResponse
 from app.core.tenant import TenantContext, get_tenant_context
 from app.services.recommender import (
     get_recommendations,
@@ -122,11 +121,6 @@ async def get_recommendation_feed(
         # 封面图（取第一张）
         if post.post_images:
             item.cover_image = post.post_images[0].image_url
-        # 标签
-        if post.post_tags:
-            item.tags = [
-                TagBrief.model_validate(pt.tag) for pt in post.post_tags if pt.tag
-            ]
         item.reason = s.reason
         item.score = s.score
         items.append(item)

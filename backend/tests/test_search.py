@@ -21,8 +21,6 @@ from app.models.category import Category
 from app.models.post import Post
 from app.models.location import Location
 from app.models.post_image import PostImage
-from app.models.tag import Tag
-from app.models.post_tag import PostTag
 from app.models.product_plan import ProductPlan
 from app.models.school_subscription import SchoolSubscription
 from app.core.post_status import PostStatus
@@ -117,14 +115,6 @@ async def _add_image(db: AsyncSession, post_id: int, url: str, sort_order: int =
     await db.flush()
 
 
-async def _add_tag(db: AsyncSession, post_id: int, name: str, slug: str) -> None:
-    tag = Tag(name=name, slug=slug)
-    db.add(tag)
-    await db.flush()
-    db.add(PostTag(post_id=post_id, tag_id=tag.id))
-    await db.flush()
-
-
 def _auth(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
@@ -188,9 +178,8 @@ async def search_setup(db_session: AsyncSession) -> dict:
         location_id=loc_a.id, like_count=0, created_at=base_time + timedelta(hours=5),
     )
 
-    # 给 p1 添加封面图与标签
+    # 给 p1 添加封面图
     await _add_image(db_session, p1.id, "https://example.com/p1.jpg", 0)
-    await _add_tag(db_session, p1.id, "钱包", "wallet")
     # p3 添加图片
     await _add_image(db_session, p3.id, "https://example.com/p3.jpg", 0)
     # p5 添加图片
@@ -521,8 +510,10 @@ class TestSearchNoNPlusOne:
         预期查询数（参考）：
             - 1 条 count 查询（total）
             - 1 条主查询（含 joinedload）
-            - 2 条 selectinload（post_tags->tag, post_images）
-            合计约 4-6 条固定查询，与结果数无关。
+            - 1 条 selectinload（post_images）
+            合计约 3-5 条固定查询，与结果数无关。
+
+        Task 1.3 调整：移除 selectinload(post_tags->tag) 后预期查询数减少 1 条。
 
         验收：page_size=1 与 page_size=5 的查询数差不应超过 2 条（容差）。
         """

@@ -138,7 +138,7 @@ async def topic_setup(db_session: AsyncSession) -> dict:
             "topic_collection_posts", "topic_collections",
             "school_subscriptions", "school_memberships", "school_invitations",
             "school_settings", "school_domains",
-            "posts", "categories", "tags", "post_tags",
+            "posts", "categories",
             "post_images", "locations", "comments", "likes",
             "validation_records", "reports", "post_change_reports",
             "notifications", "notification_preferences",

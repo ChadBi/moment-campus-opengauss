@@ -8,9 +8,10 @@
    - GET /locations 按当前学校过滤，返回 is_verified 字段
 
 2. **发布表单字段**：
-   - POST /posts 接受 image_urls（最多 9 张）/ tags（最多 5 个）/ expire_at /
+   - POST /posts 接受 image_urls（最多 9 张）/ expire_at /
      activity_start_at / activity_end_at / contact_info / lost_type / is_anonymous
    - 创建时只允许 status=draft 或 pending，其余 4 态由状态机管理（FND-01.2）
+   - Task 1.3 调整：tags 字段已随 Tag 模型删除移除
 
 3. **地点选择 + 新增地点队列**：
    - 已存在 location_id：直接关联
@@ -37,8 +38,6 @@ from app.models.category import Category
 from app.models.location import Location
 from app.models.post import Post
 from app.models.post_image import PostImage
-from app.models.post_tag import PostTag
-from app.models.tag import Tag
 from app.models.product_plan import ProductPlan
 from app.models.school_subscription import SchoolSubscription
 
@@ -281,7 +280,7 @@ class TestPublishFormDataSources:
 
 
 # ============================================================
-# PUB-01.2: 表单字段（图片/标签/有效期/活动时间/联系方式/匿名/失物类型）
+# PUB-01.2: 表单字段（图片/有效期/活动时间/联系方式/匿名/失物类型）
 # ============================================================
 class TestPublishFormFields:
     """发布表单字段完整持久化测试"""
@@ -291,7 +290,10 @@ class TestPublishFormFields:
         self, client: AsyncClient, auth_headers: dict, test_school: dict,
         test_category: dict, db_session: AsyncSession,
     ):
-        """创建帖子时携带全部 PUB-01.2 字段，验证全部持久化"""
+        """创建帖子时携带全部 PUB-01.2 字段，验证全部持久化
+
+        Task 1.3 调整：移除 tags 字段（Tag 模型已删除）
+        """
         expire = (datetime.now() + timedelta(days=7)).isoformat()
         act_start = (datetime.now() + timedelta(days=1)).isoformat()
         act_end = (datetime.now() + timedelta(days=2)).isoformat()
@@ -303,7 +305,6 @@ class TestPublishFormFields:
                 "content": "这是包含全部字段的发布测试内容，至少十个字符",
                 "category_id": test_category["id"],
                 "is_anonymous": True,
-                "tags": ["测试", "标签", "PUB01"],
                 "image_urls": ["/uploads/test1.jpg", "/uploads/test2.jpg"],
                 "expire_at": expire,
                 "activity_start_at": act_start,
@@ -328,12 +329,6 @@ class TestPublishFormFields:
         assert data["activity_start_at"] is not None
         assert data["activity_end_at"] is not None
 
-        # 验证标签持久化
-        assert data["tags"] is not None
-        tag_names = [t["name"] for t in data["tags"]]
-        assert "测试" in tag_names
-        assert "PUB01" in tag_names
-
         # 验证图片持久化（直接查 DB，因为 PostResponse.images 字段在 create 响应中可能未填充）
         img_result = await db_session.execute(
             select(PostImage).where(PostImage.post_id == post_id).order_by(PostImage.sort_order)
@@ -345,13 +340,7 @@ class TestPublishFormFields:
         assert images[1].image_url == "/uploads/test2.jpg"
         assert images[1].sort_order == 1
 
-        # 验证 PostTag 关联
-        pt_result = await db_session.execute(
-            select(PostTag).where(PostTag.post_id == post_id)
-        )
-        post_tags = pt_result.scalars().all()
-        assert len(post_tags) == 3
-
+    @pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，tags 字段不再校验上限")
     @pytest.mark.asyncio
     async def test_create_post_with_tags_limit(
         self, client: AsyncClient, auth_headers: dict, test_category: dict,

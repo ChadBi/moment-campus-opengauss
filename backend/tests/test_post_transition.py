@@ -565,11 +565,16 @@ async def test_non_substantial_is_anonymous_change_stays_published(
     assert response.json()["status"] == "published"
 
 
+@pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，tags 字段不再支持修改")
 @pytest.mark.asyncio
 async def test_non_substantial_tags_change_stays_published(
     client: AsyncClient, auth_headers: dict, admin_headers: dict, test_post: dict
 ):
-    """FND-03.2: 已发布帖子修改 tags（非实质附属数据）→ 保持 published"""
+    """FND-03.2: 已发布帖子修改 tags（非实质附属数据）→ 保持 published
+
+    Task 1.3 调整：Tag 模型已删除，tags 字段不再支持。本测试已跳过。
+    非实质字段修改的覆盖由 test_non_substantial_image_urls_change_stays_published 等保留。
+    """
     post_id = test_post["id"]
     await _publish_post(client, admin_headers, post_id)
 

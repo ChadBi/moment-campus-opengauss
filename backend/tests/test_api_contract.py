@@ -232,7 +232,7 @@ class TestPostUpdateContract:
         fields = set(PostUpdate.model_fields.keys())
         expected = {
             "title", "content", "category_id", "location_id",
-            "is_anonymous", "tags", "image_urls",
+            "is_anonymous", "image_urls",
             "expire_at", "activity_start_at", "activity_end_at",
             "lost_type", "contact_info",
         }

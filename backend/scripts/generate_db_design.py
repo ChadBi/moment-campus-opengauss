@@ -81,22 +81,6 @@ TABLES = [
         ],
     },
     {
-        "name": "tags",
-        "cn_name": "标签表",
-        "desc": "信息标签，支持官方标签与用户自定义标签",
-        "fields": [
-            ("id", "BIGINT", True, None, False, "AUTO", "主键，自增"),
-            ("name", "VARCHAR(50)", False, None, False, None, "标签名（唯一）"),
-            ("slug", "VARCHAR(60)", False, None, False, None, "标签slug（唯一）"),
-            ("usage_count", "INTEGER", False, None, False, "0", "使用次数"),
-            ("is_official", "BOOLEAN", False, None, False, "FALSE", "是否官方标签"),
-            ("created_at", "TIMESTAMP", False, None, False, "CURRENT", "创建时间"),
-            ("updated_at", "TIMESTAMP", False, None, False, "CURRENT", "更新时间"),
-            ("is_deleted", "BOOLEAN", False, None, False, "FALSE", "软删除标记"),
-            ("deleted_at", "TIMESTAMP", False, None, True, None, "删除时间"),
-        ],
-    },
-    {
         "name": "locations",
         "cn_name": "地点表",
         "desc": "校园地点，含经纬度，关联学校",
@@ -148,17 +132,6 @@ TABLES = [
             ("updated_at", "TIMESTAMP", False, None, False, "CURRENT", "更新时间"),
             ("is_deleted", "BOOLEAN", False, None, False, "FALSE", "软删除标记"),
             ("deleted_at", "TIMESTAMP", False, None, True, None, "删除时间"),
-        ],
-    },
-    {
-        "name": "post_tags",
-        "cn_name": "信息标签关联表",
-        "desc": "Post 与 Tag 的多对多关联表",
-        "fields": [
-            ("id", "BIGINT", True, None, False, "AUTO", "主键，自增"),
-            ("post_id", "BIGINT", False, "posts", False, None, "信息ID（外键）"),
-            ("tag_id", "BIGINT", False, "tags", False, None, "标签ID（外键）"),
-            ("created_at", "TIMESTAMP", False, None, False, "CURRENT", "创建时间"),
         ],
     },
     {
@@ -380,7 +353,6 @@ RELATIONS = [
     ("categories", "1", "posts", "N", "分类"),
     ("locations", "1", "posts", "N", "位于"),
     ("posts", "1", "post_images", "N", "含图"),
-    ("posts", "M", "tags", "N", "标签"),  # M:N 通过 post_tags
     ("posts", "1", "comments", "N", "评论"),
     ("posts", "1", "likes", "N", "点赞"),
     ("posts", "1", "favorites", "N", "收藏"),
@@ -414,10 +386,10 @@ SUBSYSTEMS = {
         "desc": "用户、学校、草稿管理",
     },
     "信息子系统": {
-        "tables": ["schools", "users", "categories", "tags",
-                   "post_tags", "locations", "posts", "post_images",
+        "tables": ["schools", "users", "categories",
+                   "locations", "posts", "post_images",
                    "topic_collections", "topic_collection_posts"],
-        "desc": "信息发布、分类、标签、地点、专题",
+        "desc": "信息发布、分类、地点、专题",
     },
     "互动子系统": {
         "tables": ["posts", "users", "comments", "likes", "favorites",
@@ -614,8 +586,8 @@ class SvgERGenerator:
 
     def get_entity_category(self, table_name):
         """根据表名判断实体类别"""
-        config_tables = {"schools", "categories", "tags", "locations"}
-        relation_tables = {"post_tags", "post_images", "topic_collection_posts"}
+        config_tables = {"schools", "categories", "locations"}
+        relation_tables = {"post_images", "topic_collection_posts"}
         interaction_tables = {"comments", "likes", "favorites", "browse_histories", "search_histories", "drafts"}
         governance_tables = {"validation_records", "reports", "notifications"}
         system_tables = {"admin_operation_logs"}

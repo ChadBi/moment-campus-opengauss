@@ -34,14 +34,6 @@ class LocationBrief(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class TagBrief(BaseModel):
-    id: int
-    name: str
-    slug: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-
 class PostImageBrief(BaseModel):
     id: int
     image_url: str
@@ -62,7 +54,6 @@ class PostCreate(BaseModel):
     location_lat: Optional[float] = Field(None, ge=-90, le=90, description="纬度（与 location_name 配合使用）")
     location_lng: Optional[float] = Field(None, ge=-180, le=180, description="经度（与 location_name 配合使用）")
     is_anonymous: bool = Field(default=False, description="是否匿名")
-    tags: Optional[List[str]] = Field(default=None, max_length=5, description="标签列表，最多5个")
     image_urls: Optional[List[str]] = Field(default=None, max_length=9, description="图片URL列表，最多9个")
     expire_at: Optional[datetime] = Field(None, description="过期时间")
     activity_start_at: Optional[datetime] = Field(None, description="活动开始时间")
@@ -102,7 +93,6 @@ class PostUpdate(BaseModel):
     category_id: Optional[int] = Field(None, description="分类ID")
     location_id: Optional[int] = Field(None, description="地点ID")
     is_anonymous: Optional[bool] = Field(None, description="是否匿名")
-    tags: Optional[List[str]] = Field(None, max_length=5, description="标签列表")
     image_urls: Optional[List[str]] = Field(None, max_length=9, description="图片URL列表")
     expire_at: Optional[datetime] = Field(None, description="过期时间")
     activity_start_at: Optional[datetime] = Field(None, description="活动开始时间")
@@ -142,7 +132,6 @@ class PostResponse(BaseModel):
     author: Optional[UserBrief] = None
     category: Optional[CategoryBrief] = None
     location: Optional[LocationBrief] = None
-    tags: Optional[List[TagBrief]] = Field(default=None, description="标签列表")
     images: Optional[List[PostImageBrief]] = Field(default=None, description="图片列表")
 
     # 前端需要的额外字段
@@ -169,7 +158,6 @@ class PostListResponse(BaseModel):
     location: Optional[LocationBrief] = None
     author: Optional[UserBrief] = None
     cover_image: Optional[str] = Field(None, description="封面图片")
-    tags: Optional[List[TagBrief]] = Field(default=None, description="标签列表")
     like_count: int = 0
     comment_count: int = 0
     view_count: int = 0

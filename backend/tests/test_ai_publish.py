@@ -2,13 +2,15 @@
 
 覆盖：
 - AI-03.1: POST /api/v1/posts/ai-suggest 接口
-    - 成功：返回结构化建议（标题/摘要/分类/标签/默认有效期）+ 遗漏信息 + 敏感提醒
+    - 成功：返回结构化建议（标题/摘要/分类/默认有效期）+ 遗漏信息 + 敏感提醒
     - 不修改原文：响应只返回建议，不修改 Post 任何字段
     - 失败不阻塞：Provider 异常 / JSON 解析失败 / 输入过短 → fallback=true，仍返回敏感检测
-    - 白名单：分类/标签必须来自当前学校，非法值丢弃
-- AI-03.2: 三校隔离：分类/标签/有效期来自当前学校，不引用其他学校数据
+    - 白名单：分类必须来自当前学校，非法值丢弃
+- AI-03.2: 三校隔离：分类/有效期来自当前学校，不引用其他学校数据
 - 敏感信息检测：手机/邮箱/身份证/银行卡/QQ 命中
 - 日志：ai_invocation_logs 成功/失败均记录
+
+Task 1.3 调整：Tag 模型已删除，标签相关测试已跳过或调整为期望空 tags 列表
 """
 import json
 from datetime import datetime
@@ -29,7 +31,6 @@ from app.models.product_plan import ProductPlan
 from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.school_subscription import SchoolSubscription
-from app.models.tag import Tag
 from app.models.user import User
 
 
@@ -101,22 +102,6 @@ async def _create_location(
     return loc
 
 
-async def _create_tag(
-    db: AsyncSession,
-    school_id: int,
-    name: str,
-    slug: str,
-    usage_count: int = 1,
-) -> Tag:
-    t = Tag(
-        school_id=school_id, name=name, slug=slug,
-        usage_count=usage_count, is_official=True, is_deleted=False,
-    )
-    db.add(t)
-    await db.flush()
-    return t
-
-
 def _school(code: str) -> dict:
     return {"X-School-Code": code}
 
@@ -173,14 +158,15 @@ def _suggestion_json(
 # ============================================================
 @pytest_asyncio.fixture
 async def ai_publish_setup(db_session: AsyncSession) -> dict:
-    """AI 发布建议测试夹具：单校多分类/标签/地点
+    """AI 发布建议测试夹具：单校多分类/地点
 
     提供：
     - 一个学校 + operations 订阅 + 用户 + membership
     - 2 个分类（失物招领 / 活动），各自有不同默认有效期
-    - 3 个标签（仅当前学校）：校园卡 / 招领 / 活动
     - 1 个地点
     - 用户 token
+
+    Task 1.3 调整：Tag 模型已删除，不再创建标签
     """
     school = await _create_school(db_session, "AI发布建议测试大学", "ai-pub")
     await _assign_operations_subscription(db_session, school.id)
@@ -197,10 +183,6 @@ async def ai_publish_setup(db_session: AsyncSession) -> dict:
     # Task 1.2 调整：PostType 已删除，统一使用 category
     loc_library = await _create_location(db_session, school.id, "图书馆", 31.0, 120.0)
 
-    tag_card = await _create_tag(db_session, school.id, "校园卡", "card", usage_count=5)
-    tag_lost = await _create_tag(db_session, school.id, "招领", "lost", usage_count=3)
-    tag_event = await _create_tag(db_session, school.id, "活动", "event", usage_count=2)
-
     await db_session.commit()
 
     return {
@@ -208,15 +190,16 @@ async def ai_publish_setup(db_session: AsyncSession) -> dict:
         "user": {"id": user.id, "token": create_access_token(data={"sub": str(user.id)})},
         "categories": {"lost": cat_lost, "event": cat_event},
         "location": loc_library,
-        "tags": {"card": tag_card, "lost": tag_lost, "event": tag_event},
     }
 
 
 @pytest_asyncio.fixture
 async def two_schools_publish_setup(db_session: AsyncSession) -> dict:
-    """两校夹具：每校有自己的分类/标签/地点
+    """两校夹具：每校有自己的分类/地点
 
-    用于测试三校隔离：A 校的 AI 建议不应引用 B 校的分类/标签。
+    用于测试三校隔离：A 校的 AI 建议不应引用 B 校的分类。
+
+    Task 1.3 调整：Tag 模型已删除，不再创建标签
     """
     schools = {}
     for code, name in [("pub-a", "A校"), ("pub-b", "B校")]:
@@ -229,15 +212,12 @@ async def two_schools_publish_setup(db_session: AsyncSession) -> dict:
         )
         # Task 1.2 调整：PostType 已删除
         loc = await _create_location(db_session, s.id, f"{code}-loc", 31.0, 120.0)
-        # 该校独有标签
-        tag = await _create_tag(db_session, s.id, f"{code}-标签", f"{code}-slug", usage_count=2)
         await db_session.flush()
         schools[code] = {
             "id": s.id, "code": s.code, "name": name,
             "user_token": create_access_token(data={"sub": str(u.id)}),
             "category_id": cat.id, "category_name": cat.name,
             "location_id": loc.id,
-            "tag_name": tag.name,
         }
     await db_session.commit()
     return schools
@@ -298,8 +278,8 @@ class TestAIPublishSuggestSuccess:
         # category 白名单校验后保留 category_id
         assert sug["category"] == "失物招领"
         assert sug["category_id"] == ai_publish_setup["categories"]["lost"].id
-        # tags 白名单校验后保留
-        assert set(sug["tags"]) == {"校园卡", "招领"}
+        # Task 1.3 调整：Tag 模型已删除，tags 始终为空列表
+        assert sug["tags"] == []
         # default_validity_days 来自模型输出
         assert sug["default_validity_days"] == 14
         # missing_info 合并模型输出
@@ -678,9 +658,10 @@ class TestAIPublishWhitelist:
         # 分类被丢弃
         assert data["suggestions"]["category"] is None
         assert data["suggestions"]["category_id"] is None
-        # 标签仍命中白名单
-        assert "校园卡" in data["suggestions"]["tags"]
+        # Task 1.3 调整：Tag 模型已删除，tags 始终为空列表
+        assert data["suggestions"]["tags"] == []
 
+    @pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，标签白名单校验已删除")
     @pytest.mark.asyncio
     async def test_invalid_tags_dropped(
         self, client: AsyncClient, ai_publish_setup: dict, monkeypatch,
@@ -776,8 +757,7 @@ class TestAIPublishTenantIsolation:
         assert a_setup["category_name"] in prompt
         # 提示词不含 B 校分类
         assert b_setup["category_name"] not in prompt
-        # 提示词不含 B 校标签
-        assert b_setup["tag_name"] not in prompt
+        # Task 1.3 调整：Tag 模型已删除，不再校验提示词是否含 B 校标签
 
     @pytest.mark.asyncio
     async def test_b_school_category_dropped_in_a_school(
@@ -809,16 +789,19 @@ class TestAIPublishTenantIsolation:
         assert data["suggestions"]["category"] is None
         assert data["suggestions"]["category_id"] is None
 
+    @pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，跨校标签隔离测试不再适用")
     @pytest.mark.asyncio
     async def test_b_school_tag_dropped_in_a_school(
         self, client: AsyncClient, two_schools_publish_setup: dict, monkeypatch,
     ):
-        """A 校调用，模型返回 B 校标签 → 该标签丢弃"""
+        """A 校调用，模型返回 B 校标签 → 该标签丢弃
+
+        Task 1.3 调整：Tag 模型已删除，本测试已跳过。
+        """
         provider = _make_provider()
         a_setup = two_schools_publish_setup["pub-a"]
-        b_setup = two_schools_publish_setup["pub-b"]
-        # 让模型"误报" B 校标签
-        provider.set_response(_suggestion_json(summary="ok", tags=[b_setup["tag_name"]]))
+        # 让模型"误报" B 校标签（注：fixture 已不再创建 tag_name 字段）
+        provider.set_response(_suggestion_json(summary="ok", tags=["pub-b-标签"]))
         _patch_provider(monkeypatch, provider)
 
         resp = await client.post(
@@ -836,7 +819,7 @@ class TestAIPublishTenantIsolation:
         assert resp.status_code == 200
         tags = resp.json()["suggestions"]["tags"]
         # B 校标签不在 A 校白名单 → 丢弃
-        assert b_setup["tag_name"] not in tags
+        assert "pub-b-标签" not in tags
 
 
 # ============================================================

@@ -61,6 +61,7 @@ class TestPostCreate:
         with pytest.raises(ValidationError):
             PostCreate(title="测试标题五字以上", content="短", category_id=1)
 
+    @pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，PostCreate 不再有 tags 字段")
     def test_tags_max_five(self):
         """标签最多 5 个"""
         with pytest.raises(ValidationError):

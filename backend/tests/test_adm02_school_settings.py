@@ -7,6 +7,8 @@
 - ADM-02.1 /schools/current 公开返回品牌字段（site_name/description/brand_color）
 - ADM-02.2 标签管理路由冒烟验收（list/update/delete 均真实可用，未死代码）
 - ADM-02.2 地点核验队列：is_verified=false 列表 + 核验通过 + 跨校 404
+
+Task 1.3 调整：Tag 模型已删除，ADM-02.2 标签管理路由测试已跳过
 """
 import json
 from datetime import datetime
@@ -23,7 +25,6 @@ from app.models.location import Location
 from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.school_settings import SchoolSettings
-from app.models.tag import Tag
 from app.models.user import User
 
 
@@ -439,6 +440,8 @@ async def test_location_verify_cross_school_404(
 # ============================================================
 # ADM-02.2: 标签管理路由验收（确认真实可用，非死代码）
 # ============================================================
+# Task 1.3: Tag 模型已删除，标签管理 4 个路由（list/update/delete/merge）同步移除
+@pytest.mark.skip(reason="Task 1.3: Tag 功能已移除")
 @pytest.mark.asyncio
 async def test_tag_management_routes_smoke(
     client: AsyncClient, admin_headers: dict, test_school: dict, db_session: AsyncSession
@@ -493,6 +496,7 @@ async def test_tag_management_routes_smoke(
     assert merge.json()["success"] == 1
 
 
+@pytest.mark.skip(reason="Task 1.3: Tag 功能已移除")
 @pytest.mark.asyncio
 async def test_tag_management_cross_school_404(
     client: AsyncClient, admin_headers: dict, other_school_with_admin: dict,

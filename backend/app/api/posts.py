@@ -9,8 +9,6 @@ from math import radians, cos, sin, asin, sqrt
 from app.database import get_db
 from app.dependencies import get_current_user, get_current_user_optional
 from app.models.post import Post
-from app.models.tag import Tag
-from app.models.post_tag import PostTag
 from app.models.post_image import PostImage
 from app.models.like import Like
 from app.models.user import User
@@ -23,7 +21,7 @@ from app.models.browse_history import BrowseHistory
 from app.models.publisher_profile import PublisherProfile
 from app.models.publisher_membership import PublisherMembership
 from app.schemas.post import (
-    PostCreate, PostUpdate, PostResponse, PostListResponse, TagBrief,
+    PostCreate, PostUpdate, PostResponse, PostListResponse,
     PostImageBrief,
     PostTransitionCreate, PostTransitionResponse,
 )
@@ -40,11 +38,6 @@ from app.core.tenant import TenantContext, get_tenant_context, check_resource_in
 from app.services.ai_publish import execute_publish_suggestion
 
 router = APIRouter(prefix="/posts", tags=["信息"])
-
-
-def generate_slug(name: str) -> str:
-    """生成标签的 slug"""
-    return name.lower().replace(" ", "-").strip()
 
 
 # ============================================================
@@ -184,7 +177,6 @@ async def get_posts(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
 
@@ -203,9 +195,6 @@ async def get_posts(
         # 设置封面图片
         if post.post_images:
             post_data.cover_image = post.post_images[0].image_url if post.post_images else None
-        # 设置标签
-        if post.post_tags:
-            post_data.tags = [TagBrief.model_validate(pt.tag) for pt in post.post_tags if pt.tag]
         items.append(post_data)
 
     return PaginatedResponse.create(
@@ -239,7 +228,6 @@ async def get_post(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
 
@@ -310,10 +298,6 @@ async def get_post(
         response.author = None
     elif post.user:
         response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url}
-
-    # 设置标签
-    if post.post_tags:
-        response.tags = [TagBrief.model_validate(pt.tag) for pt in post.post_tags if pt.tag]
 
     # DSC-02.1: 设置图片列表（按 sort_order 排序，前端轮播依赖）
     # post_images 关系已通过 selectinload 预加载
@@ -506,30 +490,6 @@ async def create_post(
     db.add(post)
     await db.flush()  # 获取 post.id
 
-    # 处理标签
-    if post_data.tags:
-        for tag_name in post_data.tags:
-            tag_name = tag_name.strip()
-            if not tag_name:
-                continue
-
-            # 查找或创建标签
-            slug = generate_slug(tag_name)
-            tag_result = await db.execute(select(Tag).where(Tag.slug == slug, Tag.is_deleted == False))
-            tag = tag_result.scalar_one_or_none()
-
-            if tag is None:
-                tag = Tag(name=tag_name, slug=slug)
-                db.add(tag)
-                await db.flush()
-
-            # 创建关联
-            post_tag = PostTag(post_id=post.id, tag_id=tag.id)
-            db.add(post_tag)
-
-            # 更新标签使用次数
-            tag.usage_count += 1
-
     # 处理图片
     if post_data.image_urls:
         for idx, image_url in enumerate(post_data.image_urls):
@@ -549,7 +509,6 @@ async def create_post(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
     result = await db.execute(query)
@@ -560,8 +519,6 @@ async def create_post(
         response.author = None
     elif post.user:
         response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url}
-    if post.post_tags:
-        response.tags = [TagBrief.model_validate(pt.tag) for pt in post.post_tags if pt.tag]
 
     return response
 
@@ -579,7 +536,7 @@ async def update_post(
     FND-03.2: 状态变化只走状态机服务。
         - 已 published 的帖子若被实质修改（title/content/category_id/
           location_*/lost_type），自动通过状态机 published → pending 回审
-        - 非实质字段（expire_at/activity_*/contact_info/is_anonymous/tags/image_urls）
+        - 非实质字段（expire_at/activity_*/contact_info/is_anonymous/image_urls）
           修改不触发回审
         - 本接口不允许直接修改 status 字段（PostUpdate schema 已移除 status）
 
@@ -591,7 +548,6 @@ async def update_post(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
 
@@ -646,42 +602,6 @@ async def update_post(
         old_value = getattr(post, field_name, None)
         if old_value != new_value:
             changed_substantial_fields.add(field_name)
-
-    # 处理标签更新（附属数据，不触发回审）
-    if "tags" in update_data:
-        tags = update_data.pop("tags")
-        # 删除旧的关联
-        old_tags_result = await db.execute(
-            select(PostTag).where(PostTag.post_id == post_id)
-        )
-        old_post_tags = old_tags_result.scalars().all()
-        for pt in old_post_tags:
-            # 减少标签使用次数
-            tag_result = await db.execute(select(Tag).where(Tag.id == pt.tag_id))
-            tag = tag_result.scalar_one_or_none()
-            if tag:
-                tag.usage_count = max(0, tag.usage_count - 1)
-            await db.delete(pt)
-
-        # 添加新的标签
-        if tags:
-            for tag_name in tags:
-                tag_name = tag_name.strip()
-                if not tag_name:
-                    continue
-
-                slug = generate_slug(tag_name)
-                tag_result = await db.execute(select(Tag).where(Tag.slug == slug, Tag.is_deleted == False))
-                tag = tag_result.scalar_one_or_none()
-
-                if tag is None:
-                    tag = Tag(name=tag_name, slug=slug)
-                    db.add(tag)
-                    await db.flush()
-
-                post_tag = PostTag(post_id=post.id, tag_id=tag.id)
-                db.add(post_tag)
-                tag.usage_count += 1
 
     # 处理图片更新（附属数据，不触发回审）
     if "image_urls" in update_data:
@@ -762,7 +682,6 @@ async def update_post(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
     result = await db.execute(query)
@@ -773,8 +692,6 @@ async def update_post(
         response.author = None
     elif post.user:
         response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url}
-    if post.post_tags:
-        response.tags = [TagBrief.model_validate(pt.tag) for pt in post.post_tags if pt.tag]
 
     return response
 

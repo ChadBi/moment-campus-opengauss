@@ -11,11 +11,9 @@ from app.models.user import User
 from app.models.post import Post
 from app.models.category import Category
 from app.models.location import Location
-from app.models.post_tag import PostTag
 from app.models.post_image import PostImage
-from app.models.tag import Tag
 from app.models.search_history import SearchHistory
-from app.schemas.post import PostListResponse, TagBrief
+from app.schemas.post import PostListResponse
 from app.schemas.common import PaginatedResponse
 from app.schemas.search import AISearchRequest, AISearchResponse
 from app.core.exceptions import NotFoundException
@@ -30,7 +28,6 @@ async def search_posts(
     keyword: Optional[str] = Query(None, max_length=100, description="搜索关键词"),
     category_id: Optional[int] = Query(None, description="分类ID"),
     location_id: Optional[int] = Query(None, description="地点ID"),
-    tag: Optional[str] = Query(None, max_length=50, description="标签"),
     status: Optional[str] = Query(
         default=None,
         pattern="^(published|expired|valid)$",
@@ -57,6 +54,7 @@ async def search_posts(
     TEN-02.3：按当前学校过滤，跨校帖子不会出现在搜索结果中。
 
     Task 1.2 调整：移除 post_type_id 筛选参数（PostType 已删除，统一使用 category）
+    Task 1.3 调整：移除 tag 筛选参数（Tag 已删除，统一使用 category）
 
     有效状态筛选：
         - published: 仅显示已发布
@@ -100,21 +98,6 @@ async def search_posts(
     if date_to is not None:
         query = query.where(Post.created_at <= date_to)
 
-    # 标签筛选（使用子查询避免 N+1）
-    if tag:
-        tag_query = select(Tag.id).where(Tag.name == tag, Tag.is_deleted == False)
-        tag_result = await db.execute(tag_query)
-        tag_id = tag_result.scalar_one_or_none()
-        if tag_id:
-            post_tag_query = select(PostTag.post_id).where(PostTag.tag_id == tag_id)
-            post_tag_result = await db.execute(post_tag_query)
-            post_ids = [row[0] for row in post_tag_result.fetchall()]
-            if post_ids:
-                query = query.where(Post.id.in_(post_ids))
-            else:
-                # 没有匹配的帖子，返回空结果
-                return PaginatedResponse.create([], page, page_size, 0)
-
     # 排序（DSC-01.1: 统一排序语义）
     if sort == "latest":
         query = query.order_by(Post.created_at.desc())
@@ -138,12 +121,11 @@ async def search_posts(
     query = query.offset(offset).limit(page_size)
 
     # DSC-01.2: 预加载关联数据，消除 N+1
-    # 一次查询预加载：author / category / location / tags / images
+    # 一次查询预加载：author / category / location / images
     query = query.options(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
 
@@ -166,13 +148,6 @@ async def search_posts(
         # 设置封面图片（取第一张）
         if post.post_images:
             post_data.cover_image = post.post_images[0].image_url
-        # 设置标签
-        if post.post_tags:
-            post_data.tags = [
-                TagBrief.model_validate(pt.tag)
-                for pt in post.post_tags
-                if pt.tag
-            ]
         items.append(post_data)
 
     # 记录搜索历史（如果有用户登录且有关键词）

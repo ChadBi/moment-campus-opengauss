@@ -35,7 +35,6 @@ from sqlalchemy.orm import selectinload, joinedload
 from app.core.tenant import TenantContext
 from app.models.browse_history import BrowseHistory
 from app.models.post import Post
-from app.models.post_tag import PostTag
 from app.models.search_history import SearchHistory
 from app.models.subscription import UserSubscription
 from app.models.user import User
@@ -371,7 +370,6 @@ async def _personalized_recommendations(
             joinedload(Post.user),
             joinedload(Post.category),
             joinedload(Post.location),
-            selectinload(Post.post_tags).selectinload(PostTag.tag),
             selectinload(Post.post_images),
         )
     )
@@ -631,7 +629,6 @@ async def _cold_start_recommendations(
             joinedload(Post.user),
             joinedload(Post.category),
             joinedload(Post.location),
-            selectinload(Post.post_tags).selectinload(PostTag.tag),
             selectinload(Post.post_images),
         )
     )

@@ -4,8 +4,6 @@ from .user import User
 from .school import School
 from .post import Post
 from .category import Category
-from .tag import Tag
-from .post_tag import PostTag
 from .post_image import PostImage
 from .location import Location
 from .comment import Comment
@@ -45,8 +43,6 @@ __all__ = [
     "School",
     "Post",
     "Category",
-    "Tag",
-    "PostTag",
     "PostImage",
     "Location",
     "Comment",

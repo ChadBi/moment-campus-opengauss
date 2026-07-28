@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-27（Task 1.2 测试断言修复：PostType / PostChangeReport 删除后 7 个失败用例修复）
+> 最后更新：2026-07-27（Task 1.3 删除 Tag 模型与标签功能：模型/Schema/API/服务/测试/脚本全面清理，936 passed / 16 skipped / 0 failed）
 
 ## 状态总览
 
@@ -39,6 +39,21 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### Task 1.3 删除 Tag 模型与标签功能（2026-07-27 完成）
+
+依据 `docs/需要调整的地方.md`，标签（Tag）与分类（Category）冲突，需完全移除 Tag 功能。
+
+- [x] 数据库迁移：创建 `alembic/versions/x3c4d5e6f7g8_remove_tag_model.py`，DROP post_tags / tags 表与 8 个索引，含 downgrade
+- [x] 模型层：删除 `app/models/tag.py`、`app/models/post_tag.py`；`app/models/post.py` 移除 post_tags 关系；`app/models/__init__.py` 移除导入与导出
+- [x] Schema 层：`app/schemas/post.py` 删除 TagBrief 类与 PostCreate/PostUpdate/PostResponse/PostListResponse 的 tags 字段；`app/schemas/admin.py` 删除 TagAdminResponse / TagUpdate / TagMergeRequest
+- [x] API 层：`app/api/admin.py` 删除 4 个标签管理端点（list/update/delete/merge）；`app/api/posts.py`、`search.py`、`recommendations.py`、`users.py` 移除 Tag/PostTag 导入、标签处理逻辑、selectinload(Post.post_tags)
+- [x] 服务层：`app/services/ai_publish.py` 不再加载标签白名单，_validate_suggestions 恒定返回 tags=[]；`app/services/ai_search.py`、`recommender.py` 移除 tag 逻辑
+- [x] 核心配置：`app/core/post_status.py`、`app/core/analytics.py` 注释中移除 tags 引用
+- [x] 测试文件：9 个测试文件清理（test_ai_publish / test_adm02_school_settings / test_publish_flow / test_search / test_api_contract / test_schemas / test_post_transition / test_posts / test_topics），跳过 8 个纯标签功能测试
+- [x] 脚本文件：3 个脚本清理（verify_data / seed_data / generate_db_design）
+- [x] 验证：`pytest tests/ --ignore=tests/integration --ignore=tests/manual` 全量通过（936 passed, 16 skipped, 0 failed，812.74s）
+- [x] 任务报告：[AIwork/Task1.3_删除Tag模型与标签功能.md](AIwork/Task1.3_删除Tag模型与标签功能.md)
 
 ### Task 1.2 测试断言修复：PostType / PostChangeReport 删除后（2026-07-27 完成）
 

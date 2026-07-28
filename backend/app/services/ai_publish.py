@@ -2,8 +2,8 @@
 
 职责：
 1. 输入校验：标题/内容长度（schema 已强制）+ 敏感信息确定性检测（手机/邮箱/身份证/银行卡）
-2. 三校隔离：school_id 强制取自 TenantContext；分类/标签白名单只来自当前学校
-3. 模型调用：调用 invoke_ai（PUBLISH_SUGGESTION_SCHEMA 约束）→ 白名单校验分类/标签
+2. 三校隔离：school_id 强制取自 TenantContext；分类白名单只来自当前学校
+3. 模型调用：调用 invoke_ai（PUBLISH_SUGGESTION_SCHEMA 约束）→ 白名单校验分类
 4. 确定性敏感检测：正则匹配手机/邮箱/身份证/银行卡 → 落 sensitive_warnings + sensitive_findings
 5. 缺失字段检测：根据草稿字段空缺情况生成 missing_info（不调模型）
 6. 日志记录：通过 invoke_ai 自动记录 ai_invocation_logs（成功/失败均记录）
@@ -14,8 +14,11 @@
 - 不改坐标/状态：不修改 location_id / status / 任何 Post 字段
 - 不自动过审：本服务不调用状态机，不参与审核流程
 - 失败不阻塞：fallback=true 时仍返回可用的敏感检测结果，前端可继续手动发布
-- 三校隔离：school_id 强制取自 TenantContext；分类/标签白名单只来自当前学校
-- 提示词只含当前学校的分类/标签白名单，不引用其他学校地点或词表
+- 三校隔离：school_id 强制取自 TenantContext；分类白名单只来自当前学校
+- 提示词只含当前学校的分类白名单，不引用其他学校地点或词表
+
+Task 1.3 调整：Tag 模型已删除，AI 发布建议不再加载标签白名单；
+AIPublishSuggestions.tags 字段保留为空列表（向后兼容 API 响应结构）。
 """
 from __future__ import annotations
 
@@ -33,7 +36,6 @@ from app.ai.schemas import PUBLISH_SUGGESTION_SCHEMA
 from app.ai.service import invoke_ai, update_invocation_result
 from app.core.tenant import TenantContext
 from app.models.category import Category
-from app.models.tag import Tag
 from app.models.user import User
 from app.schemas.ai import (
     AIPublishSuggestRequest,
@@ -50,9 +52,6 @@ logger = logging.getLogger(__name__)
 # 输入过短的阈值（标题或内容过短时 AI 难以给出有用建议，降级为仅敏感检测）
 _MIN_TITLE_LEN_FOR_AI = 3
 _MIN_CONTENT_LEN_FOR_AI = 5
-
-# 标签建议上限
-_MAX_TAG_SUGGESTIONS = 5
 
 # AI 建议的默认有效期上限（防止模型给出过大值）
 _MAX_VALIDITY_DAYS = 365
@@ -202,38 +201,25 @@ def _detect_missing_info(request: AIPublishSuggestRequest) -> list[str]:
 
 
 # ============================================================
-# 3. 三校隔离：加载当前学校的分类与标签白名单
+# 3. 三校隔离：加载当前学校的分类白名单
 # ============================================================
 async def _load_whitelists(
     db: AsyncSession,
     school_id: int,
-) -> tuple[list[Category], list[Tag]]:
-    """加载当前学校的分类与标签白名单（用于提示词与解析后校验）。
+) -> list[Category]:
+    """加载当前学校的分类白名单（用于提示词与解析后校验）。
+
+    Task 1.3 调整：Tag 模型已删除，不再加载标签白名单，仅返回分类列表。
 
     Returns:
-        (categories, tags)：均为当前学校数据
+        categories：当前学校启用的分类列表
     """
     cat_result = await db.execute(
         select(Category)
         .where(Category.school_id == school_id, Category.is_active == True)
         .order_by(Category.sort_order, Category.id)
     )
-    categories = list(cat_result.scalars().all())
-
-    # 标签只取当前学校的（按 usage_count 降序取前 50，避免提示词过长）
-    tag_result = await db.execute(
-        select(Tag)
-        .where(
-            Tag.school_id == school_id,
-            Tag.is_deleted == False,
-            Tag.usage_count > 0,
-        )
-        .order_by(Tag.usage_count.desc(), Tag.id)
-        .limit(50)
-    )
-    tags = list(tag_result.scalars().all())
-
-    return categories, tags
+    return list(cat_result.scalars().all())
 
 
 # ============================================================
@@ -242,22 +228,23 @@ async def _load_whitelists(
 def _build_prompt(
     request: AIPublishSuggestRequest,
     categories: list[Category],
-    tags: list[Tag],
 ) -> str:
     """构造模型提示词。
 
     提示词包含：
     - 任务说明（返回严格 JSON）
     - 当前学校可用的分类白名单（防止模型编造不存在的分类）
-    - 当前学校已有的标签白名单（防止模型编造不存在的标签）
     - 草稿原文（标题/正文/当前已选字段）
-    - 重要约束（不修改原文 / 只返回建议 / 标签必须来自白名单）
+    - 重要约束（不修改原文 / 只返回建议 / 分类必须来自白名单）
+
+    Task 1.3 调整：Tag 模型已删除，提示词不再展示标签白名单；
+    模型仍可在 suggestions.tags 中返回数组（保持 schema 兼容），
+    但 service 层会忽略该字段并恒定返回空数组。
     """
     cat_list = (
         "、".join(f"{c.name}（code={c.code}，默认有效期={c.default_validity_days}天）" for c in categories[:30])
         or "（暂无分类）"
     )
-    tag_list = "、".join(t.name for t in tags[:50]) or "（暂无标签）"
 
     # 当前已选字段（仅展示，不要求模型沿用）
     current_fields: list[str] = []
@@ -265,8 +252,6 @@ def _build_prompt(
         cat = next((c for c in categories if c.id == request.category_id), None)
         if cat is not None:
             current_fields.append(f"当前已选分类：{cat.name}")
-    if request.tags:
-        current_fields.append(f"当前已填标签：{'、'.join(request.tags)}")
     if request.lost_type:
         current_fields.append(f"失物类型：{request.lost_type}")
     if request.activity_start_at or request.activity_end_at:
@@ -284,7 +269,7 @@ def _build_prompt(
     "title": "建议标题（仅在原文标题较弱或不规范时给出；原文标题已合适则填 null）",
     "summary": "建议摘要（10-80 字，用于列表展示）",
     "category": "建议分类名（必须从下方分类白名单中选取；用户当前已选合适则填 null）",
-    "tags": ["建议标签（最多 5 个，必须从下方标签白名单中选取；无建议则空数组）"],
+    "tags": ["建议标签（最多 5 个；无建议则空数组）"],
     "default_validity_days": 建议默认有效期天数（整数 1-365；来自分类配置或常见场景）
   }},
   "missing_info": ["遗漏的关键信息（1-5 条简短说明，如缺少时间/地点/联系方式/物品特征等）"],
@@ -293,16 +278,14 @@ def _build_prompt(
 
 # 重要约束
 1. category 必须从下方分类白名单中选取，不得编造不存在的分类
-2. tags 必须从下方标签白名单中选取，不得编造不存在的标签
-3. 不修改原文：title 字段仅在原文标题明显较弱时给出建议值，否则填 null
-4. 不引用其他学校的地点、词表、分类、标签
-5. summary 应基于草稿正文概括，不编造未提及的事实
-6. missing_info 与 sensitive_warnings 可空数组
-7. 只返回 JSON，不要任何额外文字
+2. 不修改原文：title 字段仅在原文标题明显较弱时给出建议值，否则填 null
+3. 不引用其他学校的地点、词表、分类
+4. summary 应基于草稿正文概括，不编造未提及的事实
+5. missing_info 与 sensitive_warnings 可空数组
+6. 只返回 JSON，不要任何额外文字
 
 # 上下文
 - 当前学校可用分类：{cat_list}
-- 当前学校已有标签：{tag_list}
 - 当前草稿已选字段：
 {current_block}
 
@@ -319,7 +302,6 @@ def _build_prompt(
 def _validate_suggestions(
     parsed: dict[str, Any],
     categories: list[Category],
-    tags_whitelist: list[Tag],
     request: AIPublishSuggestRequest,
 ) -> tuple[AIPublishSuggestions, list[str], list[str]]:
     """对模型解析结果做白名单校验，并构造最终建议对象。
@@ -328,7 +310,7 @@ def _validate_suggestions(
     - title：截断 200 字符；原文标题已合格（>=5 字符）时模型应返回 null，否则采纳建议
     - summary：截断 200 字符
     - category：必须在白名单中（按 name 或 code 匹配）；非法值置空
-    - tags：每条必须在白名单中（按 name 匹配）；非法标签丢弃；最多 5 个
+    - tags：Task 1.3 后恒定返回空列表（Tag 模型已删除，schema 字段保留向后兼容）
     - default_validity_days：限定 1-365；超出范围回退到当前分类默认值
 
     Returns:
@@ -367,29 +349,7 @@ def _validate_suggestions(
             category_id = matched.id
         # 非法值直接丢弃（不向用户报错）
 
-    # ---- tags 白名单校验 ----
-    raw_tags = sug_data.get("tags") or []
-    if not isinstance(raw_tags, list):
-        raw_tags = []
-    tag_names_lower = {t.name.lower(): t for t in tags_whitelist}
-    final_tags: list[str] = []
-    seen_lower: set[str] = set()
-    for raw_tag in raw_tags:
-        if not isinstance(raw_tag, str):
-            continue
-        cleaned = raw_tag.strip()
-        if not cleaned:
-            continue
-        # 白名单匹配（不区分大小写）
-        matched_tag = tag_names_lower.get(cleaned.lower())
-        if matched_tag is None:
-            continue
-        if matched_tag.name.lower() in seen_lower:
-            continue
-        seen_lower.add(matched_tag.name.lower())
-        final_tags.append(matched_tag.name)
-        if len(final_tags) >= _MAX_TAG_SUGGESTIONS:
-            break
+    # ---- tags 字段：Task 1.3 后恒定返回空列表（不再校验白名单） ----
 
     # ---- default_validity_days 校验 ----
     raw_days = sug_data.get("default_validity_days")
@@ -411,7 +371,7 @@ def _validate_suggestions(
         summary=summary_sug,
         category=category_name,
         category_id=category_id,
-        tags=final_tags,
+        tags=[],
         default_validity_days=default_validity_days,
     )
 
@@ -446,10 +406,10 @@ async def execute_publish_suggestion(
     流程：
     1. 确定性敏感信息检测（始终执行，不依赖模型）
     2. 缺失字段检测（确定性，不依赖模型）
-    3. 加载白名单（当前学校分类/标签）
+    3. 加载白名单（当前学校分类）
     4. 输入过短 / 无可建议字段 → fallback（仍返回敏感检测 + 缺失提示）
     5. 否则调用 invoke_ai（PUBLISH_SUGGESTION_SCHEMA 约束）解析建议
-    6. 白名单校验分类/标签（非法值丢弃）
+    6. 白名单校验分类（非法值丢弃）；tags 字段恒定返回空列表
     7. 任一步失败 → fallback=true，仍返回敏感检测结果（确定性）
     8. 记录 ai_invocation_logs（成功/失败均记录）
 
@@ -458,6 +418,8 @@ async def execute_publish_suggestion(
     - 不改坐标/状态：本服务不修改 Post 任何字段
     - 不自动过审：不调用状态机
     - 失败不阻塞：fallback=true 时仍返回敏感检测 + 缺失提示
+
+    Task 1.3 调整：Tag 模型已删除，不再加载标签白名单；AIPublishSuggestions.tags 恒定为空列表。
     """
     title = (request.title or "").strip()
     content = (request.content or "").strip()
@@ -472,7 +434,7 @@ async def execute_publish_suggestion(
 
     # ---- 3. 加载白名单 ----
     try:
-        categories, tags_whitelist = await _load_whitelists(db, tenant.school_id)
+        categories = await _load_whitelists(db, tenant.school_id)
     except Exception as exc:  # noqa: BLE001  DB 异常降级
         logger.warning(
             "ai_publish_load_whitelist_failed school_id=%s err=%s",
@@ -503,7 +465,7 @@ async def execute_publish_suggestion(
         )
 
     # ---- 5. 调用模型解析建议 ----
-    prompt = _build_prompt(request, categories, tags_whitelist)
+    prompt = _build_prompt(request, categories)
     outcome = await invoke_ai(
         prompt=prompt,
         schema=PUBLISH_SUGGESTION_SCHEMA,
@@ -548,7 +510,7 @@ async def execute_publish_suggestion(
         if not isinstance(parsed, dict):
             raise ValueError("parsed suggestion is not a dict")
         suggestions, ai_missing, ai_sensitive = _validate_suggestions(
-            parsed, categories, tags_whitelist, request,
+            parsed, categories, request,
         )
     except Exception as exc:  # noqa: BLE001  校验失败降级
         logger.warning(

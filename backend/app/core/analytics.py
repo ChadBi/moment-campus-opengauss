@@ -101,8 +101,9 @@ EVENT_WHITELIST: dict[str, frozenset[str]] = {
         "post_id", "has_title", "has_image", "content_length",
     }),
     # 帖子提交审核：post_id / category_code / is_anonymous(bool)
-    # **严禁**记标题/正文/标签原文
+    # **严禁**记标题/正文原文
     # Task 1.2 调整：post_type_code 已随 PostType 模型删除移除
+    # Task 1.3 调整：tags 已随 Tag 模型删除移除
     "post_submitted": frozenset({
         "post_id", "category_code", "is_anonymous",
     }),

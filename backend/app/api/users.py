@@ -14,8 +14,6 @@ from app.models.user import User
 from app.models.post import Post
 from app.models.category import Category
 from app.models.location import Location
-from app.models.post_tag import PostTag
-from app.models.tag import Tag
 # PRF-01.3: 浏览历史按学校隔离
 from app.models.browse_history import BrowseHistory
 # PRF-01.2: 真实统计需要协同验证记录
@@ -133,7 +131,6 @@ async def get_my_posts(
         selectinload(Post.user),
         selectinload(Post.category),
         selectinload(Post.location),
-        selectinload(Post.post_tags).selectinload(PostTag.tag),
     ).where(
         *base_filter,
     ).order_by(Post.created_at.desc())

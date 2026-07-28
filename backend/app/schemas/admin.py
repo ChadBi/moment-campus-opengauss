@@ -4,8 +4,9 @@
 - 仪表盘统计 DashboardStats
 - 操作日志 AdminLogResponse
 - 分类管理 CategoryCreate / CategoryUpdate / CategoryAdminResponse
-- 标签管理 TagAdminResponse / TagUpdate / TagMergeRequest
 - 批量操作请求 / 响应
+
+Task 1.3: 标签管理 TagAdminResponse / TagUpdate / TagMergeRequest 已随 Tag 模型删除移除
 """
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
@@ -81,30 +82,7 @@ class CategoryAdminResponse(BaseModel):
 
 
 # ============ 标签管理 ============
-class TagAdminResponse(BaseModel):
-    """标签管理响应（含已删项）"""
-    id: int
-    name: str
-    slug: str
-    usage_count: int
-    is_official: bool
-    is_deleted: bool
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class TagUpdate(BaseModel):
-    """更新标签"""
-    name: Optional[str] = Field(None, min_length=1, max_length=50)
-    is_official: Optional[bool] = None
-
-
-class TagMergeRequest(BaseModel):
-    """合并标签请求：将 source_tag_ids 的帖子关联迁移到 target_tag_id，并软删除源标签"""
-    source_tag_ids: List[int] = Field(..., min_length=1, description="被合并的源标签ID列表")
-    target_tag_id: int = Field(..., description="合并目标标签ID")
+# Task 1.3: Tag 模型已删除，标签管理 Schema（TagAdminResponse / TagUpdate / TagMergeRequest）同步移除
 
 
 # ============ 批量操作 ============

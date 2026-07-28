@@ -35,9 +35,8 @@ from app.models.category import Category
 from app.models.location import Location
 from app.models.post import Post
 from app.models.post_image import PostImage
-from app.models.post_tag import PostTag
 from app.models.user import User
-from app.schemas.post import PostListResponse, TagBrief
+from app.schemas.post import PostListResponse
 from app.schemas.search import (
     AISearchIntent,
     AISearchIntentFilters,
@@ -384,7 +383,6 @@ async def _query_posts(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
 
@@ -519,12 +517,6 @@ def _to_post_list_response(post: Post) -> PostListResponse:
         }
     if post.post_images:
         post_data.cover_image = post.post_images[0].image_url
-    if post.post_tags:
-        post_data.tags = [
-            TagBrief.model_validate(pt.tag)
-            for pt in post.post_tags
-            if pt.tag
-        ]
     return post_data
 
 
@@ -614,7 +606,6 @@ async def _fallback_search(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
 

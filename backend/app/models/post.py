@@ -53,7 +53,6 @@ class Post(Base):
     school: Mapped["School"] = relationship(back_populates="posts")
     category: Mapped["Category"] = relationship(back_populates="posts")
     location: Mapped["Location | None"] = relationship(back_populates="posts")
-    post_tags: Mapped[list["PostTag"]] = relationship(back_populates="post")
     post_images: Mapped[list["PostImage"]] = relationship(back_populates="post")
     comments: Mapped[list["Comment"]] = relationship(back_populates="post")
     likes: Mapped[list["Like"]] = relationship(back_populates="post")

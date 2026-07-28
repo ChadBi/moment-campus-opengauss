@@ -158,6 +158,7 @@ async def test_create_post_unauthenticated(client: AsyncClient, test_category: d
     assert response.status_code == 401
 
 
+@pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，PostCreate/PostResponse 不再有 tags 字段")
 @pytest.mark.asyncio
 async def test_create_post_with_tags(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict):
     """Test creating a post with tags."""

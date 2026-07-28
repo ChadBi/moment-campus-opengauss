@@ -33,7 +33,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import async_session_maker, engine
 from app.models import (
-    Base, User, School, Post, Category, Tag, PostTag, PostImage,
+    Base, User, School, Post, Category, PostImage,
     Location, Comment, Like, ValidationRecord, Report, Notification,
     TopicCollection, TopicCollectionPost, Draft, BrowseHistory, SearchHistory,
     AdminOperationLog, SchoolMembership, SchoolSettings, SchoolSubscription,
@@ -1390,9 +1390,7 @@ async def init_db():
         "likes",
         "comments",
         "post_images",
-        "post_tags",
         "posts",
-        "tags",
         # 主体与模板
         "post_templates",
         "publisher_memberships",
@@ -1419,6 +1417,7 @@ async def init_db():
         # 地点
         "locations",
         # 分类（Task 1.2 调整：post_types 表已删除）
+        # Task 1.3 调整：tags/post_tags 表已删除
         "categories",
         # 多租户
         "school_subscriptions",
