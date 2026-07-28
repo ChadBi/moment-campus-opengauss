@@ -1,18 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { postsApi } from '../services/posts';
 import { commentsApi } from '../services/comments';
 import { interactionsApi } from '../services/interactions';
-import { governanceApi } from '../services/governance';
 import type {
   Post,
   Comment,
   ReportType,
   ValidationType,
-  ChangeReportType,
-  ChangeReportStatus,
   GovernanceSummary,
-  ChangeReport,
 } from '../types';
 import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
@@ -31,9 +27,6 @@ import {
   CheckCircle2,
   XCircle,
   X,
-  AlertTriangle,
-  RefreshCw,
-  FileWarning,
   Image as ImageIcon,
   Phone,
   ChevronLeft,
@@ -41,9 +34,9 @@ import {
   CornerDownRight,
   Share2,
   Link2,
-  Navigation,
   Copy,
   Check,
+  ArrowLeft,
 } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { formatDateTime, formatRelativeTime as formatDate } from '../utils/date';
@@ -92,20 +85,6 @@ const VALIDATION_OPTIONS: Array<{
   },
 ];
 
-// GOV-01: 3 类问题报告（update/expiration_report/conflict_report）
-const CHANGE_REPORT_OPTIONS: Array<{ value: ChangeReportType; label: string; hint: string }> = [
-  { value: 'update', label: '更新建议', hint: '提供更新的信息' },
-  { value: 'expiration_report', label: '过期报告', hint: '报告信息已过期' },
-  { value: 'conflict_report', label: '冲突报告', hint: '报告与其他信息冲突' },
-];
-
-const CHANGE_REPORT_STATUS_CONFIG: Record<ChangeReportStatus, { variant: 'default' | 'success' | 'warning' | 'danger' | 'info'; label: string }> = {
-  open: { variant: 'warning', label: '待处理' },
-  in_review: { variant: 'info', label: '处理中' },
-  resolved: { variant: 'success', label: '已解决' },
-  dismissed: { variant: 'default', label: '已驳回' },
-};
-
 const LOST_TYPE_LABELS: Record<string, string> = {
   lost: '丢失',
   found: '招领',
@@ -129,7 +108,8 @@ function formatExpireCountdown(expireAt?: string): { text: string; expired: bool
 
 const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { isAuthenticated, user } = useAuthStore();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,13 +120,6 @@ const PostDetailPage: React.FC = () => {
   const [reportType, setReportType] = useState<ReportType>('spam');
   const [reportDescription, setReportDescription] = useState('');
   const [reporting, setReporting] = useState(false);
-  // GOV-01: 3 类问题报告状态
-  const [showChangeReportForm, setShowChangeReportForm] = useState(false);
-  const [changeReportType, setChangeReportType] = useState<ChangeReportType>('update');
-  const [changeReportDescription, setChangeReportDescription] = useState('');
-  const [changeReportEvidence, setChangeReportEvidence] = useState('');
-  const [submittingChangeReport, setSubmittingChangeReport] = useState(false);
-  const [handlingReportId, setHandlingReportId] = useState<number | null>(null);
   // DSC-02.1: 图片轮播
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   // DSC-02.1: 评论回复表单（按 comment.id 维护一个输入框；为 null 表示未在回复任何评论）
@@ -156,8 +129,6 @@ const PostDetailPage: React.FC = () => {
   const [copiedField, setCopiedField] = useState<'address' | 'link' | null>(null);
   // UX-01.3: 是否支持原生分享
   const [canNativeShare, setCanNativeShare] = useState(false);
-  // UX-01.2: 外部地图导航菜单展开
-  const [showNavMenu, setShowNavMenu] = useState(false);
   // 当前学校 code（用于构造分享 URL 含 school_code）
   const currentSchoolCode = useCampusStore((s) => s.currentSchoolCode);
 
@@ -195,8 +166,6 @@ const PostDetailPage: React.FC = () => {
 
   // DSC-02.1: 从 post.governance 取聚合数据（游客/登录用户均可读，无需额外请求）
   const governance: GovernanceSummary | null = post?.governance ?? null;
-  const changeReports: ChangeReport[] = governance?.recent_change_reports ?? [];
-  const changeReportsOpen = governance?.change_reports_open ?? 0;
   const userValidationType = governance?.user_validation_type ?? null;
   const totalValidations = governance?.total_validation_count ?? 0;
   const confirmCount = governance?.confirmation_count ?? 0;
@@ -319,60 +288,7 @@ const PostDetailPage: React.FC = () => {
     }
   };
 
-  // GOV-01: 提交问题报告（update/expiration_report/conflict_report）
-  const handleSubmitChangeReport = async () => {
-    if (!isAuthenticated) {
-      setToast({ message: '请先登录后再提交报告', type: 'warning' });
-      return;
-    }
-    if (!changeReportDescription.trim()) {
-      setToast({ message: '请填写报告说明', type: 'warning' });
-      return;
-    }
-    try {
-      setSubmittingChangeReport(true);
-      await governanceApi.createChangeReport(
-        Number(id),
-        changeReportType,
-        changeReportDescription.trim(),
-        changeReportEvidence.trim() || undefined
-      );
-      setToast({ message: '问题报告已提交', type: 'success' });
-      setShowChangeReportForm(false);
-      setChangeReportDescription('');
-      setChangeReportEvidence('');
-      setChangeReportType('update');
-      void loadPost();
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      const msg = err?.response?.data?.detail || '提交报告失败，请稍后重试';
-      setToast({ message: msg, type: 'error' });
-    } finally {
-      setSubmittingChangeReport(false);
-    }
-  };
-
-  // GOV-01: 处理问题报告（作者：仅 resolved；管理员：全部状态）
-  const handleChangeReportStatus = async (
-    reportId: number,
-    targetStatus: ChangeReportStatus,
-    reason?: string
-  ) => {
-    try {
-      setHandlingReportId(reportId);
-      await governanceApi.handleChangeReport(reportId, targetStatus, reason);
-      setToast({ message: '报告状态已更新', type: 'success' });
-      void loadPost();
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } };
-      const msg = err?.response?.data?.detail || '处理报告失败，请稍后重试';
-      setToast({ message: msg, type: 'error' });
-    } finally {
-      setHandlingReportId(null);
-    }
-  };
-
-  // ============ UX-01.2 / UX-01.3: 复制地址 / 深链接 / 外部地图导航 / 原生分享 ============
+  // ============ UX-01.2 / UX-01.3: 复制地址 / 深链接 / 原生分享 ============
 
   // UX-01.3: 挂载时检测 navigator.canShare() 与 navigator.share 是否可用
   useEffect(() => {
@@ -423,41 +339,6 @@ const PostDetailPage: React.FC = () => {
     } catch {
       setToast({ message: '复制失败，请手动复制地址栏', type: 'error' });
     }
-  };
-
-  // UX-01.2: 调用外部地图导航（高德/百度/Google），未提供坐标时回退文字路径
-  const handleOpenExternalMap = (provider: 'amap' | 'baidu' | 'google') => {
-    if (!post?.location) {
-      setToast({ message: '该帖子未关联地点，无法导航', type: 'warning' });
-      return;
-    }
-    const loc = post.location;
-    // 地图不可用回退：仅复制地点名 + 提示用户手动搜索
-    if (loc.latitude == null || loc.longitude == null) {
-      const text = `${loc.name}${loc.building ? ` · ${loc.building}` : ''}${loc.floor ? ` · ${loc.floor}层` : ''}`;
-      void navigator.clipboard?.writeText(text).catch(() => undefined);
-      setToast({
-        message: `该地点无坐标，已复制名称：「${text}」，请到地图 App 搜索`,
-        type: 'info',
-      });
-      setShowNavMenu(false);
-      return;
-    }
-    const { latitude, longitude } = loc;
-    let url = '';
-    switch (provider) {
-      case 'amap':
-        url = `https://uri.amap.com/marker?position=${longitude},${latitude}&name=${encodeURIComponent(loc.name)}`;
-        break;
-      case 'baidu':
-        url = `https://api.map.baidu.com/marker?location=${latitude},${longitude}&title=${encodeURIComponent(loc.name)}&output=html`;
-        break;
-      case 'google':
-        url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-        break;
-    }
-    window.open(url, '_blank', 'noopener,noreferrer');
-    setShowNavMenu(false);
   };
 
   // UX-01.3: 系统原生分享（canShare 检测通过后调用），失败回退复制链接
@@ -516,6 +397,13 @@ const PostDetailPage: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto py-4">
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-1 text-sm text-ink-muted hover:text-lake mb-3"
+      >
+        <ArrowLeft size={16} /> 返回
+      </button>
+
       {/* 长卷主容器 */}
       <article className="bg-paper rounded-[16px] border border-line/60 shadow-md overflow-hidden">
         {/* 标题区 */}
@@ -656,6 +544,16 @@ const PostDetailPage: React.FC = () => {
 
         <div className="mx-6 border-t border-ink-divider" />
 
+        {/* 正文内容 */}
+        <div className="px-6 py-5">
+          <div className="content-paper rounded-[10px] px-5 py-4 -mx-0.5">
+            <p className="text-[15px] text-ink leading-[1.8] whitespace-pre-wrap">{post.content}</p>
+          </div>
+        </div>
+
+        {/* 墨线分隔 */}
+        <div className="mx-6 border-t border-ink-divider" />
+
         {/* 统计与验证条 */}
         <div className="px-6 py-4">
           <div className="flex items-center gap-5 text-sm text-ink-muted">
@@ -736,16 +634,6 @@ const PostDetailPage: React.FC = () => {
           )}
         </div>
 
-        {/* 墨线分隔 */}
-        <div className="mx-6 border-t border-ink-divider" />
-
-        {/* 正文内容 */}
-        <div className="px-6 py-5">
-          <div className="content-paper rounded-[10px] px-5 py-4 -mx-0.5">
-            <p className="text-[15px] text-ink leading-[1.8] whitespace-pre-wrap">{post.content}</p>
-          </div>
-        </div>
-
         {/* 底部操作栏 */}
         <div className="px-6 py-4 border-t border-ink-divider flex flex-wrap gap-2 items-center">
           {isAuthenticated && (
@@ -779,59 +667,6 @@ const PostDetailPage: React.FC = () => {
           >
             {copiedField === 'link' ? '已复制' : '复制链接'}
           </Button>
-
-          {/* UX-01.2: 外部地图导航（含菜单） */}
-          <div className="relative">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowNavMenu((v) => !v)}
-              icon={<Navigation size={14} />}
-              disabled={!post.location}
-              aria-haspopup="menu"
-              aria-expanded={showNavMenu}
-            >
-              导航
-            </Button>
-            {showNavMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-30"
-                  onClick={() => setShowNavMenu(false)}
-                  aria-hidden="true"
-                />
-                <div
-                  className="absolute right-0 mt-1 z-40 bg-paper rounded-[10px] border border-line shadow-lg py-1 min-w-[140px]"
-                  role="menu"
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleOpenExternalMap('amap')}
-                    className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-paper-hover transition-colors"
-                    role="menuitem"
-                  >
-                    高德地图
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenExternalMap('baidu')}
-                    className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-paper-hover transition-colors"
-                    role="menuitem"
-                  >
-                    百度地图
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenExternalMap('google')}
-                    className="w-full text-left px-3 py-2 text-sm text-ink hover:bg-paper-hover transition-colors"
-                    role="menuitem"
-                  >
-                    Google 地图
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
 
           {/* UX-01.3: 系统原生分享（不支持时回退复制链接） */}
           <Button
@@ -921,210 +756,6 @@ const PostDetailPage: React.FC = () => {
           </div>
         )}
       </article>
-
-      {/* GOV-01: 协同治理 — 3 类问题报告（update/expiration_report/conflict_report） */}
-      <section className="bg-paper rounded-[16px] border border-line/60 shadow-md mt-4 overflow-hidden">
-        <div className="px-6 pt-5 pb-3 flex items-center justify-between">
-          <h2 className="font-display font-bold text-lg text-lake flex items-center gap-2">
-            <FileWarning size={18} />
-            问题报告
-            <span className="font-data text-ink-muted text-sm">
-              ({changeReports.length}{changeReportsOpen > 0 && ` · ${changeReportsOpen} 待处理`})
-            </span>
-          </h2>
-          {isAuthenticated && (
-            <Button
-              variant="text"
-              size="sm"
-              icon={<AlertTriangle size={14} />}
-              onClick={() => setShowChangeReportForm(!showChangeReportForm)}
-            >
-              提交报告
-            </Button>
-          )}
-        </div>
-
-        {/* 提交问题报告表单 */}
-        {showChangeReportForm && isAuthenticated && (
-          <div className="mx-6 mb-4 p-4 bg-paper-hover rounded-[10px] border border-line/80">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-display font-bold text-sm text-lake">提交问题报告</h3>
-              <button
-                onClick={() => setShowChangeReportForm(false)}
-                className="text-ink-muted hover:text-ink transition-colors"
-                aria-label="关闭问题报告表单"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs text-ink-muted mb-1.5">报告类型</label>
-                <div className="flex flex-wrap gap-2">
-                  {CHANGE_REPORT_OPTIONS.map(opt => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setChangeReportType(opt.value)}
-                      title={opt.hint}
-                      className={`px-3 py-1.5 rounded-[10px] text-xs font-medium border transition-all ${
-                        changeReportType === opt.value
-                          ? 'bg-lake text-white border-lake'
-                          : 'bg-paper border-line text-ink-sub hover:bg-paper-hover'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-ink-muted mb-1.5">报告说明</label>
-                <textarea
-                  value={changeReportDescription}
-                  onChange={(e) => setChangeReportDescription(e.target.value)}
-                  placeholder="请详细描述需要更新/过期/冲突的内容..."
-                  className="w-full px-3 py-2 text-sm bg-paper border border-line rounded-[10px] resize-none focus:outline-none focus:border-lake transition-colors"
-                  rows={3}
-                  maxLength={2000}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-ink-muted mb-1.5">证据链接（可选）</label>
-                <input
-                  type="url"
-                  value={changeReportEvidence}
-                  onChange={(e) => setChangeReportEvidence(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full h-10 px-3.5 bg-paper border border-line rounded-[10px] text-[14px] text-ink placeholder:text-ink-muted/60 transition-colors focus:outline-none focus:border-lake"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="text"
-                  size="sm"
-                  onClick={() => setShowChangeReportForm(false)}
-                >
-                  取消
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={handleSubmitChangeReport}
-                  loading={submittingChangeReport}
-                  disabled={!changeReportDescription.trim()}
-                >
-                  提交报告
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 报告列表（来自 post.governance.recent_change_reports，游客可见） */}
-        <div className="border-t border-ink-divider">
-          {changeReports.length === 0 ? (
-            <div className="text-center py-10">
-              <div className="text-3xl mb-2">✓</div>
-              <p className="text-ink-muted text-sm">暂无问题报告</p>
-            </div>
-          ) : (
-            <div>
-              {changeReports.map((report, idx) => {
-                const isAuthor = !!user && user.id === post.user_id;
-                const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
-                const canHandle = (isAuthor || isAdmin) && report.status !== 'resolved' && report.status !== 'dismissed';
-                const statusConfig = CHANGE_REPORT_STATUS_CONFIG[report.status];
-                const typeOption = CHANGE_REPORT_OPTIONS.find(o => o.value === report.report_type);
-                return (
-                  <div
-                    key={report.id}
-                    className={`px-6 py-4 ${idx > 0 ? 'border-t border-ink-divider/60' : ''}`}
-                  >
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <Badge variant="info">{typeOption?.label || report.report_type}</Badge>
-                      <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
-                      <span className="text-xs text-ink-muted font-data ml-auto">
-                        {formatDate(report.created_at)}
-                      </span>
-                    </div>
-                    {report.description && (
-                      <p className="text-sm text-ink leading-[1.7] mb-2">{report.description}</p>
-                    )}
-                    {report.evidence_url && (
-                      <a
-                        href={report.evidence_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-lake hover:underline mb-2"
-                      >
-                        <RefreshCw size={11} />
-                        查看证据
-                      </a>
-                    )}
-                    <div className="flex items-center gap-3 text-xs text-ink-muted">
-                      <span>报告人：{report.reporter?.nickname || '匿名'}</span>
-                      {report.handler && (
-                        <span>处理人：{report.handler.nickname}</span>
-                      )}
-                      {report.handler_note && (
-                        <span className="truncate">说明：{report.handler_note}</span>
-                      )}
-                    </div>
-                    {canHandle && (
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {isAuthor && (
-                          <Button
-                            variant="success"
-                            size="sm"
-                            icon={<CheckCircle2 size={12} />}
-                            onClick={() => handleChangeReportStatus(report.id, 'resolved', '作者标记已处理')}
-                            loading={handlingReportId === report.id}
-                          >
-                            标记已处理
-                          </Button>
-                        )}
-                        {isAdmin && (
-                          <>
-                            {report.status === 'open' && (
-                              <Button
-                                variant="info"
-                                size="sm"
-                                onClick={() => handleChangeReportStatus(report.id, 'in_review', '管理员受理')}
-                                loading={handlingReportId === report.id}
-                              >
-                                受理
-                              </Button>
-                            )}
-                            <Button
-                              variant="success"
-                              size="sm"
-                              icon={<CheckCircle2 size={12} />}
-                              onClick={() => handleChangeReportStatus(report.id, 'resolved', '已解决')}
-                              loading={handlingReportId === report.id}
-                            >
-                              解决
-                            </Button>
-                            <Button
-                              variant="text"
-                              size="sm"
-                              icon={<XCircle size={12} />}
-                              onClick={() => handleChangeReportStatus(report.id, 'dismissed', '驳回')}
-                              loading={handlingReportId === report.id}
-                            >
-                              驳回
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </section>
 
       {/* 评论区长卷 */}
       <section className="bg-paper rounded-[16px] border border-line/60 shadow-md mt-4 overflow-hidden">

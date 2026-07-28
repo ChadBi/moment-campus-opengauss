@@ -21,19 +21,8 @@ export type ReportType =
   | 'false_info'
   | 'other';
 
-/** 协同验证类型（5 类） */
-export type ValidationType =
-  | 'confirmation'
-  | 'refutation'
-  | 'update'
-  | 'expiration_report'
-  | 'conflict_report';
-
-/** 问题报告类型（GOV-01，3 类） */
-export type ChangeReportType = 'update' | 'expiration_report' | 'conflict_report';
-
-/** 问题报告处理状态（GOV-01） */
-export type ChangeReportStatus = 'open' | 'in_review' | 'resolved' | 'dismissed';
+/** 协同验证类型（2 类：证实/证伪；问题报告已移除） */
+export type ValidationType = 'confirmation' | 'refutation';
 
 // ===== 关联数据（Brief 模型） =====
 
@@ -269,32 +258,6 @@ export interface ValidationAggregation {
   recent_records: ValidationVote[];
 }
 
-/** 问题报告（后端 ChangeReportResponse） */
-export interface ChangeReport {
-  id: number;
-  post_id: number;
-  reporter_id: number;
-  report_type: ChangeReportType;
-  description?: string;
-  evidence_url?: string;
-  status: ChangeReportStatus;
-  handler_id?: number;
-  handler_note?: string;
-  handled_at?: string;
-  created_at: string;
-  updated_at: string;
-  reporter?: Author;
-  handler?: Author;
-}
-
-/** 问题报告列表（后端 ChangeReportListResponse） */
-export interface ChangeReportList {
-  post_id: number;
-  items: ChangeReport[];
-  total: number;
-  open_count: number;
-}
-
 /** 帖子详情治理聚合（后端 GovernanceSummary，嵌入 PostResponse.governance） */
 export interface GovernanceSummary {
   confirmation_count: number;
@@ -303,9 +266,6 @@ export interface GovernanceSummary {
   validity_status: 'valid' | 'invalid' | 'uncertain';
   /** DSC-02.1: 当前登录用户对此帖的投票类型；游客恒为 null（前端据此隐藏投票按钮） */
   user_validation_type: ValidationType | null;
-  change_reports_total: number;
-  change_reports_open: number;
-  recent_change_reports: ChangeReport[];
 }
 
 /** 状态流转响应（后端 PostTransitionResponse） */
