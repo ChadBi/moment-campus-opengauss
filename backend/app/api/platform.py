@@ -86,8 +86,13 @@ class PlanDetail(BaseModel):
 
 
 class SubscriptionBrief(BaseModel):
+    """Task 1.5: 订阅响应中加入 school_name（前端 PlatformPlansPage 展示学校名称）。
+
+    school_name 通过 LEFT JOIN schools 表填充；若 school 已删除，则为 None（兼容历史数据）。
+    """
     id: int
     school_id: int
+    school_name: Optional[str] = None
     plan_id: int
     plan_code: Optional[str] = None
     plan_name: Optional[str] = None
@@ -163,9 +168,13 @@ async def list_subscriptions(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_role(Role.SUPER_ADMIN)),
 ):
-    """列出全平台学校订阅（super_admin，分页）。"""
+    """列出全平台学校订阅（super_admin，分页）。
+
+    Task 1.5: 同时预加载 school 关系，填充 school_name 字段供前端展示。
+    """
     stmt = select(SchoolSubscription).options(
         selectinload(SchoolSubscription.plan),
+        selectinload(SchoolSubscription.school),
     )
     if school_id is not None:
         stmt = stmt.where(SchoolSubscription.school_id == school_id)
@@ -204,6 +213,7 @@ async def list_subscriptions(
     items = [
         SubscriptionBrief(
             id=s.id, school_id=s.school_id, plan_id=s.plan_id,
+            school_name=s.school.name if s.school else None,
             plan_code=s.plan.code if s.plan else None,
             plan_name=s.plan.name if s.plan else None,
             status=s.status, started_at=s.started_at,
@@ -324,6 +334,7 @@ async def assign_subscription(
 
     return SubscriptionBrief(
         id=new_sub.id, school_id=new_sub.school_id, plan_id=new_sub.plan_id,
+        school_name=school.name,  # Task 1.5: school 已在函数入口加载
         plan_code=new_sub.plan.code if new_sub.plan else None,
         plan_name=new_sub.plan.name if new_sub.plan else None,
         status=new_sub.status, started_at=new_sub.started_at,
@@ -351,7 +362,10 @@ async def update_subscription(
     - 恢复：status='active'（若已 expired，需走分配接口而非本接口）
     """
     sub = (await db.execute(
-        select(SchoolSubscription).options(selectinload(SchoolSubscription.plan))
+        select(SchoolSubscription).options(
+            selectinload(SchoolSubscription.plan),
+            selectinload(SchoolSubscription.school),  # Task 1.5
+        )
         .where(SchoolSubscription.id == subscription_id)
     )).scalar_one_or_none()
     if sub is None:
@@ -416,6 +430,7 @@ async def update_subscription(
 
     return SubscriptionBrief(
         id=sub.id, school_id=sub.school_id, plan_id=sub.plan_id,
+        school_name=sub.school.name if sub.school else None,  # Task 1.5
         plan_code=sub.plan.code if sub.plan else None,
         plan_name=sub.plan.name if sub.plan else None,
         status=sub.status, started_at=sub.started_at,
@@ -958,7 +973,10 @@ async def list_subscription_history(
 
     subs = (await db.execute(
         select(SchoolSubscription)
-        .options(selectinload(SchoolSubscription.plan))
+        .options(
+            selectinload(SchoolSubscription.plan),
+            selectinload(SchoolSubscription.school),  # Task 1.5
+        )
         .where(SchoolSubscription.school_id == school_id)
         .order_by(SchoolSubscription.assigned_at.desc())
     )).scalars().all()
@@ -966,6 +984,7 @@ async def list_subscription_history(
     items = [
         SubscriptionBrief(
             id=s.id, school_id=s.school_id, plan_id=s.plan_id,
+            school_name=s.school.name if s.school else None,  # Task 1.5
             plan_code=s.plan.code if s.plan else None,
             plan_name=s.plan.name if s.plan else None,
             status=s.status, started_at=s.started_at,

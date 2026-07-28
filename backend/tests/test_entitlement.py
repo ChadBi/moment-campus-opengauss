@@ -451,6 +451,8 @@ class TestPlatformRoutes:
         data = r.json()
         assert data["status"] == "active"
         assert data["plan_code"] == "trial"
+        # Task 1.5: 分配接口响应应返回 school_name
+        assert data["school_name"] == test_school["name"]
         # note 应包含续期信息
         assert "续期" in data["note"] or "测试分配 trial" in data["note"]
 
@@ -458,7 +460,7 @@ class TestPlatformRoutes:
     async def test_list_subscriptions(
         self, client: AsyncClient, super_admin_headers: dict, test_school: dict
     ):
-        """super_admin 获取订阅列表。"""
+        """super_admin 获取订阅列表（Task 1.5: 验证 school_name 字段）。"""
         # 先确保 test_school 有订阅（fixture 自动分配 operations）
         r = await client.get(
             "/api/v1/platform/subscriptions", headers=super_admin_headers
@@ -467,7 +469,9 @@ class TestPlatformRoutes:
         data = r.json()
         assert data["total"] >= 1
         items = data["items"]
-        assert any(it["school_id"] == test_school["id"] for it in items)
+        # Task 1.5: 验证响应包含 school_name 字段且与 test_school 一致
+        target = next(it for it in items if it["school_id"] == test_school["id"])
+        assert target["school_name"] == test_school["name"]
 
     @pytest.mark.asyncio
     async def test_update_subscription_suspend(
@@ -494,6 +498,8 @@ class TestPlatformRoutes:
         assert r2.status_code == 200, r2.text
         data = r2.json()
         assert data["status"] == "suspended"
+        # Task 1.5: 暂停接口响应也应返回 school_name
+        assert data["school_name"] == test_school["name"]
         assert "测试暂停" in data["note"]
         assert "[update]" in data["note"]
 

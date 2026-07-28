@@ -111,7 +111,7 @@ async def test_subscription_history(
     super_admin_headers: dict,
     test_school: dict,
 ):
-    """GET /platform/schools/{id}/subscription-history 返回历史订阅列表。"""
+    """GET /platform/schools/{id}/subscription-history 返回历史订阅列表（含 school_name）。"""
     response = await client.get(
         f"/api/v1/platform/schools/{test_school['id']}/subscription-history",
         headers=super_admin_headers,
@@ -123,6 +123,8 @@ async def test_subscription_history(
     # test_school fixture 已分配 operations 订阅
     assert data["total"] >= 1
     assert data["items"][0]["plan_code"] == "operations"
+    # Task 1.5: 历史订阅响应也应包含 school_name
+    assert data["items"][0]["school_name"] == test_school["name"]
 
 
 @pytest.mark.asyncio
