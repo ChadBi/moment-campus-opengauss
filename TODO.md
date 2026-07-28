@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-28（E2E 测试反馈四项修复完成：2.2.5 按钮遮挡 + 3.8 分类核查 + 限流倍率 + verify_governance 重写；后端 938 passed / 79 skipped / 0 failed + 前端 build 通过 + MCP 浏览器 E2E 验证 PASS）
+> 最后更新：2026-07-28（华为云混合部署更新到 0d62930：openGauss 容器 + 后端 systemd + 前端 Nginx 静态；20 个 Alembic 迁移含 5 个破坏性表删除全部成功；4 项公网验证 PASS）
 
 ## 状态总览
 
@@ -39,6 +39,25 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### 华为云混合部署更新到 0d62930（2026-07-28 完成）
+
+将线上 `campus.chaina1.com` 从旧版本（commit `828382c`，2026-07-05 部署）滚动更新到最新版本（commit `0d62930`）。沿用混合部署方案：openGauss 容器 + 后端 systemd + 前端 Nginx 静态托管。
+
+- [x] 步骤 1：gs_dump 备份数据库到 `/tmp/moment_campus_backup_20260728.dump`（108 KB，4928 个对象）
+- [x] 步骤 2：备份前端 dist 到 `dist-backup-20260728`（秒级回滚能力）
+- [x] 步骤 3：停止 moment-backend 服务（4 workers 优雅退出）
+- [x] 步骤 4：git stash + git pull，HEAD 从 `828382c` 更新到 `0d62930`（30+ commits）
+- [x] 步骤 5：pip install 新依赖 openai 2.49.0 + jsonschema 4.26.0 + 13 个间接依赖
+- [x] 步骤 6：alembic upgrade head — 20 个迁移全部成功（含 5 个破坏性表删除：change_reports/post_types/tags/activity_time/digest_email_preferences），head: `z5e6f7g8h9i0`
+- [x] 步骤 7：服务器无 Node.js，改本地 `npm run build`（1.46s）+ tar 打包 + scp 上传 + 服务器解压
+- [x] 步骤 8：chown -R moment:moment 权限修正
+- [x] 步骤 9：启动 moment-backend（4 workers），`/health` 返回 `{"status":"ok"}`，环境 production
+- [x] 步骤 10：nginx -t + reload nginx
+- [x] 步骤 11：公网验证 4 项全部 PASS — `https://campus.chaina1.com/health`=ok、`/api/v1/categories`=5 类、前端首页 200、admin 登录成功
+- [x] 任务报告：[AIwork/华为云混合部署更新_任务报告.md](AIwork/华为云混合部署更新_任务报告.md)
+
+**未做（可选）**：OPENAI_API_KEY 配置（AI 搜索降级不影响其他功能）；seed_data.py 重跑（现有演示数据已保留）
 
 ### E2E 测试反馈四项修复（2026-07-28 完成）
 
