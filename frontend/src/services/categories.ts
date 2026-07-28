@@ -6,10 +6,12 @@ import { api } from './api';
  * 后端端点（app/api/categories.py）：
  *   GET /categories      当前学校启用的分类
  *   GET /locations       当前学校地点（含 is_verified 字段）
- *   GET /post-types      全局共享信息类型
  *   POST /locations      创建新地点（is_verified=false，进核验队列）
  *
  * 所有 GET 接口依赖 Axios 拦截器注入的 X-School-Code 头实现租户隔离。
+ *
+ * Task 1.2 调整：移除 GET /post-types 与 PostTypeListItem（PostType 模型已删除，
+ * 分类与类型合并为统一「信息分类」5 类：share/teamup/trade/lost_found/other）
  */
 
 /** 分类列表项（后端 CategoryResponse） */
@@ -35,15 +37,6 @@ export interface LocationListItem {
   is_verified: boolean;
 }
 
-/** 信息类型列表项（后端 PostTypeResponse） */
-export interface PostTypeListItem {
-  id: number;
-  name: string;
-  code: string;
-  description?: string | null;
-  sort_order: number;
-}
-
 /** 新建地点请求体 */
 export interface CreateLocationRequest {
   name: string;
@@ -64,12 +57,6 @@ export const categoriesApi = {
   /** 获取当前学校地点列表（含 is_verified 字段） */
   listLocations: async (): Promise<LocationListItem[]> => {
     const response = await api.get('/locations');
-    return response.data;
-  },
-
-  /** 获取全局信息类型列表（所有学校共用） */
-  listPostTypes: async (): Promise<PostTypeListItem[]> => {
-    const response = await api.get('/post-types');
     return response.data;
   },
 

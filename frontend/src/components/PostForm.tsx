@@ -3,7 +3,6 @@ import {
   MapPin,
   X,
   Image as ImageIcon,
-  Plus,
   AlertTriangle,
   RotateCcw,
   Trash2,
@@ -12,13 +11,13 @@ import {
   Check,
   Info,
   ShieldAlert,
+  Map as MapIcon,
 } from 'lucide-react';
 import { postsApi } from '../services/posts';
 import { categoriesApi } from '../services/categories';
 import type {
   CategoryListItem,
   LocationListItem,
-  PostTypeListItem,
 } from '../services/categories';
 import { publishersApi } from '../services/publishers';
 import { uploadApi } from '../services/upload';
@@ -28,15 +27,24 @@ import { useUIStore } from '../store/useUIStore';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Loading } from './ui/Loading';
+import { Modal } from './ui/Modal';
+import MapLocationPicker from './MapLocationPicker';
 import type { AIPublishSuggestionResponse, PostTemplate, PublisherBrief } from '../types';
 
 /**
  * PUB-01.1: 统一发布表单（共享子组件）
  *
+ * Task 3.1 调整：
+ *   - 移除 tags / post_type / activity_start_at / activity_end_at 字段（模型已删除/字段已下线）
+ *   - 「有效期」重命名为「信息截止时间」
+ *   - 「失物类型」改为条件渲染：仅当 selectedCategory.code === 'lost_found' 时显示
+ *   - 「地点」改为非必填，新增「在地图上选择位置」按钮（弹窗内嵌 MapLocationPicker）
+ *   - 经纬度改为只读展示（由地图选点自动填充）
+ *
  * 合并原 PublishPage 与 MapPage 发帖面板的表单逻辑：
- *   - 分类 / 信息类型 / 地点全部来自 API（带 X-School-Code 头，按当前学校过滤）
- *   - 图片预览（多图，最多 9 张）+ 标签（最多 5 个）+ 有效期 + 活动时间 + 联系方式 + 失物类型 + 匿名
- *   - 地点选择：本校已核验地点下拉 + 新增地点（经纬度必填，进 is_verified=false 队列）
+ *   - 分类 / 地点全部来自 API（带 X-School-Code 头，按当前学校过滤）
+ *   - 图片预览（多图，最多 9 张）+ 信息截止时间 + 联系方式 + 失物类型 + 匿名
+ *   - 地点选择：本校已核验地点下拉 + 新增地点（地图选点，进 is_verified=false 队列）
  *   - 草稿恢复：按 用户 + 学校 分键 localStorage，自动保存（防抖 1s）+ 离开页前同步写入 + 恢复横幅
  *   - 发布成功后由调用方通过 onSuccess 回调决定跳转（PUB-01.3：默认跳 /profile）
  *
@@ -44,15 +52,10 @@ import type { AIPublishSuggestionResponse, PostTemplate, PublisherBrief } from '
  *   - variant='page'  ：PublishPage 用，Card + Input 组件 + 宽松间距
  *   - variant='panel' ：MapPage 侧滑面板用，紧凑原生 input + 紧凑间距
  *
- * 两种 variant 字段集完全一致（PUB-01.1 要求 MapPage 补全 post_type_id/图片/标签/有效期/活动时间/
- * 联系方式/失物类型/草稿按钮），仅样式差异。
- *
  * 地图点选发帖：调用方传入 defaultLocationLat/Lng/Name，PostForm 初始化新地点坐标并标记只读。
  */
 
 const MAX_IMAGES = 9;
-const MAX_TAGS = 5;
-const MAX_TAG_LENGTH = 20;
 // UX-01.4: 自动保存策略
 //   - DRAFT_AUTOSAVE_DELAY_MS：输入变化后防抖 1s 写入（保持响应性）
 //   - DRAFT_AUTOSAVE_INTERVAL_MS：固定 5s 周期写入（保证离开前最近 5s 内有保存）
@@ -63,18 +66,14 @@ interface PublishFormState {
   title: string;
   content: string;
   category_id: number | null;
-  post_type_id: number | null;
   location_id: number | null;
   // 新增地点字段（与 location_id 互斥；填写后自动创建 is_verified=false 的地点）
   new_location_name: string;
   new_location_lat: string;
   new_location_lng: string;
   is_anonymous: boolean;
-  tags: string[];
   image_urls: string[];
-  expire_at: string; // datetime-local 字符串
-  activity_start_at: string;
-  activity_end_at: string;
+  expire_at: string; // datetime-local 字符串（信息截止时间）
   contact_info: string;
   lost_type: '' | 'lost' | 'found';
   // ORG-01: 关联官方发布主体（可选）
@@ -85,17 +84,13 @@ const INITIAL_FORM: PublishFormState = {
   title: '',
   content: '',
   category_id: null,
-  post_type_id: null,
   location_id: null,
   new_location_name: '',
   new_location_lat: '',
   new_location_lng: '',
   is_anonymous: false,
-  tags: [],
   image_urls: [],
   expire_at: '',
-  activity_start_at: '',
-  activity_end_at: '',
   contact_info: '',
   lost_type: '',
   publisher_id: null,
@@ -132,7 +127,6 @@ function isFormEffectivelyEmpty(form: PublishFormState): boolean {
   return (
     !form.title.trim() &&
     !form.content.trim() &&
-    form.tags.length === 0 &&
     form.image_urls.length === 0 &&
     !form.location_id &&
     !form.new_location_name.trim() &&
@@ -296,7 +290,6 @@ const PostForm: React.FC<PostFormProps> = ({
 
   const [formData, setFormData] = useState<PublishFormState>(getInitialForm);
   const [categories, setCategories] = useState<CategoryListItem[]>([]);
-  const [postTypes, setPostTypes] = useState<PostTypeListItem[]>([]);
   const [locations, setLocations] = useState<LocationListItem[]>([]);
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaError, setMetaError] = useState<string | null>(null);
@@ -306,9 +299,11 @@ const PostForm: React.FC<PostFormProps> = ({
   const [templates, setTemplates] = useState<PostTemplate[]>([]);
   const [appliedTemplateId, setAppliedTemplateId] = useState<number | null>(null);
 
-  const [tagInput, setTagInput] = useState('');
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Task 3.1: 地图选点 Modal 弹窗状态
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
 
   // AI-03: AI 辅助发布建议状态
   const [aiSuggesting, setAiSuggesting] = useState(false);
@@ -341,7 +336,8 @@ const PostForm: React.FC<PostFormProps> = ({
     draftKeyRef.current = draftStorageKey;
   }, [draftStorageKey]);
 
-  // 切换学校时重新拉取分类 / 类型 / 地点 / 发布主体 / 公共模板
+  // 切换学校时重新拉取分类 / 地点 / 发布主体 / 公共模板
+  // Task 3.1 调整：移除 listPostTypes 调用（PostType 已删除）
   useEffect(() => {
     let cancelled = false;
     void Promise.resolve().then(() => {
@@ -351,7 +347,6 @@ const PostForm: React.FC<PostFormProps> = ({
     });
     Promise.all([
       categoriesApi.listCategories(),
-      categoriesApi.listPostTypes(),
       categoriesApi.listLocations(),
       // ORG-01.3: 已认证发布主体（用户仅能选择本校已认证主体关联发布）
       publishersApi.list({ verified_status: 'verified', page_size: 100 }).catch(() => ({
@@ -365,18 +360,16 @@ const PostForm: React.FC<PostFormProps> = ({
       // ORG-01.3: 学校级公共模板（publisher_id IS NULL，启用状态）
       publishersApi.getPublicTemplates().catch(() => [] as PostTemplate[]),
     ])
-      .then(([cats, pts, locs, pubsResp, tmpls]) => {
+      .then(([cats, locs, pubsResp, tmpls]) => {
         if (cancelled) return;
         setCategories(cats);
-        setPostTypes(pts);
         setLocations(locs);
         setPublishers(pubsResp.items);
         setTemplates(tmpls);
-        // 默认选中第一个分类与第一个类型，减少用户操作
+        // 默认选中第一个分类，减少用户操作
         setFormData((prev) => ({
           ...prev,
           category_id: prev.category_id ?? cats[0]?.id ?? null,
-          post_type_id: prev.post_type_id ?? pts[0]?.id ?? null,
         }));
       })
       .catch((err: unknown) => {
@@ -427,20 +420,16 @@ const PostForm: React.FC<PostFormProps> = ({
           title: post.title,
           content: post.content,
           category_id: post.category_id ?? null,
-          post_type_id: post.post_type_id ?? null,
           location_id: post.location_id ?? null,
           new_location_name: '',
           new_location_lat: '',
           new_location_lng: '',
           is_anonymous: post.is_anonymous,
-          tags: (post.tags ?? []).map((t) => t.name),
           image_urls: (post.images ?? [])
             .slice()
             .sort((a, b) => a.sort_order - b.sort_order)
             .map((img) => img.image_url),
           expire_at: toDatetimeLocal(post.expire_at),
-          activity_start_at: toDatetimeLocal(post.activity_start_at),
-          activity_end_at: toDatetimeLocal(post.activity_end_at),
           contact_info: post.contact_info ?? '',
           lost_type: (post.lost_type as '' | 'lost' | 'found') ?? '',
           publisher_id: post.publisher_id ?? null,
@@ -559,13 +548,9 @@ const PostForm: React.FC<PostFormProps> = ({
     handleFieldChange('category_id', id);
   };
 
-  const handlePostTypeSelect = (id: number) => {
-    handleFieldChange('post_type_id', id);
-  };
-
   // ============ ORG-01.3: 发布模板一键补全 ============
   /**
-   * 应用模板：将模板的标题/正文/分类/类型填入表单（覆盖原值，由发布者确认）。
+   * 应用模板：将模板的标题/正文/分类填入表单（覆盖原值，由发布者确认）。
    * AI 只补全建议，发布者确认——模板应用后用户仍可继续编辑。
    * 模板字段为空时保留原表单值（不强制清空）。
    */
@@ -575,7 +560,6 @@ const PostForm: React.FC<PostFormProps> = ({
       title: template.title_template || prev.title,
       content: template.content_template || prev.content,
       category_id: template.category_id ?? prev.category_id,
-      post_type_id: template.post_type_id ?? prev.post_type_id,
     }));
     setAppliedTemplateId(template.id);
     showToast(`已应用模板「${template.name}」，可继续编辑后发布`, 'success');
@@ -614,38 +598,17 @@ const PostForm: React.FC<PostFormProps> = ({
     }
   };
 
-  // ============ 标签处理 ============
-  const handleAddTag = () => {
-    const trimmed = tagInput.trim();
-    if (!trimmed) return;
-    if (trimmed.length > MAX_TAG_LENGTH) {
-      showToast(`单个标签最多 ${MAX_TAG_LENGTH} 字`, 'warning');
-      return;
-    }
-    if (formData.tags.length >= MAX_TAGS) {
-      showToast(`最多 ${MAX_TAGS} 个标签`, 'warning');
-      return;
-    }
-    if (formData.tags.includes(trimmed)) {
-      showToast('标签已存在', 'warning');
-      return;
-    }
-    handleFieldChange('tags', [...formData.tags, trimmed]);
-    setTagInput('');
+  // Task 3.1: 打开地图选点弹窗
+  const handleOpenMapPicker = () => {
+    setMapPickerOpen(true);
   };
 
-  const handleRemoveTag = (tag: string) => {
-    handleFieldChange(
-      'tags',
-      formData.tags.filter((t) => t !== tag)
-    );
-  };
-
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      handleAddTag();
-    }
+  // Task 3.1: 地图选点回调
+  const handleMapPick = (lat: number, lng: number) => {
+    handleNewLocationField('new_location_lat', String(lat));
+    handleNewLocationField('new_location_lng', String(lng));
+    setMapPickerOpen(false);
+    showToast('已选点，可继续填写地点名称', 'success');
   };
 
   // ============ 图片上传 ============
@@ -701,11 +664,7 @@ const PostForm: React.FC<PostFormProps> = ({
         content: formData.content.trim(),
         category_id: formData.category_id,
         location_id: formData.location_id,
-        post_type_id: formData.post_type_id,
-        tags: formData.tags.length > 0 ? formData.tags : null,
         contact_info: formData.contact_info.trim() || null,
-        activity_start_at: toIso(formData.activity_start_at) ?? null,
-        activity_end_at: toIso(formData.activity_end_at) ?? null,
         lost_type: formData.lost_type || null,
         expire_at: toIso(formData.expire_at) ?? null,
       };
@@ -761,21 +720,6 @@ const PostForm: React.FC<PostFormProps> = ({
     showToast('已采纳建议分类', 'success');
   };
 
-  /** 采纳建议标签（合并到现有标签，去重） */
-  const adoptTags = () => {
-    const tags = aiSuggestion?.suggestions?.tags ?? [];
-    if (tags.length === 0) return;
-    const merged = [...formData.tags];
-    for (const t of tags) {
-      if (!merged.includes(t) && merged.length < MAX_TAGS) {
-        merged.push(t);
-      }
-    }
-    handleFieldChange('tags', merged);
-    setAdoptedFields((prev) => new Set(prev).add('tags'));
-    showToast(`已采纳 ${tags.length} 个建议标签`, 'success');
-  };
-
   /** 采纳建议默认有效期（按天数计算 expire_at） */
   const adoptValidity = () => {
     const days = aiSuggestion?.suggestions?.default_validity_days;
@@ -808,9 +752,7 @@ const PostForm: React.FC<PostFormProps> = ({
       return '内容长度必须在 10-5000 字符之间';
     }
     if (!formData.category_id) return '请选择分类';
-    if (!formData.post_type_id) return '请选择信息类型';
-    // 地点：已选 location_id 或填写完整新地点三件套
-    const hasExistingLocation = formData.location_id !== null;
+    // Task 3.1: 地点改为非必填；若填写新地点三件套，则需完整
     const hasNewLocation =
       formData.new_location_name.trim() !== '' ||
       formData.new_location_lat !== '' ||
@@ -827,13 +769,6 @@ const PostForm: React.FC<PostFormProps> = ({
       const lng = Number(formData.new_location_lng);
       if (Number.isNaN(lat) || lat < -90 || lat > 90) return '纬度必须在 -90 ~ 90 之间';
       if (Number.isNaN(lng) || lng < -180 || lng > 180) return '经度必须在 -180 ~ 180 之间';
-    } else if (!hasExistingLocation) {
-      return '请选择地点或新增地点';
-    }
-    if (formData.activity_start_at && formData.activity_end_at) {
-      const s = new Date(formData.activity_start_at);
-      const e = new Date(formData.activity_end_at);
-      if (e <= s) return '活动结束时间必须晚于开始时间';
     }
     return null;
   };
@@ -879,17 +814,13 @@ const PostForm: React.FC<PostFormProps> = ({
         title: formData.title.trim(),
         content: formData.content.trim(),
         category_id: formData.category_id as number,
-        post_type_id: formData.post_type_id as number,
         location_id: locationId ?? undefined,
         location_name: locationName,
         location_lat: locationLat,
         location_lng: locationLng,
         is_anonymous: formData.is_anonymous,
-        tags: formData.tags.length > 0 ? formData.tags : undefined,
         image_urls: formData.image_urls.length > 0 ? formData.image_urls : undefined,
         expire_at: toIso(formData.expire_at),
-        activity_start_at: toIso(formData.activity_start_at),
-        activity_end_at: toIso(formData.activity_end_at),
         contact_info: formData.contact_info.trim() || undefined,
         lost_type: formData.lost_type || undefined,
       };
@@ -1011,7 +942,7 @@ const PostForm: React.FC<PostFormProps> = ({
               <div className="min-w-0">
                 <p className="text-sm text-ink font-medium truncate">AI 辅助发布建议</p>
                 <p className="text-[11px] text-ink-muted truncate">
-                  基于草稿生成结构化建议（标题/摘要/分类/标签/有效期/遗漏/敏感提醒）
+                  基于草稿生成结构化建议（标题/摘要/分类/有效期/遗漏/敏感提醒）
                 </p>
               </div>
             </div>
@@ -1156,41 +1087,6 @@ const PostForm: React.FC<PostFormProps> = ({
                             variant="secondary"
                             size="sm"
                             onClick={adoptCategory}
-                          >
-                            采纳
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* 建议标签 */}
-                  {aiSuggestion.suggestions.tags.length > 0 ? (
-                    <div className="bg-white/60 rounded-md px-3 py-2 border border-line">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[11px] text-ink-muted mb-0.5">建议标签</p>
-                          <div className="flex flex-wrap gap-1">
-                            {aiSuggestion.suggestions.tags.map((t) => (
-                              <span
-                                key={t}
-                                className="inline-block bg-lake/10 text-lake px-1.5 py-0.5 rounded text-[11px]"
-                              >
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        {adoptedFields.has('tags') ? (
-                          <span className="text-[11px] text-grass flex items-center gap-0.5 flex-shrink-0">
-                            <Check size={12} /> 已采纳
-                          </span>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={adoptTags}
                           >
                             采纳
                           </Button>
@@ -1366,36 +1262,6 @@ const PostForm: React.FC<PostFormProps> = ({
           required
         />
 
-        {/* 信息类型（动态来自 API） */}
-        <div role="group" aria-labelledby="post-type-label">
-          <label id="post-type-label" className={vs.label}>
-            信息类型 <span className="text-danger" aria-hidden="true">*</span>
-            <span className="sr-only">（必选）</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {postTypes.length === 0 ? (
-              <span className="text-xs text-ink-muted">当前学校暂无信息类型</span>
-            ) : (
-              postTypes.map((pt) => {
-                const isActive = formData.post_type_id === pt.id;
-                return (
-                  <button
-                    key={pt.id}
-                    type="button"
-                    onClick={() => handlePostTypeSelect(pt.id)}
-                    aria-pressed={isActive}
-                    className={`${vs.typeChip} ${
-                      isActive ? vs.catChipActive : vs.catChipInactive
-                    } focus:outline-none focus-visible:ring-2 focus-visible:ring-lake focus-visible:ring-offset-2`}
-                  >
-                    {pt.name}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
-
         {/* 分类（动态来自 API） */}
         <div role="group" aria-labelledby="category-label">
           <label id="category-label" className={vs.label}>
@@ -1504,45 +1370,10 @@ const PostForm: React.FC<PostFormProps> = ({
           />
         </div>
 
-        {/* 标签 */}
-        <div>
-          <label className={vs.label}>
-            标签 <span className="text-ink-muted text-xs">（最多 {MAX_TAGS} 个，回车或逗号添加）</span>
-          </label>
-          <div className="flex flex-wrap items-center gap-1.5 mb-2">
-            {formData.tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 bg-lake/10 text-lake px-2 py-1 rounded-md text-xs"
-              >
-                {tag}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveTag(tag)}
-                  className="hover:text-danger"
-                  aria-label={`移除标签 ${tag}`}
-                >
-                  <X size={11} />
-                </button>
-              </span>
-            ))}
-          </div>
-          <Input
-            name="tag_input"
-            type="text"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            onKeyDown={handleTagKeyDown}
-            placeholder="输入标签后按回车添加"
-            maxLength={MAX_TAG_LENGTH}
-            icon={<Plus size={14} />}
-          />
-        </div>
-
         {/* 地点选择（本校校验） + 新增地点（is_verified=false 队列） */}
         <div>
           <label className={vs.label}>
-            地点 <span className="text-danger">*</span>
+            地点 <span className="text-ink-muted text-xs">（可选；不选则发布为无地点信息）</span>
           </label>
           <select
             value={formData.location_id ?? ''}
@@ -1570,13 +1401,27 @@ const PostForm: React.FC<PostFormProps> = ({
             ) : null}
           </select>
           <div className="mt-2 rounded-[10px] border border-dashed border-line p-3 bg-mist/40">
-            <div className="flex items-center gap-1.5 text-xs text-ink-muted mb-2">
-              <MapPin size={12} />
-              <span>
-                {locationCoordsReadOnly
-                  ? '坐标来自地图点选（只读），可修改名称或改选上方已有地点'
-                  : '没有合适地点？新增地点将进入核验队列（is_verified=false），管理员核验后合并'}
-              </span>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className="flex items-center gap-1.5 text-xs text-ink-muted min-w-0">
+                <MapPin size={12} className="flex-shrink-0" />
+                <span className="truncate">
+                  {locationCoordsReadOnly
+                    ? '坐标来自地图点选（只读），可修改名称或改选上方已有地点'
+                    : '没有合适地点？新增地点将进入核验队列（is_verified=false），管理员核验后合并'}
+                </span>
+              </div>
+              {!locationCoordsReadOnly ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  icon={<MapIcon size={13} />}
+                  onClick={handleOpenMapPicker}
+                  className="flex-shrink-0"
+                >
+                  在地图上选择位置
+                </Button>
+              ) : null}
             </div>
             <Input
               label="新地点名称"
@@ -1612,33 +1457,15 @@ const PostForm: React.FC<PostFormProps> = ({
           </div>
         </div>
 
-        {/* 有效期 + 活动时间 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* 信息截止时间（原"有效期"） */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input
-            label="有效期"
+            label="信息截止时间"
             name="expire_at"
             type="datetime-local"
             value={formData.expire_at}
             onChange={(e) => handleFieldChange('expire_at', e.target.value)}
           />
-          <Input
-            label="活动开始时间"
-            name="activity_start_at"
-            type="datetime-local"
-            value={formData.activity_start_at}
-            onChange={(e) => handleFieldChange('activity_start_at', e.target.value)}
-          />
-          <Input
-            label="活动结束时间"
-            name="activity_end_at"
-            type="datetime-local"
-            value={formData.activity_end_at}
-            onChange={(e) => handleFieldChange('activity_end_at', e.target.value)}
-          />
-        </div>
-
-        {/* 联系方式 + 失物类型 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input
             label="联系方式"
             name="contact_info"
@@ -1648,9 +1475,14 @@ const PostForm: React.FC<PostFormProps> = ({
             placeholder="如微信/QQ/电话（可选）"
             maxLength={255}
           />
+        </div>
+
+        {/* 失物类型：仅当分类为 lost_found 时显示 */}
+        {selectedCategory?.code === 'lost_found' ? (
           <div>
             <label className={vs.label}>
-              失物类型 <span className="text-ink-muted text-xs">（失物招领类信息使用）</span>
+              失物类型 <span className="text-danger" aria-hidden="true">*</span>
+              <span className="sr-only">（失物招领分类必选）</span>
             </label>
             <select
               value={formData.lost_type}
@@ -1659,12 +1491,12 @@ const PostForm: React.FC<PostFormProps> = ({
               }
               className={vs.select}
             >
-              <option value="">— 不适用 —</option>
+              <option value="">— 请选择 —</option>
               <option value="lost">丢失</option>
               <option value="found">拾获</option>
             </select>
           </div>
-        </div>
+        ) : null}
 
         {/* 匿名 */}
         <div className="flex items-center gap-2">
@@ -1719,6 +1551,45 @@ const PostForm: React.FC<PostFormProps> = ({
           ) : null}
         </div>
       </form>
+
+      {/* Task 3.1: 地图选点弹窗 */}
+      <Modal
+        isOpen={mapPickerOpen}
+        onClose={() => setMapPickerOpen(false)}
+        title="在地图上选择位置"
+        size="lg"
+      >
+        <div className="p-4">
+          <p className="text-xs text-ink-muted mb-3">
+            点击地图设置标记，选点后将自动填充经纬度（可继续编辑地点名称）。
+          </p>
+          <MapLocationPicker
+            initialLat={
+              formData.new_location_lat
+                ? Number(formData.new_location_lat)
+                : defaultLocationLat
+            }
+            initialLng={
+              formData.new_location_lng
+                ? Number(formData.new_location_lng)
+                : defaultLocationLng
+            }
+            initialName={formData.new_location_name}
+            onPick={handleMapPick}
+            height={400}
+          />
+          <div className="mt-3 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="text"
+              size="sm"
+              onClick={() => setMapPickerOpen(false)}
+            >
+              取消
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

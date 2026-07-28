@@ -62,20 +62,6 @@ export interface LocationBrief {
   floor?: string;
 }
 
-/** 信息类型简要（后端 PostTypeBrief） */
-export interface PostTypeBrief {
-  id: number;
-  name: string;
-  code: string;
-}
-
-/** 标签简要（后端 TagBrief） */
-export interface TagBrief {
-  id: number;
-  name: string;
-  slug: string;
-}
-
 /** 帖子图片简要（后端 PostImageBrief） */
 export interface PostImageBrief {
   id: number;
@@ -106,7 +92,6 @@ export interface Post {
   user_id: number;
   school_id: number;
   category_id: number;
-  post_type_id?: number;
   location_id?: number;
   // ORG-01: 关联官方发布主体 ID（None 表示普通用户发布）
   publisher_id?: number;
@@ -120,8 +105,6 @@ export interface Post {
   valid_count: number;
   invalid_count: number;
   expire_at?: string;
-  activity_start_at?: string;
-  activity_end_at?: string;
   lost_type?: string;
   contact_info?: string;
   is_recommend: boolean;
@@ -131,8 +114,6 @@ export interface Post {
   author?: Author;
   category?: CategoryBrief;
   location?: LocationBrief;
-  post_type?: PostTypeBrief;
-  tags?: TagBrief[];
   images?: PostImageBrief[];
   // 前端需要的额外字段（由后端 PostResponse 注入）
   is_liked?: boolean;
@@ -152,7 +133,6 @@ export interface PostListItem {
   location?: LocationBrief;
   author?: Author;
   cover_image?: string;
-  tags?: TagBrief[];
   like_count: number;
   comment_count: number;
   view_count: number;
@@ -566,8 +546,6 @@ export interface ImportPreviewPost {
   content: string;
   category_code: string;
   category_id: number;
-  post_type_code: string;
-  post_type_id: number;
   location_name?: string;
   expire_at?: string | null;
   is_anonymous: boolean;
@@ -741,11 +719,9 @@ export interface AIPublishSuggestRequest {
   content: string;
   category_id?: number | null;
   location_id?: number | null;
-  post_type_id?: number | null;
+  /** Task 1.3 后向后兼容字段：标签模型已删除，AI 建议仍接收但不再实际处理 */
   tags?: string[] | null;
   contact_info?: string | null;
-  activity_start_at?: string | null;
-  activity_end_at?: string | null;
   lost_type?: string | null;
   expire_at?: string | null;
 }
@@ -921,7 +897,6 @@ export interface PostTemplate {
   title_template: string;
   content_template: string;
   category_id?: number | null;
-  post_type_id?: number | null;
   scene: PostTemplateScene;
   sort_order: number;
   is_active: boolean;
@@ -960,7 +935,6 @@ export interface PostTemplateCreateRequest {
   title_template: string;
   content_template: string;
   category_id?: number | null;
-  post_type_id?: number | null;
   scene: PostTemplateScene;
   sort_order?: number;
 }

@@ -35,7 +35,6 @@ import {
   RefreshCw,
   FileWarning,
   Image as ImageIcon,
-  Calendar,
   Phone,
   ChevronLeft,
   ChevronRight,
@@ -528,9 +527,6 @@ const PostDetailPage: React.FC = () => {
                 {STATUS_BADGE_CONFIG[post.status].label}
               </Badge>
             )}
-            {post.post_type && (
-              <Badge variant="info">{post.post_type.name}</Badge>
-            )}
             {post.lost_type && LOST_TYPE_LABELS[post.lost_type] && (
               <Badge variant="warning">{LOST_TYPE_LABELS[post.lost_type]}</Badge>
             )}
@@ -643,15 +639,6 @@ const PostDetailPage: React.FC = () => {
               )}
             </div>
           )}
-          {(post.activity_start_at || post.activity_end_at) && (
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar size={14} className="text-lake" />
-              <span className="text-ink-muted">活动时间：</span>
-              <span className="font-data text-ink">
-                {formatDateTime(post.activity_start_at)} ~ {formatDateTime(post.activity_end_at)}
-              </span>
-            </div>
-          )}
           {/* DSC-02.1: 联系方式仅登录用户可见（后端对游客返回 null） */}
           {post.contact_info && (
             <div className="flex items-center gap-2 text-sm">
@@ -756,13 +743,6 @@ const PostDetailPage: React.FC = () => {
         <div className="px-6 py-5">
           <div className="content-paper rounded-[10px] px-5 py-4 -mx-0.5">
             <p className="text-[15px] text-ink leading-[1.8] whitespace-pre-wrap">{post.content}</p>
-            {post.tags && post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-ink-divider/60">
-                {post.tags.map(tag => (
-                  <span key={tag.id} className="hand-tag">#{tag.name}</span>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 

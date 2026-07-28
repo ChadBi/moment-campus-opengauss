@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { searchApi, type SearchSort, type SearchStatusFilter } from '../services/search';
-import { categoriesApi, type CategoryListItem, type LocationListItem, type PostTypeListItem } from '../services/categories';
+import { categoriesApi, type CategoryListItem, type LocationListItem } from '../services/categories';
 import type {
   AISearchIntent,
   AISearchOverrides,
@@ -97,7 +97,6 @@ interface SavedQueryEntry {
   // 普通模式筛选快照
   categoryId: number | null;
   locationId: number | null;
-  postTypeId: number | null;
   status: SearchStatusFilter;
   dateFrom: string;
   dateTo: string;
@@ -224,9 +223,6 @@ const SearchPage: React.FC = () => {
   const [locationId, setLocationId] = useState<number | null>(
     searchParams.get('location_id') ? Number(searchParams.get('location_id')) : null
   );
-  const [postTypeId, setPostTypeId] = useState<number | null>(
-    searchParams.get('post_type_id') ? Number(searchParams.get('post_type_id')) : null
-  );
   const [status, setStatus] = useState<SearchStatusFilter>(
     (searchParams.get('status') as SearchStatusFilter) || 'valid'
   );
@@ -303,7 +299,6 @@ const SearchPage: React.FC = () => {
         : keyword.trim() !== '' ||
           categoryId !== null ||
           locationId !== null ||
-          postTypeId !== null ||
           status !== 'valid' ||
           dateFrom !== '' ||
           dateTo !== '' ||
@@ -315,7 +310,7 @@ const SearchPage: React.FC = () => {
     // 默认名称：使用关键词或 AI 查询
     setSaveQueryName(mode === 'ai' ? aiQuery.trim().slice(0, 30) : keyword.trim().slice(0, 30));
     setShowSaveDialog(true);
-  }, [mode, aiQuery, keyword, categoryId, locationId, postTypeId, status, dateFrom, dateTo, sort, showToast]);
+  }, [mode, aiQuery, keyword, categoryId, locationId, status, dateFrom, dateTo, sort, showToast]);
 
   const handleConfirmSaveQuery = useCallback(() => {
     const name = saveQueryName.trim() || '未命名查询';
@@ -327,7 +322,6 @@ const SearchPage: React.FC = () => {
       aiQuery,
       categoryId,
       locationId,
-      postTypeId,
       status,
       dateFrom,
       dateTo,
@@ -340,7 +334,7 @@ const SearchPage: React.FC = () => {
     setShowSaveDialog(false);
     setSaveQueryName('');
     showToast('查询已保存', 'success');
-  }, [saveQueryName, mode, keyword, aiQuery, categoryId, locationId, postTypeId, status, dateFrom, dateTo, sort, currentSchoolCode, showToast]);
+  }, [saveQueryName, mode, keyword, aiQuery, categoryId, locationId, status, dateFrom, dateTo, sort, currentSchoolCode, showToast]);
 
   const handleDeleteSavedQuery = useCallback(
     (id: string) => {
@@ -359,7 +353,6 @@ const SearchPage: React.FC = () => {
       setAiQuery(entry.aiQuery);
       setCategoryId(entry.categoryId);
       setLocationId(entry.locationId);
-      setPostTypeId(entry.postTypeId);
       setStatus(entry.status);
       setDateFrom(entry.dateFrom);
       setDateTo(entry.dateTo);
@@ -378,12 +371,12 @@ const SearchPage: React.FC = () => {
     if (targetMode === 'ai') {
       if (kw.trim()) void doAiSearch(1, false);
     } else {
-      if (kw.trim() || categoryId !== null || locationId !== null || postTypeId !== null) {
+      if (kw.trim() || categoryId !== null || locationId !== null) {
         void doNormalSearch(1, false);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, keyword, aiQuery, categoryId, locationId, postTypeId, status, dateFrom, dateTo, sort]);
+  }, [mode, keyword, aiQuery, categoryId, locationId, status, dateFrom, dateTo, sort]);
 
   // ===== UX-01.1: 点击最近搜索条目 → 立即搜索（依赖下方 doNormalSearchWithTag/doAiSearchWithTag，故用普通函数） =====
   const handleRecentClick = (entry: RecentSearchEntry) => {
@@ -420,7 +413,6 @@ const SearchPage: React.FC = () => {
   // ===== 筛选下拉数据（按当前学校过滤） =====
   const [categories, setCategories] = useState<CategoryListItem[]>([]);
   const [locations, setLocations] = useState<LocationListItem[]>([]);
-  const [postTypes, setPostTypes] = useState<PostTypeListItem[]>([]);
 
   // ===== 拉取筛选下拉数据 =====
   useEffect(() => {
@@ -428,12 +420,10 @@ const SearchPage: React.FC = () => {
     Promise.all([
       categoriesApi.listCategories().catch(() => []),
       categoriesApi.listLocations().catch(() => []),
-      categoriesApi.listPostTypes().catch(() => []),
-    ]).then(([cats, locs, pts]) => {
+    ]).then(([cats, locs]) => {
       if (cancelled) return;
       setCategories(cats as CategoryListItem[]);
       setLocations(locs as LocationListItem[]);
-      setPostTypes(pts as PostTypeListItem[]);
     });
     return () => {
       cancelled = true;
@@ -453,12 +443,11 @@ const SearchPage: React.FC = () => {
       if (kw) params.keyword = kw;
       if (categoryId !== null) params.category_id = categoryId;
       if (locationId !== null) params.location_id = locationId;
-      if (postTypeId !== null) params.post_type_id = postTypeId;
       if (dateFrom) params.date_from = new Date(dateFrom).toISOString();
       if (dateTo) params.date_to = new Date(dateTo).toISOString();
       return params;
     },
-    [keyword, categoryId, locationId, postTypeId, status, dateFrom, dateTo, sort]
+    [keyword, categoryId, locationId, status, dateFrom, dateTo, sort]
   );
 
   // ===== 同步 URL 查询参数（深链接支持） =====
@@ -473,14 +462,13 @@ const SearchPage: React.FC = () => {
       if (kw) next.set('keyword', kw);
       if (categoryId !== null) next.set('category_id', String(categoryId));
       if (locationId !== null) next.set('location_id', String(locationId));
-      if (postTypeId !== null) next.set('post_type_id', String(postTypeId));
       if (status !== 'valid') next.set('status', status);
       if (dateFrom) next.set('date_from', dateFrom);
       if (dateTo) next.set('date_to', dateTo);
       if (sort !== 'latest') next.set('sort', sort);
     }
     setSearchParams(next, { replace: true });
-  }, [mode, aiQuery, keyword, categoryId, locationId, postTypeId, status, dateFrom, dateTo, sort, setSearchParams]);
+  }, [mode, aiQuery, keyword, categoryId, locationId, status, dateFrom, dateTo, sort, setSearchParams]);
 
   // ===== 普通搜索执行 =====
   const doNormalSearch = useCallback(
@@ -650,7 +638,6 @@ const SearchPage: React.FC = () => {
     setKeyword('');
     setCategoryId(null);
     setLocationId(null);
-    setPostTypeId(null);
     setStatus('valid');
     setDateFrom('');
     setDateTo('');
@@ -857,13 +844,12 @@ const SearchPage: React.FC = () => {
     let n = 0;
     if (categoryId !== null) n++;
     if (locationId !== null) n++;
-    if (postTypeId !== null) n++;
     if (status !== 'valid') n++;
     if (dateFrom) n++;
     if (dateTo) n++;
     if (sort !== 'latest') n++;
     return n;
-  }, [categoryId, locationId, postTypeId, status, dateFrom, dateTo, sort]);
+  }, [categoryId, locationId, status, dateFrom, dateTo, sort]);
 
   // P2-003: 多租户热门标签 —— 优先取当前学校分类名（top 8 by sort_order）
   // 当 categories 未加载或为空时，回退到 FALLBACK_HOT_TAGS
@@ -1129,26 +1115,6 @@ const SearchPage: React.FC = () => {
                   {locations.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name}{l.is_verified ? '' : '（未核验）'}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" />
-              </div>
-            </div>
-
-            {/* 信息类型 */}
-            <div>
-              <label className="block text-xs font-medium text-ink-sub mb-1">信息类型</label>
-              <div className="relative">
-                <select
-                  value={postTypeId ?? ''}
-                  onChange={(e) => setPostTypeId(e.target.value ? Number(e.target.value) : null)}
-                  className="w-full appearance-none px-3 py-2 pr-8 bg-white/78 border border-line rounded-md text-sm text-ink focus:outline-none focus:border-lake transition-all"
-                >
-                  <option value="">全部类型</option>
-                  {postTypes.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
                     </option>
                   ))}
                 </select>

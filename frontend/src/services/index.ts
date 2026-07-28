@@ -69,7 +69,6 @@ export { categoriesApi } from './categories';
 export type {
   CategoryListItem,
   LocationListItem,
-  PostTypeListItem,
   CreateLocationRequest,
 } from './categories';
 // TOPIC-01.1: 用户端专题

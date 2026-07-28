@@ -19,18 +19,12 @@ interface CreatePostRequest {
   location_name?: string;
   location_lat?: number;
   location_lng?: number;
-  post_type_id?: number;
   is_anonymous?: boolean;
-  tags?: string[];
   /** PUB-01.2: 图片 URL 列表（最多 9 张，由 upload/image 接口先上传获得） */
   image_urls?: string[];
-  /** PUB-01.2: 过期时间（ISO 字符串），未传则后端按分类默认有效期计算 */
+  /** PUB-01.2: 信息截止时间（ISO 字符串），未传则后端按分类默认有效期计算 */
   expire_at?: string;
-  /** PUB-01.2: 活动开始时间（活动类信息使用） */
-  activity_start_at?: string;
-  /** PUB-01.2: 活动结束时间（活动类信息使用） */
-  activity_end_at?: string;
-  /** PUB-01.2: 联系方式（失物/活动类信息使用） */
+  /** PUB-01.2: 联系方式（失物类信息使用） */
   contact_info?: string;
   /** PUB-01.2: 失物类型（lost/found） */
   lost_type?: string;
@@ -52,7 +46,6 @@ interface PostFilters {
   category_id?: number;
   /** DSC-01.1: 地点 ID 筛选 */
   location_id?: number;
-  post_type_id?: number;
   /** DSC-01.1: 有效状态筛选（published / expired / valid），默认 valid（published + expired） */
   status?: PostListStatusFilter;
   /** DSC-01.1: 起始时间（ISO 字符串，created_at >= date_from） */
