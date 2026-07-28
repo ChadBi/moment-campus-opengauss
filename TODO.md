@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-27（Task 1.3 删除 Tag 模型与标签功能：模型/Schema/API/服务/测试/脚本全面清理，936 passed / 16 skipped / 0 failed）
+> 最后更新：2026-07-28（「需要调整的地方」22 项 issue 全部完成：AI搜索优化+地图聚合+地点核验地图+回归测试 936 passed / 79 skipped / 0 failed + E2E 5 场景全 PASS）
 
 ## 状态总览
 
@@ -39,6 +39,32 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### 「需要调整的地方」22 项 issue 系统性整改（2026-07-28 完成）
+
+依据 `docs/需要调整的地方.md` 列出的 22 项 issue，系统性解决功能冲突、冗余功能、UI 布局、数据模型与 Bug。分 7 阶段顺序执行，22 项全部完成。
+
+- [x] 阶段 1（数据模型）：Task 1.1 移除 ChangeReport + Task 1.2 删除 PostType 重构 Category（5 类统一分类）+ Task 1.3 移除 Tag + Task 1.4 移除活动时间字段并重命名「有效期」+ Task 1.5 PlatformSubscription 加入 school_name
+- [x] 阶段 2（后端 API）：Task 2.1 地点可选 + Task 2.2 删除每日摘要/邮件通知 + Task 2.3 审核详情图片 URL 规范化 + Task 2.4 地点核验 API 坐标返回
+- [x] 阶段 3（前端核心）：Task 3.1 PostForm 重构+地图选点 + Task 3.2 PostDetailPage 布局重排+移除问题报告/导航 + Task 3.3 SearchPage 移除保存查询+通知偏好移除每日摘要/邮件 + Task 3.5 MapPage 多帖子聚合 + Task 3.6/6.2 地点核验页地图展示+流程文档化
+- [x] 阶段 4（Bug 修复）：Task 4.1 修复 AdminTopicsPage 闪烁（useMemo 稳定数组）+ Task 4.2 修复 AdminJobsPage 加载（loadRecords 自管理 loading）+ Task 4.3 修复 AdminReviewPage 图片（PostImageBrief.image_url）+ Task 4.4 修复 PlatformPlansPage 显示学校名
+- [x] 阶段 5（AI 搜索）：Task 5.1 强化 prompt 关键词提取规则 + 新增 _extract_keyword_fallback 函数 + Task 5.2 前端 FALLBACK_HOT_TAGS 对齐 5 类 + 移除 postTypeId 筛选
+- [x] 阶段 6（地图功能）：MapLocationPicker 组件实现 + PostForm 集成 + AdminLocationsPage 核验页地图展示
+- [x] 阶段 7（验证）：后端 `pytest tests/ -v` 全量通过（936 passed / 79 skipped / 0 failed）；前端 `npm run build` 通过；MCP 浏览器 E2E 5 场景全 PASS（登录/发帖/评论协同/跨校隔离/AI 搜索）
+- [x] 配套修复：`frontend/vite.config.ts` 新增 /api 与 /uploads 代理到 127.0.0.1:8000，解决 MCP 浏览器测试 502 问题
+- [x] 任务报告：[AIwork/需要调整的地方_任务报告.md](AIwork/需要调整的地方_任务报告.md)
+
+**子任务详细报告**：
+- [Task 1.2 删除 PostType 模型与 Category 重构](AIwork/Task1.2_删除PostType模型与Category重构为统一信息分类.md)
+- [Task 1.2 测试断言修复 PostType/PostChangeReport 删除后](AIwork/Task1.2_测试断言修复_PostType与PostChangeReport删除后.md)
+- [Task 1.3 删除 Tag 模型与标签功能](AIwork/Task1.3_删除Tag模型与标签功能.md)
+- [Task 1.4 移除活动时间字段并重命名有效期](AIwork/Task1.4_移除活动时间字段并重命名有效期.md)
+- [Task 1.5 PlatformSubscription 响应加入 school_name](AIwork/Task1.5_PlatformSubscription响应加入school_name.md)
+- [Task 2.1 地点改为可选与帖子创建流程调整](AIwork/Task2.1_地点改为可选与帖子创建流程调整.md)
+- [Task 2.2 删除保存查询与每日摘要邮件通知](AIwork/Task2.2_删除保存查询与每日摘要邮件通知.md)
+- [Task 2.3 审核详情图片 URL 规范化](AIwork/Task2.3_审核详情图片URL规范化.md)
+- [Task 2.4 地点核验 API 增加坐标返回](AIwork/Task2.4_地点核验API增加坐标返回.md)
+- [Task 3.1 PostForm 重构与地图选点](AIwork/Task3.1_PostForm重构与地图选点.md)
 
 ### Task 1.3 删除 Tag 模型与标签功能（2026-07-27 完成）
 
