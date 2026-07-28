@@ -302,7 +302,8 @@ JIANGNAN_POSTS = [
             "旁边冰柜有冰镇豆奶2块钱一瓶，搭配解辣。\n\n"
             "唯一缺点是中午11:45-12:30排队要15分钟，建议错峰。"
         ),
-        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "第二食堂", "user_email": "user6@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share
+        "location_name": "第二食堂", "user_email": "user6@example.com",
         "is_anonymous": False, "views": 342, "likes": 28, "is_recommend": True,
         "comments": [
             {"user_email": "user3@example.com", "content": "昨天刚去吃过，确实不错！午餐肉给得超大方", "likes": 5},
@@ -324,7 +325,8 @@ JIANGNAN_POSTS = [
             "早八党可以提前10分钟来排队，7:30之前基本不用等。\n\n"
             "另外他们家的茶叶蛋也不错，1.5元一个，蛋黄很糯。"
         ),
-        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "第一食堂", "user_email": "user3@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share
+        "location_name": "第一食堂", "user_email": "user3@example.com",
         "is_anonymous": False, "views": 198, "likes": 15, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "我也发现了！茶叶蛋确实好吃", "likes": 3},
@@ -345,7 +347,8 @@ JIANGNAN_POSTS = [
             "5. 教学楼A区便利店 - 三明治6块+牛奶2块\n\n"
             "性价比党可以参考，欢迎补充。"
         ),
-        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "北门", "user_email": "user3@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share
+        "location_name": "北门", "user_email": "user3@example.com",
         "is_anonymous": False, "views": 521, "likes": 42, "is_recommend": True,
         "comments": [
             {"user_email": "user9@example.com", "content": "沙县拌面真的便宜量大，强推", "likes": 6},
@@ -366,7 +369,8 @@ JIANGNAN_POSTS = [
             "最大问题是味道真的会熏到旁边的人，建议打包回宿舍吃。"
             "综合评分：7/10，性价比可以，社交场景慎选。"
         ),
-        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "第二食堂", "user_email": "user6@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share
+        "location_name": "第二食堂", "user_email": "user6@example.com",
         "is_anonymous": False, "views": 287, "likes": 19, "is_recommend": False,
         "comments": [
             {"user_email": "user3@example.com", "content": "在食堂吃螺蛳粉会被室友追杀吧哈哈哈", "likes": 8},
@@ -390,7 +394,8 @@ JIANGNAN_POSTS = [
             "4. 摸完记得洗手\n\n"
             "学士的照片评论区见~"
         ),
-        "category_code": "share",  # Task 1.2 调整：原 animal → share "location_name": "图书馆", "user_email": "user8@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 animal → share
+        "location_name": "图书馆", "user_email": "user8@example.com",
         "is_anonymous": False, "views": 612, "likes": 56, "is_recommend": True,
         "comments": [
             {"user_email": "user4@example.com", "content": "学士今天在我书包上睡着了哈哈", "likes": 12},
@@ -414,7 +419,8 @@ JIANGNAN_POSTS = [
             "- 拍照请用长焦，不要用闪光灯\n\n"
             "小天鹅大概一个月后会长出成鸟羽毛，喜欢的同学抓紧去看。"
         ),
-        "category_code": "share",  # Task 1.2 调整：原 animal → share "location_name": "蠡湖畔", "user_email": "user7@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 animal → share
+        "location_name": "蠡湖畔", "user_email": "user7@example.com",
         "is_anonymous": False, "views": 478, "likes": 38, "is_recommend": True,
         "comments": [
             {"user_email": "user2@example.com", "content": "周末钓鱼时看到了，确实萌", "likes": 4},
@@ -439,7 +445,8 @@ JIANGNAN_POSTS = [
             "- 定期回访\n\n"
             "联系方式：评论区留言或私信。"
         ),
-        "category_code": "share",  # Task 1.2 调整：原 animal → share "location_name": "教学楼A区", "user_email": "user8@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 animal → share
+        "location_name": "教学楼A区", "user_email": "user8@example.com",
         "is_anonymous": False, "views": 234, "likes": 21, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "已私信！想领养", "likes": 2},
@@ -462,7 +469,8 @@ JIANGNAN_POSTS = [
             "老板说学生价，可以办会员卡充值100送20。论文打印必备。"
             "营业时间：8:00-21:00，周末也开。"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 print → other "location_name": "校园超市", "user_email": "user9@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 print → other
+        "location_name": "校园超市", "user_email": "user9@example.com",
         "is_anonymous": False, "views": 189, "likes": 14, "is_recommend": False,
         "comments": [
             {"user_email": "user4@example.com", "content": "会员卡充值活动持续到什么时候？", "likes": 1},
@@ -486,7 +494,8 @@ JIANGNAN_POSTS = [
             "- 营业时间：8:00-22:00\n"
             "- 打印卡可在北门自助机退卡"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 print → other "location_name": "图书馆", "user_email": "user10@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 print → other
+        "location_name": "图书馆", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 256, "likes": 22, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "新生感谢学长！已收藏", "likes": 4},
@@ -507,7 +516,8 @@ JIANGNAN_POSTS = [
             "建议提前30分钟到场，前排位置先到先得。"
             "喜欢话剧的同学不要错过，结束后还有导演见面会。"
         ),
-        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "文浩科学馆", "user_email": "user1@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
+        "location_name": "文浩科学馆", "user_email": "user1@example.com",
         "is_anonymous": False, "views": 423, "likes": 35, "is_recommend": True,
         "comments": [
             {"user_email": "user3@example.com", "content": "必须去！《雷雨》是经典", "likes": 5},
@@ -527,7 +537,8 @@ JIANGNAN_POSTS = [
             "舞种：Hip-hop / Jazz / Breaking / Locking 任选。\n\n"
             "学姐说加入街舞社是她大学最不后悔的事，能交到一辈子的朋友。"
         ),
-        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "大学生活动中心", "user_email": "user1@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
+        "location_name": "大学生活动中心", "user_email": "user1@example.com",
         "is_anonymous": False, "views": 312, "likes": 27, "is_recommend": True,
         "comments": [
             {"user_email": "user9@example.com", "content": "零基础真的能进吗？四肢不协调", "likes": 6},
@@ -550,7 +561,8 @@ JIANGNAN_POSTS = [
             "- 集训队专用自习室\n\n"
             "简历发送到 acm@jiangnan.edu.cn，截止本周日。"
         ),
-        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "教学楼A区", "user_email": "user10@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
+        "location_name": "教学楼A区", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 389, "likes": 31, "is_recommend": True,
         "comments": [
             {"user_email": "user1@example.com", "content": "已投简历！希望能进", "likes": 4},
@@ -574,7 +586,8 @@ JIANGNAN_POSTS = [
             "免费入场，需提前在教务系统预约（限额300人）。"
             "建议带笔记本，可以提问环节互动。"
         ),
-        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "文浩科学馆", "user_email": "user4@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
+        "location_name": "文浩科学馆", "user_email": "user4@example.com",
         "is_anonymous": False, "views": 567, "likes": 48, "is_recommend": True,
         "comments": [
             {"user_email": "user1@example.com", "content": "已经预约了！冲", "likes": 3},
@@ -595,7 +608,8 @@ JIANGNAN_POSTS = [
             "建议早7点前去占位置，9点后基本满座。"
             "考试周期间1楼大厅也会开放临时座位，约200个。"
         ),
-        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup "location_name": "图书馆", "user_email": "user4@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup
+        "location_name": "图书馆", "user_email": "user4@example.com",
         "is_anonymous": False, "views": 678, "likes": 52, "is_recommend": False,
         "comments": [
             {"user_email": "user9@example.com", "content": "考试周必须早6:30去排队", "likes": 8},
@@ -617,7 +631,8 @@ JIANGNAN_POSTS = [
             "建议大家文明用座，不要用书包占位不签到。"
             "阿姨会定时巡视，违规直接拉黑一周。"
         ),
-        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup "location_name": "图书馆", "user_email": "user4@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup
+        "location_name": "图书馆", "user_email": "user4@example.com",
         "is_anonymous": False, "views": 312, "likes": 18, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "新规好评！以前书包占位太烦人", "likes": 12},
@@ -637,7 +652,8 @@ JIANGNAN_POSTS = [
             "网盘链接：见评论区（提取码8888）。\n\n"
             "希望对学弟学妹有帮助。考完来还愿。"
         ),
-        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup "location_name": "教学楼A区", "user_email": "user10@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup
+        "location_name": "教学楼A区", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 891, "likes": 87, "is_recommend": True,
         "comments": [
             {"user_email": "user1@example.com", "content": "学长牛逼！已下载", "likes": 5},
@@ -664,7 +680,8 @@ JIANGNAN_POSTS = [
             "另外：大件物品需凭学生证+身份证取，不要忘带。"
             "代取需双方身份证复印件+委托书。"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 service → other "location_name": "快递服务中心", "user_email": "user1@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 service → other
+        "location_name": "快递服务中心", "user_email": "user1@example.com",
         "is_anonymous": False, "views": 423, "likes": 25, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "上周五饭点排队40分钟，血泪教训", "likes": 8},
@@ -683,7 +700,8 @@ JIANGNAN_POSTS = [
             "另外阿姨说最近有人把鞋子扔洗衣机洗，禁止！违规会拉黑校园卡1周。"
             "洗鞋请用专用洗鞋机（一楼有2台）或者手刷。"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 service → other "location_name": "学士公寓", "user_email": "user1@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 service → other
+        "location_name": "学士公寓", "user_email": "user1@example.com",
         "is_anonymous": False, "views": 234, "likes": 12, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "在洗衣机洗鞋的人是什么心态", "likes": 15},
@@ -705,7 +723,8 @@ JIANGNAN_POSTS = [
             "昨天刚补货，建议早去。日用品囤货党可以行动了。"
             "活动截止周日22:00。"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 service → other "location_name": "校园超市", "user_email": "user9@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 service → other
+        "location_name": "校园超市", "user_email": "user9@example.com",
         "is_anonymous": False, "views": 367, "likes": 31, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "咖啡7折冲了，囤了5瓶", "likes": 4},
@@ -733,7 +752,8 @@ JIANGNAN_POSTS = [
             "- 月卡15元无限次（美团/哈啰通用）\n"
             "- 季卡35元更划算"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 transport → other "location_name": "北门", "user_email": "user5@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 transport → other
+        "location_name": "北门", "user_email": "user5@example.com",
         "is_anonymous": False, "views": 289, "likes": 19, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "季卡35元？我去办一张", "likes": 2},
@@ -754,7 +774,8 @@ JIANGNAN_POSTS = [
             "冬季首发延后30分钟，末班不变。\n\n"
             "实时位置可在\"i江大\"App查看。"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 transport → other "location_name": "北门", "user_email": "user10@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 transport → other
+        "location_name": "北门", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 312, "likes": 16, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "i江大App的实时位置经常不准", "likes": 3},
@@ -780,7 +801,8 @@ JIANGNAN_POSTS = [
             "- 每月最后一个周三闭馆维护\n"
             "- 学生证必备"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 facility → other "location_name": "体育馆", "user_email": "user5@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 facility → other
+        "location_name": "体育馆", "user_email": "user5@example.com",
         "is_anonymous": False, "views": 256, "likes": 14, "is_recommend": False,
         "comments": [
             {"user_email": "user9@example.com", "content": "学期卡300超值，已办", "likes": 3},
@@ -801,7 +823,8 @@ JIANGNAN_POSTS = [
             "- 必须夜跑的话选西侧跑道，照明正常\n\n"
             "后续如果有照明问题可以打后勤电话6666报修。"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 facility → other "location_name": "田径场", "user_email": "user5@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 facility → other
+        "location_name": "田径场", "user_email": "user5@example.com",
         "is_anonymous": False, "views": 178, "likes": 8, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "感谢提醒，今晚改去体育馆", "likes": 2},
@@ -824,7 +847,8 @@ JIANGNAN_POSTS = [
             "建议提前2周申请，热门时段（周末晚上）竞争激烈。"
             "设备需求要写清楚（投影/音响/话筒/灯光），临时加需扣分。"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 venue → other "location_name": "大学生活动中心", "user_email": "user1@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 venue → other
+        "location_name": "大学生活动中心", "user_email": "user1@example.com",
         "is_anonymous": False, "views": 234, "likes": 11, "is_recommend": False,
         "comments": [
             {"user_email": "user9@example.com", "content": "请问社团外可以预约吗？班级活动", "likes": 1},
@@ -846,7 +870,8 @@ JIANGNAN_POSTS = [
             "- 违规记录会影响后续预约\n"
             "- 临时取消需提前4小时"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 venue → other "location_name": "文浩科学馆", "user_email": "user10@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 venue → other
+        "location_name": "文浩科学馆", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 167, "likes": 9, "is_recommend": False,
         "comments": [],
         "validations": [],
@@ -905,7 +930,8 @@ JIANGNAN_POSTS = [
             "带简历直接到店面问，地址北门左转50米。"
             "说是江南同学推荐可以优先面试。"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 job → other "location_name": "北门", "user_email": "user9@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 job → other
+        "location_name": "北门", "user_email": "user9@example.com",
         "is_anonymous": False, "views": 423, "likes": 18, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "18元/时算高的吗？奶茶店普遍15左右", "likes": 4},
@@ -925,7 +951,8 @@ JIANGNAN_POSTS = [
             "本人数学专业大三，绩点3.8，带过3个学生（成绩均有提升）。\n"
             "期末考前2周开始排课，需要的同学私信。"
         ),
-        "category_code": "other",  # Task 1.2 调整：原 job → other "location_name": "图书馆", "user_email": "user10@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 job → other
+        "location_name": "图书馆", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 289, "likes": 12, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "已私信！下学期高数救命", "likes": 3},
@@ -981,31 +1008,36 @@ JIANGNAN_STATUS_SAMPLES = [
     {
         "title": "【草稿】北门外新开咖啡店测评（草稿中，未提交）",
         "content": "正在整理北门外新开咖啡店的测评信息，等周末再去试一次再发布。目前信息：店名、价格、营业时间。",
-        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "北门", "user_email": "user3@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share
+        "location_name": "北门", "user_email": "user3@example.com",
         "status": "draft", "views": 0, "likes": 0, "is_recommend": False,
     },
     {
         "title": "【待审核】文浩科学馆下周讲座通知（等待管理员审核）",
         "content": "下周三文浩科学馆有学术讲座，提交审核中，审核通过后大家就可以看到了。",
-        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "文浩科学馆", "user_email": "user4@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
+        "location_name": "文浩科学馆", "user_email": "user4@example.com",
         "status": "pending", "views": 0, "likes": 0, "is_recommend": False,
     },
     {
         "title": "【已过期】上学期期末复习资料（已过期归档）",
         "content": "这是上学期的期末复习资料，已过期，仅供参考。",
-        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup "location_name": "图书馆", "user_email": "user10@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup
+        "location_name": "图书馆", "user_email": "user10@example.com",
         "status": "expired", "views": 156, "likes": 8, "is_recommend": False,
     },
     {
         "title": "【冲突】食堂价格争议帖（信息冲突待处理）",
         "content": "本帖信息与其他帖子存在冲突，已标记为冲突状态，待管理员处理。",
-        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "第一食堂", "user_email": "user6@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share
+        "location_name": "第一食堂", "user_email": "user6@example.com",
         "status": "conflict", "views": 89, "likes": 3, "is_recommend": False,
     },
     {
         "title": "【已归档】已结束的社团招新通知",
         "content": "该招新活动已结束，帖子归档保存。",
-        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "大学生活动中心", "user_email": "user1@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
+        "location_name": "大学生活动中心", "user_email": "user1@example.com",
         "status": "archived", "views": 234, "likes": 15, "is_recommend": False,
     },
 ]
@@ -1797,6 +1829,9 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
 
     now = datetime.now()
     posts = []
+    # post_by_idx[i] = post：保留 all_posts_data 索引到 Post 对象的映射，
+    # 用于评论/验证循环按索引查找（主循环可能因 user/category 缺失而跳过某些 post）
+    post_by_idx: dict[int, Post] = {}
     all_comments = []
     all_validations = []
 
@@ -1857,6 +1892,7 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
             updated_at=created_at,
         )
         posts.append(post)
+        post_by_idx[i] = post
         # 单条插入并立即 flush，避免 SQLAlchemy 2.0 insertmanyvalues 在 Python 3.14
         # 下触发 "cannot use 'list' as a set element" 的兼容性问题
         session.add(post)
@@ -1873,7 +1909,9 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
 
     # 创建评论
     for i, p in enumerate(all_posts_data):
-        post = posts[i]
+        post = post_by_idx.get(i)
+        if post is None:
+            continue
         for j, c in enumerate(p.get("comments", [])):
             comment_user = users_by_email.get(c["user_email"])
             if comment_user is None:
@@ -1900,7 +1938,9 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
     # 创建协同验证记录（confirmation/refutation，受 (post_id, user_id) 唯一约束）
     seen_pairs = set()
     for i, p in enumerate(all_posts_data):
-        post = posts[i]
+        post = post_by_idx.get(i)
+        if post is None:
+            continue
         for j, v in enumerate(p.get("validations", [])):
             v_user = users_by_email.get(v["user_email"])
             if v_user is None:

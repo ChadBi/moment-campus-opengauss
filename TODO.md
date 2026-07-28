@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-28（华为云混合部署更新到 0d62930：openGauss 容器 + 后端 systemd + 前端 Nginx 静态；20 个 Alembic 迁移含 5 个破坏性表删除全部成功；4 项公网验证 PASS）
+> 最后更新：2026-07-28（DeepSeek AI 搜索启用 + seed_data.py 重跑：本地 .env.opengauss/.env.production/.env.prod.example 配置 9 项 AI_*；修复 seed_data.py Task 1.2 注释合并错误 32 处 + IndexError 1 处；本地三校演示数据已刷新；后端 + MCP 浏览器 E2E 验证 AI 搜索真实调用 DeepSeek API 成功）
 
 ## 状态总览
 
@@ -39,6 +39,22 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### DeepSeek AI 搜索启用 + seed_data.py 重跑（2026-07-28 完成）
+
+完成华为云混合部署更新遗留的两项可选任务：OPENAI_API_KEY 配置 + seed_data.py 重跑。本地环境启用 DeepSeek 兼容 OpenAI API，AI 搜索从 mock 降级模式升级为真实模型调用；同时修复 seed_data.py 的两个隐藏 Bug 并刷新三校演示数据。
+
+- [x] AI Provider 配置：`backend/.env.opengauss` 写入 9 项 `AI_*`（`AI_PROVIDER=openai` / `AI_API_KEY=sk-9d9b8b...1311` / `AI_API_BASE=https://api.deepseek.com` / `AI_MODEL=deepseek-v4-flash` 等）；`backend/.env.production` 与 `deploy/.env.prod.example` 同步补齐模板；`backend/.env.opengauss.example` 与 `deploy/.env.prod.example` 注释新增 DeepSeek 兼容方案示例
+- [x] CORS 放行 5174：`backend/.env.opengauss` 的 `CORS_ORIGINS` 由 `["http://localhost:5173"]` 改为 `["http://localhost:5173","http://localhost:5174"]`（5173 被占用时 Vite 自动切到 5174，需放行）
+- [x] seed_data.py Bug 1 修复：Task 1.2 调整注释时误把 `"location_name"` 与 `"user_email"` 字段塞进 `#` 注释里（共 32 处），导致 post dict 缺字段触发 `KeyError: 'user_email'`。用正则脚本批量拆出注释后的真实字典键值对
+- [x] seed_data.py Bug 2 修复：`seed_posts_for_school` 函数的评论/验证循环用 `posts[i]` 索引访问，但主循环 `continue` 跳过无效 post 时 `posts` 列表与 `all_posts_data` 错位触发 `IndexError: list index out of range`。改为维护 `post_by_idx: dict[int, Post]` 字典按索引查找，跳过未创建的 post
+- [x] 本地数据库迁移升级：alembic 从 `a871871f04ce` 升级到 head `z5e6f7g8h9i0`（5 个迁移：remove_post_change_reports / remove_post_type_unify_category / remove_tag_model / remove_activity_time_fields / Task 2.2 移除每日摘要与邮件通知字段）
+- [x] seed_data.py 重跑成功：三校演示数据全部刷新（江南大学 11 用户 + 15 地点 + 5 分类 + 30+ 帖子；复旦大学 6 用户 + 12 地点；浙江大学 6 用户 + 12 地点；含 6 态状态样本 + 2 类治理样本 + 12 专题集合 + 跨校成员关系 user1@→fudan / user2@→zju）
+- [x] 后端 API 验证：`POST /api/v1/search/ai` 真实调用 DeepSeek API 返回结构化响应（`fallback=false` / `intent="用户想了解食堂有哪些好吃的菜品"` / `match_reasons` 4 条匹配理由 / `ai_log_id=1`）
+- [x] MCP 浏览器 E2E 验证：登录 user1@ → /search?mode=ai → 输入「食堂好吃的菜」→ 显示 3 条食堂相关帖子 + AI 意图解析 + 匹配理由 + 匹配分数，无降级提示
+- [x] 任务报告：[AIwork/DeepSeek搜索启用与seed数据重跑_任务报告.md](AIwork/DeepSeek搜索启用与seed数据重跑_任务报告.md)
+
+**未做（待用户在生产服务器执行）**：生产 `campus.chaina1.com` 的 `.env.opengauss` 需同步追加 9 项 `AI_*` 配置并重启 `moment-backend`；生产 `seed_data.py` 重跑需先备份 `moment_campus` 数据库
 
 ### 华为云混合部署更新到 0d62930（2026-07-28 完成）
 
