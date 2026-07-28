@@ -46,7 +46,8 @@ import { formatRelativeTime as formatDate } from '../utils/date';
 
 // P2-003: HOT_TAGS 改为多租户动态化（优先使用当前学校分类名，fallback 到通用列表）
 // 切换学校后由 useMemo 重新计算 hotTags，使搜索页推荐内容跟随学校变化
-const FALLBACK_HOT_TAGS = ['食堂', '图书馆', '自习室', '快递点', '校园活动', '二手', '失物招领', '拍照打卡'];
+// FALLBACK 与新 5 类分类对齐：分享吐槽/组队交友/二手交易/失物招领/其他 + 高频场景词
+const FALLBACK_HOT_TAGS = ['分享吐槽', '组队交友', '二手交易', '失物招领', '食堂', '图书馆', '自习室', '快递点'];
 
 // UX-01.1: AI 模式高频快捷问题（通用自然语言示例，适用于任意校园场景）
 const QUICK_QUESTIONS = [

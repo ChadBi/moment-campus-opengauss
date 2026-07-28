@@ -112,6 +112,78 @@ def _is_too_frequent() -> bool:
 # ============================================================
 # 2. 意图解析
 # ============================================================
+
+# 简单分词用的停用词表（用于 AI 解析失败时的降级关键词提取）
+_STOP_WORDS = {
+    # 疑问词
+    "什么", "怎么", "怎样", "如何", "哪里", "哪儿", "多少", "为什么", "是不是", "有没有",
+    # 语气词
+    "吗", "呢", "啊", "吧", "哦", "呀", "哈", "嗯",
+    # 助词/介词/连词
+    "的", "了", "是", "在", "有", "和", "与", "或", "及", "等", "之",
+    # 动词（泛义）
+    "想", "找", "求", "要", "需要", "希望", "喜欢", "觉得", "知道", "告诉", "推荐", "介绍",
+    # 时间词（应放入 date_from/date_to，不进 keyword）
+    "今天", "昨天", "明天", "后天", "前天", "本周", "下周", "这周", "上周", "最近", "现在", "目前",
+    # 量词/代词
+    "个", "些", "点", "下", "种", "类",
+    # 礼貌用语
+    "请问", "请教", "麻烦", "谢谢",
+}
+
+
+def _extract_keyword_fallback(query: str) -> Optional[str]:
+    """AI 解析失败时的简单关键词提取。
+
+    策略：
+    1. 按停用词切分查询，保留有意义的片段
+    2. 选取最长片段作为关键词（通常最具检索价值）
+    3. 若全部被过滤，返回原始 query 的前 20 字符
+
+    示例：
+    - "最近有什么值得吐槽的事？" → "吐槽"
+    - "有没有人一起组队自习或运动？" → "组队自习"
+    - "图书馆开放时间" → "图书馆"
+    """
+    if not query or not query.strip():
+        return None
+    query = query.strip()
+
+    # 构建正则：用停用词作为分隔符切分
+    # 按 2 字以上的停用词切分（避免单字误切）
+    long_stops = sorted([w for w in _STOP_WORDS if len(w) >= 2], key=len, reverse=True)
+    if long_stops:
+        pattern = re.compile("|".join(re.escape(w) for w in long_stops))
+        segments = pattern.split(query)
+    else:
+        segments = [query]
+
+    # 清理：去除标点、空白、单字停用词
+    cleaned: list[str] = []
+    for seg in segments:
+        if not seg:
+            continue
+        # 去除标点与空白
+        seg = re.sub(r"[^\w\u4e00-\u9fff]+", "", seg).strip()
+        if not seg or len(seg) < 2:
+            continue
+        # 去除首尾的单字停用词
+        while seg and seg[0] in _STOP_WORDS and len(seg[0]) == 1:
+            seg = seg[1:]
+        while seg and seg[-1] in _STOP_WORDS and len(seg[-1]) == 1:
+            seg = seg[:-1]
+        if seg and len(seg) >= 2:
+            cleaned.append(seg)
+
+    if cleaned:
+        # 选取最长片段（通常是最具检索价值的核心词）
+        return max(cleaned, key=len)[:20]
+
+    # 全部被过滤，返回原始 query 去除标点后的前 20 字符
+    fallback = re.sub(r"[^\w\u4e00-\u9fff]+", "", query).strip()
+    return fallback[:20] if fallback else None
+
+
 def _build_prompt(
     query: str,
     categories: list[Category],
@@ -137,7 +209,7 @@ def _build_prompt(
 {{
   "intent": "用户意图的自然语言概述（一句话）",
   "filters": {{
-    "keyword": "用于检索的关键词（提取核心名词，去除停用词；可空）",
+    "keyword": "用于检索的核心关键词（提取实体名词与场景词，去除停用词/疑问词/语气词；可空）",
     "category": "分类名称（必须从下方分类白名单中选取；用户未明确则填 null）",
     "sort": "排序方式：latest（最新）/ hottest（最热）/ nearest（最近活动）/ active（综合活动）/ relevance（相关度）；默认 latest",
     "date_from": "起始日期 ISO 字符串（如 2026-07-01T00:00:00）；用户提到时间范围时填，否则 null",
@@ -146,6 +218,14 @@ def _build_prompt(
   }},
   "reasons": ["整体匹配理由（1-3 条简短说明）"]
 }}
+
+# 关键词提取规则
+1. 提取核心名词与场景词（如"图书馆开放时间"→关键词"图书馆"；"食堂今天有什么菜"→关键词"食堂"）
+2. 去除停用词：什么/有没有/最近/请问/吗/呢/啊/吧/的/了/是/在/有/想/找/求/推荐
+3. 去除时间词（今天/昨天/本周/最近）——时间信息放入 date_from/date_to
+4. 去除疑问语气（如何/怎么/哪里/多少）
+5. 若查询本身已是关键词（如"图书馆"），直接保留
+6. keyword 为用于数据库 LIKE 检索的词，应精炼（通常 2-6 字）
 
 # 重要约束
 1. category 必须从下方分类白名单中选取，不得编造不存在的分类
@@ -543,16 +623,16 @@ async def _fallback_search(
     fallback_reason: str,
     ai_log_id: Optional[int],
 ) -> AISearchResponse:
-    """降级为普通搜索：用 query 作为关键词，应用 overrides 中的筛选项。"""
+    """降级为普通搜索：用简单分词提取关键词，应用 overrides 中的筛选项。"""
     school_id = tenant.school_id
     now = datetime.now()
 
-    # 关键词：优先 overrides，其次用原始 query
+    # 关键词：优先 overrides，其次用简单分词提取（比原始 query 更精准）
     keyword = None
     if overrides is not None and overrides.keyword is not None:
         keyword = overrides.keyword.strip()[:100] or None
     elif query:
-        keyword = query.strip()[:100] or None
+        keyword = _extract_keyword_fallback(query)
 
     base_query = select(Post).where(
         Post.is_deleted == False,

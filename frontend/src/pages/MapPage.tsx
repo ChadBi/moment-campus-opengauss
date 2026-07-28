@@ -159,73 +159,137 @@ const MapPage: React.FC = () => {
       // DSC-01.3: 保存所有 markers 到 state，用于地图失败时的列表降级视图
       setAllMarkers(data);
 
-      // 添加新标记
-      data.forEach((marker) => {
-        const color = CATEGORY_COLORS[marker.category_id] || '#95A5A6';
+      // Task 3.5: 按坐标聚合相同地点的帖子
+      // key = `${lng.toFixed(6)},${lat.toFixed(6)}`，同一坐标的帖子聚合成一个 marker
+      const grouped = new Map<string, MapMarker[]>();
+      for (const m of data) {
+        const key = `${m.longitude.toFixed(6)},${m.latitude.toFixed(6)}`;
+        const arr = grouped.get(key);
+        if (arr) {
+          arr.push(m);
+        } else {
+          grouped.set(key, [m]);
+        }
+      }
 
-        // 外层 wrapper：不要设置任何 transform，maplibre-gl 会用 transform 定位 marker
-        // 形状（旋转 -45deg 变成水滴形）放到内层 pin 元素上
+      // 为每个分组创建 marker
+      grouped.forEach((markersAtLocation) => {
+        const first = markersAtLocation[0];
+        const count = markersAtLocation.length;
+        const isGrouped = count > 1;
+        // 聚合 marker 用第一个帖子的分类色（或取数量最多分类的颜色）
+        const color = CATEGORY_COLORS[first.category_id] || '#95A5A6';
+
         const el = document.createElement('div');
         el.className = 'custom-marker';
-        el.style.cssText = `
-          width: 28px;
-          height: 28px;
-          cursor: pointer;
-        `;
+        el.style.cssText = isGrouped
+          ? 'width: 36px; height: 36px; cursor: pointer; position: relative;'
+          : 'width: 28px; height: 28px; cursor: pointer;';
 
-        // 内层水滴形 pin：承担 rotate 变换，不影响外层定位
+        // 内层水滴形 pin
         const pin = document.createElement('div');
-        pin.style.cssText = `
-          width: 100%;
-          height: 100%;
-          border-radius: 50% 50% 50% 0;
-          background: ${color};
-          transform: rotate(-45deg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-          transition: transform 0.2s;
-        `;
+        pin.style.cssText = isGrouped
+          ? `width: 100%; height: 100%; border-radius: 50% 50% 50% 0; background: ${color}; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.35); transition: transform 0.2s;`
+          : `width: 100%; height: 100%; border-radius: 50% 50% 50% 0; background: ${color}; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s;`;
 
         const inner = document.createElement('div');
-        inner.style.cssText = `
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          background: white;
-          transform: rotate(45deg);
-        `;
+        if (isGrouped) {
+          // 聚合 marker：显示数字
+          inner.style.cssText = `
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+            transform: rotate(45deg);
+            line-height: 1;
+          `;
+          inner.textContent = String(count);
+        } else {
+          // 单帖 marker：显示圆点（保持原样）
+          inner.style.cssText = `
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: white;
+            transform: rotate(45deg);
+          `;
+        }
         pin.appendChild(inner);
         el.appendChild(pin);
 
-        // 悬停效果：只缩放 pin，不动外层
+        // 悬停效果
         el.addEventListener('mouseenter', () => {
-          pin.style.transform = 'rotate(-45deg) scale(1.2)';
+          pin.style.transform = `rotate(-45deg) scale(1.2)`;
         });
         el.addEventListener('mouseleave', () => {
           pin.style.transform = 'rotate(-45deg) scale(1)';
         });
 
         const markerInstance = new maplibregl.Marker({ element: el })
-          .setLngLat([marker.longitude, marker.latitude])
+          .setLngLat([first.longitude, first.latitude])
           .addTo(map.current!);
 
-        // 点击打开右侧侧滑面板（view 模式） + 异步加载帖子内容
-        el.addEventListener('click', (e) => {
-          e.stopPropagation(); // 阻止冒泡到地图 click（避免触发发帖）
-          setPanel({ type: 'view', marker });
-          setPostDetail(null);
-          setDetailLoading(true);
-          postsApi
-            .getPost(marker.post_id)
-            .then((detail) => setPostDetail({ content: (detail as { content?: string }).content ?? '' }))
-            .catch(() => setPostDetail(null))
-            .finally(() => setDetailLoading(false));
-        });
+        if (isGrouped) {
+          // Task 3.5: 聚合 marker 点击 → 弹出帖子列表 Popup
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // 构建 Popup HTML：帖子标题列表，点击跳转详情页
+            const html = `
+              <div style="max-height: 240px; overflow-y: auto; padding: 4px 0;">
+                <div style="font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 8px; padding: 0 4px;">
+                  ${first.location_name} · ${count} 条信息
+                </div>
+                ${markersAtLocation.map((m) => `
+                  <a href="/posts/${m.post_id}" data-post-id="${m.post_id}"
+                     style="display: block; padding: 6px 8px; border-radius: 6px; text-decoration: none; color: #1f2937; font-size: 13px; line-height: 1.4; transition: background 0.15s;"
+                     onmouseover="this.style.background='#f3f4f6'"
+                     onmouseout="this.style.background='transparent'">
+                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${CATEGORY_COLORS[m.category_id] || '#95A5A6'}; margin-right: 6px; vertical-align: middle;"></span>
+                    ${m.title}
+                  </a>
+                `).join('')}
+              </div>
+            `;
+            const popup = new maplibregl.Popup({
+              closeButton: true,
+              closeOnClick: true,
+              maxWidth: '300px',
+              offset: 25,
+            })
+              .setLngLat([first.longitude, first.latitude])
+              .setHTML(html)
+              .addTo(map.current!);
 
-        // DSC-01.3: 索引 post_id -> marker 数据 + DOM 元素，用于深链接自动打开
-        markersByIdRef.current.set(marker.post_id, { marker, element: el });
+            // 拦截链接点击，使用 React Router 导航（避免整页刷新）
+            const popupEl = popup.getElement();
+            popupEl?.querySelectorAll('a[data-post-id]').forEach((a) => {
+              a.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                const postId = (ev.currentTarget as HTMLAnchorElement).dataset.postId;
+                popup.remove();
+                if (postId) navigate(`/posts/${postId}`);
+              });
+            });
+          });
+        } else {
+          // 单帖 marker：保持原有行为（打开侧滑面板）
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setPanel({ type: 'view', marker: first });
+            setPostDetail(null);
+            setDetailLoading(true);
+            postsApi
+              .getPost(first.post_id)
+              .then((detail) => setPostDetail({ content: (detail as { content?: string }).content ?? '' }))
+              .catch(() => setPostDetail(null))
+              .finally(() => setDetailLoading(false));
+          });
+        }
+
+        // DSC-01.3: 索引每个 post_id -> marker 数据 + DOM 元素
+        // 聚合 marker 下每个 post_id 都指向同一 DOM 元素，点击时打开 Popup（由上面的 click 处理）
+        for (const m of markersAtLocation) {
+          markersByIdRef.current.set(m.post_id, { marker: m, element: el });
+        }
         markersRef.current.push(markerInstance);
       });
     } catch {
