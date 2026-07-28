@@ -242,7 +242,7 @@ async def expire_posts_job(
                         type="post_expired",
                         title="帖子已过期",
                         content=(
-                            f"你的《{post.title}》已超过有效期，"
+                            f"你的《{post.title}》已超过信息截止时间，"
                             f"自动转为已过期状态。如需继续展示，请重新发布或续期。"
                         )[:500],
                         target_type="post",

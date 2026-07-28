@@ -2,11 +2,11 @@
 
 覆盖：
 - AI-03.1: POST /api/v1/posts/ai-suggest 接口
-    - 成功：返回结构化建议（标题/摘要/分类/默认有效期）+ 遗漏信息 + 敏感提醒
+    - 成功：返回结构化建议（标题/摘要/分类/默认信息截止天数）+ 遗漏信息 + 敏感提醒
     - 不修改原文：响应只返回建议，不修改 Post 任何字段
     - 失败不阻塞：Provider 异常 / JSON 解析失败 / 输入过短 → fallback=true，仍返回敏感检测
     - 白名单：分类必须来自当前学校，非法值丢弃
-- AI-03.2: 三校隔离：分类/有效期来自当前学校，不引用其他学校数据
+- AI-03.2: 三校隔离：分类/信息截止天数来自当前学校，不引用其他学校数据
 - 敏感信息检测：手机/邮箱/身份证/银行卡/QQ 命中
 - 日志：ai_invocation_logs 成功/失败均记录
 
@@ -162,7 +162,7 @@ async def ai_publish_setup(db_session: AsyncSession) -> dict:
 
     提供：
     - 一个学校 + operations 订阅 + 用户 + membership
-    - 2 个分类（失物招领 / 活动），各自有不同默认有效期
+    - 2 个分类（失物招领 / 活动），各自有不同默认信息截止天数
     - 1 个地点
     - 用户 token
 
@@ -293,7 +293,7 @@ class TestAIPublishSuggestSuccess:
     async def test_validity_falls_back_to_category_default(
         self, client: AsyncClient, ai_publish_setup: dict, monkeypatch,
     ):
-        """模型未给 default_validity_days → 回退到当前已选分类的默认有效期"""
+        """模型未给 default_validity_days → 回退到当前已选分类的默认信息截止天数"""
         provider = _make_provider()
         # 模型不返回 default_validity_days（null）
         provider.set_response(_suggestion_json(
@@ -317,7 +317,7 @@ class TestAIPublishSuggestSuccess:
             },
         )
         assert resp.status_code == 200
-        # 默认有效期应回退到 cat_lost.default_validity_days = 14
+        # 默认信息截止天数应回退到 cat_lost.default_validity_days = 14
         assert resp.json()["suggestions"]["default_validity_days"] == cat_lost.default_validity_days
 
     @pytest.mark.asyncio
@@ -726,7 +726,7 @@ class TestAIPublishWhitelist:
 # 5. 租户隔离（AI-03.2）
 # ============================================================
 class TestAIPublishTenantIsolation:
-    """AI-03.2: 三校隔离：分类/标签/有效期来自当前学校"""
+    """AI-03.2: 三校隔离：分类/标签/信息截止天数来自当前学校"""
 
     @pytest.mark.asyncio
     async def test_prompt_does_not_leak_other_school_categories(
@@ -957,7 +957,7 @@ class TestAIPublishMissingInfo:
     async def test_missing_expire_hint(
         self, client: AsyncClient, ai_publish_setup: dict, monkeypatch,
     ):
-        """未设置有效期 → missing_info 含有效期提示"""
+        """未设置信息截止时间 → missing_info 含信息截止时间提示"""
         provider = _make_provider()
         provider.set_response(_suggestion_json(summary="ok"))
         _patch_provider(monkeypatch, provider)
@@ -977,4 +977,4 @@ class TestAIPublishMissingInfo:
         )
         assert resp.status_code == 200
         missing = resp.json()["missing_info"]
-        assert any("有效期" in m for m in missing)
+        assert any("信息截止时间" in m for m in missing)

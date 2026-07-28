@@ -334,7 +334,7 @@ async def notify_post_expired(
 
     title = "订阅内容已过期"
     content = (
-        f"你订阅的内容《{post.title}》已超过有效期，自动转为已过期状态。"
+        f"你订阅的内容《{post.title}》已超过信息截止时间，自动转为已过期状态。"
         f"如需继续展示，请等待作者续期或重新发布。"
     )
     notifications = _build_notifications(

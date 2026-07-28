@@ -62,8 +62,6 @@ async def _create_post(
     status: str = "pending",
     location_id: int | None = None,
     expire_at: datetime | None = None,
-    activity_start_at: datetime | None = None,
-    activity_end_at: datetime | None = None,
 ) -> Post:
     """创建测试帖子并返回 ORM 对象。"""
     post = Post(
@@ -75,8 +73,6 @@ async def _create_post(
         content=content,
         status=status,
         expire_at=expire_at,
-        activity_start_at=activity_start_at,
-        activity_end_at=activity_end_at,
     )
     db_session.add(post)
     await db_session.commit()
@@ -399,6 +395,7 @@ class TestSP03DetectConflict:
         test_school, test_category,
     ):
         """测试 1：2 个帖子同地点+时间重叠+published，返回 1，当前帖子 status=conflict"""
+        pytest.skip("Task 1.4: 活动时间字段已移除，sp_detect_conflict 不再基于活动时间检测冲突")
         author = await _create_user(
             db_session, test_school["id"],
             email="sp03_author1@example.com", nickname="SP03作者1",
@@ -414,14 +411,12 @@ class TestSP03DetectConflict:
             db_session, author.id, test_school["id"],
             test_category["id"],
             status="published", location_id=location.id,
-            activity_start_at=start, activity_end_at=end,
         )
         # 帖子 B：时间重叠，published
         post_b = await _create_post(
             db_session, author.id, test_school["id"],
             test_category["id"],
             status="published", location_id=location.id,
-            activity_start_at=start, activity_end_at=end,
         )
 
         conflict_cnt = await db_conn.fetchval(
@@ -440,7 +435,7 @@ class TestSP03DetectConflict:
         self, db_conn, db_session, ensure_physical_objects,
         test_school, test_category,
     ):
-        """测试 2：无地点或无活动时间，返回 0"""
+        """测试 2：无地点，返回 0"""
         author = await _create_user(
             db_session, test_school["id"],
             email="sp03_author2@example.com", nickname="SP03作者2",
@@ -449,7 +444,7 @@ class TestSP03DetectConflict:
             db_session, author.id, test_school["id"],
             test_category["id"],
             status="published",
-            # 无 location_id, 无 activity 时间
+            # 无 location_id
         )
 
         result = await db_conn.fetchval(
@@ -651,13 +646,14 @@ class TestSP07PublishPost:
             email="sp07_author1@example.com", nickname="SP07作者1",
         )
 
-        # SP07 共 13 个参数；None 值需显式类型转换，否则 asyncpg 推断为 unknown 导致函数匹配失败
+        # SP07 共 11 个参数（Task 1.4 移除 p_activity_start_at / p_activity_end_at）；
+        # None 值需显式类型转换，否则 asyncpg 推断为 unknown 导致函数匹配失败
         post_id = await db_conn.fetchval(
             "SELECT sp_publish_post("
             "$1::bigint, $2::bigint, $3::bigint, $4::bigint, "
             "$5::bigint, $6::varchar, $7::text, $8::boolean, "
-            "$9::timestamptz, $10::timestamptz, $11::timestamptz, "
-            "$12::varchar, $13::varchar)",
+            "$9::timestamptz, "
+            "$10::varchar, $11::varchar)",
             author.id,                       # p_user_id
             test_school["id"],               # p_school_id
             test_category["id"],             # p_category_id
@@ -667,8 +663,6 @@ class TestSP07PublishPost:
             "SP07合法内容至少十个字符",        # p_content
             False,                           # p_is_anonymous
             None,                            # p_expire_at
-            None,                            # p_activity_start_at
-            None,                            # p_activity_end_at
             None,                            # p_contact_info
             "pending",                       # p_status
         )

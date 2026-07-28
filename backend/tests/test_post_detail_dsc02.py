@@ -33,8 +33,6 @@ async def _create_published_post(
     content: str = "这是 DSC-02.1 详情字段测试帖子的内容，至少十个字符",
     contact_info: str | None = "13800000000",
     expire_at: datetime | None = None,
-    activity_start_at: datetime | None = None,
-    activity_end_at: datetime | None = None,
 ) -> Post:
     """直接在 DB 创建 published 状态帖子（绕过状态机，仅用于测试展示）"""
     post = Post(
@@ -46,8 +44,6 @@ async def _create_published_post(
         status=PostStatus.PUBLISHED,
         contact_info=contact_info,
         expire_at=expire_at,
-        activity_start_at=activity_start_at,
-        activity_end_at=activity_end_at,
     )
     db_session.add(post)
     await db_session.commit()
@@ -71,7 +67,7 @@ async def _add_post_images(
 
 
 # ============================================================
-# DSC-02.1: 详情页全字段展示（图片/状态/有效期/活动时间/联系方式）
+# DSC-02.1: 详情页全字段展示（图片/状态/信息截止时间/联系方式）
 # ============================================================
 
 @pytest.mark.asyncio
@@ -79,20 +75,16 @@ async def test_detail_returns_all_fields_for_logged_in_user(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
     test_school: dict, test_category: dict,
 ):
-    """DSC-02.1: 登录用户访问详情返回所有字段（含图片/状态/有效期/活动时间/联系方式）"""
+    """DSC-02.1: 登录用户访问详情返回所有字段（含图片/状态/信息截止时间/联系方式）"""
     from app.core.security import decode_token
     user_id = int(decode_token(test_user["access_token"])["sub"])
 
     expire = datetime.now() + timedelta(days=7)
-    start = datetime.now() + timedelta(days=1)
-    end = datetime.now() + timedelta(days=2)
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
         test_category["id"],
         contact_info="test@example.com",
         expire_at=expire,
-        activity_start_at=start,
-        activity_end_at=end,
     )
     await _add_post_images(db_session, post.id, [
         "https://example.com/img1.jpg",
@@ -111,8 +103,6 @@ async def test_detail_returns_all_fields_for_logged_in_user(
     assert data["status"] == PostStatus.PUBLISHED
     assert data["contact_info"] == "test@example.com"  # 登录用户可见
     assert data["expire_at"] is not None
-    assert data["activity_start_at"] is not None
-    assert data["activity_end_at"] is not None
     # 图片列表
     assert data["images"] is not None
     assert len(data["images"]) == 2

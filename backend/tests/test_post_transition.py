@@ -382,9 +382,9 @@ class TestSubstantialChangeUnit:
         assert is_substantial_change(set()) is False
 
     def test_only_non_substantial_fields_returns_false(self):
-        """仅修改非实质字段（expire_at/contact_info/is_anonymous/activity_*/tags）不触发回审"""
+        """仅修改非实质字段（expire_at/contact_info/is_anonymous/tags）不触发回审"""
         non_substantial = {
-            "expire_at", "activity_start_at", "activity_end_at",
+            "expire_at",
             "contact_info", "is_anonymous", "tags", "image_urls",
         }
         assert is_substantial_change(non_substantial) is False
@@ -432,7 +432,7 @@ class TestSubstantialChangeUnit:
         assert SUBSTANTIAL_FIELDS == expected
         # 不应包含非实质字段
         non_substantial = {
-            "expire_at", "activity_start_at", "activity_end_at",
+            "expire_at",
             "contact_info", "is_anonymous", "tags", "image_urls",
             "status", "is_recommend",
         }
@@ -592,6 +592,7 @@ async def test_non_substantial_activity_time_change_stays_published(
     client: AsyncClient, auth_headers: dict, admin_headers: dict, test_post: dict
 ):
     """FND-03.2: 已发布帖子修改 activity_start_at/end_at（非实质字段）→ 保持 published"""
+    pytest.skip("Task 1.4: 活动时间字段已移除")
     post_id = test_post["id"]
     await _publish_post(client, admin_headers, post_id)
 

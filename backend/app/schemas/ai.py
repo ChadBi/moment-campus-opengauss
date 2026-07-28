@@ -2,7 +2,7 @@
 
 定义 AI 辅助发布建议的请求/响应模型：
 - AIPublishSuggestRequest：草稿内容（标题/正文/当前分类/地点等），用于请求 AI 建议
-- AIPublishSuggestions：AI 返回的结构化建议（标题/摘要/分类/标签/默认有效期）
+- AIPublishSuggestions：AI 返回的结构化建议（标题/摘要/分类/标签/默认信息截止天数）
 - AIPublishSuggestionResponse：完整响应（建议 + 遗漏信息 + 敏感提醒 + 降级标记）
 
 设计原则：
@@ -27,13 +27,12 @@ class AIPublishSuggestRequest(BaseModel):
 
     字段全部可选（用户可能只填了标题就开始请求建议）：
     - title / content：草稿正文（必填，至少有标题或内容才好建议）
-    - category_id：当前已选分类（用于推断默认有效期）
+    - category_id：当前已选分类（用于推断默认信息截止天数）
     - location_id：当前已选地点
     - tags：当前已填标签
     - contact_info：联系方式（用于敏感信息检测）
-    - activity_start_at / activity_end_at：活动时间
     - lost_type：失物类型
-    - expire_at：当前已设置的有效期
+    - expire_at：当前已设置的信息截止时间
     """
 
     title: str = Field("", max_length=200, description="草稿标题")
@@ -42,10 +41,8 @@ class AIPublishSuggestRequest(BaseModel):
     location_id: Optional[int] = Field(None, description="当前已选地点ID")
     tags: Optional[List[str]] = Field(None, max_length=5, description="当前已填标签列表")
     contact_info: Optional[str] = Field(None, max_length=255, description="联系方式（用于敏感信息检测）")
-    activity_start_at: Optional[str] = Field(None, description="活动开始时间（ISO 字符串）")
-    activity_end_at: Optional[str] = Field(None, description="活动结束时间（ISO 字符串）")
     lost_type: Optional[str] = Field(None, max_length=10, description="失物类型 lost/found")
-    expire_at: Optional[str] = Field(None, description="当前已设置的有效期（ISO 字符串）")
+    expire_at: Optional[str] = Field(None, description="当前已设置的信息截止时间（ISO 字符串）")
 
 
 # ============================================================
@@ -58,7 +55,7 @@ class AIPublishSuggestions(BaseModel):
     - summary：建议摘要（适合列表展示 / SEO）
     - category：建议分类名（白名单校验后转为 category_id；非法值置空）
     - tags：建议标签列表（白名单校验后只保留当前学校存在的标签）
-    - default_validity_days：建议默认有效期天数（来自当前学校分类配置）
+    - default_validity_days：建议默认信息截止天数（来自当前学校分类配置）
     """
 
     title: Optional[str] = Field(None, description="建议标题（仅在原文标题较弱时给出）")
@@ -69,7 +66,7 @@ class AIPublishSuggestions(BaseModel):
     )
     tags: List[str] = Field(default_factory=list, description="建议标签列表（白名单校验后的最终值）")
     default_validity_days: Optional[int] = Field(
-        None, description="建议默认有效期天数（来自当前学校分类配置）"
+        None, description="建议默认信息截止天数（来自当前学校分类配置）"
     )
 
 

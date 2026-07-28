@@ -9,9 +9,10 @@
 
 2. **发布表单字段**：
    - POST /posts 接受 image_urls（最多 9 张）/ expire_at /
-     activity_start_at / activity_end_at / contact_info / lost_type / is_anonymous
+     contact_info / lost_type / is_anonymous
    - 创建时只允许 status=draft 或 pending，其余 4 态由状态机管理（FND-01.2）
    - Task 1.3 调整：tags 字段已随 Tag 模型删除移除
+   - Task 1.4 调整：activity_start_at / activity_end_at 字段已随活动时间字段移除
 
 3. **地点选择 + 新增地点队列**：
    - 已存在 location_id：直接关联
@@ -280,7 +281,7 @@ class TestPublishFormDataSources:
 
 
 # ============================================================
-# PUB-01.2: 表单字段（图片/有效期/活动时间/联系方式/匿名/失物类型）
+# PUB-01.2: 表单字段（图片/信息截止时间/联系方式/匿名/失物类型）
 # ============================================================
 class TestPublishFormFields:
     """发布表单字段完整持久化测试"""
@@ -293,10 +294,9 @@ class TestPublishFormFields:
         """创建帖子时携带全部 PUB-01.2 字段，验证全部持久化
 
         Task 1.3 调整：移除 tags 字段（Tag 模型已删除）
+        Task 1.4 调整：移除 activity_start_at / activity_end_at（活动时间字段已删除）
         """
         expire = (datetime.now() + timedelta(days=7)).isoformat()
-        act_start = (datetime.now() + timedelta(days=1)).isoformat()
-        act_end = (datetime.now() + timedelta(days=2)).isoformat()
 
         resp = await client.post(
             "/api/v1/posts",
@@ -307,8 +307,6 @@ class TestPublishFormFields:
                 "is_anonymous": True,
                 "image_urls": ["/uploads/test1.jpg", "/uploads/test2.jpg"],
                 "expire_at": expire,
-                "activity_start_at": act_start,
-                "activity_end_at": act_end,
                 "contact_info": "微信号：test123",
                 "lost_type": "found",
                 "status": "pending",
@@ -324,10 +322,8 @@ class TestPublishFormFields:
         assert data["contact_info"] == "微信号：test123"
         assert data["lost_type"] == "found"
         assert data["status"] == "pending"
-        # expire_at / activity_*_at 应被持久化（精确到秒级比较，避免微秒差异）
+        # expire_at 应被持久化（精确到秒级比较，避免微秒差异）
         assert data["expire_at"] is not None
-        assert data["activity_start_at"] is not None
-        assert data["activity_end_at"] is not None
 
         # 验证图片持久化（直接查 DB，因为 PostResponse.images 字段在 create 响应中可能未填充）
         img_result = await db_session.execute(
@@ -420,8 +416,8 @@ class TestPublishFormFields:
         resp = await client.post(
             "/api/v1/posts",
             json={
-                "title": "默认有效期测试标题",
-                "content": "测试默认有效期，至少十个字符",
+                "title": "默认信息截止天数测试标题",
+                "content": "测试默认信息截止天数，至少十个字符",
                 "category_id": test_category["id"],
             },
             headers=auth_headers,
@@ -429,7 +425,7 @@ class TestPublishFormFields:
         assert resp.status_code == 201
         data = resp.json()
         assert data["expire_at"] is not None
-        # 验证过期时间约为 30 天后（允许 ±2 小时偏差）
+        # 验证信息截止时间约为 30 天后（允许 ±2 小时偏差）
         expire = datetime.fromisoformat(data["expire_at"].replace("Z", "+00:00"))
         delta = expire - datetime.now(expire.tzinfo)
         assert timedelta(days=29) < delta < timedelta(days=31)

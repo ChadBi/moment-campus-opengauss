@@ -233,7 +233,7 @@ class TestPostUpdateContract:
         expected = {
             "title", "content", "category_id", "location_id",
             "is_anonymous", "image_urls",
-            "expire_at", "activity_start_at", "activity_end_at",
+            "expire_at",
             "lost_type", "contact_info",
         }
         assert expected.issubset(fields)

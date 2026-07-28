@@ -49,7 +49,7 @@ class CategoryCreate(BaseModel):
     code: str = Field(..., min_length=1, max_length=30, pattern="^[a-z0-9_]+$", description="分类编码（小写字母+数字+下划线）")
     icon: str = Field(..., min_length=1, max_length=10, description="图标 emoji")
     description: Optional[str] = Field(None, max_length=200, description="描述")
-    default_validity_days: int = Field(default=30, ge=1, le=3650, description="默认有效天数")
+    default_validity_days: int = Field(default=30, ge=1, le=3650, description="默认信息截止天数")
     sort_order: int = Field(default=0, ge=0, description="排序权重，越小越靠前")
     is_active: bool = Field(default=True, description="是否启用")
 
@@ -165,7 +165,7 @@ class AuthorHistoryStats(BaseModel):
 class AdminPostDetail(BaseModel):
     """ADM-01.2: 审核详情（管理专用，不依赖公开帖子详情）
 
-    含完整内容、分类、地点、有效期、图片、作者历史与治理概况。
+    含完整内容、分类、地点、信息截止时间、图片、作者历史与治理概况。
     """
     id: int
     title: str
@@ -247,7 +247,7 @@ class SchoolSettingsResponse(BaseModel):
     allow_comments: bool = Field(..., description="是否允许评论")
     publish_frequency: int = Field(..., description="每日发布上限（0 表示不限）")
     image_limit: int = Field(..., description="单帖图片上限")
-    default_validity_days: int = Field(..., description="默认有效期天数")
+    default_validity_days: int = Field(..., description="默认信息截止天数")
     brand_color: Optional[str] = Field(None, description="品牌色（如 #1890ff）")
     logo_url: Optional[str] = Field(None, description="Logo URL")
     updated_at: datetime = Field(..., description="最近一次更新时间")
@@ -273,7 +273,7 @@ class SchoolSettingsUpdate(BaseModel):
         None, ge=0, le=20, description="单帖图片上限"
     )
     default_validity_days: Optional[int] = Field(
-        None, ge=1, le=3650, description="默认有效期天数"
+        None, ge=1, le=3650, description="默认信息截止天数"
     )
     brand_color: Optional[str] = Field(None, max_length=20, description="品牌色")
     logo_url: Optional[str] = Field(None, max_length=500, description="Logo URL")

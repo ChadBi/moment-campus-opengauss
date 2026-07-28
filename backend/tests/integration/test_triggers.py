@@ -63,8 +63,6 @@ async def _create_post(
     location_id: int | None = None,
     view_count: int = 0,
     expire_at: datetime | None = None,
-    activity_start_at: datetime | None = None,
-    activity_end_at: datetime | None = None,
 ) -> Post:
     """创建测试帖子并返回 ORM 对象。"""
     post = Post(
@@ -77,8 +75,6 @@ async def _create_post(
         status=status,
         view_count=view_count,
         expire_at=expire_at,
-        activity_start_at=activity_start_at,
-        activity_end_at=activity_end_at,
     )
     db_session.add(post)
     await db_session.commit()

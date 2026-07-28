@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 _MIN_TITLE_LEN_FOR_AI = 3
 _MIN_CONTENT_LEN_FOR_AI = 5
 
-# AI 建议的默认有效期上限（防止模型给出过大值）
+# AI 建议的默认信息截止天数上限（防止模型给出过大值）
 _MAX_VALIDITY_DAYS = 365
 
 # 敏感信息检测正则（确定性，不依赖模型）
@@ -159,8 +159,7 @@ def _detect_missing_info(request: AIPublishSuggestRequest) -> list[str]:
     - 内容是否为空 / 过短
     - 分类是否已选
     - 地点是否已选
-    - 有效期是否已设置
-    - 活动类信息是否设置了活动时间
+    - 信息截止时间是否已设置
     - 失物招领类是否设置了 lost_type 与联系方式
     """
     missing: list[str] = []
@@ -179,19 +178,14 @@ def _detect_missing_info(request: AIPublishSuggestRequest) -> list[str]:
         missing.append("正文内容过短，建议补充时间、地点、对象、经过等关键信息")
 
     if request.category_id is None:
-        missing.append("未选择分类，分类影响默认有效期与展示位置")
+        missing.append("未选择分类，分类影响默认信息截止天数与展示位置")
 
     if request.location_id is None and not request.contact_info:
         # 没有地点且没有联系方式时提示
         missing.append("未选择地点，建议补充具体地点便于定位")
 
     if request.expire_at is None:
-        missing.append("未设置有效期，将使用分类默认有效期")
-
-    # 活动类信息检查活动时间
-    is_activity = bool(request.activity_start_at or request.activity_end_at)
-    if is_activity and (not request.activity_start_at or not request.activity_end_at):
-        missing.append("活动类信息建议同时设置开始与结束时间")
+        missing.append("未设置信息截止时间，将使用分类默认信息截止天数")
 
     # 失物招领类检查
     if request.lost_type is not None and not request.contact_info:
@@ -242,7 +236,7 @@ def _build_prompt(
     但 service 层会忽略该字段并恒定返回空数组。
     """
     cat_list = (
-        "、".join(f"{c.name}（code={c.code}，默认有效期={c.default_validity_days}天）" for c in categories[:30])
+        "、".join(f"{c.name}（code={c.code}，默认信息截止天数={c.default_validity_days}天）" for c in categories[:30])
         or "（暂无分类）"
     )
 
@@ -254,10 +248,6 @@ def _build_prompt(
             current_fields.append(f"当前已选分类：{cat.name}")
     if request.lost_type:
         current_fields.append(f"失物类型：{request.lost_type}")
-    if request.activity_start_at or request.activity_end_at:
-        current_fields.append(
-            f"活动时间：{request.activity_start_at or '未定'} ~ {request.activity_end_at or '未定'}"
-        )
     current_block = "\n".join(f"- {f}" for f in current_fields) or "- （用户未选择任何字段）"
 
     return f"""你是校园信息发布助手。请基于用户草稿给出"结构化建议"，但不修改原文。
@@ -270,7 +260,7 @@ def _build_prompt(
     "summary": "建议摘要（10-80 字，用于列表展示）",
     "category": "建议分类名（必须从下方分类白名单中选取；用户当前已选合适则填 null）",
     "tags": ["建议标签（最多 5 个；无建议则空数组）"],
-    "default_validity_days": 建议默认有效期天数（整数 1-365；来自分类配置或常见场景）
+    "default_validity_days": 建议默认信息截止天数（整数 1-365；来自分类配置或常见场景）
   }},
   "missing_info": ["遗漏的关键信息（1-5 条简短说明，如缺少时间/地点/联系方式/物品特征等）"],
   "sensitive_warnings": ["敏感信息提醒（如检测到手机号/身份证/银行卡等；无则空数组）"]
@@ -360,7 +350,7 @@ def _validate_suggestions(
         days_int = int(raw_days)
         if 1 <= days_int <= _MAX_VALIDITY_DAYS:
             default_validity_days = days_int
-    # 回退：当前已选分类的默认有效期
+    # 回退：当前已选分类的默认信息截止天数
     if default_validity_days is None and request.category_id is not None:
         cat = next((c for c in categories if c.id == request.category_id), None)
         if cat is not None:

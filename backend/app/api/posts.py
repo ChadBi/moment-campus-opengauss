@@ -477,13 +477,11 @@ async def create_post(
         is_anonymous=post_data.is_anonymous,
         status=post_data.status or "pending",  # T-B-06: 支持 draft 草稿 / pending 提交审核
         expire_at=post_data.expire_at,
-        activity_start_at=post_data.activity_start_at,
-        activity_end_at=post_data.activity_end_at,
         lost_type=post_data.lost_type,
         contact_info=post_data.contact_info,
     )
 
-    # 如果没有设置过期时间，使用分类的默认有效期
+    # 如果没有设置信息截止时间，使用分类的默认信息截止天数
     if post.expire_at is None:
         post.expire_at = datetime.now() + timedelta(days=category.default_validity_days)
 
@@ -536,7 +534,7 @@ async def update_post(
     FND-03.2: 状态变化只走状态机服务。
         - 已 published 的帖子若被实质修改（title/content/category_id/
           location_*/lost_type），自动通过状态机 published → pending 回审
-        - 非实质字段（expire_at/activity_*/contact_info/is_anonymous/image_urls）
+        - 非实质字段（expire_at/contact_info/is_anonymous/image_urls）
           修改不触发回审
         - 本接口不允许直接修改 status 字段（PostUpdate schema 已移除 status）
 
@@ -902,7 +900,7 @@ async def ai_suggest_post(
     流程：
     1. TenantContext 取校（三校隔离）
     2. 确定性敏感信息检测（手机/邮箱/身份证/银行卡/QQ）→ sensitive_warnings + findings
-    3. 缺失字段检测（标题/正文/分类/地点/有效期/活动时间/联系方式）
+    3. 缺失字段检测（标题/正文/分类/地点/信息截止时间/联系方式）
     4. 加载当前学校分类与标签白名单
     5. 输入过短或无可建议内容 → fallback（仍返回敏感检测 + 缺失提示）
     6. 否则调用 invoke_ai（PUBLISH_SUGGESTION_SCHEMA 约束）解析建议

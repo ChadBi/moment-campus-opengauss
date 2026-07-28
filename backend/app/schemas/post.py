@@ -55,9 +55,7 @@ class PostCreate(BaseModel):
     location_lng: Optional[float] = Field(None, ge=-180, le=180, description="经度（与 location_name 配合使用）")
     is_anonymous: bool = Field(default=False, description="是否匿名")
     image_urls: Optional[List[str]] = Field(default=None, max_length=9, description="图片URL列表，最多9个")
-    expire_at: Optional[datetime] = Field(None, description="过期时间")
-    activity_start_at: Optional[datetime] = Field(None, description="活动开始时间")
-    activity_end_at: Optional[datetime] = Field(None, description="活动结束时间")
+    expire_at: Optional[datetime] = Field(None, description="信息截止时间")
     lost_type: Optional[str] = Field(None, max_length=10, description="丢失类型")
     contact_info: Optional[str] = Field(None, max_length=255, description="联系方式")
     # T-B-06: 支持创建时指定初始状态（draft 草稿 / pending 提交审核）
@@ -94,9 +92,7 @@ class PostUpdate(BaseModel):
     location_id: Optional[int] = Field(None, description="地点ID")
     is_anonymous: Optional[bool] = Field(None, description="是否匿名")
     image_urls: Optional[List[str]] = Field(None, max_length=9, description="图片URL列表")
-    expire_at: Optional[datetime] = Field(None, description="过期时间")
-    activity_start_at: Optional[datetime] = Field(None, description="活动开始时间")
-    activity_end_at: Optional[datetime] = Field(None, description="活动结束时间")
+    expire_at: Optional[datetime] = Field(None, description="信息截止时间")
     lost_type: Optional[str] = Field(None, max_length=10, description="丢失类型")
     contact_info: Optional[str] = Field(None, max_length=255, description="联系方式")
 
@@ -120,8 +116,6 @@ class PostResponse(BaseModel):
     valid_count: int = 0
     invalid_count: int = 0
     expire_at: Optional[datetime] = None
-    activity_start_at: Optional[datetime] = None
-    activity_end_at: Optional[datetime] = None
     lost_type: Optional[str] = None
     contact_info: Optional[str] = None
     is_recommend: bool = False

@@ -115,49 +115,22 @@ COMMENT ON FUNCTION sp_mark_expired_posts() IS 'SP02 标记过期信息（每小
 -- SP03 sp_detect_conflict（检测冲突信息）
 -- 调用方：触发器 trg_validation_after_insert、SP08
 -- 功能：同地点、时间重叠、状态为 published 的其他信息存在时标记为 conflict
+-- Task 1.4 调整：活动时间字段（activity_start_at / activity_end_at）已移除，
+--   原时间重叠检测不再适用；保留函数签名兼容触发器调用，但恒返回 0。
+--   冲突状态后续由管理员通过举报队列处理。
 -- ============================================================
 CREATE OR REPLACE FUNCTION sp_detect_conflict(p_post_id BIGINT)
 RETURNS INTEGER AS $$
 DECLARE
     v_conflict_cnt  INTEGER;
-    v_location_id   BIGINT;
-    v_post_start    TIMESTAMP WITH TIME ZONE;
-    v_post_end      TIMESTAMP WITH TIME ZONE;
 BEGIN
-    -- 获取当前信息的地点与时间范围
-    SELECT location_id, activity_start_at, activity_end_at
-    INTO v_location_id, v_post_start, v_post_end
-    FROM posts WHERE id = p_post_id;
-
-    -- 无地点或无活动时间，无法判定冲突
-    IF v_location_id IS NULL OR v_post_start IS NULL OR v_post_end IS NULL THEN
-        RETURN 0;
-    END IF;
-
-    -- 查找同地点、时间重叠、状态为 published 的其他信息
-    SELECT COUNT(*) INTO v_conflict_cnt
-    FROM posts
-    WHERE id <> p_post_id
-      AND location_id = v_location_id
-      AND status = 'published'
-      AND is_deleted = FALSE
-      AND activity_start_at IS NOT NULL
-      AND activity_end_at IS NOT NULL
-      AND activity_start_at < v_post_end
-      AND activity_end_at > v_post_start;
-
-    -- 若存在冲突，将当前信息标记为 conflict
-    IF v_conflict_cnt > 0 THEN
-        UPDATE posts
-        SET status = 'conflict', updated_at = CURRENT_TIMESTAMP
-        WHERE id = p_post_id AND status = 'published';
-    END IF;
-
+    -- Task 1.4: 活动时间字段已移除，原时间重叠冲突检测不再适用
+    v_conflict_cnt := 0;
     RETURN v_conflict_cnt;
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION sp_detect_conflict(BIGINT) IS 'SP03 检测同地点同时段矛盾信息';
+COMMENT ON FUNCTION sp_detect_conflict(BIGINT) IS 'SP03 检测同地点同时段矛盾信息（Task 1.4 活动时间移除后恒返回 0）';
 
 -- ============================================================
 -- SP04 sp_update_reputation（更新用户信誉分）
@@ -350,9 +323,7 @@ COMMENT ON FUNCTION sp_cleanup_soft_deleted() IS 'SP06 清理 30 天前软删除
 --   p_title         - 标题
 --   p_content       - 内容
 --   p_is_anonymous  - 是否匿名
---   p_expire_at     - 过期时间（可空）
---   p_activity_start_at - 活动开始时间（可空）
---   p_activity_end_at   - 活动结束时间（可空）
+--   p_expire_at     - 信息截止时间（可空）
 --   p_contact_info  - 联系方式（可空）
 --   p_status        - 初始状态（默认 pending_review）
 -- 返回：新信息ID
@@ -366,8 +337,6 @@ CREATE OR REPLACE FUNCTION sp_publish_post(
     p_content           TEXT,
     p_is_anonymous      BOOLEAN DEFAULT FALSE,
     p_expire_at         TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    p_activity_start_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-    p_activity_end_at   TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_contact_info      VARCHAR(255) DEFAULT NULL,
     p_status            VARCHAR(20) DEFAULT 'pending_review'
 )
@@ -407,7 +376,7 @@ BEGIN
         title, content, is_anonymous, status,
         view_count, like_count, comment_count, favorite_count,
         valid_count, invalid_count, credibility_score,
-        expire_at, activity_start_at, activity_end_at,
+        expire_at,
         contact_info, is_top, is_recommend,
         created_at, updated_at, is_deleted
     ) VALUES (
@@ -415,7 +384,7 @@ BEGIN
         p_title, p_content, p_is_anonymous, p_status,
         0, 0, 0, 0,
         0, 0, v_credibility,
-        p_expire_at, p_activity_start_at, p_activity_end_at,
+        p_expire_at,
         p_contact_info, FALSE, FALSE,
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE
     )
@@ -427,8 +396,8 @@ BEGIN
             '发布信息：' || p_title, CURRENT_TIMESTAMP);
 
     -- 若已直接发布（status=published），触发冲突检测
-    IF p_status = 'published' AND p_location_id IS NOT NULL
-       AND p_activity_start_at IS NOT NULL AND p_activity_end_at IS NOT NULL THEN
+    -- Task 1.4: 活动时间字段已移除，sp_detect_conflict 恒返回 0，此处保留调用以兼容触发器链
+    IF p_status = 'published' AND p_location_id IS NOT NULL THEN
         PERFORM sp_detect_conflict(v_post_id);
     END IF;
 
@@ -437,8 +406,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION sp_publish_post(BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, TEXT, BOOLEAN,
-                                    TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE,
-                                    TIMESTAMP WITH TIME ZONE, VARCHAR, VARCHAR) IS 'SP07 信息发布流程（应用层调用）';
+                                    TIMESTAMP WITH TIME ZONE, VARCHAR, VARCHAR) IS 'SP07 信息发布流程（应用层调用；Task 1.4 移除活动时间参数）';
 
 -- ============================================================
 -- SP08 sp_submit_validation（提交协同验证）

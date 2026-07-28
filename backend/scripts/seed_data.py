@@ -1830,7 +1830,7 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
         created_at = now - timedelta(days=days_ago, hours=hours_ago)
 
         status = p.get("status", "published")
-        # 已过期帖子的 expire_at 设为过去；其他状态按分类默认有效期
+        # 已过期帖子的 expire_at 设为过去；其他状态按分类默认信息截止天数
         if status == "expired":
             expire_at = created_at + timedelta(days=1)  # 立即过期
         else:

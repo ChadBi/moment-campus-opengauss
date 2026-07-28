@@ -817,7 +817,7 @@ async def get_admin_post_detail(
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """审核详情：完整内容、分类、地点、有效期、图片、作者历史与治理概况。
+    """审核详情：完整内容、分类、地点、信息截止时间、图片、作者历史与治理概况。
 
     管理专用接口，不依赖公开帖子详情（公开详情对 pending 帖子不可见）。
     TEN-02.3：跨校帖子统一返回 404。

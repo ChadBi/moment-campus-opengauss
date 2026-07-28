@@ -99,8 +99,6 @@ BEGIN
             invalid_count       INTEGER     DEFAULT 0 NOT NULL,
             credibility_score   NUMERIC(5,2),
             expire_at           TIMESTAMP WITH TIME ZONE,
-            activity_start_at   TIMESTAMP WITH TIME ZONE,
-            activity_end_at     TIMESTAMP WITH TIME ZONE,
             lost_type           VARCHAR(10),
             contact_info        VARCHAR(255),
             is_top              BOOLEAN     DEFAULT FALSE NOT NULL,
@@ -133,7 +131,7 @@ BEGIN
             title, content, is_anonymous, status,
             view_count, like_count, comment_count, favorite_count,
             valid_count, invalid_count, credibility_score,
-            expire_at, activity_start_at, activity_end_at,
+            expire_at,
             lost_type, contact_info, is_top, is_recommend,
             created_at, updated_at, is_deleted, deleted_at
         )
@@ -142,7 +140,7 @@ BEGIN
             title, content, is_anonymous, status,
             view_count, like_count, comment_count, favorite_count,
             valid_count, invalid_count, credibility_score,
-            expire_at, activity_start_at, activity_end_at,
+            expire_at,
             lost_type, contact_info, is_top, is_recommend,
             created_at, updated_at, is_deleted, deleted_at
         FROM _backup_posts;

@@ -38,8 +38,6 @@ class Post(Base):
         comment="信息可信度（0-100），由 sp_recalc_credibility 计算",
     )
     expire_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
-    activity_start_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    activity_end_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     lost_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
     contact_info: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_recommend: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
