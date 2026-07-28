@@ -462,7 +462,11 @@ async def test_admin_locations_list_filter_and_verify(
     )
     assert unverified.status_code == 200
     items = unverified.json()["items"]
-    assert any(i["id"] == loc.id and i["is_verified"] is False for i in items)
+    target = next(i for i in items if i["id"] == loc.id)
+    assert target["is_verified"] is False
+    # Task 2.4: 验证响应包含坐标字段（前端核验页地图展示依赖）
+    assert target["latitude"] == 31.49
+    assert target["longitude"] == 120.27
 
     # 核验通过
     verify = await client.put(
@@ -471,7 +475,11 @@ async def test_admin_locations_list_filter_and_verify(
         headers=admin_headers,
     )
     assert verify.status_code == 200
-    assert verify.json()["is_verified"] is True
+    verify_data = verify.json()
+    assert verify_data["is_verified"] is True
+    # Task 2.4: 核验端点响应也应包含坐标
+    assert verify_data["latitude"] == 31.49
+    assert verify_data["longitude"] == 120.27
 
     # 操作日志
     log = (await db_session.execute(
