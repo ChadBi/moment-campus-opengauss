@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, ShieldAlert, Clock, Mail, RefreshCw, CheckCircle } from 'lucide-react';
+import { Bell, ShieldAlert, RefreshCw, CheckCircle } from 'lucide-react';
 import {
   notificationsApi,
   type NotificationPreference,
@@ -11,11 +11,9 @@ import { logger } from '../utils/logger';
 /**
  * UX-01.5: 通知偏好卡片
  *
- * 7 类开关：站内即时 / 每日摘要 / 订阅 / 互动 / 审核 / 治理 / 系统
+ * 6 类开关：站内即时 / 订阅 / 互动 / 审核 / 治理 / 系统
  * 安全账号通知（system / audit）不可全关：若将 system/audit/instant 全部关闭，
  * 后端返回 400 拒绝，前端回滚到上次保存值并提示。
- * 每日摘要投递时间（HH:MM，05:00-23:00）。
- * 邮件同步开关（预留：当前仅站内通知）。
  *
  * 通知偏好按 user_id 隔离，不区分学校，跨校通知聚合到该用户的通知中心。
  */
@@ -24,7 +22,6 @@ interface PrefRow {
   key: keyof Pick<
     NotificationPreference,
     | 'instant_enabled'
-    | 'site_digest_enabled'
     | 'subscription_enabled'
     | 'interaction_enabled'
     | 'audit_enabled'
@@ -36,8 +33,7 @@ interface PrefRow {
   isSecurity?: boolean;
 }
 
-// 所有布尔类型字段（含 email_enabled）的 key 联合
-type BooleanPrefKey = PrefRow['key'] | 'email_enabled';
+type BooleanPrefKey = PrefRow['key'];
 
 const PREF_ROWS: PrefRow[] = [
   {
@@ -45,11 +41,6 @@ const PREF_ROWS: PrefRow[] = [
     label: '站内即时通知',
     desc: '评论、点赞、审核结果等即时推送至站内通知中心',
     isSecurity: true,
-  },
-  {
-    key: 'site_digest_enabled',
-    label: '每日摘要',
-    desc: '每天固定时间汇总未读通知，避免频繁打扰',
   },
   {
     key: 'subscription_enabled',
@@ -70,7 +61,7 @@ const PREF_ROWS: PrefRow[] = [
   {
     key: 'governance_enabled',
     label: '治理类',
-    desc: '协同验证、问题报告状态变化通知',
+    desc: '协同验证状态变化通知',
   },
   {
     key: 'system_enabled',
@@ -156,40 +147,6 @@ export const NotificationPreferencesCard: React.FC<
     }
   };
 
-  /**
-   * 更新每日摘要投递时间：失焦时提交
-   */
-  const handleDigestTimeBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
-    if (!preferences) return;
-    const next = e.target.value;
-    if (!next || next === preferences.digest_time) return;
-    // 简单格式校验（HH:MM）
-    if (!/^\d{2}:\d{2}$/.test(next)) {
-      setToast({ message: '时间格式应为 HH:MM', type: 'error' });
-      return;
-    }
-    const [h, m] = next.split(':').map(Number);
-    if (h < 0 || h > 23 || m < 0 || m > 59) {
-      setToast({ message: '时间范围错误（00:00-23:59）', type: 'error' });
-      return;
-    }
-    setSavingKey('digest_time');
-    try {
-      const updated = await notificationsApi.updatePreferences({ digest_time: next });
-      setPreferences(updated);
-      onPreferencesChange?.(updated);
-      setToast({ message: '摘要投递时间已更新', type: 'success' });
-    } catch (error: unknown) {
-      const e = error as { response?: { data?: { detail?: string } } };
-      setToast({
-        message: e?.response?.data?.detail || '更新失败',
-        type: 'error',
-      });
-    } finally {
-      setSavingKey(null);
-    }
-  };
-
   if (loading) {
     return (
       <div className="bg-paper rounded-[16px] border border-line/60 p-5 shadow-sm mb-4">
@@ -253,7 +210,7 @@ export const NotificationPreferencesCard: React.FC<
         </span>
       </div>
 
-      {/* 7 类开关列表 */}
+      {/* 6 类开关列表 */}
       <ul className="space-y-1" role="list">
         {PREF_ROWS.map((row) => {
           const checked = preferences[row.key];
@@ -296,53 +253,6 @@ export const NotificationPreferencesCard: React.FC<
           );
         })}
       </ul>
-
-      {/* 每日摘要投递时间 */}
-      {preferences.site_digest_enabled && (
-        <div className="mt-3 pt-3 border-t border-line/60">
-          <label
-            htmlFor="pref-digest-time"
-            className="flex items-center gap-2 text-sm font-medium text-ink mb-1.5"
-          >
-            <Clock size={14} className="text-lake" />
-            每日摘要投递时间
-          </label>
-          <p className="text-[11px] text-ink-muted mb-2">
-            每天在此时间（本地时区）汇总未读通知投递一次
-          </p>
-          <input
-            id="pref-digest-time"
-            type="time"
-            value={preferences.digest_time}
-            onBlur={handleDigestTimeBlur}
-            disabled={savingKey === 'digest_time'}
-            className="h-9 px-3 bg-paper border border-line rounded-[10px] text-sm text-ink focus:outline-none focus:border-lake disabled:opacity-60"
-          />
-        </div>
-      )}
-
-      {/* 邮件同步开关（预留） */}
-      <div className="mt-3 pt-3 border-t border-line/60 flex items-start gap-3 p-2.5 rounded-[10px] hover:bg-paper-hover/40">
-        <div className="flex-1 min-w-0">
-          <label
-            htmlFor="pref-email"
-            className="flex items-center gap-1.5 text-sm font-medium text-ink cursor-pointer"
-          >
-            <Mail size={13} className="text-ink-muted" />
-            同步邮件通知
-          </label>
-          <p className="text-[11px] text-ink-muted mt-0.5">
-            当前仅站内通知，邮件通道为预留功能，开启后暂无实际效果
-          </p>
-        </div>
-        <Switch
-          id="pref-email"
-          checked={preferences.email_enabled}
-          disabled={savingKey === 'email_enabled'}
-          onChange={(next) => handleToggle('email_enabled', next)}
-          aria-label={`同步邮件通知：${preferences.email_enabled ? '已开启' : '已关闭'}，点击切换`}
-        />
-      </div>
 
       {/* Toast */}
       {toast && (

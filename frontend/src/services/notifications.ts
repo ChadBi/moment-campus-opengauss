@@ -29,17 +29,14 @@ interface UnreadCountResponse {
   has_unread: boolean;
 }
 
-// UX-01.5: 通知偏好（7 类开关 + 每日摘要时间 + 邮件同步）
+// UX-01.5: 通知偏好（6 类开关）
 export interface NotificationPreference {
   instant_enabled: boolean;
-  site_digest_enabled: boolean;
   subscription_enabled: boolean;
   interaction_enabled: boolean;
   audit_enabled: boolean;
   governance_enabled: boolean;
   system_enabled: boolean;
-  digest_time: string;
-  email_enabled: boolean;
 }
 
 export type NotificationPreferenceUpdate = Partial<NotificationPreference>;
@@ -75,7 +72,7 @@ export const notificationsApi = {
 
   /**
    * UX-01.5: 获取当前用户通知偏好
-   * 首次访问后端自动 upsert 默认偏好（全部开启，digest_time=09:00）。
+   * 首次访问后端自动 upsert 默认偏好（全部开启）。
    * 通知偏好按 user_id 隔离，不区分学校。
    */
   getPreferences: async (): Promise<NotificationPreference> => {

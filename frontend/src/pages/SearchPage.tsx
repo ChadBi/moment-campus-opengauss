@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { searchApi, type SearchSort, type SearchStatusFilter } from '../services/search';
 import { categoriesApi, type CategoryListItem, type LocationListItem } from '../services/categories';
@@ -13,7 +13,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Loading } from '../components/ui/Loading';
-import { MapPin, Clock, Search, Sparkles, SlidersHorizontal, X, ChevronDown, Map as MapIcon, AlertCircle, RefreshCw, Wand2, Lightbulb, Bookmark, BookmarkPlus, History, Trash2 } from 'lucide-react';
+import { MapPin, Clock, Search, Sparkles, SlidersHorizontal, X, ChevronDown, Map as MapIcon, AlertCircle, RefreshCw, Wand2, Lightbulb, History, Trash2 } from 'lucide-react';
 import { useCampusStore } from '../store/useCampusStore';
 import { useUIStore } from '../store/useUIStore';
 import { formatRelativeTime as formatDate } from '../utils/date';
@@ -40,7 +40,6 @@ import { formatRelativeTime as formatDate } from '../utils/date';
  *
  * UX-01.1 新增：
  *  - 最近搜索（localStorage，按学校 code 分键，最多 8 条，点击即搜）
- *  - 已保存查询（localStorage，按学校 code 分键，可命名保存当前筛选条件）
  *  - 高频快捷问题（AI 模式下展示，点击直接发起 AI 搜索）
  *  - 普通筛选与 AI 搜索同一结果模型（已有 PostListItem）
  */
@@ -51,12 +50,12 @@ const FALLBACK_HOT_TAGS = ['食堂', '图书馆', '自习室', '快递点', '校
 
 // UX-01.1: AI 模式高频快捷问题（通用自然语言示例，适用于任意校园场景）
 const QUICK_QUESTIONS = [
-  '最近图书馆有什么活动？',
-  '食堂今天有什么好吃的？',
-  '哪里可以上自习？',
-  '校园里有哪些快递点？',
-  '最近有失物招领吗？',
-  '有哪些二手转让信息？',
+  '最近有什么值得吐槽的事？',
+  '有没有人一起组队自习或运动？',
+  '有哪些二手物品在转让？',
+  '最近有丢失或拾到物品吗？',
+  '校园里有什么新鲜事？',
+  '有哪些生活服务推荐？',
 ];
 
 const SORT_OPTIONS: { value: SearchSort; label: string }[] = [
@@ -81,37 +80,17 @@ const PAGE_SIZE = 10;
 
 type SearchMode = 'normal' | 'ai';
 
-// ============ UX-01.1: 最近搜索 / 已保存查询 localStorage 工具 ============
+// ============ UX-01.1: 最近搜索 localStorage 工具 ============
 interface RecentSearchEntry {
   keyword: string;
   mode: SearchMode;
   searchedAt: string; // ISO
 }
 
-interface SavedQueryEntry {
-  id: string; // 唯一 id（基于时间戳）
-  name: string;
-  mode: SearchMode;
-  keyword: string;
-  aiQuery: string;
-  // 普通模式筛选快照
-  categoryId: number | null;
-  locationId: number | null;
-  status: SearchStatusFilter;
-  dateFrom: string;
-  dateTo: string;
-  sort: SearchSort;
-  savedAt: string; // ISO
-}
-
 const MAX_RECENT = 8;
-const MAX_SAVED = 20;
 
 function recentStorageKey(schoolCode: string | null): string {
   return `moment_search_recent::${schoolCode ?? 'default'}`;
-}
-function savedStorageKey(schoolCode: string | null): string {
-  return `moment_search_saved::${schoolCode ?? 'default'}`;
 }
 
 function loadRecent(schoolCode: string | null): RecentSearchEntry[] {
@@ -159,25 +138,6 @@ function clearRecent(schoolCode: string | null): void {
   }
 }
 
-function loadSaved(schoolCode: string | null): SavedQueryEntry[] {
-  try {
-    const raw = localStorage.getItem(savedStorageKey(schoolCode));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as SavedQueryEntry[];
-    return Array.isArray(parsed) ? parsed.slice(0, MAX_SAVED) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistSaved(schoolCode: string | null, list: SavedQueryEntry[]): void {
-  try {
-    localStorage.setItem(savedStorageKey(schoolCode), JSON.stringify(list.slice(0, MAX_SAVED)));
-  } catch {
-    // 静默失败
-  }
-}
-
 function formatRecentTime(iso: string): string {
   try {
     const d = new Date(iso);
@@ -202,11 +162,8 @@ const SearchPage: React.FC = () => {
   const currentSchoolId = useCampusStore((s) => s.currentSchoolId);
   const currentSchoolCode = useCampusStore((s) => s.currentSchoolCode);
 
-  // ===== UX-01.1: 最近搜索 / 已保存查询（按学校 code 分键） =====
+  // ===== UX-01.1: 最近搜索（按学校 code 分键） =====
   const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>([]);
-  const [savedQueries, setSavedQueries] = useState<SavedQueryEntry[]>([]);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [saveQueryName, setSaveQueryName] = useState('');
 
   // ===== 模式切换状态（普通搜索 / AI 搜索）=====
   // 从 URL 读取初始模式：?mode=ai 切换到 AI 模式
@@ -251,13 +208,9 @@ const SearchPage: React.FC = () => {
   // 展开匹配理由的 post_id 集合
   const [expandedReasons, setExpandedReasons] = useState<Set<number>>(new Set());
 
-  // UX-01.1: pendingSearchRef 提前声明，便于 handleApplySavedQuery 引用
-  const pendingSearchRef = useRef<{ mode: SearchMode; keyword: string } | null>(null);
-
-  // ===== UX-01.1: 学校切换时重新加载最近搜索 / 已保存查询 =====
+  // ===== UX-01.1: 学校切换时重新加载最近搜索 =====
   useEffect(() => {
     setRecentSearches(loadRecent(currentSchoolCode));
-    setSavedQueries(loadSaved(currentSchoolCode));
   }, [currentSchoolCode]);
 
   // ===== UX-01.1: 记录最近搜索（在每次成功搜索后调用） =====
@@ -290,93 +243,6 @@ const SearchPage: React.FC = () => {
     clearRecent(currentSchoolCode);
     setRecentSearches([]);
   }, [currentSchoolCode]);
-
-  // ===== UX-01.1: 保存当前查询（弹出命名输入框） =====
-  const handleOpenSaveDialog = useCallback(() => {
-    const hasContent =
-      mode === 'ai'
-        ? aiQuery.trim() !== ''
-        : keyword.trim() !== '' ||
-          categoryId !== null ||
-          locationId !== null ||
-          status !== 'valid' ||
-          dateFrom !== '' ||
-          dateTo !== '' ||
-          sort !== 'latest';
-    if (!hasContent) {
-      showToast('请先输入搜索内容或设置筛选条件', 'warning');
-      return;
-    }
-    // 默认名称：使用关键词或 AI 查询
-    setSaveQueryName(mode === 'ai' ? aiQuery.trim().slice(0, 30) : keyword.trim().slice(0, 30));
-    setShowSaveDialog(true);
-  }, [mode, aiQuery, keyword, categoryId, locationId, status, dateFrom, dateTo, sort, showToast]);
-
-  const handleConfirmSaveQuery = useCallback(() => {
-    const name = saveQueryName.trim() || '未命名查询';
-    const entry: SavedQueryEntry = {
-      id: `${Date.now()}`,
-      name,
-      mode,
-      keyword,
-      aiQuery,
-      categoryId,
-      locationId,
-      status,
-      dateFrom,
-      dateTo,
-      sort,
-      savedAt: new Date().toISOString(),
-    };
-    const next = [entry, ...loadSaved(currentSchoolCode)].slice(0, MAX_SAVED);
-    persistSaved(currentSchoolCode, next);
-    setSavedQueries(next);
-    setShowSaveDialog(false);
-    setSaveQueryName('');
-    showToast('查询已保存', 'success');
-  }, [saveQueryName, mode, keyword, aiQuery, categoryId, locationId, status, dateFrom, dateTo, sort, currentSchoolCode, showToast]);
-
-  const handleDeleteSavedQuery = useCallback(
-    (id: string) => {
-      const next = loadSaved(currentSchoolCode).filter((it) => it.id !== id);
-      persistSaved(currentSchoolCode, next);
-      setSavedQueries(next);
-    },
-    [currentSchoolCode]
-  );
-
-  // ===== UX-01.1: 应用已保存查询（恢复筛选状态，不立即触发搜索，让用户可调整） =====
-  const handleApplySavedQuery = useCallback(
-    (entry: SavedQueryEntry) => {
-      setMode(entry.mode);
-      setKeyword(entry.keyword);
-      setAiQuery(entry.aiQuery);
-      setCategoryId(entry.categoryId);
-      setLocationId(entry.locationId);
-      setStatus(entry.status);
-      setDateFrom(entry.dateFrom);
-      setDateTo(entry.dateTo);
-      setSort(entry.sort);
-      // 状态更新后通过下面 useEffect 触发搜索
-      pendingSearchRef.current = { mode: entry.mode, keyword: entry.mode === 'ai' ? entry.aiQuery : entry.keyword };
-    },
-    []
-  );
-
-  // UX-01.1: 应用已保存查询后触发一次搜索
-  useEffect(() => {
-    if (!pendingSearchRef.current) return;
-    const { mode: targetMode, keyword: kw } = pendingSearchRef.current;
-    pendingSearchRef.current = null;
-    if (targetMode === 'ai') {
-      if (kw.trim()) void doAiSearch(1, false);
-    } else {
-      if (kw.trim() || categoryId !== null || locationId !== null) {
-        void doNormalSearch(1, false);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, keyword, aiQuery, categoryId, locationId, status, dateFrom, dateTo, sort]);
 
   // ===== UX-01.1: 点击最近搜索条目 → 立即搜索（依赖下方 doNormalSearchWithTag/doAiSearchWithTag，故用普通函数） =====
   const handleRecentClick = (entry: RecentSearchEntry) => {
@@ -997,69 +863,6 @@ const SearchPage: React.FC = () => {
         </div>
       </form>
 
-      {/* UX-01.1: 保存当前查询按钮（搜索框下方一行操作） */}
-      <div className="mb-3 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={handleOpenSaveDialog}
-          className="inline-flex items-center gap-1 text-xs text-ink-sub hover:text-lake transition-colors px-2 py-1"
-          aria-label="保存当前查询条件"
-        >
-          <BookmarkPlus size={13} />
-          保存当前查询
-        </button>
-      </div>
-
-      {/* UX-01.1: 保存查询命名对话框 */}
-      {showSaveDialog && (
-        <div className="fixed inset-0 z-50 bg-ink/40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-labelledby="save-query-title">
-          <div className="bg-paper rounded-[16px] border border-line shadow-lg w-full max-w-sm p-5">
-            <h3 id="save-query-title" className="font-display font-bold text-base text-ink mb-3 flex items-center gap-2">
-              <Bookmark size={16} className="text-lake" />
-              保存查询
-            </h3>
-            <label className="block text-xs text-ink-muted mb-1.5" htmlFor="save-query-name-input">查询名称</label>
-            <input
-              id="save-query-name-input"
-              type="text"
-              value={saveQueryName}
-              onChange={(e) => setSaveQueryName(e.target.value)}
-              placeholder="例如：图书馆活动"
-              maxLength={30}
-              className="w-full h-10 px-3 bg-paper border border-line rounded-[10px] text-sm text-ink placeholder:text-ink-muted/60 focus:outline-none focus:border-lake"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleConfirmSaveQuery();
-                } else if (e.key === 'Escape') {
-                  setShowSaveDialog(false);
-                  setSaveQueryName('');
-                }
-              }}
-            />
-            <p className="text-[11px] text-ink-muted mt-2">
-              将保存当前模式、关键词与全部筛选条件，按当前学校隔离存储。
-            </p>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button
-                variant="text"
-                size="sm"
-                onClick={() => {
-                  setShowSaveDialog(false);
-                  setSaveQueryName('');
-                }}
-              >
-                取消
-              </Button>
-              <Button variant="primary" size="sm" onClick={handleConfirmSaveQuery}>
-                保存
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 筛选面板（仅普通模式） */}
       {mode === 'normal' && showFilters && (
         <div className="bg-paper rounded-[16px] border border-line/60 p-4 shadow-sm mb-3">
@@ -1371,7 +1174,7 @@ const SearchPage: React.FC = () => {
         </div>
       )}
 
-      {/* UX-01.1: 最近搜索 / 已保存查询 / 快捷问题 / 热门搜索（仅未搜索时展示） */}
+      {/* UX-01.1: 最近搜索 / 快捷问题 / 热门搜索（仅未搜索时展示） */}
       {!searched && !loading && (
         <>
           {/* 最近搜索（按学校 code 分键，最多 8 条） */}
@@ -1417,47 +1220,6 @@ const SearchPage: React.FC = () => {
                       aria-label={`移除 ${entry.keyword}`}
                     >
                       <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 已保存查询（按学校 code 分键，可命名保存当前筛选条件） */}
-          {savedQueries.length > 0 && (
-            <div className="bg-paper rounded-[16px] border border-line/60 p-5 shadow-sm mb-3">
-              <div className="flex items-center gap-2 mb-3">
-                <Bookmark size={16} className="text-lamp" />
-                <span className="text-sm font-semibold text-ink">已保存查询</span>
-                <span className="text-xs text-ink-muted">（{savedQueries.length}）</span>
-              </div>
-              <div className="space-y-1">
-                {savedQueries.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-[8px] hover:bg-paper-hover transition-colors group"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleApplySavedQuery(entry)}
-                      className="flex-1 flex items-center gap-2 text-left min-w-0"
-                      aria-label={`应用查询 ${entry.name}`}
-                    >
-                      <Bookmark size={12} className="text-lamp flex-shrink-0" />
-                      <span className="text-sm font-medium text-ink truncate flex-1">{entry.name}</span>
-                      <span className="text-[10px] text-ink-muted flex-shrink-0">
-                        {entry.mode === 'ai' ? 'AI' : '普通'}
-                        {entry.keyword && ` · ${entry.keyword.slice(0, 12)}${entry.keyword.length > 12 ? '…' : ''}`}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteSavedQuery(entry.id)}
-                      className="opacity-0 group-hover:opacity-100 text-ink-muted hover:text-danger p-1 rounded transition-all"
-                      aria-label={`删除查询 ${entry.name}`}
-                    >
-                      <Trash2 size={12} />
                     </button>
                   </div>
                 ))}
