@@ -1,12 +1,14 @@
 """UX-01.5: 通知偏好 API 测试
 
+Task 2.2 调整：移除 site_digest_enabled / digest_time / email_enabled 字段，
+        「每日摘要」「邮件通知」功能下线，相关测试用例同步删除。
+
 覆盖：
-1. GET /notifications/preferences 首次访问自动 upsert 默认偏好（全部开启）
+1. GET /notifications/preferences 首次访问自动 upsert 默认偏好（6 类全部开启）
 2. GET /notifications/preferences 需登录（401）
 3. PUT /notifications/preferences 部分更新（仅更新提供的字段）
 4. PUT /notifications/preferences 安全约束：system/audit/instant 全关时拒绝 (400)
-5. PUT /notifications/preferences digest_time 格式校验
-6. PUT /notifications/preferences 需登录（401）
+5. PUT /notifications/preferences 需登录（401）
 """
 import pytest
 from httpx import AsyncClient
@@ -23,16 +25,17 @@ async def test_get_preferences_first_time_creates_default(
     )
     assert resp.status_code == 200
     data = resp.json()
-    # 默认值校验：7 类开关 + digest_time + email_enabled
+    # 默认值校验：6 类开关全部开启
     assert data["instant_enabled"] is True
-    assert data["site_digest_enabled"] is False
     assert data["subscription_enabled"] is True
     assert data["interaction_enabled"] is True
     assert data["audit_enabled"] is True
     assert data["governance_enabled"] is True
     assert data["system_enabled"] is True
-    assert data["digest_time"] == "09:00"
-    assert data["email_enabled"] is False
+    # Task 2.2: 已下线字段不应出现在响应中
+    assert "site_digest_enabled" not in data
+    assert "digest_time" not in data
+    assert "email_enabled" not in data
 
 
 @pytest.mark.asyncio
@@ -59,26 +62,24 @@ async def test_update_preferences_partial_update(
     )
     assert resp.status_code == 200
 
-    # 仅更新 site_digest_enabled 与 digest_time
+    # 仅更新 governance_enabled 与 interaction_enabled（Task 2.2: 改用未下线字段验证部分更新）
     resp = await client.put(
         "/api/v1/notifications/preferences",
         json={
-            "site_digest_enabled": True,
-            "digest_time": "18:30",
+            "governance_enabled": False,
+            "interaction_enabled": False,
         },
         headers={**auth_headers, "X-School-Code": test_school["code"]},
     )
     assert resp.status_code == 200
     data = resp.json()
     # 更新的字段
-    assert data["site_digest_enabled"] is True
-    assert data["digest_time"] == "18:30"
+    assert data["governance_enabled"] is False
+    assert data["interaction_enabled"] is False
     # 未更新的字段保持默认
     assert data["instant_enabled"] is True
     assert data["subscription_enabled"] is True
-    assert data["interaction_enabled"] is True
     assert data["audit_enabled"] is True
-    assert data["governance_enabled"] is True
     assert data["system_enabled"] is True
 
 
@@ -138,35 +139,6 @@ async def test_update_preferences_allows_closing_system_when_instant_on(
     assert data["system_enabled"] is False
     assert data["audit_enabled"] is False
     assert data["instant_enabled"] is True  # 保持开启
-
-
-@pytest.mark.asyncio
-async def test_update_preferences_invalid_digest_time_format(
-    client: AsyncClient, auth_headers: dict, test_school: dict
-):
-    """UX-01.5: digest_time 格式校验——非 HH:MM 拒绝 (400)"""
-    # 先 GET 触发默认偏好创建
-    resp = await client.get(
-        "/api/v1/notifications/preferences",
-        headers={**auth_headers, "X-School-Code": test_school["code"]},
-    )
-    assert resp.status_code == 200
-
-    # 错误格式
-    resp = await client.put(
-        "/api/v1/notifications/preferences",
-        json={"digest_time": "25:99"},
-        headers={**auth_headers, "X-School-Code": test_school["code"]},
-    )
-    assert resp.status_code == 400
-
-    # 非法字符串
-    resp = await client.put(
-        "/api/v1/notifications/preferences",
-        json={"digest_time": "abcde"},
-        headers={**auth_headers, "X-School-Code": test_school["code"]},
-    )
-    assert resp.status_code == 400
 
 
 @pytest.mark.asyncio

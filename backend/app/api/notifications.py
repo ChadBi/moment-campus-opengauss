@@ -231,16 +231,16 @@ async def get_unread_count(
 # UX-01.5: /notifications/preferences 通知偏好
 # ============================================================
 class NotificationPreferenceResponse(BaseModel):
-    """通知偏好响应"""
+    """通知偏好响应
+
+    Task 2.2 调整：移除 site_digest_enabled / digest_time / email_enabled 字段。
+    """
     instant_enabled: bool = Field(..., description="站内即时通知")
-    site_digest_enabled: bool = Field(..., description="每日摘要")
     subscription_enabled: bool = Field(..., description="订阅类")
     interaction_enabled: bool = Field(..., description="互动类")
     audit_enabled: bool = Field(..., description="审核类（安全账号通知不可全关）")
     governance_enabled: bool = Field(..., description="治理类")
     system_enabled: bool = Field(..., description="系统类（安全账号通知不可全关）")
-    digest_time: str = Field(..., description="每日摘要投递时间 HH:MM")
-    email_enabled: bool = Field(..., description="是否同步邮件通知")
 
 
 class NotificationPreferenceUpdate(BaseModel):
@@ -249,43 +249,26 @@ class NotificationPreferenceUpdate(BaseModel):
     安全账号通知（system/audit）不可全关：
     - 若尝试将 system_enabled 与 audit_enabled 同时设为 false，且 instant_enabled 也为 false，
       后端将拒绝（422），保证至少 instant=true。
+
+    Task 2.2 调整：移除 site_digest_enabled / digest_time / email_enabled 字段。
     """
     instant_enabled: Optional[bool] = Field(None, description="站内即时通知")
-    site_digest_enabled: Optional[bool] = Field(None, description="每日摘要")
     subscription_enabled: Optional[bool] = Field(None, description="订阅类")
     interaction_enabled: Optional[bool] = Field(None, description="互动类")
     audit_enabled: Optional[bool] = Field(None, description="审核类")
     governance_enabled: Optional[bool] = Field(None, description="治理类")
     system_enabled: Optional[bool] = Field(None, description="系统类")
-    digest_time: Optional[str] = Field(None, description="每日摘要投递时间 HH:MM（05:00-23:00）")
-    email_enabled: Optional[bool] = Field(None, description="是否同步邮件通知")
 
 
 def _to_response(pref: NotificationPreference) -> NotificationPreferenceResponse:
     return NotificationPreferenceResponse(
         instant_enabled=pref.instant_enabled,
-        site_digest_enabled=pref.site_digest_enabled,
         subscription_enabled=pref.subscription_enabled,
         interaction_enabled=pref.interaction_enabled,
         audit_enabled=pref.audit_enabled,
         governance_enabled=pref.governance_enabled,
         system_enabled=pref.system_enabled,
-        digest_time=pref.digest_time,
-        email_enabled=pref.email_enabled,
     )
-
-
-def _validate_digest_time(value: str) -> str:
-    """校验 HH:MM 格式，小时 05-23，分钟 00/30（保持简单，仅校验格式与范围）"""
-    if not value or len(value) != 5 or value[2] != ':':
-        raise BadRequestException(detail="digest_time 必须为 HH:MM 格式")
-    try:
-        h, m = int(value[:2]), int(value[3:])
-    except ValueError:
-        raise BadRequestException(detail="digest_time 必须为 HH:MM 格式")
-    if not (0 <= h <= 23 and 0 <= m <= 59):
-        raise BadRequestException(detail="digest_time 时间范围错误")
-    return f"{h:02d}:{m:02d}"
 
 
 @router.get(
@@ -299,7 +282,7 @@ async def get_notification_preferences(
 ):
     """获取当前用户通知偏好
 
-    首次访问时自动 upsert 默认偏好（全部开启，digest_time=09:00）。
+    首次访问时自动 upsert 默认偏好（6 类全部开启）。
     通知偏好按 user_id 隔离，不区分学校。
     """
     result = await db.execute(
@@ -344,8 +327,6 @@ async def update_notification_preferences(
     # 逐字段更新（仅更新请求中提供的字段）
     if payload.instant_enabled is not None:
         pref.instant_enabled = payload.instant_enabled
-    if payload.site_digest_enabled is not None:
-        pref.site_digest_enabled = payload.site_digest_enabled
     if payload.subscription_enabled is not None:
         pref.subscription_enabled = payload.subscription_enabled
     if payload.interaction_enabled is not None:
@@ -356,10 +337,6 @@ async def update_notification_preferences(
         pref.governance_enabled = payload.governance_enabled
     if payload.system_enabled is not None:
         pref.system_enabled = payload.system_enabled
-    if payload.digest_time is not None:
-        pref.digest_time = _validate_digest_time(payload.digest_time)
-    if payload.email_enabled is not None:
-        pref.email_enabled = payload.email_enabled
 
     # 安全账号通知不可全关：system/audit 全关 + instant 也关时拒绝
     # 即：保证至少有一个安全通道（instant 站内通知）

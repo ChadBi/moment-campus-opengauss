@@ -9,7 +9,7 @@
 6. 越权：user2 不能标记 user1 的通知
 7. 不存在的通知 ID → 404
 8. 通知偏好：安全账号通知不可全关（system/audit/instant 全关 → 400）
-9. digest_time 格式校验
+Task 2.2: digest_time 格式校验已下线
 """
 import requests
 import time
@@ -207,29 +207,7 @@ r = requests.put(
 )
 print(f"  还原: {r.status_code}")
 
-# digest_time 格式校验
-r = requests.put(
-    f"{BASE}/notifications/preferences",
-    json={"digest_time": "25:00"},
-    headers=headers1,
-)
-print(f"  非法 digest_time=25:00: {r.status_code} (期望 400)")
-assert r.status_code == 400
-
-r = requests.put(
-    f"{BASE}/notifications/preferences",
-    json={"digest_time": "08:30"},
-    headers=headers1,
-)
-print(f"  合法 digest_time=08:30: {r.status_code} (期望 200)")
-assert r.status_code == 200
-
-# 还原 digest_time
-requests.put(
-    f"{BASE}/notifications/preferences",
-    json={"digest_time": "09:00"},
-    headers=headers1,
-)
+# Task 2.2: digest_time 字段已下线，相关 E2E 校验步骤移除
 
 print("\n" + "=" * 60)
 print("通知中心 E2E 验证完成")
