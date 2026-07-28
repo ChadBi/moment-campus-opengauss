@@ -83,6 +83,9 @@ coverage/
 htmlcov/
 .coverage
 
+# E2E 测试截图（体积过大，不纳入版本控制）
+AIwork/screenshots/
+
 # 上传文件
 uploads/
 moment-campus.zip

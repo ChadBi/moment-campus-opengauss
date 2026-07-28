@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-28（「需要调整的地方」22 项 issue 全部完成：AI搜索优化+地图聚合+地点核验地图+回归测试 936 passed / 79 skipped / 0 failed + E2E 5 场景全 PASS）
+> 最后更新：2026-07-28（全功能 E2E 测试完成：74 场景 72 PASS / 2 FAIL / 97.3% + 后端 935 passed / 17 skipped / 0 failed + 前端 build 通过 + 244 张截图）
 
 ## 状态总览
 
@@ -39,6 +39,24 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### 全功能 E2E 测试：覆盖所有页面与功能点（2026-07-28 完成）
+
+使用 MCP 浏览器（browser_use 子代理）+ API 直连脚本 + 回归测试三层验证，覆盖 28 个前端路由与 74 个测试场景。
+
+- [x] Phase 0 环境准备：后端 8000 + 前端 5173 健康检查 + 清理被占用端口
+- [x] Phase 1 匿名访问与认证（7/7 PASS）：未登录重定向/登录页UI/错误密码/注册页/找回密码/user1登录/user访问admin跳转
+- [x] Phase 2 user 角色全功能（28/29 PASS）：首页/发布（PostForm重构+地图选点+失物类型条件渲染）/详情页布局重排/协同治理/评论回复/AI搜索/地图聚合/专题/通知/个人中心/发布主体/浏览历史
+- [x] Phase 3 admin 角色全功能（17/18 PASS）：14个管理员路由全访问+审核通过+地点核验+专题CRUD+Task 4.1/4.2 修复验证
+- [x] Phase 4 super_admin 角色全功能（5/5 PASS）：平台总览/套餐管理（Task 4.4 修复验证）/学校开通/学校导入/激活漏斗
+- [x] Phase 5 跨校隔离与多租户（4/4 PASS）：学校切换器/跨校帖子隔离/跨校分类隔离/三校首页对比
+- [x] Phase 6 API 层深度验证（7/7 PASS）：verify_comments/governance/notifications/profile/subscription_fix/subscription_flow/e2e_extra
+- [x] Phase 7 回归测试：后端 935 passed / 17 skipped / 0 failed（780.96s）；前端 build 通过（2.32s）；244 张截图归档
+- [x] 任务报告：[AIwork/全功能E2E测试任务报告.md](AIwork/全功能E2E测试任务报告.md)
+
+**测试统计**：74 场景 / 72 PASS / 2 FAIL / 0 SKIP / 通过率 97.3%
+- 2 个 FAIL：2.2.5 提交审核按钮被底部导航遮挡 / 3.8 分类名称不匹配（非功能性 Bug）
+- 7 个 Bug 修复回归验证全部通过：Task 3.2/3.5/3.6/4.1/4.2/4.4/5.1
 
 ### 「需要调整的地方」22 项 issue 系统性整改（2026-07-28 完成）
 
