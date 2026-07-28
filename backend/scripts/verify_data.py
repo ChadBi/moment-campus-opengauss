@@ -12,7 +12,7 @@ sys.path.insert(0, str(backend_dir))
 from sqlalchemy import select, func
 from app.database import async_session_maker
 from app.models import (
-    User, School, Post, Category, PostType, Tag, PostTag, PostImage,
+    User, School, Post, Category, Tag, PostTag, PostImage,
     Location, Comment, Like, Favorite, ValidationRecord, Report, Notification,
     TopicCollection, TopicCollectionPost, Draft, BrowseHistory, SearchHistory,
     AdminOperationLog
@@ -33,12 +33,7 @@ async def verify_data():
         result = await session.execute(select(func.count()).select_from(Category))
         category_count = result.scalar()
         print(f"分类数量: {category_count}")
-        
-        # 信息类型
-        result = await session.execute(select(func.count()).select_from(PostType))
-        post_type_count = result.scalar()
-        print(f"信息类型数量: {post_type_count}")
-        
+
         # 用户
         result = await session.execute(select(func.count()).select_from(User))
         user_count = result.scalar()

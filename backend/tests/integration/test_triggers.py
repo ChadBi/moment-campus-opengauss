@@ -57,7 +57,6 @@ async def _create_post(
     user_id: int,
     school_id: int,
     category_id: int,
-    post_type_id: int,
     title: str = "TR测试帖子",
     content: str = "这是触发器测试帖子的内容",
     status: str = "pending",
@@ -72,7 +71,6 @@ async def _create_post(
         user_id=user_id,
         school_id=school_id,
         category_id=category_id,
-        post_type_id=post_type_id,
         location_id=location_id,
         title=title,
         content=content,
@@ -103,7 +101,7 @@ class TestTR01ValidationAfterInsert:
     @pytest.mark.asyncio
     async def test_tr01_auto_updates_credibility(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """通过 ORM 插入 validation_record，验证 posts.credibility_score 被自动更新（不手动调用 SP）
 
@@ -121,7 +119,7 @@ class TestTR01ValidationAfterInsert:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
         )
 
         # 初始 credibility_score 应为 NULL（未调用 SP）
@@ -164,7 +162,7 @@ class TestTR02ValidationAfterDelete:
     @pytest.mark.asyncio
     async def test_tr02_recalc_after_delete(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """插入 1 条 confirmation（可信度变 58），删除该记录，验证可信度回到 53
 
@@ -181,7 +179,7 @@ class TestTR02ValidationAfterDelete:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
         )
 
         # 插入 confirmation（触发器使 credibility = 58.00）
@@ -232,7 +230,7 @@ class TestTR03PostStatusChange:
     @pytest.mark.asyncio
     async def test_tr03_logs_status_change(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """UPDATE posts SET status='published' WHERE id=X，验证 admin_operation_logs 新增 1 条 action='status_change'"""
         author = await _create_user(
@@ -241,7 +239,7 @@ class TestTR03PostStatusChange:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             status="pending",
         )
 
@@ -273,7 +271,7 @@ class TestTR04CommentUpdateCount:
     @pytest.mark.asyncio
     async def test_tr04_insert_and_delete_comment(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """插入评论验证 comment_count=1，删除验证 comment_count=0"""
         author = await _create_user(
@@ -282,7 +280,7 @@ class TestTR04CommentUpdateCount:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
         )
 
         # 插入评论
@@ -326,7 +324,7 @@ class TestTR05LikeUpdateCount:
     @pytest.mark.asyncio
     async def test_tr05_insert_and_delete_like(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """插入点赞验证 like_count=1，删除验证 like_count=0"""
         author = await _create_user(
@@ -335,7 +333,7 @@ class TestTR05LikeUpdateCount:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
         )
 
         # 插入点赞
@@ -386,7 +384,7 @@ class TestTR07PostUpdateViewCount:
     @pytest.mark.asyncio
     async def test_tr07_view_milestone_log(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """将 view_count 从 99 改为 100，验证 admin_operation_logs 新增 action='view_milestone'"""
         author = await _create_user(
@@ -395,7 +393,7 @@ class TestTR07PostUpdateViewCount:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             view_count=99,
         )
 

@@ -29,7 +29,6 @@ class AIPublishSuggestRequest(BaseModel):
     - title / content：草稿正文（必填，至少有标题或内容才好建议）
     - category_id：当前已选分类（用于推断默认有效期）
     - location_id：当前已选地点
-    - post_type_id：当前已选信息类型
     - tags：当前已填标签
     - contact_info：联系方式（用于敏感信息检测）
     - activity_start_at / activity_end_at：活动时间
@@ -41,7 +40,6 @@ class AIPublishSuggestRequest(BaseModel):
     content: str = Field("", max_length=5000, description="草稿正文")
     category_id: Optional[int] = Field(None, description="当前已选分类ID")
     location_id: Optional[int] = Field(None, description="当前已选地点ID")
-    post_type_id: Optional[int] = Field(None, description="当前已选信息类型ID")
     tags: Optional[List[str]] = Field(None, max_length=5, description="当前已填标签列表")
     contact_info: Optional[str] = Field(None, max_length=255, description="联系方式（用于敏感信息检测）")
     activity_start_at: Optional[str] = Field(None, description="活动开始时间（ISO 字符串）")

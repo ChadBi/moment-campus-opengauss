@@ -81,21 +81,6 @@ TABLES = [
         ],
     },
     {
-        "name": "post_types",
-        "cn_name": "信息类型表",
-        "desc": "信息类型，如活动、失物招领、寻物启事等",
-        "fields": [
-            ("id", "BIGINT", True, None, False, "AUTO", "主键，自增"),
-            ("name", "VARCHAR(50)", False, None, False, None, "类型名称"),
-            ("code", "VARCHAR(30)", False, None, False, None, "类型代码（唯一）"),
-            ("description", "VARCHAR(200)", False, None, True, None, "描述"),
-            ("sort_order", "INTEGER", False, None, False, "0", "排序"),
-            ("is_active", "BOOLEAN", False, None, False, "TRUE", "是否启用"),
-            ("created_at", "TIMESTAMP", False, None, False, "CURRENT", "创建时间"),
-            ("updated_at", "TIMESTAMP", False, None, False, "CURRENT", "更新时间"),
-        ],
-    },
-    {
         "name": "tags",
         "cn_name": "标签表",
         "desc": "信息标签，支持官方标签与用户自定义标签",
@@ -141,7 +126,6 @@ TABLES = [
             ("user_id", "BIGINT", False, "users", False, None, "发布者ID（外键）"),
             ("school_id", "BIGINT", False, "schools", False, None, "学校ID（外键）"),
             ("category_id", "BIGINT", False, "categories", False, None, "分类ID（外键）"),
-            ("post_type_id", "BIGINT", False, "post_types", False, None, "类型ID（外键）"),
             ("location_id", "BIGINT", False, "locations", True, None, "地点ID（外键，可空）"),
             ("title", "VARCHAR(200)", False, None, False, None, "标题"),
             ("content", "TEXT", False, None, False, None, "内容"),
@@ -332,7 +316,6 @@ TABLES = [
             ("title", "VARCHAR(200)", False, None, True, None, "草稿标题"),
             ("content", "TEXT", False, None, True, None, "草稿内容"),
             ("category_id", "BIGINT", False, "categories", True, None, "分类ID（外键，可空）"),
-            ("post_type_id", "BIGINT", False, "post_types", True, None, "类型ID（外键，可空）"),
             ("location_id", "BIGINT", False, "locations", True, None, "地点ID（外键，可空）"),
             ("is_anonymous", "BOOLEAN", False, None, False, "FALSE", "是否匿名"),
             ("extra_data", "TEXT", False, None, True, None, "额外数据(JSON)"),
@@ -395,7 +378,6 @@ RELATIONS = [
     ("schools", "1", "topic_collections", "N", "属于"),
     ("users", "1", "posts", "N", "发布"),
     ("categories", "1", "posts", "N", "分类"),
-    ("post_types", "1", "posts", "N", "类型"),
     ("locations", "1", "posts", "N", "位于"),
     ("posts", "1", "post_images", "N", "含图"),
     ("posts", "M", "tags", "N", "标签"),  # M:N 通过 post_tags
@@ -422,7 +404,6 @@ RELATIONS = [
     ("comments", "1", "comments", "N", "回复"),  # 自引用
     ("comments", "1", "reports", "N", "被举报"),
     ("categories", "1", "drafts", "N", "草稿分类"),
-    ("post_types", "1", "drafts", "N", "草稿类型"),
     ("locations", "1", "drafts", "N", "草稿地点"),
 ]
 
@@ -433,7 +414,7 @@ SUBSYSTEMS = {
         "desc": "用户、学校、草稿管理",
     },
     "信息子系统": {
-        "tables": ["schools", "users", "categories", "post_types", "tags",
+        "tables": ["schools", "users", "categories", "tags",
                    "post_tags", "locations", "posts", "post_images",
                    "topic_collections", "topic_collection_posts"],
         "desc": "信息发布、分类、标签、地点、专题",
@@ -633,7 +614,7 @@ class SvgERGenerator:
 
     def get_entity_category(self, table_name):
         """根据表名判断实体类别"""
-        config_tables = {"schools", "categories", "post_types", "tags", "locations"}
+        config_tables = {"schools", "categories", "tags", "locations"}
         relation_tables = {"post_tags", "post_images", "topic_collection_posts"}
         interaction_tables = {"comments", "likes", "favorites", "browse_histories", "search_histories", "drafts"}
         governance_tables = {"validation_records", "reports", "notifications"}

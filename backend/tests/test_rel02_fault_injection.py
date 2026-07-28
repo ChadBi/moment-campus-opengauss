@@ -30,7 +30,6 @@ from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.category import Category
-from app.models.post_type import PostType
 from app.models.post import Post
 from app.models.product_plan import ProductPlan
 from app.models.school_subscription import SchoolSubscription
@@ -91,13 +90,6 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     db.add(c)
     await db.flush()
     return c
-
-
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True)
-    db.add(pt)
-    await db.flush()
-    return pt
 
 
 def _school(code: str) -> dict:
@@ -164,18 +156,17 @@ async def fault_setup(db_session: AsyncSession) -> dict:
     )
     await _create_membership(db_session, admin.id, school.id)
     cat = await _create_category(db_session, school.id, "失物招领", "fault-lost")
-    pt = await _create_post_type(db_session, "普通信息", "fault-normal")
 
     now = datetime.now()
     p1 = Post(
         user_id=user.id, school_id=school.id,
-        category_id=cat.id, post_type_id=pt.id,
+        category_id=cat.id,
         title="校园卡丢失", content="在图书馆丢失校园卡一张",
         status=PostStatus.PUBLISHED, created_at=now,
     )
     p2 = Post(
         user_id=user.id, school_id=school.id,
-        category_id=cat.id, post_type_id=pt.id,
+        category_id=cat.id,
         title="校园卡捡到", content="在食堂捡到校园卡一张",
         status=PostStatus.PUBLISHED, created_at=now,
     )
@@ -187,7 +178,6 @@ async def fault_setup(db_session: AsyncSession) -> dict:
         "user": {"id": user.id, "token": create_access_token(data={"sub": str(user.id)})},
         "admin": {"id": admin.id, "token": create_access_token(data={"sub": str(admin.id)})},
         "category": cat,
-        "post_type": pt,
         "posts": {"p1": p1, "p2": p2},
     }
 

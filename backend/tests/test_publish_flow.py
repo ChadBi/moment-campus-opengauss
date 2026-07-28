@@ -34,7 +34,6 @@ from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.category import Category
-from app.models.post_type import PostType
 from app.models.location import Location
 from app.models.post import Post
 from app.models.post_image import PostImage
@@ -118,13 +117,6 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return cat
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True, sort_order=0)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 def _make_token(user_id: int) -> str:
     return create_access_token(data={"sub": str(user_id)})
 
@@ -149,9 +141,6 @@ async def three_schools_for_publish(db_session: AsyncSession) -> dict:
 
     for sid in (school_a.id, school_b.id, school_c.id):
         await _assign_operations_subscription(db_session, sid)
-
-    # 全局共享的信息类型
-    pt = await _create_post_type(db_session, "普通信息", "normal")
 
     cat_a = await _create_category(db_session, school_a.id, "A 校失物", "a-lost")
     cat_b = await _create_category(db_session, school_b.id, "B 校失物", "b-lost")
@@ -199,7 +188,6 @@ async def three_schools_for_publish(db_session: AsyncSession) -> dict:
             "b": {"id": loc_b.id},
             "c": {"id": loc_c.id},
         },
-        "post_type_id": pt.id,
         "users": {
             "a": {"id": user_a.id, "token": _make_token(user_a.id)},
             "b": {"id": user_b.id, "token": _make_token(user_b.id)},
@@ -219,42 +207,14 @@ class TestPublishFormDataSources:
         self, client: AsyncClient, db_session: AsyncSession, test_school: dict
     ):
         """GET /post-types 返回全局共享信息类型列表"""
-        # 直接在 DB 插入一个 PostType
-        pt = PostType(name="活动信息", code="event", is_active=True, sort_order=10)
-        db_session.add(pt)
-        await db_session.commit()
-
-        resp = await client.get(
-            "/api/v1/post-types",
-            headers=_school_headers(test_school["code"]),
-        )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert isinstance(data, list)
-        assert any(pt_item["code"] == "event" for pt_item in data)
-        # 每项包含必要字段
-        event = next(pt_item for pt_item in data if pt_item["code"] == "event")
-        assert event["name"] == "活动信息"
-        assert event["sort_order"] == 10
+        pytest.skip("Task 1.2: PostType 已删除")
 
     @pytest.mark.asyncio
     async def test_get_post_types_inactive_excluded(
         self, client: AsyncClient, db_session: AsyncSession, test_school: dict
     ):
         """停用的信息类型不出现在列表中"""
-        pt_active = PostType(name="启用的类型", code="active-pt", is_active=True, sort_order=1)
-        pt_inactive = PostType(name="停用的类型", code="inactive-pt", is_active=False, sort_order=2)
-        db_session.add_all([pt_active, pt_inactive])
-        await db_session.commit()
-
-        resp = await client.get(
-            "/api/v1/post-types",
-            headers=_school_headers(test_school["code"]),
-        )
-        assert resp.status_code == 200
-        codes = [pt_item["code"] for pt_item in resp.json()]
-        assert "active-pt" in codes
-        assert "inactive-pt" not in codes
+        pytest.skip("Task 1.2: PostType 已删除")
 
     @pytest.mark.asyncio
     async def test_get_locations_returns_is_verified_field(
@@ -329,7 +289,7 @@ class TestPublishFormFields:
     @pytest.mark.asyncio
     async def test_create_post_with_full_fields(
         self, client: AsyncClient, auth_headers: dict, test_school: dict,
-        test_category: dict, test_post_type: dict, db_session: AsyncSession,
+        test_category: dict, db_session: AsyncSession,
     ):
         """创建帖子时携带全部 PUB-01.2 字段，验证全部持久化"""
         expire = (datetime.now() + timedelta(days=7)).isoformat()
@@ -342,7 +302,6 @@ class TestPublishFormFields:
                 "title": "完整字段发布测试标题",
                 "content": "这是包含全部字段的发布测试内容，至少十个字符",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
                 "is_anonymous": True,
                 "tags": ["测试", "标签", "PUB01"],
                 "image_urls": ["/uploads/test1.jpg", "/uploads/test2.jpg"],
@@ -395,7 +354,7 @@ class TestPublishFormFields:
 
     @pytest.mark.asyncio
     async def test_create_post_with_tags_limit(
-        self, client: AsyncClient, auth_headers: dict, test_category: dict, test_post_type: dict,
+        self, client: AsyncClient, auth_headers: dict, test_category: dict,
     ):
         """标签数量上限 5 个，超出应被拒绝（422）"""
         resp = await client.post(
@@ -404,7 +363,6 @@ class TestPublishFormFields:
                 "title": "标签上限测试标题",
                 "content": "测试标签数量上限，至少十个字符",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
                 "tags": ["t1", "t2", "t3", "t4", "t5", "t6"],  # 6 个，超过上限
             },
             headers=auth_headers,
@@ -413,7 +371,7 @@ class TestPublishFormFields:
 
     @pytest.mark.asyncio
     async def test_create_post_with_image_urls_limit(
-        self, client: AsyncClient, auth_headers: dict, test_category: dict, test_post_type: dict,
+        self, client: AsyncClient, auth_headers: dict, test_category: dict,
     ):
         """图片数量上限 9 张，超出应被拒绝（422）"""
         resp = await client.post(
@@ -422,7 +380,6 @@ class TestPublishFormFields:
                 "title": "图片上限测试标题",
                 "content": "测试图片数量上限，至少十个字符",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
                 "image_urls": [f"/uploads/{i}.jpg" for i in range(10)],  # 10 张
             },
             headers=auth_headers,
@@ -431,7 +388,7 @@ class TestPublishFormFields:
 
     @pytest.mark.asyncio
     async def test_create_post_status_draft_allowed(
-        self, client: AsyncClient, auth_headers: dict, test_category: dict, test_post_type: dict,
+        self, client: AsyncClient, auth_headers: dict, test_category: dict,
     ):
         """创建时 status=draft 允许（存为草稿）"""
         resp = await client.post(
@@ -440,7 +397,6 @@ class TestPublishFormFields:
                 "title": "草稿测试标题",
                 "content": "测试草稿状态创建，至少十个字符",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
                 "status": "draft",
             },
             headers=auth_headers,
@@ -450,7 +406,7 @@ class TestPublishFormFields:
 
     @pytest.mark.asyncio
     async def test_create_post_status_published_rejected(
-        self, client: AsyncClient, auth_headers: dict, test_category: dict, test_post_type: dict,
+        self, client: AsyncClient, auth_headers: dict, test_category: dict,
     ):
         """FND-01.2: 创建时 status=published 应被拒绝（必须走状态机）"""
         resp = await client.post(
@@ -459,7 +415,6 @@ class TestPublishFormFields:
                 "title": "非法状态测试标题",
                 "content": "测试非法初始状态，至少十个字符",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
                 "status": "published",
             },
             headers=auth_headers,
@@ -469,7 +424,7 @@ class TestPublishFormFields:
     @pytest.mark.asyncio
     async def test_create_post_default_expire_from_category(
         self, client: AsyncClient, auth_headers: dict, test_school: dict,
-        test_category: dict, test_post_type: dict, db_session: AsyncSession,
+        test_category: dict, db_session: AsyncSession,
     ):
         """未传 expire_at 时，后端按分类 default_validity_days 自动计算"""
         # test_category 默认 default_validity_days=30
@@ -479,7 +434,6 @@ class TestPublishFormFields:
                 "title": "默认有效期测试标题",
                 "content": "测试默认有效期，至少十个字符",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
             },
             headers=auth_headers,
         )
@@ -501,7 +455,7 @@ class TestPublishLocationQueue:
     @pytest.mark.asyncio
     async def test_create_post_with_existing_location(
         self, client: AsyncClient, auth_headers: dict, test_school: dict,
-        test_category: dict, test_post_type: dict, db_session: AsyncSession,
+        test_category: dict, db_session: AsyncSession,
     ):
         """使用已存在 location_id：直接关联，不创建新地点"""
         # 先创建一个已核验地点
@@ -519,7 +473,6 @@ class TestPublishLocationQueue:
                 "title": "已有地点测试标题",
                 "content": "测试使用已有地点，至少十个字符",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
                 "location_id": loc.id,
             },
             headers=auth_headers,
@@ -536,7 +489,7 @@ class TestPublishLocationQueue:
     @pytest.mark.asyncio
     async def test_create_post_with_new_location_creates_unverified(
         self, client: AsyncClient, auth_headers: dict, test_school: dict,
-        test_category: dict, test_post_type: dict, db_session: AsyncSession,
+        test_category: dict, db_session: AsyncSession,
     ):
         """传 location_name + lat + lng：自动创建 Location，is_verified=False（核验队列）"""
         resp = await client.post(
@@ -545,7 +498,6 @@ class TestPublishLocationQueue:
                 "title": "新地点测试标题",
                 "content": "测试新地点自动创建，至少十个字符",
                 "category_id": test_category["id"],
-                "post_type_id": test_post_type["id"],
                 "location_name": "南区新食堂",
                 "location_lat": 31.4837,
                 "location_lng": 120.2712,
@@ -578,14 +530,13 @@ class TestPublishLocationQueue:
     @pytest.mark.asyncio
     async def test_create_post_new_location_dedup_same_school(
         self, client: AsyncClient, auth_headers: dict, test_school: dict,
-        test_category: dict, test_post_type: dict, db_session: AsyncSession,
+        test_category: dict, db_session: AsyncSession,
     ):
         """同校同坐标同名地点去重：第二次发布复用第一次创建的地点"""
         payload = {
             "title": "去重第一次发布标题",
             "content": "测试同地点去重，至少十个字符",
             "category_id": test_category["id"],
-            "post_type_id": test_post_type["id"],
             "location_name": "去重地点",
             "location_lat": 30.0,
             "location_lng": 110.0,
@@ -653,7 +604,6 @@ class TestPublishLocationQueue:
         school_a_code = three_schools_for_publish["schools"]["a"]["code"]
         loc_b_id = three_schools_for_publish["locations"]["b"]["id"]
         cat_a_id = three_schools_for_publish["categories"]["a"]["id"]
-        pt_id = three_schools_for_publish["post_type_id"]
         token_a = three_schools_for_publish["users"]["a"]["token"]
 
         resp = await client.post(
@@ -662,7 +612,6 @@ class TestPublishLocationQueue:
                 "title": "跨校地点测试标题",
                 "content": "测试跨校地点应被拒绝，至少十个字符",
                 "category_id": cat_a_id,
-                "post_type_id": pt_id,
                 "location_id": loc_b_id,  # B 校地点
             },
             headers={**_auth_headers(token_a), **_school_headers(school_a_code)},
@@ -692,7 +641,6 @@ class TestThreeSchoolPublish:
                 "title": "A 校发布测试标题",
                 "content": "A 校用户在 A 校发布的内容，至少十个字符",
                 "category_id": three_schools_for_publish["categories"]["a"]["id"],
-                "post_type_id": three_schools_for_publish["post_type_id"],
                 "location_id": three_schools_for_publish["locations"]["a"]["id"],
             },
             headers={
@@ -720,7 +668,6 @@ class TestThreeSchoolPublish:
                 "title": "B 校发布测试标题",
                 "content": "B 校用户在 B 校发布的内容，至少十个字符",
                 "category_id": three_schools_for_publish["categories"]["b"]["id"],
-                "post_type_id": three_schools_for_publish["post_type_id"],
                 "location_id": three_schools_for_publish["locations"]["b"]["id"],
             },
             headers={
@@ -747,7 +694,6 @@ class TestThreeSchoolPublish:
                 "title": "C 校发布测试标题",
                 "content": "C 校用户在 C 校发布的内容，至少十个字符",
                 "category_id": three_schools_for_publish["categories"]["c"]["id"],
-                "post_type_id": three_schools_for_publish["post_type_id"],
                 "location_id": three_schools_for_publish["locations"]["c"]["id"],
             },
             headers={
@@ -773,7 +719,6 @@ class TestThreeSchoolPublish:
                 "title": "跨校分类测试标题",
                 "content": "测试跨校分类应被拒绝，至少十个字符",
                 "category_id": three_schools_for_publish["categories"]["b"]["id"],  # B 校分类
-                "post_type_id": three_schools_for_publish["post_type_id"],
             },
             headers={
                 **_auth_headers(three_schools_for_publish["users"]["a"]["token"]),
@@ -799,7 +744,6 @@ class TestThreeSchoolPublish:
                 "title": "body school_id 忽略测试标题",
                 "content": "测试 body school_id 被忽略，至少十个字符",
                 "category_id": three_schools_for_publish["categories"]["a"]["id"],
-                "post_type_id": three_schools_for_publish["post_type_id"],
                 "school_id": three_schools_for_publish["schools"]["b"]["id"],  # 应被忽略
             },
             headers={
@@ -834,7 +778,6 @@ class TestThreeSchoolPublish:
                     "title": f"{school_key} 校帖子标题",
                     "content": f"{school_key} 校帖子内容，至少十个字符",
                     "category_id": cat_id,
-                    "post_type_id": three_schools_for_publish["post_type_id"],
                     "location_id": loc_id,
                     "status": "pending",
                 },
@@ -863,10 +806,5 @@ class TestThreeSchoolPublish:
                     f"{school_key} 校看到了 {other_key} 校的分类"
                 )
 
-            # post-types 三校共用
-            resp_pt = await client.get(
-                "/api/v1/post-types",
-                headers=_school_headers(school_code),
-            )
-            assert resp_pt.status_code == 200
-            assert len(resp_pt.json()) >= 1
+            # Task 1.2 调整：/api/v1/post-types 端点已随 PostType 删除移除，
+            # 三校共用信息类型由 5 类 Category（按学校隔离）承载，已在上方 categories 校验覆盖。

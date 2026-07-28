@@ -28,7 +28,6 @@ async def _create_published_post(
     user_id: int,
     school_id: int,
     category_id: int,
-    post_type_id: int,
     *,
     title: str = "DSC-02 测试帖子",
     content: str = "这是 DSC-02.1 详情字段测试帖子的内容，至少十个字符",
@@ -42,7 +41,6 @@ async def _create_published_post(
         user_id=user_id,
         school_id=school_id,
         category_id=category_id,
-        post_type_id=post_type_id,
         title=title,
         content=content,
         status=PostStatus.PUBLISHED,
@@ -79,7 +77,7 @@ async def _add_post_images(
 @pytest.mark.asyncio
 async def test_detail_returns_all_fields_for_logged_in_user(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """DSC-02.1: 登录用户访问详情返回所有字段（含图片/状态/有效期/活动时间/联系方式）"""
     from app.core.security import decode_token
@@ -90,7 +88,7 @@ async def test_detail_returns_all_fields_for_logged_in_user(
     end = datetime.now() + timedelta(days=2)
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="test@example.com",
         expire_at=expire,
         activity_start_at=start,
@@ -127,7 +125,7 @@ async def test_detail_returns_all_fields_for_logged_in_user(
 @pytest.mark.asyncio
 async def test_detail_returns_all_fields_for_guest_except_contact(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """DSC-02.1: 游客访问详情返回所有公开字段，但 contact_info 为 None"""
     from app.core.security import decode_token
@@ -136,7 +134,7 @@ async def test_detail_returns_all_fields_for_guest_except_contact(
     expire = datetime.now() + timedelta(days=7)
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="13800000000",
         expire_at=expire,
     )
@@ -168,7 +166,7 @@ async def test_detail_returns_all_fields_for_guest_except_contact(
 @pytest.mark.asyncio
 async def test_guest_contact_info_is_none(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """DSC-02.1: 游客访问详情，contact_info 恒为 None（敏感字段脱敏）"""
     from app.core.security import decode_token
@@ -176,7 +174,7 @@ async def test_guest_contact_info_is_none(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="secret-contact-12345",
     )
 
@@ -192,7 +190,6 @@ async def test_guest_contact_info_is_none(
 async def test_logged_in_user_contact_info_visible(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
     second_auth_headers: dict, test_school: dict, test_category: dict,
-    test_post_type: dict,
 ):
     """DSC-02.1: 登录用户（含非作者）访问详情，contact_info 可见"""
     from app.core.security import decode_token
@@ -200,7 +197,7 @@ async def test_logged_in_user_contact_info_visible(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="visible-to-logged-in@example.com",
     )
 
@@ -221,7 +218,6 @@ async def test_logged_in_user_contact_info_visible(
 async def test_guest_governance_user_validation_type_is_none(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
     second_auth_headers: dict, test_school: dict, test_category: dict,
-    test_post_type: dict,
 ):
     """DSC-02.1: 游客访问详情，governance.user_validation_type 恒为 None
 
@@ -233,7 +229,7 @@ async def test_guest_governance_user_validation_type_is_none(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
 
@@ -263,7 +259,6 @@ async def test_guest_governance_user_validation_type_is_none(
 async def test_logged_in_user_governance_user_validation_type_reflects_vote(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
     second_auth_headers: dict, test_school: dict, test_category: dict,
-    test_post_type: dict,
 ):
     """DSC-02.1: 登录用户投票后，详情 governance.user_validation_type 返回其投票类型"""
     from app.core.security import decode_token
@@ -271,7 +266,7 @@ async def test_logged_in_user_governance_user_validation_type_reflects_vote(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
 
@@ -310,7 +305,6 @@ async def test_logged_in_user_governance_user_validation_type_reflects_vote(
 async def test_logged_in_user_without_vote_returns_none_validation_type(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
     second_auth_headers: dict, test_school: dict, test_category: dict,
-    test_post_type: dict,
 ):
     """DSC-02.1: 登录用户未投票时 user_validation_type 为 None（区别于游客的恒 None）"""
     from app.core.security import decode_token
@@ -318,7 +312,7 @@ async def test_logged_in_user_without_vote_returns_none_validation_type(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
 
@@ -340,7 +334,7 @@ async def test_logged_in_user_without_vote_returns_none_validation_type(
 @pytest.mark.asyncio
 async def test_guest_detail_is_liked_is_false(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """DSC-02.1: 游客访问详情 is_liked 恒为 False（后端不查询 Like 表）
 
@@ -351,7 +345,7 @@ async def test_guest_detail_is_liked_is_false(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
 
@@ -368,7 +362,7 @@ async def test_guest_detail_is_liked_is_false(
 @pytest.mark.asyncio
 async def test_logged_in_user_detail_is_liked_reflects_state(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """DSC-02.1: 登录用户 is_liked 反映实际点赞状态（与游客形成对比）"""
     from app.core.security import decode_token
@@ -376,7 +370,7 @@ async def test_logged_in_user_detail_is_liked_reflects_state(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
     headers = {"Authorization": f"Bearer {test_user['access_token']}"}
@@ -404,7 +398,6 @@ async def test_logged_in_user_detail_is_liked_reflects_state(
 async def test_comment_reply_tree_structure(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
     second_auth_headers: dict, test_school: dict, test_category: dict,
-    test_post_type: dict,
 ):
     """DSC-02.1: 评论按回复树展示——顶级评论 + 嵌套回复，含 reply_to_user
 
@@ -422,7 +415,7 @@ async def test_comment_reply_tree_structure(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
 
@@ -500,7 +493,6 @@ async def test_comment_reply_tree_structure(
 async def test_comment_list_guest_accessible(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
     second_auth_headers: dict, test_school: dict, test_category: dict,
-    test_post_type: dict,
 ):
     """DSC-02.1: 游客可访问评论列表（评论接口不要求登录，公开可见）"""
     from app.core.security import decode_token
@@ -508,7 +500,7 @@ async def test_comment_list_guest_accessible(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
 
@@ -533,7 +525,7 @@ async def test_comment_list_guest_accessible(
 @pytest.mark.asyncio
 async def test_guest_cannot_create_comment(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """DSC-02.1: 游客不能发评论（POST /comments 需登录，返回 401）"""
     from app.core.security import decode_token
@@ -541,7 +533,7 @@ async def test_guest_cannot_create_comment(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
 
@@ -561,7 +553,7 @@ async def test_guest_cannot_create_comment(
 @pytest.mark.asyncio
 async def test_detail_governance_has_all_required_fields(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """DSC-02.1: 详情 governance 聚合返回所有契约字段（前端依赖）"""
     from app.core.security import decode_token
@@ -569,7 +561,7 @@ async def test_detail_governance_has_all_required_fields(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
 
@@ -580,15 +572,14 @@ async def test_detail_governance_has_all_required_fields(
     assert resp.status_code == 200
     gov = resp.json()["governance"]
     # 契约字段全部存在
+    # Task 1.2 调整：change_reports_total/open/recent_change_reports
+    # 已随 PostChangeReport 删除移除，governance 仅保留 2 类投票聚合
     for field in (
         "confirmation_count",
         "refutation_count",
         "total_validation_count",
         "validity_status",
         "user_validation_type",
-        "change_reports_total",
-        "change_reports_open",
-        "recent_change_reports",
     ):
         assert field in gov, f"governance 缺少字段 {field}"
     # 默认空状态
@@ -597,25 +588,26 @@ async def test_detail_governance_has_all_required_fields(
     assert gov["total_validation_count"] == 0
     assert gov["validity_status"] in ("valid", "invalid", "uncertain")
     assert gov["user_validation_type"] is None  # 未投票
-    assert gov["change_reports_total"] == 0
-    assert gov["change_reports_open"] == 0
-    assert isinstance(gov["recent_change_reports"], list)
-    assert len(gov["recent_change_reports"]) == 0
 
 
 @pytest.mark.asyncio
 async def test_detail_change_reports_aggregated_in_governance(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
     second_auth_headers: dict, test_school: dict, test_category: dict,
-    test_post_type: dict,
 ):
-    """DSC-02.1: 详情 governance 聚合 3 类问题报告（update/expiration_report/conflict_report）"""
+    """DSC-02.1: 详情 governance 聚合 3 类问题报告（update/expiration_report/conflict_report）
+
+    Task 1.2 调整：PostChangeReport 模型与 /posts/{id}/change-reports 端点已删除，
+    3 类问题报告功能整体移除（与评论/举报功能冲突）。帖子过期/冲突状态由管理员
+    通过举报队列处理。
+    """
+    pytest.skip("Task 1.2: PostChangeReport 已删除，3 类问题报告功能移除")
     from app.core.security import decode_token
     user_id = int(decode_token(test_user["access_token"])["sub"])
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
 
@@ -654,7 +646,7 @@ async def test_detail_change_reports_aggregated_in_governance(
 @pytest.mark.asyncio
 async def test_detail_multiple_images_with_sort_order(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """DSC-02.1: 详情返回多张图片，按 sort_order 顺序排列（前端轮播依赖）"""
     from app.core.security import decode_token
@@ -662,7 +654,7 @@ async def test_detail_multiple_images_with_sort_order(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
     await _add_post_images(db_session, post.id, [
@@ -688,7 +680,7 @@ async def test_detail_multiple_images_with_sort_order(
 @pytest.mark.asyncio
 async def test_detail_no_images_returns_empty_list(
     client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    test_school: dict, test_category: dict, test_post_type: dict,
+    test_school: dict, test_category: dict,
 ):
     """DSC-02.1: 无图片的帖子详情 images 为空列表（前端轮播不渲染）"""
     from app.core.security import decode_token
@@ -696,7 +688,7 @@ async def test_detail_no_images_returns_empty_list(
 
     post = await _create_published_post(
         db_session, user_id, test_school["id"],
-        test_category["id"], test_post_type["id"],
+        test_category["id"],
         contact_info="x",
     )
 

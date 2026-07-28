@@ -265,7 +265,6 @@ class PostTemplateCreate(BaseModel):
     title_template: str = Field(..., min_length=1, max_length=200, description="标题模板")
     content_template: str = Field(..., min_length=1, description="内容模板")
     category_id: Optional[int] = None
-    post_type_id: Optional[int] = None
     scene: str = Field(..., description="场景：business_hours/lecture/lost/notification/other")
     sort_order: int = Field(0, ge=0)
 
@@ -283,7 +282,6 @@ class PostTemplateUpdate(BaseModel):
     title_template: Optional[str] = Field(None, min_length=1, max_length=200)
     content_template: Optional[str] = Field(None, min_length=1)
     category_id: Optional[int] = None
-    post_type_id: Optional[int] = None
     scene: Optional[str] = None
     sort_order: Optional[int] = Field(None, ge=0)
     is_active: Optional[bool] = None
@@ -308,7 +306,6 @@ class PostTemplateResponse(BaseModel):
     title_template: str
     content_template: str
     category_id: Optional[int] = None
-    post_type_id: Optional[int] = None
     scene: str
     sort_order: int
     is_active: bool

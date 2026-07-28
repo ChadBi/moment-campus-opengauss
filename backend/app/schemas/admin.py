@@ -157,8 +157,8 @@ class TodoItem(BaseModel):
 class TodoStats(BaseModel):
     """ADM-01.1: 校级后台首页待办统计
 
-    7 类待办：待审核 / 待处理举报 / 待核验地点 / 过期报告 / 冲突报告 /
-    更新建议 / 异常任务（最近失败的任务运行记录）。
+    4 类待办：待审核 / 待处理举报 / 待核验地点 / 异常任务（最近失败的任务运行记录）。
+    原 3 类问题报告（过期报告/冲突报告/更新建议）已移除（与评论/举报功能冲突）。
 
     REL-02.3: 额外返回本校最近 24h AI 调用降级率（采样监控），
     降级率 ≥50% 时由前端高亮提示。
@@ -166,9 +166,6 @@ class TodoStats(BaseModel):
     pending_posts: int = Field(default=0, description="待审核内容数")
     pending_reports: int = Field(default=0, description="待处理举报数")
     unverified_locations: int = Field(default=0, description="待核验地点数")
-    expiration_reports: int = Field(default=0, description="未结案过期报告数")
-    conflict_reports: int = Field(default=0, description="未结案冲突报告数")
-    update_suggestions: int = Field(default=0, description="未结案更新建议数")
     failed_jobs: int = Field(default=0, description="最近失败任务数（24h 内）")
     total: int = Field(default=0, description="待办合计")
     items: List[TodoItem] = Field(default_factory=list, description="待办卡片（含跳转路径）")
@@ -213,15 +210,12 @@ class AdminPostDetail(BaseModel):
     author_email: Optional[str] = None
     category_id: int
     category_name: Optional[str] = None
-    post_type_id: int
-    post_type_name: Optional[str] = None
     location_id: Optional[int] = None
     location_name: Optional[str] = None
     location_verified: Optional[bool] = None
     images: List[str] = Field(default_factory=list, description="图片 URL 列表")
     # 审核辅助
     author_history: AuthorHistoryStats = Field(default_factory=AuthorHistoryStats)
-    open_change_reports: int = Field(default=0, description="未结案问题报告数")
     pending_user_reports: int = Field(default=0, description="待处理用户举报数")
 
 
@@ -239,40 +233,9 @@ class ReasonTemplateResponse(BaseModel):
     reject: List[ReasonTemplate] = Field(default_factory=list)
 
 
-# ============ ADM-01.5: 治理工作台（3 类问题报告队列） ============
-class GovernanceReportBrief(BaseModel):
-    """治理报告队列项（跨帖子管理视图）"""
-    id: int
-    post_id: int
-    post_title: Optional[str] = None
-    post_status: Optional[str] = None
-    reporter_id: int
-    reporter_name: Optional[str] = None
-    report_type: str = Field(..., description="update / expiration_report / conflict_report")
-    description: Optional[str] = None
-    evidence_url: Optional[str] = None
-    status: str = Field(..., description="open / in_review / resolved / dismissed")
-    handler_id: Optional[int] = None
-    handler_name: Optional[str] = None
-    handler_note: Optional[str] = None
-    handled_at: Optional[datetime] = None
-    created_at: datetime
-
-
-class GovernanceHandleRequest(BaseModel):
-    """处理治理报告请求
-
-    action 语义：
-    - resolve: 标记已解决（不改帖子状态）
-    - dismiss: 驳回报告（不改帖子状态）
-    - mark_expired: 确认过期 → 帖子转 expired，报告 resolved
-    - mark_conflict: 确认冲突 → 帖子转 conflict，报告 resolved
-    """
-    action: str = Field(
-        ..., pattern="^(resolve|dismiss|mark_expired|mark_conflict)$",
-        description="处理动作",
-    )
-    reason: str = Field(..., min_length=1, max_length=500, description="处理说明")
+# ============ ADM-01.5: 治理工作台 ============
+# 调整后：原 3 类问题报告（update/expiration_report/conflict_report）已移除
+# 帖子过期/冲突状态由管理员通过举报队列处理
 
 
 # ============ ADM-01.6: 地点核验 ============

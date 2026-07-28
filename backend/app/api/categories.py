@@ -9,7 +9,6 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.category import Category
 from app.models.location import Location
-from app.models.post_type import PostType
 from app.models.school import School
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.core.exceptions import NotFoundException
@@ -39,18 +38,6 @@ class LocationResponse(BaseModel):
     is_verified: bool = Field(..., description="是否已核验")
 
 
-class PostTypeResponse(BaseModel):
-    """信息类型响应（PUB-01.1：发布表单动态数据来源）
-
-    PostType 为全局共享配置（无 school_id），所有学校共用同一套信息类型。
-    """
-    id: int = Field(..., description="类型ID")
-    name: str = Field(..., description="类型名称")
-    code: str = Field(..., description="类型代码")
-    description: Optional[str] = Field(None, description="描述")
-    sort_order: int = Field(..., description="排序")
-
-
 class LocationCreate(BaseModel):
     """创建地点（TEN-02.1: school_id 字段被忽略，强制使用 TenantContext 解析的学校）"""
     name: str = Field(..., min_length=1, max_length=100, description="地点名称")
@@ -72,6 +59,9 @@ async def get_categories(
     返回当前学校所有启用的分类，按排序字段排序
 
     TEN-02.3：按当前学校过滤，跨校分类不会出现
+
+    Task 1.2 调整：分类已重构为统一「信息分类」5 类
+    （share/teamup/trade/lost_found/other）
     """
     query = (
         select(Category)
@@ -132,37 +122,6 @@ async def get_locations(
             is_verified=loc.is_verified,
         )
         for loc in locations
-    ]
-
-
-@router.get("/post-types", response_model=List[PostTypeResponse])
-async def get_post_types(
-    db: AsyncSession = Depends(get_db),
-    tenant: TenantContext = Depends(get_tenant_context),
-):
-    """
-    获取信息类型列表（PUB-01.1：发布表单动态数据来源）
-
-    PostType 为全局共享配置（无 school_id 字段），所有学校共用。
-    依赖 TenantContext 仅用于确保请求已关联到一所学校（与 categories/locations 一致）。
-    """
-    query = (
-        select(PostType)
-        .where(PostType.is_active == True)
-        .order_by(PostType.sort_order, PostType.id)
-    )
-    result = await db.execute(query)
-    post_types = result.scalars().all()
-
-    return [
-        PostTypeResponse(
-            id=pt.id,
-            name=pt.name,
-            code=pt.code,
-            description=pt.description,
-            sort_order=pt.sort_order,
-        )
-        for pt in post_types
     ]
 
 

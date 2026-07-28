@@ -41,7 +41,6 @@ from app.models.user import User
 from app.models.platform_audit import PlatformAuditLog
 from app.models.ai_invocation_log import AIInvocationLog
 from app.models.report import Report
-from app.models.post_change_report import PostChangeReport
 from app.models.job_run_record import JobRunRecord
 from app.services.school_provisioning import (
     SchoolProvisioningService,
@@ -1158,11 +1157,11 @@ async def list_all_alerts(
 # ============================================================
 IMPORT_TEMPLATE_CSV = (
     "type,name,description,latitude,longitude,floor,building,"
-    "title,content,category_code,post_type_code,location_ref,expire_at,is_anonymous,contact_info\r\n"
-    "location,图书馆北门,,31.491200,120.270500,1,图书馆,,,,,,,\r\n"
-    "location,第二食堂,,31.490100,120.271200,,,二食堂,,,,,,,\r\n"
+    "title,content,category_code,location_ref,expire_at,is_anonymous,contact_info\r\n"
+    "location,图书馆北门,,31.491200,120.270500,1,图书馆,,,,,,\r\n"
+    "location,第二食堂,,31.490100,120.271200,,,二食堂,,,,,,\r\n"
     "post,,,31.491200,120.270500,,,,"
-    "失物招领示例,在图书馆北门丢失黑色钱包一个请联系失主,lost-found,normal,1,2026-12-31T23:59:59,false,13800000000\r\n"
+    "失物招领示例,在图书馆北门丢失黑色钱包一个请联系失主,lost_found,1,2026-12-31T23:59:59,false,13800000000\r\n"
 )
 
 
@@ -1312,7 +1311,6 @@ class PlatformOverviewResponse(BaseModel):
     # 内容治理量（全平台待办）
     pending_posts: int = 0
     pending_reports: int = 0
-    open_change_reports: int = 0
     governance_total: int = 0
     # 各校 AI 调用降级率
     ai_stats: list[SchoolAIStat] = Field(default_factory=list)
@@ -1366,12 +1364,7 @@ async def get_platform_overview(
     pending_reports = (await db.execute(
         select(func.count(Report.id)).where(Report.status == "pending")
     )).scalar() or 0
-    open_change_reports = (await db.execute(
-        select(func.count(PostChangeReport.id)).where(
-            PostChangeReport.status.in_(["open", "in_review"])
-        )
-    )).scalar() or 0
-    governance_total = pending_posts + pending_reports + open_change_reports
+    governance_total = pending_posts + pending_reports
 
     # ---------- 各校 AI 调用降级率 ----------
     ai_rows = (await db.execute(
@@ -1480,7 +1473,6 @@ async def get_platform_overview(
         active_members=int(active_members),
         pending_posts=int(pending_posts),
         pending_reports=int(pending_reports),
-        open_change_reports=int(open_change_reports),
         governance_total=int(governance_total),
         ai_stats=ai_stats,
         ai_calls_total=ai_calls_total,

@@ -121,7 +121,6 @@ async def get_topic_detail(
         .options(
             joinedload(Post.user),
             joinedload(Post.category),
-            joinedload(Post.post_type),
         )
         .order_by(TopicCollectionPost.sort_order.asc(), TopicCollectionPost.id.asc())
     )
@@ -140,8 +139,6 @@ async def get_topic_detail(
             comment_count=post.comment_count,
             category_id=post.category_id,
             category_name=post.category.name if post.category else None,
-            post_type_id=post.post_type_id,
-            post_type_name=post.post_type.name if post.post_type else None,
             author_id=post.user_id if not post.is_anonymous else None,
             author_name=post.user.nickname if (post.user and not post.is_anonymous) else None,
             cover_image_url=cover_image_url,

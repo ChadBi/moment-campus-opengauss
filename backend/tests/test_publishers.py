@@ -23,7 +23,6 @@ from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.category import Category
-from app.models.post_type import PostType
 from app.models.post import Post
 from app.models.publisher_profile import PublisherProfile
 from app.models.publisher_membership import PublisherMembership
@@ -92,13 +91,6 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return c
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 def _make_token(user_id: int) -> str:
     return create_access_token(data={"sub": str(user_id)})
 
@@ -121,8 +113,6 @@ async def three_school_setup(db_session: AsyncSession) -> dict:
     school_c = await _create_school(db_session, "C 校", "school-c")
     for sid in (school_a.id, school_b.id, school_c.id):
         await _assign_operations_subscription(db_session, sid)
-
-    pt = await _create_post_type(db_session, "普通信息", "normal")
 
     cat_a = await _create_category(db_session, school_a.id, "A 校通知", "a-notice")
     cat_b = await _create_category(db_session, school_b.id, "B 校通知", "b-notice")
@@ -151,7 +141,6 @@ async def three_school_setup(db_session: AsyncSession) -> dict:
             "c": {"id": school_c.id, "code": school_c.code},
         },
         "categories": {"a": cat_a.id, "b": cat_b.id, "c": cat_c.id},
-        "post_type_id": pt.id,
         "users": {
             "a": {"id": user_a.id, "token": _make_token(user_a.id)},
             "admin_a": {"id": admin_a.id, "token": _make_token(admin_a.id)},
@@ -450,7 +439,6 @@ async def test_admin_create_public_template(client: AsyncClient, three_school_se
     admin_a = three_school_setup["users"]["admin_a"]
     school_a = three_school_setup["schools"]["a"]
     cat_a = three_school_setup["categories"]["a"]
-    pt_id = three_school_setup["post_type_id"]
 
     resp = await client.post(
         "/api/v1/admin/templates",
@@ -459,7 +447,6 @@ async def test_admin_create_public_template(client: AsyncClient, three_school_se
             "title_template": "【营业时间】{名称}",
             "content_template": "营业时间：周一至周五 9:00-17:00",
             "category_id": cat_a,
-            "post_type_id": pt_id,
             "scene": "business_hours",
             "sort_order": 10,
         },
@@ -698,7 +685,6 @@ async def test_publisher_post_still_requires_review(
     admin_a = three_school_setup["users"]["admin_a"]
     school_a = three_school_setup["schools"]["a"]
     cat_a = three_school_setup["categories"]["a"]
-    pt_id = three_school_setup["post_type_id"]
 
     # 创建主体并由 admin 认证
     resp_pub = await client.post(
@@ -720,7 +706,6 @@ async def test_publisher_post_still_requires_review(
             "title": "主体发布的内容测试",
             "content": "认证主体发布的内容，仍需走审核流程",
             "category_id": cat_a,
-            "post_type_id": pt_id,
             "publisher_id": pub_id,
             "status": "pending",
         },
@@ -743,7 +728,6 @@ async def test_create_post_with_non_member_publisher_forbidden(
     admin_a = three_school_setup["users"]["admin_a"]
     school_a = three_school_setup["schools"]["a"]
     cat_a = three_school_setup["categories"]["a"]
-    pt_id = three_school_setup["post_type_id"]
 
     # A 校 user_a 创建主体并认证
     resp_pub = await client.post(
@@ -768,7 +752,6 @@ async def test_create_post_with_non_member_publisher_forbidden(
             "title": "非成员主体发帖测试",
             "content": "非主体成员尝试以主体名义发帖",
             "category_id": cat_a,
-            "post_type_id": pt_id,
             "publisher_id": pub_id,
             "status": "pending",
         },

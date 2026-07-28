@@ -30,7 +30,6 @@ async def search_posts(
     keyword: Optional[str] = Query(None, max_length=100, description="搜索关键词"),
     category_id: Optional[int] = Query(None, description="分类ID"),
     location_id: Optional[int] = Query(None, description="地点ID"),
-    post_type_id: Optional[int] = Query(None, description="信息类型ID"),
     tag: Optional[str] = Query(None, max_length=50, description="标签"),
     status: Optional[str] = Query(
         default=None,
@@ -53,9 +52,11 @@ async def search_posts(
     """
     搜索信息
 
-    DSC-01.1: 支持关键词搜索 + 多字段筛选（分类/地点/帖子类型/有效状态/时间范围）+ 多种排序。
+    DSC-01.1: 支持关键词搜索 + 多字段筛选（分类/地点/有效状态/时间范围）+ 多种排序。
     DSC-01.2: 使用 selectinload/joinedload 预加载关联，消除 N+1 查询。
     TEN-02.3：按当前学校过滤，跨校帖子不会出现在搜索结果中。
+
+    Task 1.2 调整：移除 post_type_id 筛选参数（PostType 已删除，统一使用 category）
 
     有效状态筛选：
         - published: 仅显示已发布
@@ -94,8 +95,6 @@ async def search_posts(
         query = query.where(Post.category_id == category_id)
     if location_id:
         query = query.where(Post.location_id == location_id)
-    if post_type_id:
-        query = query.where(Post.post_type_id == post_type_id)
     if date_from is not None:
         query = query.where(Post.created_at >= date_from)
     if date_to is not None:
@@ -139,12 +138,11 @@ async def search_posts(
     query = query.offset(offset).limit(page_size)
 
     # DSC-01.2: 预加载关联数据，消除 N+1
-    # 一次查询预加载：author / category / location / post_type / tags / images
+    # 一次查询预加载：author / category / location / tags / images
     query = query.options(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        joinedload(Post.post_type),
         selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )

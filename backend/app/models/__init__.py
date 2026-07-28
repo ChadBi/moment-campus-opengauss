@@ -4,7 +4,6 @@ from .user import User
 from .school import School
 from .post import Post
 from .category import Category
-from .post_type import PostType
 from .tag import Tag
 from .post_tag import PostTag
 from .post_image import PostImage
@@ -13,7 +12,6 @@ from .comment import Comment
 from .like import Like
 from .validation_record import ValidationRecord
 from .report import Report
-from .post_change_report import PostChangeReport
 from .notification import Notification
 from .topic_collection import TopicCollection
 from .topic_collection_post import TopicCollectionPost
@@ -47,7 +45,6 @@ __all__ = [
     "School",
     "Post",
     "Category",
-    "PostType",
     "Tag",
     "PostTag",
     "PostImage",

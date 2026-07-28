@@ -16,7 +16,7 @@
 
 -- ------------------------------------------------------------
 -- 1.1 系统表空间（默认）
---     存放：schools / categories / post_types / tags / locations
+--     存放：schools / categories / tags / locations
 --     访问特征：配置类，读写比 ≈ 100:1
 -- ------------------------------------------------------------
 CREATE TABLESPACE ts_system

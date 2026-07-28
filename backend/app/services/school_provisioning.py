@@ -394,8 +394,6 @@ import io
 import uuid
 from dataclasses import dataclass, field
 
-from app.models.post_type import PostType
-
 
 @dataclass
 class ImportRowError:
@@ -463,15 +461,16 @@ class SchoolBatchImportService:
 
     支持两类行：
       - location：地点（name/description/latitude/longitude/floor/building）
-      - post：首批内容（title/content/category_code/post_type_code/location_ref/expire_at）
+      - post：首批内容（title/content/category_code/location_ref/expire_at）
 
     校验规则：
       - location：name 必填且非空，latitude/longitude 必填且为有效数值
-      - post：title/content/category_code/post_type_code 必填；
+      - post：title/content/category_code 必填；
               category_code 必须存在于目标学校；
-              post_type_code 必须存在于系统；
               location_ref 可选，引用同批次内 location 的 row_index 或 name
       - school_id 强制为目标学校（忽略请求体里的 school_id）
+
+    Task 1.2 调整：移除 post_type_code 字段（PostType 已删除，统一使用 category）
 
     用法：
         svc = SchoolBatchImportService(db)
@@ -482,7 +481,7 @@ class SchoolBatchImportService:
 
     LOCATION_FIELDS = {"name", "description", "latitude", "longitude", "floor", "building"}
     POST_FIELDS = {
-        "title", "content", "category_code", "post_type_code",
+        "title", "content", "category_code",
         "location_ref", "expire_at", "is_anonymous", "contact_info",
     }
 
@@ -548,11 +547,7 @@ class SchoolBatchImportService:
         )).scalars().all()
         cat_by_code: dict[str, Category] = {c.code: c for c in cat_rows}
 
-        # 预加载 PostType（按 code 索引）
-        pt_rows = (await self.db.execute(
-            select(PostType).where(PostType.is_active == True)  # noqa: E712
-        )).scalars().all()
-        pt_by_code: dict[str, PostType] = {p.code: p for p in pt_rows}
+        # Task 1.2 调整：PostType 已删除，不再需要预加载
 
         # 第一遍：按行解析 + 校验
         # 用于 post.location_ref 引用同批次 location
@@ -579,7 +574,7 @@ class SchoolBatchImportService:
                 location_refs[loc["name"]] = loc
                 location_refs[str(idx)] = loc
             else:  # post
-                post, errs = self._parse_post_row(idx, raw, cat_by_code, pt_by_code)
+                post, errs = self._parse_post_row(idx, raw, cat_by_code)
                 if errs:
                     result.errors.extend(errs)
                     continue
@@ -679,7 +674,6 @@ class SchoolBatchImportService:
                         user_id=operator_id or 1,  # 默认归属操作者；缺失时回退到 id=1
                         school_id=school_id,
                         category_id=post["category_id"],
-                        post_type_id=post["post_type_id"],
                         location_id=location_id,
                         title=post["title"],
                         content=post["content"],
@@ -825,7 +819,6 @@ class SchoolBatchImportService:
         row_index: int,
         raw: dict,
         cat_by_code: dict[str, Category],
-        pt_by_code: dict[str, PostType],
     ) -> tuple[dict, list[ImportRowError]]:
         errs: list[ImportRowError] = []
         title = self._to_str(raw.get("title")).strip()
@@ -844,14 +837,7 @@ class SchoolBatchImportService:
                 f"category_code='{category_code}' 在目标学校不存在或未启用",
             ))
 
-        pt_code = self._to_str(raw.get("post_type_code")).strip()
-        if not pt_code:
-            errs.append(ImportRowError(row_index, "post_type_code", "post_type_code 不能为空"))
-        elif pt_code not in pt_by_code:
-            errs.append(ImportRowError(
-                row_index, "post_type_code",
-                f"post_type_code='{pt_code}' 不存在或未启用",
-            ))
+        # Task 1.2 调整：post_type_code 已移除（PostType 已删除，统一使用 category）
 
         location_ref = self._to_str(raw.get("location_ref")).strip() or None
         expire_at = self._to_str(raw.get("expire_at")).strip() or None
@@ -878,8 +864,6 @@ class SchoolBatchImportService:
             "content": content,
             "category_code": category_code,
             "category_id": cat_by_code[category_code].id if category_code in cat_by_code else None,
-            "post_type_code": pt_code,
-            "post_type_id": pt_by_code[pt_code].id if pt_code in pt_by_code else None,
             "_location_ref": location_ref,
             "expire_at": expire_at,
             "is_anonymous": is_anonymous,

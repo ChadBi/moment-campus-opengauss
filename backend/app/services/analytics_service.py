@@ -5,7 +5,7 @@
 2. **隐私阈值保护**：零结果主题样本量 < PRIVACY_THRESHOLD 时不返回具体查询，
    只返回聚合数量与 `hidden_for_privacy=true` 标记。
 3. **可复算**：所有指标从 `product_events` / `posts` / `ai_invocation_logs` /
-   `reports` / `post_change_reports` 等业务表实时复算，不预聚合。
+   `reports` 等业务表实时复算，不预聚合。
 4. **元数据透明**：每个指标附带 time_window / sample_size / last_updated_at /
    empty_state 四项元数据，前端可显示「数据空」状态。
 5. **环境过滤**：默认排除 test / seed 环境，只统计 demo + production。
@@ -24,7 +24,6 @@ from app.models.product_event import ProductEvent
 from app.models.post import Post
 from app.models.ai_invocation_log import AIInvocationLog
 from app.models.report import Report
-from app.models.post_change_report import PostChangeReport
 from app.models.admin_operation_log import AdminOperationLog
 from app.core.post_status import PostStatus as PS
 
@@ -429,13 +428,13 @@ class SchoolAnalyticsService:
     async def _compute_governance_sla(
         self, window_start: datetime, now: datetime
     ) -> dict[str, Any]:
-        """审核治理 SLA：平均审核时长 + 平均举报/问题报告处理时长。
+        """审核治理 SLA：平均审核时长 + 平均举报处理时长。
 
         口径：
         - 平均审核时长：AdminOperationLog 中 action in (approve_post, reject_post)
           的 created_at 与对应 Post.created_at 的差值平均（秒）
         - 平均举报处理时长：Report.handled_at - Report.created_at 的平均（秒）
-        - 平均问题报告处理时长：PostChangeReport.handled_at - created_at 的平均（秒）
+        （原"问题报告处理时长"已随 PostChangeReport 移除）
         """
         # 平均审核时长（秒）
         review_rows = (await self.db.execute(
@@ -483,40 +482,15 @@ class SchoolAnalyticsService:
             if report_durations else 0.0
         )
 
-        # 平均问题报告处理时长
-        change_rows = (await self.db.execute(
-            select(PostChangeReport.created_at, PostChangeReport.handled_at)
-            .join(Post, PostChangeReport.post_id == Post.id)
-            .where(
-                PostChangeReport.status.in_(["resolved", "dismissed"]),
-                PostChangeReport.handled_at.isnot(None),
-                Post.school_id == self.school_id,
-                PostChangeReport.created_at >= window_start,
-                PostChangeReport.created_at <= now,
-            )
-        )).all()
-        change_durations: list[float] = []
-        for created, handled in change_rows:
-            if created and handled:
-                dur = (handled - created).total_seconds()
-                if dur >= 0:
-                    change_durations.append(dur)
-        avg_change_seconds = (
-            round(sum(change_durations) / len(change_durations), 2)
-            if change_durations else 0.0
-        )
-
         total_sample = (
-            len(review_durations) + len(report_durations) + len(change_durations)
+            len(review_durations) + len(report_durations)
         )
         meta = _build_meta(total_sample, now, window_start)
         return {
             "avg_review_seconds": avg_review_seconds,
             "avg_report_handle_seconds": avg_report_seconds,
-            "avg_change_report_handle_seconds": avg_change_seconds,
             "reviewed_count": len(review_durations),
             "reports_handled_count": len(report_durations),
-            "change_reports_handled_count": len(change_durations),
             "meta": meta.to_dict(),
         }
 

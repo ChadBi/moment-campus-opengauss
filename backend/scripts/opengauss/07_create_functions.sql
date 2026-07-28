@@ -346,7 +346,6 @@ COMMENT ON FUNCTION sp_cleanup_soft_deleted() IS 'SP06 清理 30 天前软删除
 --   p_user_id       - 发布者ID
 --   p_school_id     - 学校ID
 --   p_category_id   - 分类ID
---   p_post_type_id  - 信息类型ID
 --   p_location_id   - 地点ID（可空）
 --   p_title         - 标题
 --   p_content       - 内容
@@ -362,7 +361,6 @@ CREATE OR REPLACE FUNCTION sp_publish_post(
     p_user_id           BIGINT,
     p_school_id         BIGINT,
     p_category_id       BIGINT,
-    p_post_type_id      BIGINT,
     p_location_id       BIGINT DEFAULT NULL,
     p_title             VARCHAR(200),
     p_content           TEXT,
@@ -405,7 +403,7 @@ BEGIN
 
     -- 插入信息记录
     INSERT INTO posts (
-        user_id, school_id, category_id, post_type_id, location_id,
+        user_id, school_id, category_id, location_id,
         title, content, is_anonymous, status,
         view_count, like_count, comment_count, favorite_count,
         valid_count, invalid_count, credibility_score,
@@ -413,7 +411,7 @@ BEGIN
         contact_info, is_top, is_recommend,
         created_at, updated_at, is_deleted
     ) VALUES (
-        p_user_id, p_school_id, p_category_id, p_post_type_id, p_location_id,
+        p_user_id, p_school_id, p_category_id, p_location_id,
         p_title, p_content, p_is_anonymous, p_status,
         0, 0, 0, 0,
         0, 0, v_credibility,
@@ -438,7 +436,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-COMMENT ON FUNCTION sp_publish_post(BIGINT, BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, TEXT, BOOLEAN,
+COMMENT ON FUNCTION sp_publish_post(BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, TEXT, BOOLEAN,
                                     TIMESTAMP WITH TIME ZONE, TIMESTAMP WITH TIME ZONE,
                                     TIMESTAMP WITH TIME ZONE, VARCHAR, VARCHAR) IS 'SP07 信息发布流程（应用层调用）';
 

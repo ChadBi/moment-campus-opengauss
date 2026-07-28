@@ -30,7 +30,6 @@ from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.category import Category
-from app.models.post_type import PostType
 from app.models.post import Post
 from app.models.product_plan import ProductPlan
 from app.models.school_subscription import SchoolSubscription
@@ -93,13 +92,6 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return c
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 def _school(code: str) -> dict:
     return {"X-School-Code": code}
 
@@ -122,18 +114,17 @@ class TestSQLInjection:
         user = await _create_user(db_session, "secuser@example.com", "安全用户", school.id)
         await _create_membership(db_session, user.id, school.id)
         cat = await _create_category(db_session, school.id, "失物招领", "lost-sec")
-        pt = await _create_post_type(db_session, "普通信息", "normal-sec")
 
         now = datetime.now()
         p1 = Post(
             user_id=user.id, school_id=school.id,
-            category_id=cat.id, post_type_id=pt.id,
+            category_id=cat.id,
             title="校园卡丢失", content="在图书馆丢失校园卡",
             status=PostStatus.PUBLISHED, created_at=now,
         )
         p2 = Post(
             user_id=user.id, school_id=school.id,
-            category_id=cat.id, post_type_id=pt.id,
+            category_id=cat.id,
             title="钱包捡到", content="在食堂捡到钱包",
             status=PostStatus.PUBLISHED, created_at=now,
         )
@@ -143,7 +134,6 @@ class TestSQLInjection:
             "school": {"id": school.id, "code": school.code},
             "user": {"id": user.id, "token": create_access_token(data={"sub": str(user.id)})},
             "category": cat,
-            "post_type": pt,
             "posts": {"p1": p1, "p2": p2},
         }
 
@@ -218,7 +208,6 @@ class TestSQLInjection:
                 "title": payload_title,
                 "content": "内容至少需要十个字符",
                 "category_id": sec_setup["category"].id,
-                "post_type_id": sec_setup["post_type"].id,
                 "is_anonymous": False,
             },
             headers={**_school(sec_setup["school"]["code"]), **_auth(sec_setup["user"]["token"])},
@@ -247,7 +236,6 @@ class TestXSSProtection:
         user = await _create_user(db_session, "xssuser@example.com", "XSS用户", school.id)
         await _create_membership(db_session, user.id, school.id)
         cat = await _create_category(db_session, school.id, "失物", "xss-lost")
-        pt = await _create_post_type(db_session, "普通", "xss-normal")
 
         # 直接在 DB 中插入含 XSS payload 的帖子（绕过校验，模拟最坏情况）
         now = datetime.now()
@@ -261,7 +249,7 @@ class TestXSSProtection:
         for i, payload in enumerate(xss_payloads):
             p = Post(
                 user_id=user.id, school_id=school.id,
-                category_id=cat.id, post_type_id=pt.id,
+                category_id=cat.id,
                 title=f"XSS测试{i}", content=payload,
                 status=PostStatus.PUBLISHED, created_at=now,
             )
@@ -274,7 +262,6 @@ class TestXSSProtection:
             "school": {"id": school.id, "code": school.code},
             "user": {"id": user.id, "token": create_access_token(data={"sub": str(user.id)})},
             "category": cat,
-            "post_type": pt,
             "posts": posts,
             "payloads": xss_payloads,
         }
@@ -322,7 +309,6 @@ class TestXSSProtection:
                 "title": "新XSS测试",
                 "content": xss_payload,
                 "category_id": xss_setup["category"].id,
-                "post_type_id": xss_setup["post_type"].id,
                 "is_anonymous": False,
             },
             headers={**_school(xss_setup["school"]["code"]), **_auth(xss_setup["user"]["token"])},
@@ -367,7 +353,6 @@ class TestCSRFAndAuth:
                 "title": "无Token帖子",
                 "content": "内容至少需要十个字符",
                 "category_id": 1,
-                "post_type_id": 1,
                 "is_anonymous": False,
             },
             headers=_school(auth_setup["school"]["code"]),

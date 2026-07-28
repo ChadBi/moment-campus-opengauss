@@ -17,7 +17,6 @@ from app.models.user import User
 from app.models.category import Category
 from app.models.location import Location
 from app.models.validation_record import ValidationRecord
-from app.models.post_change_report import PostChangeReport
 # PRF-01.3: 浏览历史按学校隔离，详情访问时写入
 from app.models.browse_history import BrowseHistory
 # ORG-01: 关联官方发布主体
@@ -29,7 +28,7 @@ from app.schemas.post import (
     PostTransitionCreate, PostTransitionResponse,
 )
 from app.schemas.ai import AIPublishSuggestRequest, AIPublishSuggestionResponse
-from app.schemas.governance import GovernanceSummary, ChangeReportResponse
+from app.schemas.governance import GovernanceSummary
 from app.schemas.common import PaginatedResponse
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 from app.core.post_status import (
@@ -104,7 +103,6 @@ async def get_posts(
     page_size: int = Query(default=20, ge=1, le=100, description="每页数量"),
     category_id: Optional[int] = Query(default=None, description="分类ID"),
     location_id: Optional[int] = Query(default=None, description="地点ID"),
-    post_type_id: Optional[int] = Query(default=None, description="信息类型ID"),
     status: Optional[str] = Query(
         default=None,
         pattern="^(published|expired|valid)$",
@@ -122,8 +120,10 @@ async def get_posts(
 ):
     """获取信息列表，支持分页、筛选和排序
 
-    DSC-01.1: 普通搜索/列表支持分类/地点/帖子类型/有效状态/时间/排序。
+    DSC-01.1: 普通搜索/列表支持分类/地点/有效状态/时间/排序。
     TEN-02.3：按当前学校过滤，跨校帖子不会出现在列表中。
+
+    Task 1.2 调整：移除 post_type_id 筛选（PostType 已删除，统一使用 category）
 
     有效状态筛选：
         - published: 仅显示已发布（status=published）
@@ -151,8 +151,6 @@ async def get_posts(
         query = query.where(Post.category_id == category_id)
     if location_id is not None:
         query = query.where(Post.location_id == location_id)
-    if post_type_id is not None:
-        query = query.where(Post.post_type_id == post_type_id)
     if date_from is not None:
         query = query.where(Post.created_at >= date_from)
     if date_to is not None:
@@ -186,7 +184,6 @@ async def get_posts(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        joinedload(Post.post_type),
         selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
@@ -242,7 +239,6 @@ async def get_post(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        joinedload(Post.post_type),
         selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
@@ -344,8 +340,9 @@ async def _build_governance_summary(
 ) -> GovernanceSummary:
     """GOV-01.4: 构造帖子详情的协同治理聚合
 
-    - 投票计数（confirmation/refutation）+ 综合有效性状态
-    - 问题报告总数 / 待处理数 / 最近 10 条（含处理状态）
+    调整后：仅保留 2 类互斥投票（confirmation/refutation）
+    原 3 类问题报告（update/expiration_report/conflict_report）已移除。
+
     - DSC-02.1: 登录用户额外返回 user_validation_type；游客恒为 None
     """
     # 投票按类型分组计数
@@ -370,51 +367,6 @@ async def _build_governance_summary(
     else:
         validity_status = "valid"
 
-    # 问题报告：总数 + 待处理数 + 最近 10 条
-    pcr_total_result = await db.execute(
-        select(func.count(PostChangeReport.id)).where(PostChangeReport.post_id == post_id)
-    )
-    change_reports_total = pcr_total_result.scalar() or 0
-
-    pcr_open_result = await db.execute(
-        select(func.count(PostChangeReport.id)).where(
-            PostChangeReport.post_id == post_id,
-            PostChangeReport.status.in_(["open", "in_review"]),
-        )
-    )
-    change_reports_open = pcr_open_result.scalar() or 0
-
-    pcr_result = await db.execute(
-        select(PostChangeReport)
-        .where(PostChangeReport.post_id == post_id)
-        .order_by(PostChangeReport.created_at.desc())
-        .limit(10)
-        .options(selectinload(PostChangeReport.reporter), selectinload(PostChangeReport.handler))
-    )
-    reports = pcr_result.scalars().all()
-    from app.schemas.post import UserBrief
-    recent_change_reports = [
-        ChangeReportResponse(
-            id=r.id,
-            post_id=r.post_id,
-            reporter_id=r.reporter_id,
-            report_type=r.report_type,
-            description=r.description,
-            evidence_url=r.evidence_url,
-            status=r.status,
-            handler_id=r.handler_id,
-            handler_note=r.handler_note,
-            handled_at=r.handled_at,
-            created_at=r.created_at,
-            updated_at=r.updated_at,
-            reporter=UserBrief(id=r.reporter.id, nickname=r.reporter.nickname, avatar_url=r.reporter.avatar_url)
-            if r.reporter else None,
-            handler=UserBrief(id=r.handler.id, nickname=r.handler.nickname, avatar_url=r.handler.avatar_url)
-            if r.handler else None,
-        )
-        for r in reports
-    ]
-
     # DSC-02.1: 登录用户返回其投票类型（用于前端高亮"已证实/已证伪"按钮）
     # 游客（current_user is None）恒为 None，前端据此隐藏投票按钮
     user_validation_type = None
@@ -437,9 +389,6 @@ async def _build_governance_summary(
         total_validation_count=total_validation_count,
         validity_status=validity_status,
         user_validation_type=user_validation_type,
-        change_reports_total=change_reports_total,
-        change_reports_open=change_reports_open,
-        recent_change_reports=recent_change_reports,
     )
 
 
@@ -537,7 +486,6 @@ async def create_post(
         user_id=current_user.id,
         school_id=school_id,
         category_id=post_data.category_id,
-        post_type_id=post_data.post_type_id or 1,  # 默认类型
         location_id=location_id,
         publisher_id=publisher_id,  # ORG-01: 关联官方发布主体（None 表示普通用户发布）
         title=post_data.title,
@@ -601,7 +549,6 @@ async def create_post(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        joinedload(Post.post_type),
         selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
@@ -630,7 +577,7 @@ async def update_post(
     """更新信息，需要认证，验证所有权
 
     FND-03.2: 状态变化只走状态机服务。
-        - 已 published 的帖子若被实质修改（title/content/category_id/post_type_id/
+        - 已 published 的帖子若被实质修改（title/content/category_id/
           location_*/lost_type），自动通过状态机 published → pending 回审
         - 非实质字段（expire_at/activity_*/contact_info/is_anonymous/tags/image_urls）
           修改不触发回审
@@ -644,7 +591,6 @@ async def update_post(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        joinedload(Post.post_type),
         selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
@@ -788,7 +734,7 @@ async def update_post(
             # 视为修改了 location_id
             update_data["location_id"] = location.id
 
-    # 更新其他字段（含 title/content/category_id/post_type_id/location_id/lost_type 等实质字段）
+    # 更新其他字段（含 title/content/category_id/location_id/lost_type 等实质字段）
     for field, value in update_data.items():
         if hasattr(post, field):
             _record_change(field, value)
@@ -816,7 +762,6 @@ async def update_post(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        joinedload(Post.post_type),
         selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )

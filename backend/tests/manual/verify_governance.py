@@ -59,15 +59,12 @@ headers_admin = h(token_admin)
 # 0. user1 创建一个新帖子用于本次测试
 r = requests.get(f"{BASE}/categories", headers=headers1)
 cats = r.json() if r.status_code == 200 else []
-r = requests.get(f"{BASE}/post-types", headers=headers1)
-ptypes = r.json() if r.status_code == 200 else []
 r = requests.post(
     f"{BASE}/posts",
     json={
         "title": "[E2E协同治理] 5类验证测试帖",
         "content": "本帖用于测试 GOV-01.2 协同治理 5 类验证：证实、证伪、更新建议、过期报告、冲突报告。",
         "category_id": cats[0]["id"],
-        "post_type_id": ptypes[0]["id"],
     },
     headers=headers1,
 )

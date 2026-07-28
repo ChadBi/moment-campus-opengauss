@@ -11,8 +11,8 @@
 - 复旦大学（code=fudan）—— 复赛演示校 A，上海邯郸校区
 - 浙江大学（code=zju）—— 复赛演示校 B，杭州紫金港校区
 
-每校保证：分类(≥6) / 地点(≥10) / 用户(≥5 含 admin) / 已发布帖子(≥20) /
-状态样本(6 态各 ≥1) / 五类治理样本(confirmation/refutation/update/expiration_report/conflict_report) /
+每校保证：分类(=5 统一信息分类：share/teamup/trade/lost_found/other) / 地点(≥10) / 用户(≥5 含 admin) / 已发布帖子(≥20) /
+状态样本(6 态各 ≥1) / 两类治理样本(confirmation/refutation) /
 专题(≥1) / 官方发布主体(≥2) / 品牌设置（差异化主题色） / 套餐（运营档 activated）。
 
 TEN-05.3：user1@/user2@ 加入多校（江南大学 + 复旦/浙大）用于演示切换后角色/内容/统计变化。
@@ -33,18 +33,17 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import async_session_maker, engine
 from app.models import (
-    Base, User, School, Post, Category, PostType, Tag, PostTag, PostImage,
+    Base, User, School, Post, Category, Tag, PostTag, PostImage,
     Location, Comment, Like, ValidationRecord, Report, Notification,
     TopicCollection, TopicCollectionPost, Draft, BrowseHistory, SearchHistory,
     AdminOperationLog, SchoolMembership, SchoolSettings, SchoolSubscription,
     ProductPlan, PlanEntitlement, PublisherProfile, PublisherMembership,
-    PostChangeReport,
 )
 import bcrypt
 
 
 # =============================================================================
-# 通用配置：套餐 / 信息类型（全平台共享）
+# 通用配置：套餐（全平台共享）
 # =============================================================================
 
 # 3 档套餐（COM-01 契约）：试用档 / 标准档 / 运营档
@@ -75,12 +74,8 @@ PLANS_DATA = [
     },
 ]
 
-# 信息类型（全平台共享）
-POST_TYPES_DATA = [
-    PostType(name="普通信息", code="normal", description="一般校园信息", sort_order=1, is_active=True),
-    PostType(name="活动", code="event", description="校园活动信息", sort_order=2, is_active=True),
-    PostType(name="失物招领", code="lost_found", description="失物招领信息", sort_order=3, is_active=True),
-]
+# Task 1.2 调整：PostType（信息类型）已删除，统一使用 5 类信息分类
+# 5 类分类由 SCHOOLS_REGISTRY 中 *_CATEGORIES 提供
 
 
 # =============================================================================
@@ -104,18 +99,11 @@ JIANGNAN_META = {
 }
 
 JIANGNAN_CATEGORIES = [
-    ("校园美食", "food", "🍜", "校园食堂、餐厅、小吃", 30, 1),
-    ("校园动物", "animal", "🐱", "校园流浪猫狗、野生动物", 90, 2),
-    ("打印服务", "print", "🖨️", "打印店、复印服务", 60, 3),
-    ("校园活动", "event", "🎉", "社团活动、讲座、演出", 7, 4),
-    ("学习资源", "study", "📚", "自习室、图书馆、学习小组", 30, 5),
-    ("生活服务", "service", "🛠️", "快递、维修、洗衣", 60, 6),
-    ("校园交通", "transport", "🚌", "校车、公交、共享单车", 30, 7),
-    ("校园设施", "facility", "🏢", "体育馆、游泳池、健身房", 90, 8),
-    ("活动场地", "venue", "🏟️", "会议室、活动室、操场", 30, 9),
-    ("失物招领", "lost_found", "🔍", "失物招领信息", 30, 10),
-    ("校园兼职", "job", "💼", "兼职、实习信息", 30, 11),
-    ("其他", "other", "📌", "其他校园信息", 30, 12),
+    ("分享吐槽", "share", "💬", "校园生活分享、吐槽、心得", 30, 1),
+    ("组队交友", "teamup", "🤝", "组队、交友、活动搭子", 30, 2),
+    ("二手交易", "trade", "💰", "二手物品买卖、赠予", 30, 3),
+    ("失物招领", "lost_found", "🔍", "丢失与拾到物品信息", 30, 4),
+    ("其他", "other", "📝", "其他校园信息", 30, 5),
 ]
 
 JIANGNAN_LOCATIONS = [
@@ -190,14 +178,11 @@ FUDAN_META = {
 }
 
 FUDAN_CATEGORIES = [
-    ("校园美食", "food", "🍜", "食堂、餐厅、小吃", 30, 1),
-    ("校园活动", "event", "🎉", "社团活动、讲座、演出", 7, 2),
-    ("学习资源", "study", "📚", "自习室、图书馆、学习小组", 30, 3),
-    ("生活服务", "service", "🛠️", "快递、维修、洗衣", 60, 4),
-    ("校园交通", "transport", "🚌", "校车、公交、地铁", 30, 5),
-    ("失物招领", "lost_found", "🔍", "失物招领信息", 30, 6),
-    ("校园兼职", "job", "💼", "兼职、实习信息", 30, 7),
-    ("其他", "other", "📌", "其他校园信息", 30, 8),
+    ("分享吐槽", "share", "💬", "校园生活分享、吐槽、心得", 30, 1),
+    ("组队交友", "teamup", "🤝", "组队、交友、活动搭子", 30, 2),
+    ("二手交易", "trade", "💰", "二手物品买卖、赠予", 30, 3),
+    ("失物招领", "lost_found", "🔍", "丢失与拾到物品信息", 30, 4),
+    ("其他", "other", "📝", "其他校园信息", 30, 5),
 ]
 
 FUDAN_LOCATIONS = [
@@ -255,16 +240,11 @@ ZJU_META = {
 }
 
 ZJU_CATEGORIES = [
-    ("校园美食", "food", "🍜", "食堂、餐厅、小吃", 30, 1),
-    ("校园动物", "animal", "🐱", "校园流浪猫、启真湖鸟类", 90, 2),
-    ("校园活动", "event", "🎉", "社团活动、讲座、演出", 7, 3),
-    ("学习资源", "study", "📚", "自习室、图书馆、学习小组", 30, 4),
-    ("生活服务", "service", "🛠️", "快递、维修、洗衣", 60, 5),
-    ("校园交通", "transport", "🚌", "校车、地铁、共享单车", 30, 6),
-    ("校园设施", "facility", "🏢", "体育馆、游泳馆", 90, 7),
-    ("失物招领", "lost_found", "🔍", "失物招领信息", 30, 8),
-    ("校园兼职", "job", "💼", "兼职、实习信息", 30, 9),
-    ("其他", "other", "📌", "其他校园信息", 30, 10),
+    ("分享吐槽", "share", "💬", "校园生活分享、吐槽、心得", 30, 1),
+    ("组队交友", "teamup", "🤝", "组队、交友、活动搭子", 30, 2),
+    ("二手交易", "trade", "💰", "二手物品买卖、赠予", 30, 3),
+    ("失物招领", "lost_found", "🔍", "丢失与拾到物品信息", 30, 4),
+    ("其他", "other", "📝", "其他校园信息", 30, 5),
 ]
 
 ZJU_LOCATIONS = [
@@ -322,7 +302,7 @@ JIANGNAN_POSTS = [
             "旁边冰柜有冰镇豆奶2块钱一瓶，搭配解辣。\n\n"
             "唯一缺点是中午11:45-12:30排队要15分钟，建议错峰。"
         ),
-        "category_code": "food", "location_name": "第二食堂", "user_email": "user6@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "第二食堂", "user_email": "user6@example.com",
         "is_anonymous": False, "views": 342, "likes": 28, "is_recommend": True,
         "comments": [
             {"user_email": "user3@example.com", "content": "昨天刚去吃过，确实不错！午餐肉给得超大方", "likes": 5},
@@ -344,7 +324,7 @@ JIANGNAN_POSTS = [
             "早八党可以提前10分钟来排队，7:30之前基本不用等。\n\n"
             "另外他们家的茶叶蛋也不错，1.5元一个，蛋黄很糯。"
         ),
-        "category_code": "food", "location_name": "第一食堂", "user_email": "user3@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "第一食堂", "user_email": "user3@example.com",
         "is_anonymous": False, "views": 198, "likes": 15, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "我也发现了！茶叶蛋确实好吃", "likes": 3},
@@ -365,7 +345,7 @@ JIANGNAN_POSTS = [
             "5. 教学楼A区便利店 - 三明治6块+牛奶2块\n\n"
             "性价比党可以参考，欢迎补充。"
         ),
-        "category_code": "food", "location_name": "北门", "user_email": "user3@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "北门", "user_email": "user3@example.com",
         "is_anonymous": False, "views": 521, "likes": 42, "is_recommend": True,
         "comments": [
             {"user_email": "user9@example.com", "content": "沙县拌面真的便宜量大，强推", "likes": 6},
@@ -386,7 +366,7 @@ JIANGNAN_POSTS = [
             "最大问题是味道真的会熏到旁边的人，建议打包回宿舍吃。"
             "综合评分：7/10，性价比可以，社交场景慎选。"
         ),
-        "category_code": "food", "location_name": "第二食堂", "user_email": "user6@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "第二食堂", "user_email": "user6@example.com",
         "is_anonymous": False, "views": 287, "likes": 19, "is_recommend": False,
         "comments": [
             {"user_email": "user3@example.com", "content": "在食堂吃螺蛳粉会被室友追杀吧哈哈哈", "likes": 8},
@@ -410,7 +390,7 @@ JIANGNAN_POSTS = [
             "4. 摸完记得洗手\n\n"
             "学士的照片评论区见~"
         ),
-        "category_code": "animal", "location_name": "图书馆", "user_email": "user8@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 animal → share "location_name": "图书馆", "user_email": "user8@example.com",
         "is_anonymous": False, "views": 612, "likes": 56, "is_recommend": True,
         "comments": [
             {"user_email": "user4@example.com", "content": "学士今天在我书包上睡着了哈哈", "likes": 12},
@@ -434,7 +414,7 @@ JIANGNAN_POSTS = [
             "- 拍照请用长焦，不要用闪光灯\n\n"
             "小天鹅大概一个月后会长出成鸟羽毛，喜欢的同学抓紧去看。"
         ),
-        "category_code": "animal", "location_name": "蠡湖畔", "user_email": "user7@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 animal → share "location_name": "蠡湖畔", "user_email": "user7@example.com",
         "is_anonymous": False, "views": 478, "likes": 38, "is_recommend": True,
         "comments": [
             {"user_email": "user2@example.com", "content": "周末钓鱼时看到了，确实萌", "likes": 4},
@@ -459,7 +439,7 @@ JIANGNAN_POSTS = [
             "- 定期回访\n\n"
             "联系方式：评论区留言或私信。"
         ),
-        "category_code": "animal", "location_name": "教学楼A区", "user_email": "user8@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 animal → share "location_name": "教学楼A区", "user_email": "user8@example.com",
         "is_anonymous": False, "views": 234, "likes": 21, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "已私信！想领养", "likes": 2},
@@ -482,7 +462,7 @@ JIANGNAN_POSTS = [
             "老板说学生价，可以办会员卡充值100送20。论文打印必备。"
             "营业时间：8:00-21:00，周末也开。"
         ),
-        "category_code": "print", "location_name": "校园超市", "user_email": "user9@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 print → other "location_name": "校园超市", "user_email": "user9@example.com",
         "is_anonymous": False, "views": 189, "likes": 14, "is_recommend": False,
         "comments": [
             {"user_email": "user4@example.com", "content": "会员卡充值活动持续到什么时候？", "likes": 1},
@@ -506,7 +486,7 @@ JIANGNAN_POSTS = [
             "- 营业时间：8:00-22:00\n"
             "- 打印卡可在北门自助机退卡"
         ),
-        "category_code": "print", "location_name": "图书馆", "user_email": "user10@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 print → other "location_name": "图书馆", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 256, "likes": 22, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "新生感谢学长！已收藏", "likes": 4},
@@ -527,7 +507,7 @@ JIANGNAN_POSTS = [
             "建议提前30分钟到场，前排位置先到先得。"
             "喜欢话剧的同学不要错过，结束后还有导演见面会。"
         ),
-        "category_code": "event", "location_name": "文浩科学馆", "user_email": "user1@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "文浩科学馆", "user_email": "user1@example.com",
         "is_anonymous": False, "views": 423, "likes": 35, "is_recommend": True,
         "comments": [
             {"user_email": "user3@example.com", "content": "必须去！《雷雨》是经典", "likes": 5},
@@ -547,7 +527,7 @@ JIANGNAN_POSTS = [
             "舞种：Hip-hop / Jazz / Breaking / Locking 任选。\n\n"
             "学姐说加入街舞社是她大学最不后悔的事，能交到一辈子的朋友。"
         ),
-        "category_code": "event", "location_name": "大学生活动中心", "user_email": "user1@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "大学生活动中心", "user_email": "user1@example.com",
         "is_anonymous": False, "views": 312, "likes": 27, "is_recommend": True,
         "comments": [
             {"user_email": "user9@example.com", "content": "零基础真的能进吗？四肢不协调", "likes": 6},
@@ -570,7 +550,7 @@ JIANGNAN_POSTS = [
             "- 集训队专用自习室\n\n"
             "简历发送到 acm@jiangnan.edu.cn，截止本周日。"
         ),
-        "category_code": "event", "location_name": "教学楼A区", "user_email": "user10@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "教学楼A区", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 389, "likes": 31, "is_recommend": True,
         "comments": [
             {"user_email": "user1@example.com", "content": "已投简历！希望能进", "likes": 4},
@@ -594,7 +574,7 @@ JIANGNAN_POSTS = [
             "免费入场，需提前在教务系统预约（限额300人）。"
             "建议带笔记本，可以提问环节互动。"
         ),
-        "category_code": "event", "location_name": "文浩科学馆", "user_email": "user4@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "文浩科学馆", "user_email": "user4@example.com",
         "is_anonymous": False, "views": 567, "likes": 48, "is_recommend": True,
         "comments": [
             {"user_email": "user1@example.com", "content": "已经预约了！冲", "likes": 3},
@@ -615,7 +595,7 @@ JIANGNAN_POSTS = [
             "建议早7点前去占位置，9点后基本满座。"
             "考试周期间1楼大厅也会开放临时座位，约200个。"
         ),
-        "category_code": "study", "location_name": "图书馆", "user_email": "user4@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup "location_name": "图书馆", "user_email": "user4@example.com",
         "is_anonymous": False, "views": 678, "likes": 52, "is_recommend": False,
         "comments": [
             {"user_email": "user9@example.com", "content": "考试周必须早6:30去排队", "likes": 8},
@@ -637,7 +617,7 @@ JIANGNAN_POSTS = [
             "建议大家文明用座，不要用书包占位不签到。"
             "阿姨会定时巡视，违规直接拉黑一周。"
         ),
-        "category_code": "study", "location_name": "图书馆", "user_email": "user4@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup "location_name": "图书馆", "user_email": "user4@example.com",
         "is_anonymous": False, "views": 312, "likes": 18, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "新规好评！以前书包占位太烦人", "likes": 12},
@@ -657,7 +637,7 @@ JIANGNAN_POSTS = [
             "网盘链接：见评论区（提取码8888）。\n\n"
             "希望对学弟学妹有帮助。考完来还愿。"
         ),
-        "category_code": "study", "location_name": "教学楼A区", "user_email": "user10@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup "location_name": "教学楼A区", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 891, "likes": 87, "is_recommend": True,
         "comments": [
             {"user_email": "user1@example.com", "content": "学长牛逼！已下载", "likes": 5},
@@ -684,7 +664,7 @@ JIANGNAN_POSTS = [
             "另外：大件物品需凭学生证+身份证取，不要忘带。"
             "代取需双方身份证复印件+委托书。"
         ),
-        "category_code": "service", "location_name": "快递服务中心", "user_email": "user1@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 service → other "location_name": "快递服务中心", "user_email": "user1@example.com",
         "is_anonymous": False, "views": 423, "likes": 25, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "上周五饭点排队40分钟，血泪教训", "likes": 8},
@@ -703,7 +683,7 @@ JIANGNAN_POSTS = [
             "另外阿姨说最近有人把鞋子扔洗衣机洗，禁止！违规会拉黑校园卡1周。"
             "洗鞋请用专用洗鞋机（一楼有2台）或者手刷。"
         ),
-        "category_code": "service", "location_name": "学士公寓", "user_email": "user1@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 service → other "location_name": "学士公寓", "user_email": "user1@example.com",
         "is_anonymous": False, "views": 234, "likes": 12, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "在洗衣机洗鞋的人是什么心态", "likes": 15},
@@ -725,7 +705,7 @@ JIANGNAN_POSTS = [
             "昨天刚补货，建议早去。日用品囤货党可以行动了。"
             "活动截止周日22:00。"
         ),
-        "category_code": "service", "location_name": "校园超市", "user_email": "user9@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 service → other "location_name": "校园超市", "user_email": "user9@example.com",
         "is_anonymous": False, "views": 367, "likes": 31, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "咖啡7折冲了，囤了5瓶", "likes": 4},
@@ -753,7 +733,7 @@ JIANGNAN_POSTS = [
             "- 月卡15元无限次（美团/哈啰通用）\n"
             "- 季卡35元更划算"
         ),
-        "category_code": "transport", "location_name": "北门", "user_email": "user5@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 transport → other "location_name": "北门", "user_email": "user5@example.com",
         "is_anonymous": False, "views": 289, "likes": 19, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "季卡35元？我去办一张", "likes": 2},
@@ -774,7 +754,7 @@ JIANGNAN_POSTS = [
             "冬季首发延后30分钟，末班不变。\n\n"
             "实时位置可在\"i江大\"App查看。"
         ),
-        "category_code": "transport", "location_name": "北门", "user_email": "user10@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 transport → other "location_name": "北门", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 312, "likes": 16, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "i江大App的实时位置经常不准", "likes": 3},
@@ -800,7 +780,7 @@ JIANGNAN_POSTS = [
             "- 每月最后一个周三闭馆维护\n"
             "- 学生证必备"
         ),
-        "category_code": "facility", "location_name": "体育馆", "user_email": "user5@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 facility → other "location_name": "体育馆", "user_email": "user5@example.com",
         "is_anonymous": False, "views": 256, "likes": 14, "is_recommend": False,
         "comments": [
             {"user_email": "user9@example.com", "content": "学期卡300超值，已办", "likes": 3},
@@ -821,7 +801,7 @@ JIANGNAN_POSTS = [
             "- 必须夜跑的话选西侧跑道，照明正常\n\n"
             "后续如果有照明问题可以打后勤电话6666报修。"
         ),
-        "category_code": "facility", "location_name": "田径场", "user_email": "user5@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 facility → other "location_name": "田径场", "user_email": "user5@example.com",
         "is_anonymous": False, "views": 178, "likes": 8, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "感谢提醒，今晚改去体育馆", "likes": 2},
@@ -844,7 +824,7 @@ JIANGNAN_POSTS = [
             "建议提前2周申请，热门时段（周末晚上）竞争激烈。"
             "设备需求要写清楚（投影/音响/话筒/灯光），临时加需扣分。"
         ),
-        "category_code": "venue", "location_name": "大学生活动中心", "user_email": "user1@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 venue → other "location_name": "大学生活动中心", "user_email": "user1@example.com",
         "is_anonymous": False, "views": 234, "likes": 11, "is_recommend": False,
         "comments": [
             {"user_email": "user9@example.com", "content": "请问社团外可以预约吗？班级活动", "likes": 1},
@@ -866,7 +846,7 @@ JIANGNAN_POSTS = [
             "- 违规记录会影响后续预约\n"
             "- 临时取消需提前4小时"
         ),
-        "category_code": "venue", "location_name": "文浩科学馆", "user_email": "user10@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 venue → other "location_name": "文浩科学馆", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 167, "likes": 9, "is_recommend": False,
         "comments": [],
         "validations": [],
@@ -925,7 +905,7 @@ JIANGNAN_POSTS = [
             "带简历直接到店面问，地址北门左转50米。"
             "说是江南同学推荐可以优先面试。"
         ),
-        "category_code": "job", "location_name": "北门", "user_email": "user9@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 job → other "location_name": "北门", "user_email": "user9@example.com",
         "is_anonymous": False, "views": 423, "likes": 18, "is_recommend": False,
         "comments": [
             {"user_email": "user6@example.com", "content": "18元/时算高的吗？奶茶店普遍15左右", "likes": 4},
@@ -945,7 +925,7 @@ JIANGNAN_POSTS = [
             "本人数学专业大三，绩点3.8，带过3个学生（成绩均有提升）。\n"
             "期末考前2周开始排课，需要的同学私信。"
         ),
-        "category_code": "job", "location_name": "图书馆", "user_email": "user10@example.com",
+        "category_code": "other",  # Task 1.2 调整：原 job → other "location_name": "图书馆", "user_email": "user10@example.com",
         "is_anonymous": False, "views": 289, "likes": 12, "is_recommend": False,
         "comments": [
             {"user_email": "user1@example.com", "content": "已私信！下学期高数救命", "likes": 3},
@@ -1001,31 +981,31 @@ JIANGNAN_STATUS_SAMPLES = [
     {
         "title": "【草稿】北门外新开咖啡店测评（草稿中，未提交）",
         "content": "正在整理北门外新开咖啡店的测评信息，等周末再去试一次再发布。目前信息：店名、价格、营业时间。",
-        "category_code": "food", "location_name": "北门", "user_email": "user3@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "北门", "user_email": "user3@example.com",
         "status": "draft", "views": 0, "likes": 0, "is_recommend": False,
     },
     {
         "title": "【待审核】文浩科学馆下周讲座通知（等待管理员审核）",
         "content": "下周三文浩科学馆有学术讲座，提交审核中，审核通过后大家就可以看到了。",
-        "category_code": "event", "location_name": "文浩科学馆", "user_email": "user4@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "文浩科学馆", "user_email": "user4@example.com",
         "status": "pending", "views": 0, "likes": 0, "is_recommend": False,
     },
     {
         "title": "【已过期】上学期期末复习资料（已过期归档）",
         "content": "这是上学期的期末复习资料，已过期，仅供参考。",
-        "category_code": "study", "location_name": "图书馆", "user_email": "user10@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 study → teamup "location_name": "图书馆", "user_email": "user10@example.com",
         "status": "expired", "views": 156, "likes": 8, "is_recommend": False,
     },
     {
         "title": "【冲突】食堂价格争议帖（信息冲突待处理）",
         "content": "本帖信息与其他帖子存在冲突，已标记为冲突状态，待管理员处理。",
-        "category_code": "food", "location_name": "第一食堂", "user_email": "user6@example.com",
+        "category_code": "share",  # Task 1.2 调整：原 food → share "location_name": "第一食堂", "user_email": "user6@example.com",
         "status": "conflict", "views": 89, "likes": 3, "is_recommend": False,
     },
     {
         "title": "【已归档】已结束的社团招新通知",
         "content": "该招新活动已结束，帖子归档保存。",
-        "category_code": "event", "location_name": "大学生活动中心", "user_email": "user1@example.com",
+        "category_code": "teamup",  # Task 1.2 调整：原 event → teamup "location_name": "大学生活动中心", "user_email": "user1@example.com",
         "status": "archived", "views": 234, "likes": 15, "is_recommend": False,
     },
 ]
@@ -1396,14 +1376,14 @@ async def init_db():
     注：openGauss 的 PGXC 架构不支持 RESTART IDENTITY 子句，需手动 ALTER SEQUENCE。
 
     TEN-05：扩展清空多租户相关表（school_memberships/school_settings/school_subscriptions/
-    product_plans/plan_entitlements/post_change_reports/publisher_profiles/
+    product_plans/plan_entitlements/publisher_profiles/
     publisher_memberships/post_templates/platform_audit_logs 等），
     保证重跑种子脚本时外键不冲突。
+    注：原 post_change_reports 表已移除（问题报告功能与评论/举报冲突）。
     """
     # 按外键依赖逆序列出所有业务表（含多租户与治理扩展表）
     tables = [
         # 治理与报告
-        "post_change_reports",
         "reports",
         "validation_records",
         # 互动
@@ -1438,8 +1418,7 @@ async def init_db():
         "tenant_usage_daily",
         # 地点
         "locations",
-        # 分类与类型
-        "post_types",
+        # 分类（Task 1.2 调整：post_types 表已删除）
         "categories",
         # 多租户
         "school_subscriptions",
@@ -1617,14 +1596,6 @@ async def seed_categories(session: AsyncSession, schools: list):
         categories_by_school[school.code] = cats
     await session.flush()
     return categories_by_school
-
-
-async def seed_post_types(session: AsyncSession):
-    """创建信息类型数据（全平台共享）"""
-    for pt in POST_TYPES_DATA:
-        session.add(pt)
-    await session.flush()
-    return POST_TYPES_DATA
 
 
 async def seed_users(session: AsyncSession, schools: list):
@@ -1814,17 +1785,16 @@ TIME_OFFSETS_DAYS = [
 
 async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict,
                                  users_by_email: dict, categories: list,
-                                 post_types: list, locations: list):
+                                 locations: list):
     """为单所学校创建帖子（含评论、协同验证）+ 状态样本
+
+    Task 1.2 调整：移除 post_types 参数（PostType 已删除，统一使用 category）
 
     返回 (posts, comments, validations)
     """
     user_by_email = {u.email: u for u in [users_by_email[u["email"]] for u in cfg["users"]]}
     category_by_code = {c.code: c for c in categories}
     location_by_name = {l.name: l for l in locations}
-    normal_type = next((pt for pt in post_types if pt.code == "normal"), post_types[0])
-    event_type = next((pt for pt in post_types if pt.code == "event"), post_types[0])
-    lost_found_type = next((pt for pt in post_types if pt.code == "lost_found"), post_types[0])
 
     now = datetime.now()
     posts = []
@@ -1850,14 +1820,6 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
             continue
         location = location_by_name.get(p["location_name"])
 
-        # 信息类型映射
-        if category.code == "event":
-            post_type = event_type
-        elif category.code == "lost_found":
-            post_type = lost_found_type
-        else:
-            post_type = normal_type
-
         # 失物招领分类补充 lost_type 字段
         lost_type = None
         if category.code == "lost_found":
@@ -1879,7 +1841,6 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
             user_id=user.id,
             school_id=school.id,
             category_id=category.id,
-            post_type_id=post_type.id,
             location_id=location.id if location else None,
             title=p["title"],
             content=p["content"],
@@ -1969,9 +1930,12 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
 
 
 async def seed_all_posts(session: AsyncSession, schools: list, users_by_email: dict,
-                         categories_by_school: dict, post_types: list,
+                         categories_by_school: dict,
                          locations_by_school: dict):
-    """为三所学校创建全部帖子"""
+    """为三所学校创建全部帖子
+
+    Task 1.2 调整：移除 post_types 参数（PostType 已删除）
+    """
     all_posts = []
     all_comments = []
     all_validations = []
@@ -1981,7 +1945,7 @@ async def seed_all_posts(session: AsyncSession, schools: list, users_by_email: d
         cats = categories_by_school.get(school.code, [])
         locs = locations_by_school.get(school.code, [])
         posts, comments, vals = await seed_posts_for_school(
-            session, school, cfg, users_by_email, cats, post_types, locs
+            session, school, cfg, users_by_email, cats, locs
         )
         all_posts.extend(posts)
         all_comments.extend(comments)
@@ -1992,71 +1956,12 @@ async def seed_all_posts(session: AsyncSession, schools: list, users_by_email: d
 
 
 # =============================================================================
-# 五类治理样本（GOV-01）：update / expiration_report / conflict_report
+# 五类治理样本（GOV-01）：
 # confirmation / refutation 已由 ValidationRecord 在 seed_posts_for_school 创建
+# 原 3 类问题报告（update/expiration_report/conflict_report）已移除（与评论/举报冲突）
 # =============================================================================
 
-async def seed_governance_reports(session: AsyncSession, schools: list,
-                                   users_by_email: dict, posts_by_school: dict):
-    """为每所学校创建 3 类问题报告样本（update/expiration_report/conflict_report）
-
-    保证每校五类治理样本齐全：
-    - confirmation: 由 ValidationRecord（type=confirmation）覆盖
-    - refutation: 由 ValidationRecord（type=refutation）覆盖
-    - update/expiration_report/conflict_report: 由 PostChangeReport 覆盖（本函数）
-    """
-    now = datetime.now()
-    all_reports = []
-
-    for school, cfg in zip(schools, SCHOOLS_REGISTRY):
-        school_posts = posts_by_school.get(school.code, [])
-        if not school_posts:
-            continue
-
-        # 选取 published 帖子作为治理样本载体
-        published_posts = [p for p in school_posts if p.status == "published"]
-        if not published_posts:
-            continue
-
-        # 取本校用户作为报告人（优先普通用户）
-        school_users = [users_by_email[u["email"]] for u in cfg["users"] if u["role"] == "user"]
-        if not school_users:
-            school_users = [users_by_email[u["email"]] for u in cfg["users"]]
-        if not school_users:
-            continue
-
-        # 3 类问题报告各 1 条
-        report_samples = [
-            ("update", "信息需要更新：建议作者补充最新营业时间与价格变动",
-             "resolved", "作者已更新，感谢反馈"),
-            ("expiration_report", "信息已过期：该活动已于上周结束，建议归档",
-             "resolved", "已标记为过期"),
-            ("conflict_report", "信息冲突：本帖价格与其他帖子不一致，请核实",
-             "in_review", None),
-        ]
-
-        for i, (rtype, desc, status, note) in enumerate(report_samples):
-            post = published_posts[i % len(published_posts)]
-            reporter = school_users[i % len(school_users)]
-            handler = school_users[(i + 1) % len(school_users)]
-            report = PostChangeReport(
-                post_id=post.id,
-                reporter_id=reporter.id,
-                report_type=rtype,
-                description=desc,
-                evidence_url=None,
-                status=status,
-                handler_id=handler.id if status != "open" else None,
-                handler_note=note,
-                handled_at=now if status in ("resolved", "dismissed") else None,
-                created_at=now - timedelta(days=2 - i),
-                updated_at=now,
-            )
-            session.add(report)
-            all_reports.append(report)
-
-    await session.flush()
-    return all_reports
+# seed_governance_reports 函数已移除：原 PostChangeReport 已删除
 
 
 # =============================================================================
@@ -2238,39 +2143,35 @@ async def seed_data():
     print("TEN-05 三校多租户差异化数据填充")
     print("=" * 60)
 
-    print("\n[1/12] 清空现有数据（保留表结构）...")
+    print("\n[1/11] 清空现有数据（保留表结构）...")
     await init_db()
     print("✓ 已清空所有业务表数据并重置自增 ID")
 
     async with async_session_maker() as session:
-        print("\n[2/12] 创建 3 档套餐与权益项...")
+        print("\n[2/11] 创建 3 档套餐与权益项...")
         plans = await seed_plans(session)
         print(f"✓ 创建了 {len(plans)} 档套餐（trial/standard/operations）")
 
-        print("\n[3/12] 创建三所演示学校...")
+        print("\n[3/11] 创建三所演示学校...")
         schools = await seed_schools(session)
         for s in schools:
             print(f"  - {s.name} (code={s.code}, center={s.center_lat},{s.center_lng})")
         print(f"✓ 创建了 {len(schools)} 所学校")
 
-        print("\n[4/12] 创建三校品牌设置（差异化主题色）...")
+        print("\n[4/11] 创建三校品牌设置（差异化主题色）...")
         settings_list = await seed_school_settings(session, schools)
         for s in settings_list:
             print(f"  - school_id={s.school_id} site_name='{s.site_name}' brand_color='{s.brand_color}'")
         print(f"✓ 创建了 {len(settings_list)} 条品牌设置")
 
-        print("\n[5/12] 创建三校分类...")
+        print("\n[5/11] 创建三校分类（5 类统一信息分类）...")
         categories_by_school = await seed_categories(session, schools)
         for code, cats in categories_by_school.items():
             print(f"  - {code}: {len(cats)} 个分类")
         total_cats = sum(len(c) for c in categories_by_school.values())
         print(f"✓ 共创建 {total_cats} 个分类")
 
-        print("\n[6/12] 创建信息类型（全平台共享）...")
-        post_types = await seed_post_types(session)
-        print(f"✓ 创建了 {len(post_types)} 个信息类型")
-
-        print("\n[7/12] 创建三校用户...")
+        print("\n[6/11] 创建三校用户...")
         users_by_school, users_by_email = await seed_users(session, schools)
         for code, users in users_by_school.items():
             admin_count = sum(1 for u in users if u.role == "admin")
@@ -2278,21 +2179,21 @@ async def seed_data():
         total_users = sum(len(u) for u in users_by_school.values())
         print(f"✓ 共创建 {total_users} 个用户")
 
-        print("\n[8/12] 创建成员关系（含跨校）...")
+        print("\n[7/11] 创建成员关系（含跨校）...")
         memberships = await seed_memberships(session, schools, users_by_email)
         cross_count = len(CROSS_SCHOOL_MEMBERSHIPS)
         print(f"✓ 创建了 {len(memberships)} 条成员关系（含 {cross_count} 条跨校关系）")
         for cross in CROSS_SCHOOL_MEMBERSHIPS:
             print(f"  - {cross['user_email']} → {cross['school_code']} ({cross['role']})")
 
-        print("\n[9/12] 创建三校地点...")
+        print("\n[8/11] 创建三校地点...")
         locations_by_school = await seed_locations(session, schools)
         for code, locs in locations_by_school.items():
             print(f"  - {code}: {len(locs)} 个地点")
         total_locs = sum(len(l) for l in locations_by_school.values())
         print(f"✓ 共创建 {total_locs} 个地点")
 
-        print("\n[10/12] 创建三校官方发布主体...")
+        print("\n[9/11] 创建三校官方发布主体...")
         publishers_by_school = await seed_publishers(
             session, schools, users_by_email, locations_by_school
         )
@@ -2304,15 +2205,15 @@ async def seed_data():
 
         # 取 admin 用户作为订阅分配者
         admin_user = users_by_email.get("admin@momentcampus.com")
-        print("\n[11/12] 为三校分配运营档套餐（activated）...")
+        print("\n[10/11] 为三校分配运营档套餐（activated）...")
         subscriptions = await seed_subscriptions(session, schools, plans, admin_user)
         for sub, school in zip(subscriptions, schools):
             print(f"  - {school.code}: plan=operations, status={sub.status}")
         print(f"✓ 创建了 {len(subscriptions)} 条 active 订阅")
 
-        print("\n[12/12] 创建三校帖子（含 6 态样本 + 治理样本 + 专题）...")
+        print("\n[11/11] 创建三校帖子（含 6 态样本 + 治理样本 + 专题）...")
         all_posts, all_comments, all_validations, posts_by_school = await seed_all_posts(
-            session, schools, users_by_email, categories_by_school, post_types,
+            session, schools, users_by_email, categories_by_school,
             locations_by_school
         )
         for code, posts in posts_by_school.items():
@@ -2325,11 +2226,7 @@ async def seed_data():
         print(f"✓ 共创建 {len(all_comments)} 条评论")
         print(f"✓ 共创建 {len(all_validations)} 条协同验证记录")
 
-        print("\n创建 3 类问题报告样本（update/expiration_report/conflict_report）...")
-        gov_reports = await seed_governance_reports(
-            session, schools, users_by_email, posts_by_school
-        )
-        print(f"✓ 共创建 {len(gov_reports)} 条问题报告（3 类 × 3 校）")
+        # 原 3 类问题报告样本已移除（PostChangeReport 表已删除）
 
         print("\n创建三校专题集合...")
         topics = await seed_topic_collections(

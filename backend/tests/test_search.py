@@ -18,7 +18,6 @@ from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.category import Category
-from app.models.post_type import PostType
 from app.models.post import Post
 from app.models.location import Location
 from app.models.post_image import PostImage
@@ -82,13 +81,6 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return c
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 async def _create_location(db: AsyncSession, school_id: int, name: str, lat: float, lng: float) -> Location:
     loc = Location(school_id=school_id, name=name, latitude=lat, longitude=lng, is_verified=True)
     db.add(loc)
@@ -101,7 +93,6 @@ async def _create_post(
     user_id: int,
     school_id: int,
     category_id: int,
-    post_type_id: int,
     title: str,
     content: str = "默认内容至少十个字符",
     status: str = PostStatus.PUBLISHED,
@@ -111,7 +102,7 @@ async def _create_post(
 ) -> Post:
     p = Post(
         user_id=user_id, school_id=school_id,
-        category_id=category_id, post_type_id=post_type_id,
+        category_id=category_id,
         location_id=location_id, title=title, content=content,
         status=status, like_count=like_count,
         created_at=created_at or datetime.now(),
@@ -162,39 +153,37 @@ async def search_setup(db_session: AsyncSession) -> dict:
 
     cat_a = await _create_category(db_session, school.id, "失物", "lost")
     cat_b = await _create_category(db_session, school.id, "活动", "event")
-    pt_a = await _create_post_type(db_session, "普通信息", "normal")
-    pt_b = await _create_post_type(db_session, "活动信息", "activity")
     loc_a = await _create_location(db_session, school.id, "图书馆", 31.0, 120.0)
     loc_b = await _create_location(db_session, school.id, "食堂", 31.001, 120.001)
 
     base_time = datetime(2026, 1, 1, 12, 0, 0)
     p1 = await _create_post(
-        db_session, user.id, school.id, cat_a.id, pt_a.id,
+        db_session, user.id, school.id, cat_a.id,
         "图书馆失物招领钱包", "钱包内容描述", PostStatus.PUBLISHED,
         location_id=loc_a.id, like_count=5, created_at=base_time,
     )
     p2 = await _create_post(
-        db_session, user.id, school.id, cat_a.id, pt_a.id,
+        db_session, user.id, school.id, cat_a.id,
         "食堂失物钥匙", "钥匙内容描述", PostStatus.PUBLISHED,
         location_id=loc_b.id, like_count=3, created_at=base_time + timedelta(hours=1),
     )
     p3 = await _create_post(
-        db_session, user.id, school.id, cat_b.id, pt_b.id,
+        db_session, user.id, school.id, cat_b.id,
         "图书馆读书会活动", "读书会活动内容", PostStatus.PUBLISHED,
         location_id=loc_a.id, like_count=10, created_at=base_time + timedelta(hours=2),
     )
     p4 = await _create_post(
-        db_session, user.id, school.id, cat_b.id, pt_b.id,
+        db_session, user.id, school.id, cat_b.id,
         "食堂美食节活动", "美食节活动内容", PostStatus.PUBLISHED,
         location_id=loc_b.id, like_count=0, created_at=base_time + timedelta(hours=3),
     )
     p5 = await _create_post(
-        db_session, user.id, school.id, cat_a.id, pt_a.id,
+        db_session, user.id, school.id, cat_a.id,
         "已过期图书馆失物", "已过期内容", PostStatus.EXPIRED,
         location_id=loc_a.id, like_count=1, created_at=base_time + timedelta(hours=4),
     )
     p6 = await _create_post(
-        db_session, user.id, school.id, cat_a.id, pt_a.id,
+        db_session, user.id, school.id, cat_a.id,
         "待审核图书馆失物", "待审核内容", PostStatus.PENDING,
         location_id=loc_a.id, like_count=0, created_at=base_time + timedelta(hours=5),
     )
@@ -213,7 +202,6 @@ async def search_setup(db_session: AsyncSession) -> dict:
         "school": {"id": school.id, "code": school.code, "name": school.name},
         "user": {"id": user.id, "token": create_access_token(data={"sub": str(user.id)})},
         "categories": {"a": cat_a, "b": cat_b},
-        "post_types": {"a": pt_a, "b": pt_b},
         "locations": {"a": loc_a, "b": loc_b},
         "posts": {
             "p1": p1, "p2": p2, "p3": p3, "p4": p4, "p5": p5, "p6": p6,
@@ -289,18 +277,7 @@ class TestSearchFilters:
         self, client: AsyncClient, search_setup: dict
     ):
         """按帖子类型筛选"""
-        pt_b_id = search_setup["post_types"]["b"].id
-        resp = await client.get(
-            f"/api/v1/search?post_type_id={pt_b_id}",
-            headers=_school(search_setup["school"]["code"]),
-        )
-        assert resp.status_code == 200
-        post_ids = {p["id"] for p in resp.json()["items"]}
-        # type_b 只有 p3 和 p4
-        assert search_setup["posts"]["p3"].id in post_ids
-        assert search_setup["posts"]["p4"].id in post_ids
-        assert search_setup["posts"]["p1"].id not in post_ids
-        assert search_setup["posts"]["p2"].id not in post_ids
+        pytest.skip("Task 1.2: PostType 已删除")
 
     @pytest.mark.asyncio
     async def test_search_filter_by_status_published(
@@ -588,20 +565,19 @@ class TestSearchTenantIsolation:
             u = await _create_user(db_session, f"{code}@example.com", name, s.id)
             await _create_membership(db_session, u.id, s.id)
             cat = await _create_category(db_session, s.id, f"{code}-cat", f"{code}-code")
-            pt = await _create_post_type(db_session, f"{code}-type", f"{code}-tcode")
             loc = await _create_location(db_session, s.id, f"{code}-loc", lat, 120.0)
             p1 = await _create_post(
-                db_session, u.id, s.id, cat.id, pt.id,
+                db_session, u.id, s.id, cat.id,
                 f"{name}-帖1", f"{name}内容1", PostStatus.PUBLISHED, location_id=loc.id,
             )
             p2 = await _create_post(
-                db_session, u.id, s.id, cat.id, pt.id,
+                db_session, u.id, s.id, cat.id,
                 f"{name}-帖2", f"{name}内容2", PostStatus.PUBLISHED, location_id=loc.id,
             )
             schools[code] = {
                 "id": s.id, "code": s.code, "name": name,
                 "user_token": create_access_token(data={"sub": str(u.id)}),
-                "category_id": cat.id, "post_type_id": pt.id, "location_id": loc.id,
+                "category_id": cat.id, "location_id": loc.id,
                 "post_ids": {p1.id, p2.id},
             }
         await db_session.commit()

@@ -22,7 +22,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.category import Category
 from app.models.location import Location
 from app.models.post import Post
-from app.models.post_type import PostType
 from app.models.product_plan import ProductPlan
 from app.models.school import School
 from app.models.school_subscription import SchoolSubscription
@@ -74,22 +73,11 @@ async def super_admin_headers(super_admin_user: dict) -> dict:
 async def import_ready_school(
     db_session: AsyncSession, test_school: dict
 ) -> dict:
-    """为导入测试准备学校：已有分类 + 帖子类型。
+    """为导入测试准备学校：已有分类。
 
     test_school fixture 已创建学校并分配 operations 订阅。
     test_category fixture 创建了 lost-found 分类。
-    此处补一个 post_type（normal），供导入 post 行引用。
     """
-    # 确保 normal post_type 存在
-    pt = (await db_session.execute(
-        select(PostType).where(PostType.code == "normal")
-    )).scalar_one_or_none()
-    if pt is None:
-        pt = PostType(name="普通信息", code="normal", is_active=True)
-        db_session.add(pt)
-        await db_session.commit()
-        await db_session.refresh(pt)
-
     # 确保 lost-found 分类存在并属于 test_school
     cat = (await db_session.execute(
         select(Category).where(
@@ -111,8 +99,6 @@ async def import_ready_school(
         "school_id": test_school["id"],
         "category_id": cat.id,
         "category_code": cat.code,
-        "post_type_id": pt.id,
-        "post_type_code": pt.code,
     }
 
 
@@ -254,7 +240,6 @@ async def test_import_preview_dry_run(
             "title": "失物招领测试",
             "content": "在图书馆北门丢失黑色钱包一个",
             "category_code": "lost-found",
-            "post_type_code": "normal",
             "location_ref": "1",
             "is_anonymous": False,
         },
@@ -291,7 +276,6 @@ async def test_import_preview_with_errors(
             "title": "缺分类",
             "content": "内容不足十个字吗",
             "category_code": "non-existent",
-            "post_type_code": "normal",
         },
     ]
     response = await client.post(
@@ -331,7 +315,6 @@ async def test_import_commit_success(
             "title": "首批内容测试帖",
             "content": "这是导入的首批内容测试帖",
             "category_code": "lost-found",
-            "post_type_code": "normal",
             "location_ref": "1",
             "is_anonymous": False,
         },
@@ -389,7 +372,6 @@ async def test_import_commit_rollback_on_error(
             # 故意缺 content
             "title": "缺内容",
             "category_code": "lost-found",
-            "post_type_code": "normal",
         },
     ]
     response = await client.post(

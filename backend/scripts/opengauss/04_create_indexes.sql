@@ -44,7 +44,6 @@ CREATE INDEX IF NOT EXISTS idx_school_active ON schools (is_active);
 CREATE INDEX IF NOT EXISTS idx_post_user ON posts (user_id);
 CREATE INDEX IF NOT EXISTS idx_post_school_status ON posts (school_id, status);
 CREATE INDEX IF NOT EXISTS idx_post_category ON posts (category_id);
-CREATE INDEX IF NOT EXISTS idx_post_type ON posts (post_type_id);
 CREATE INDEX IF NOT EXISTS idx_post_location ON posts (location_id);
 CREATE INDEX IF NOT EXISTS idx_post_status_created ON posts (status, created_at);
 CREATE INDEX IF NOT EXISTS idx_post_status_recommend ON posts (status, is_recommend, created_at);
@@ -58,12 +57,6 @@ CREATE INDEX IF NOT EXISTS idx_post_created ON posts (created_at);
 CREATE INDEX IF NOT EXISTS idx_category_code ON categories (code);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_category_code_uidx ON categories (code);
 CREATE INDEX IF NOT EXISTS idx_category_sort ON categories (sort_order);
-
--- ------------------------------------------------------------
--- 5. post_types 表（1 个索引）
--- ------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_posttype_code ON post_types (code);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_posttype_code_uidx ON post_types (code);
 
 -- ------------------------------------------------------------
 -- 6. tags 表（4 个索引）

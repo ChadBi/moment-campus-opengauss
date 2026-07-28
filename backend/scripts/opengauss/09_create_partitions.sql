@@ -86,7 +86,6 @@ BEGIN
             user_id             BIGINT      NOT NULL,
             school_id           BIGINT      NOT NULL,
             category_id         BIGINT      NOT NULL,
-            post_type_id        BIGINT      NOT NULL,
             location_id         BIGINT,
             title               VARCHAR(200) NOT NULL,
             content             TEXT        NOT NULL,
@@ -130,7 +129,7 @@ BEGIN
 
         -- 5. 导入备份数据（按列名匹配，不导入 id 让其重新生成）
         INSERT INTO posts (
-            user_id, school_id, category_id, post_type_id, location_id,
+            user_id, school_id, category_id, location_id,
             title, content, is_anonymous, status,
             view_count, like_count, comment_count, favorite_count,
             valid_count, invalid_count, credibility_score,
@@ -139,7 +138,7 @@ BEGIN
             created_at, updated_at, is_deleted, deleted_at
         )
         SELECT
-            user_id, school_id, category_id, post_type_id, location_id,
+            user_id, school_id, category_id, location_id,
             title, content, is_anonymous, status,
             view_count, like_count, comment_count, favorite_count,
             valid_count, invalid_count, credibility_score,
@@ -158,7 +157,6 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_post_user ON posts (user_id);
 CREATE INDEX IF NOT EXISTS idx_post_school_status ON posts (school_id, status);
 CREATE INDEX IF NOT EXISTS idx_post_category ON posts (category_id);
-CREATE INDEX IF NOT EXISTS idx_post_type ON posts (post_type_id);
 CREATE INDEX IF NOT EXISTS idx_post_location ON posts (location_id);
 CREATE INDEX IF NOT EXISTS idx_post_status_created ON posts (status, created_at);
 CREATE INDEX IF NOT EXISTS idx_post_status_recommend ON posts (status, is_recommend, created_at);

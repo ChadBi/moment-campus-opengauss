@@ -1,7 +1,10 @@
 """GOV-01: 协同治理 Schema
 
-5 类协同验证 = 2 类互斥投票(validation_records: confirmation/refutation)
+5 类协同验证原设计 = 2 类互斥投票(validation_records: confirmation/refutation)
             + 3 类问题报告(post_change_reports: update/expiration_report/conflict_report)
+
+调整后：问题报告功能整体移除（与评论/举报功能冲突），
+仅保留 2 类互斥投票（证实/证伪）+ 举报（reports 表）+ 评论。
 """
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, TYPE_CHECKING
@@ -22,8 +25,7 @@ class ValidationVoteCreate(BaseModel):
         ...,
         pattern="^(confirmation|refutation|valid|invalid)$",
         description="投票类型：confirmation（证实）/ refutation（证伪）。"
-                    "向后兼容旧值：valid→confirmation / invalid→refutation。"
-                    "update/expiration_report/conflict_report 请使用 /change-reports 端点。",
+                    "向后兼容旧值：valid→confirmation / invalid→refutation。",
     )
     comment: Optional[str] = Field(None, max_length=500, description="备注说明，最多500字符")
 
@@ -59,59 +61,6 @@ class ValidationAggregation(BaseModel):
 
 
 # ============================================================
-# 3 类问题报告（post_change_reports）
-# ============================================================
-
-class ChangeReportCreate(BaseModel):
-    """提交问题报告（update/expiration_report/conflict_report）"""
-    report_type: str = Field(
-        ...,
-        pattern="^(update|expiration_report|conflict_report)$",
-        description="报告类型：update（更新建议）/ expiration_report（过期报告）/ conflict_report（冲突报告）",
-    )
-    description: Optional[str] = Field(None, max_length=2000, description="报告说明，最多2000字符")
-    evidence_url: Optional[str] = Field(None, max_length=500, description="证据链接")
-
-
-class ChangeReportResponse(BaseModel):
-    """问题报告响应"""
-    id: int
-    post_id: int
-    reporter_id: int
-    report_type: str
-    description: Optional[str] = None
-    evidence_url: Optional[str] = None
-    status: str
-    handler_id: Optional[int] = None
-    handler_note: Optional[str] = None
-    handled_at: Optional[datetime] = None
-    created_at: datetime
-    updated_at: datetime
-    reporter: Optional["UserBrief"] = None
-    handler: Optional["UserBrief"] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ChangeReportListResponse(BaseModel):
-    """GET /posts/{id}/change-reports 报告列表"""
-    post_id: int
-    items: List[ChangeReportResponse]
-    total: int
-    open_count: int = Field(default=0, description="待处理报告数")
-
-
-class ChangeReportHandleRequest(BaseModel):
-    """管理员/作者处理报告请求"""
-    status: str = Field(
-        ...,
-        pattern="^(open|in_review|resolved|dismissed)$",
-        description="目标状态：open/in_review/resolved/dismissed",
-    )
-    reason: Optional[str] = Field(None, max_length=500, description="处理原因/说明")
-
-
-# ============================================================
 # 详情聚合（嵌入 PostResponse.governance）
 # ============================================================
 
@@ -130,16 +79,11 @@ class GovernanceSummary(BaseModel):
         description="当前登录用户对此帖的投票类型（confirmation/refutation/None）。"
                     "游客访问时恒为 None；登录用户访问时返回其投票类型，前端据此高亮按钮。",
     )
-    change_reports_total: int = 0
-    change_reports_open: int = 0
-    recent_change_reports: List[ChangeReportResponse] = Field(default_factory=list)
 
 
 # ============================================================
 # 循环依赖处理：底部延迟导入 UserBrief 并重建含前向引用的模型
-# （schemas.post 在其底部延迟导入 GovernanceSummary；任一模块先导入均可成立）
 # ============================================================
 from app.schemas.post import UserBrief  # noqa: E402
 
 ValidationVoteResponse.model_rebuild()
-ChangeReportResponse.model_rebuild()

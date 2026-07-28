@@ -35,7 +35,6 @@ from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.category import Category
-from app.models.post_type import PostType
 from app.models.location import Location
 from app.models.post import Post
 from app.models.notification import Notification
@@ -174,13 +173,6 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return cat
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True, sort_order=0)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 async def _create_location(db: AsyncSession, school_id: int, name: str) -> Location:
     loc = Location(
         school_id=school_id,
@@ -215,7 +207,6 @@ async def _create_post(
     user_id: int,
     school_id: int,
     category_id: int,
-    post_type_id: int,
     title: str = "测试帖子",
     status: str = PostStatus.PUBLISHED,
     expire_at: datetime | None = None,
@@ -226,7 +217,6 @@ async def _create_post(
         user_id=user_id,
         school_id=school_id,
         category_id=category_id,
-        post_type_id=post_type_id,
         title=title,
         content=content,
         status=status,
@@ -363,7 +353,6 @@ async def _build_sub_01_setup(db_session: AsyncSession) -> dict:
     # ============================================================
     school_a = await _create_school(db_session, "SUB-01 A 校", "sub01-a")
     cat_a = await _create_category(db_session, school_a.id, "A 校分类", "sub01-a-cat")
-    pt_a = await _create_post_type(db_session, "普通信息", "sub01-normal")
     loc_a = await _create_location(db_session, school_a.id, "A 校地点")
 
     school_b = await _create_school(db_session, "SUB-01 B 校", "sub01-b")
@@ -405,7 +394,7 @@ async def _build_sub_01_setup(db_session: AsyncSession) -> dict:
     await db_session.refresh(school_b)
 
     return {
-        "school_a": {"id": school_a.id, "code": school_a.code, "category_id": cat_a.id, "location_id": loc_a.id, "post_type_id": pt_a.id},
+        "school_a": {"id": school_a.id, "code": school_a.code, "category_id": cat_a.id, "location_id": loc_a.id},
         "school_b": {"id": school_b.id, "code": school_b.code, "category_id": cat_b.id},
         "author_a": author_a_info,
         "subscriber_a": subscriber_a_info,
@@ -707,7 +696,6 @@ async def test_notify_new_post_on_admin_approve(
             "title": "SUB-01 测试新帖通知",
             "content": "这是一条等待审核的帖子内容",
             "category_id": setup["school_a"]["category_id"],
-            "post_type_id": setup["school_a"]["post_type_id"],
             "is_anonymous": False,
             "status": "pending",
         },
@@ -758,7 +746,6 @@ async def test_notify_new_post_excludes_author(
             "title": "作者自订阅测试",
             "content": "作者订阅了自己的分类，不应收到自己的订阅通知",
             "category_id": setup["school_a"]["category_id"],
-            "post_type_id": setup["school_a"]["post_type_id"],
             "is_anonymous": False,
             "status": "pending",
         },
@@ -803,7 +790,6 @@ async def test_notify_new_post_cross_school_isolation(
             "title": "A 校帖子，B 校不应收到",
             "content": "跨校通知隔离测试内容",
             "category_id": setup["school_a"]["category_id"],
-            "post_type_id": setup["school_a"]["post_type_id"],
             "is_anonymous": False,
             "status": "pending",
         },
@@ -843,7 +829,7 @@ async def test_notify_new_post_idempotent(
     # 直接在 DB 创建一条 published 帖子（绕过审核）
     post = await _create_post(
         db_session, setup["author_a"]["id"], setup["school_a"]["id"],
-        setup["school_a"]["category_id"], setup["school_a"]["post_type_id"],
+        setup["school_a"]["category_id"],
         title="幂等测试帖子",
         status=PostStatus.PUBLISHED,
     )
@@ -887,7 +873,7 @@ async def test_notify_post_updated_on_substantial_change(
     # 直接创建 published 帖子
     post = await _create_post(
         db_session, setup["author_a"]["id"], setup["school_a"]["id"],
-        setup["school_a"]["category_id"], setup["school_a"]["post_type_id"],
+        setup["school_a"]["category_id"],
         title="原帖标题",
         status=PostStatus.PUBLISHED,
     )
@@ -930,7 +916,7 @@ async def test_notify_post_expired_by_job(
     # 直接创建已过期的 published 帖子（expire_at 在过去）
     post = await _create_post(
         db_session, setup["author_a"]["id"], setup["school_a"]["id"],
-        setup["school_a"]["category_id"], setup["school_a"]["post_type_id"],
+        setup["school_a"]["category_id"],
         title="即将过期的帖子",
         status=PostStatus.PUBLISHED,
         expire_at=datetime.now() - timedelta(hours=1),
@@ -974,7 +960,7 @@ async def test_notify_post_conflict_on_admin_mark(
     # 直接创建 published 帖子
     post = await _create_post(
         db_session, setup["author_a"]["id"], setup["school_a"]["id"],
-        setup["school_a"]["category_id"], setup["school_a"]["post_type_id"],
+        setup["school_a"]["category_id"],
         title="将标记冲突的帖子",
         status=PostStatus.PUBLISHED,
     )
@@ -1027,7 +1013,6 @@ async def test_notify_respects_subscription_preference(
             "title": "偏好过滤测试",
             "content": "订阅者关闭了 subscription 类偏好，不应收到通知",
             "category_id": setup["school_a"]["category_id"],
-            "post_type_id": setup["school_a"]["post_type_id"],
             "is_anonymous": False,
             "status": "pending",
         },
@@ -1078,7 +1063,6 @@ async def test_notify_topic_subscriber(
             "title": "专题内帖子",
             "content": "订阅了专题的用户应收到此帖的订阅通知",
             "category_id": setup["school_a"]["category_id"],
-            "post_type_id": setup["school_a"]["post_type_id"],
             "is_anonymous": False,
             "status": "pending",
         },

@@ -29,7 +29,6 @@ class PostTemplate(Base):
     title_template: Mapped[str] = mapped_column(String(200), nullable=False)
     content_template: Mapped[str] = mapped_column(Text, nullable=False)
     category_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("categories.id"), nullable=True)
-    post_type_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("post_types.id"), nullable=True)
     scene: Mapped[str] = mapped_column(
         String(30), nullable=False,
         comment="场景：business_hours/lecture/lost/notification/other",

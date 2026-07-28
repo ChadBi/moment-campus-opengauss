@@ -13,7 +13,6 @@ class Draft(Base):
     title: Mapped[str | None] = mapped_column(String(200), nullable=True)
     content: Mapped[str | None] = mapped_column(Text, nullable=True)
     category_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("categories.id"), nullable=True)
-    post_type_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("post_types.id"), nullable=True)
     location_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("locations.id"), nullable=True)
     is_anonymous: Mapped[bool] = mapped_column(default=False, nullable=False)
     extra_data: Mapped[str | None] = mapped_column(Text, nullable=True)

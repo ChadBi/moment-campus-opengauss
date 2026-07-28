@@ -25,7 +25,6 @@ from app.core.security import create_access_token, get_password_hash
 from app.models.ai_invocation_log import AIInvocationLog
 from app.models.category import Category
 from app.models.location import Location
-from app.models.post_type import PostType
 from app.models.product_plan import ProductPlan
 from app.models.school import School
 from app.models.school_membership import SchoolMembership
@@ -91,13 +90,6 @@ async def _create_category(
     db.add(c)
     await db.flush()
     return c
-
-
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True)
-    db.add(pt)
-    await db.flush()
-    return pt
 
 
 async def _create_location(
@@ -202,7 +194,7 @@ async def ai_publish_setup(db_session: AsyncSession) -> dict:
     cat_event = await _create_category(
         db_session, school.id, "活动", "event", default_validity_days=7,
     )
-    pt_normal = await _create_post_type(db_session, "普通信息", "normal")
+    # Task 1.2 调整：PostType 已删除，统一使用 category
     loc_library = await _create_location(db_session, school.id, "图书馆", 31.0, 120.0)
 
     tag_card = await _create_tag(db_session, school.id, "校园卡", "card", usage_count=5)
@@ -215,7 +207,6 @@ async def ai_publish_setup(db_session: AsyncSession) -> dict:
         "school": {"id": school.id, "code": school.code, "name": school.name},
         "user": {"id": user.id, "token": create_access_token(data={"sub": str(user.id)})},
         "categories": {"lost": cat_lost, "event": cat_event},
-        "post_type": pt_normal,
         "location": loc_library,
         "tags": {"card": tag_card, "lost": tag_lost, "event": tag_event},
     }
@@ -236,7 +227,7 @@ async def two_schools_publish_setup(db_session: AsyncSession) -> dict:
         cat = await _create_category(
             db_session, s.id, f"{code}-分类", f"{code}-code", default_validity_days=10,
         )
-        pt = await _create_post_type(db_session, f"{code}-type", f"{code}-tcode")
+        # Task 1.2 调整：PostType 已删除
         loc = await _create_location(db_session, s.id, f"{code}-loc", 31.0, 120.0)
         # 该校独有标签
         tag = await _create_tag(db_session, s.id, f"{code}-标签", f"{code}-slug", usage_count=2)
@@ -245,7 +236,6 @@ async def two_schools_publish_setup(db_session: AsyncSession) -> dict:
             "id": s.id, "code": s.code, "name": name,
             "user_token": create_access_token(data={"sub": str(u.id)}),
             "category_id": cat.id, "category_name": cat.name,
-            "post_type_id": pt.id,
             "location_id": loc.id,
             "tag_name": tag.name,
         }
@@ -289,7 +279,6 @@ class TestAIPublishSuggestSuccess:
                 "title": "校园卡丢了",
                 "content": "今天在图书馆丢失校园卡一张，请拾到者联系",
                 "category_id": ai_publish_setup["categories"]["lost"].id,
-                "post_type_id": ai_publish_setup["post_type"].id,
                 "location_id": ai_publish_setup["location"].id,
             },
             headers={
@@ -340,7 +329,6 @@ class TestAIPublishSuggestSuccess:
                 "title": "测试标题足够长",
                 "content": "测试正文内容足够长，方便 AI 给出建议",
                 "category_id": cat_lost.id,
-                "post_type_id": ai_publish_setup["post_type"].id,
                 "location_id": ai_publish_setup["location"].id,
             },
             headers={
@@ -367,7 +355,6 @@ class TestAIPublishSuggestSuccess:
                 "title": "测试标题足够长",
                 "content": "测试正文内容足够长，方便 AI 给出建议",
                 "category_id": ai_publish_setup["categories"]["lost"].id,
-                "post_type_id": ai_publish_setup["post_type"].id,
                 "location_id": ai_publish_setup["location"].id,
             },
             headers={

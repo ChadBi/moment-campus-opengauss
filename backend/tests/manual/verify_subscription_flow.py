@@ -51,15 +51,12 @@ print(f"User1 通知数（操作前）: {notif_before}")
 token2 = login("user2@example.com")
 headers2 = h(token2)
 
-# 获取分类与帖子类型
+# 获取分类
 r = requests.get(f"{BASE}/categories", headers=headers2)
 cats = r.json() if r.status_code == 200 else []
-r = requests.get(f"{BASE}/post-types", headers=headers2)
-ptypes = r.json() if r.status_code == 200 else []
 
-if sub_topic_id and cats and ptypes:
+if sub_topic_id and cats:
     cat_id = cats[0]["id"]
-    pt_id = ptypes[0]["id"]
 
     # user2 创建帖子（关联到 user1 订阅的 topic）
     r = requests.post(
@@ -68,7 +65,6 @@ if sub_topic_id and cats and ptypes:
             "title": "[E2E订阅链路] 审核通过触发订阅通知",
             "content": "验证：user2 发帖关联 topic → admin 审核通过 → user1 收到订阅通知。这条内容长度足够通过校验。",
             "category_id": cat_id,
-            "post_type_id": pt_id,
             "topic_id": sub_topic_id,
         },
         headers=headers2,
@@ -120,7 +116,7 @@ if sub_topic_id and cats and ptypes:
     else:
         print(f"创建失败: {r.text[:200]}")
 else:
-    print("缺少必要条件（订阅/分类/帖子类型）")
+    print("缺少必要条件（订阅/分类）")
 
 print("\n" + "=" * 60)
 print("专题订阅通知完整链路验证完成")

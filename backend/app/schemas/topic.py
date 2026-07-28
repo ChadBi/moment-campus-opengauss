@@ -55,8 +55,6 @@ class TopicPostItem(BaseModel):
     comment_count: int = 0
     category_id: Optional[int] = None
     category_name: Optional[str] = None
-    post_type_id: Optional[int] = None
-    post_type_name: Optional[str] = None
     author_id: Optional[int] = None
     author_name: Optional[str] = None
     cover_image_url: Optional[str] = None

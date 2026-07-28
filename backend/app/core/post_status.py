@@ -74,8 +74,9 @@ _TRANSITIONS: dict = {
 # 不含：expire_at（续期不回审）、activity_*_at（活动时间修正不回审）、
 #       contact_info（联系方式更新不回审）、is_anonymous（可由作者随时切换）、
 #       tags/image_urls（附属数据，不改变信息主体语义）
+# Task 1.2 调整：post_type_id 已随 PostType 模型删除移除
 SUBSTANTIAL_FIELDS: frozenset = frozenset({
-    "title", "content", "category_id", "post_type_id",
+    "title", "content", "category_id",
     "location_id", "location_name", "location_lat", "location_lng",
     "lost_type",
 })

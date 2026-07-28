@@ -183,7 +183,6 @@ def main():
         "title": f"自动化测试帖子 v2 {datetime.now().strftime('%H:%M:%S')}",
         "content": "大规模功能检查 v2：验证发帖功能和信誉分更新。内容超过200字以验证 max_length 限制已移除。" * 3,
         "category_id": 1,
-        "post_type_id": 1,
         "is_anonymous": False,
         "status": "pending",
     }

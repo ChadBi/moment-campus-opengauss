@@ -29,7 +29,6 @@ from app.models.category import Category
 from app.models.location import Location
 from app.models.post import Post
 from app.models.post_image import PostImage
-from app.models.post_type import PostType
 from app.models.product_plan import ProductPlan
 from app.models.school import School
 from app.models.school_membership import SchoolMembership
@@ -90,13 +89,6 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return c
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 async def _create_location(db: AsyncSession, school_id: int, name: str, lat: float, lng: float) -> Location:
     loc = Location(school_id=school_id, name=name, latitude=lat, longitude=lng, is_verified=True)
     db.add(loc)
@@ -109,7 +101,6 @@ async def _create_post(
     user_id: int,
     school_id: int,
     category_id: int,
-    post_type_id: int,
     title: str,
     content: str = "默认内容至少十个字符",
     status: str = PostStatus.PUBLISHED,
@@ -122,7 +113,7 @@ async def _create_post(
 ) -> Post:
     p = Post(
         user_id=user_id, school_id=school_id,
-        category_id=category_id, post_type_id=post_type_id,
+        category_id=category_id,
         location_id=location_id, title=title, content=content,
         status=status, like_count=like_count, valid_count=valid_count,
         created_at=created_at or datetime.now(),
@@ -205,38 +196,38 @@ async def ai_search_setup(db_session: AsyncSession) -> dict:
 
     cat_lost = await _create_category(db_session, school.id, "失物招领", "lost-found")
     cat_event = await _create_category(db_session, school.id, "活动", "event")
-    pt_normal = await _create_post_type(db_session, "普通信息", "normal")
+    # Task 1.2 调整：PostType 已删除，统一使用 category
     loc_a = await _create_location(db_session, school.id, "图书馆", 31.0, 120.0)
     loc_b = await _create_location(db_session, school.id, "食堂", 31.001, 120.001)
 
     now = datetime.now()
     p1 = await _create_post(
-        db_session, user.id, school.id, cat_lost.id, pt_normal.id,
+        db_session, user.id, school.id, cat_lost.id,
         "校园卡丢失求助", "在图书馆丢失校园卡一张", PostStatus.PUBLISHED,
         location_id=loc_a.id, like_count=5, valid_count=2,
         created_at=now - timedelta(hours=1),
     )
     p2 = await _create_post(
-        db_session, user.id, school.id, cat_lost.id, pt_normal.id,
+        db_session, user.id, school.id, cat_lost.id,
         "校园卡捡到招领", "在食堂捡到校园卡一张", PostStatus.PUBLISHED,
         location_id=loc_b.id, like_count=3, valid_count=1,
         created_at=now - timedelta(days=7),
     )
     p3 = await _create_post(
-        db_session, user.id, school.id, cat_event.id, pt_normal.id,
+        db_session, user.id, school.id, cat_event.id,
         "图书馆读书会活动", "本周三图书馆读书会", PostStatus.PUBLISHED,
         location_id=loc_a.id, like_count=10, valid_count=5,
         created_at=now - timedelta(days=30),
     )
     p4 = await _create_post(
-        db_session, user.id, school.id, cat_event.id, pt_normal.id,
+        db_session, user.id, school.id, cat_event.id,
         "食堂美食节活动", "食堂二楼美食节", PostStatus.PUBLISHED,
         location_id=loc_b.id, like_count=0, valid_count=0,
         created_at=now - timedelta(days=3),
     )
     # 已删除的帖子（不应返回）
     p5 = await _create_post(
-        db_session, user.id, school.id, cat_lost.id, pt_normal.id,
+        db_session, user.id, school.id, cat_lost.id,
         "校园卡补办", "校园卡补办流程", PostStatus.PUBLISHED,
         location_id=loc_a.id, like_count=1, valid_count=0,
         created_at=now - timedelta(hours=2),
@@ -244,7 +235,7 @@ async def ai_search_setup(db_session: AsyncSession) -> dict:
     )
     # 已过期的帖子（不应返回）
     p6 = await _create_post(
-        db_session, user.id, school.id, cat_lost.id, pt_normal.id,
+        db_session, user.id, school.id, cat_lost.id,
         "校园卡过期帖", "校园卡过期内容", PostStatus.PUBLISHED,
         location_id=loc_a.id, like_count=0, valid_count=0,
         created_at=now - timedelta(days=10),
@@ -252,7 +243,7 @@ async def ai_search_setup(db_session: AsyncSession) -> dict:
     )
     # 待审核的帖子（不应返回）
     p7 = await _create_post(
-        db_session, user.id, school.id, cat_lost.id, pt_normal.id,
+        db_session, user.id, school.id, cat_lost.id,
         "校园卡待审", "待审内容", PostStatus.PENDING,
         location_id=loc_a.id, like_count=0, valid_count=0,
         created_at=now - timedelta(hours=1),
@@ -264,7 +255,6 @@ async def ai_search_setup(db_session: AsyncSession) -> dict:
         "school": {"id": school.id, "code": school.code, "name": school.name},
         "user": {"id": user.id, "token": create_access_token(data={"sub": str(user.id)})},
         "categories": {"lost": cat_lost, "event": cat_event},
-        "post_types": {"normal": pt_normal},
         "locations": {"a": loc_a, "b": loc_b},
         "posts": {"p1": p1, "p2": p2, "p3": p3, "p4": p4, "p5": p5, "p6": p6, "p7": p7},
     }
@@ -683,15 +673,15 @@ class TestAISearchTenantIsolation:
             u = await _create_user(db_session, f"{code}@example.com", name, s.id)
             await _create_membership(db_session, u.id, s.id)
             cat = await _create_category(db_session, s.id, f"{code}-cat", f"{code}-code")
-            pt = await _create_post_type(db_session, f"{code}-type", f"{code}-tcode")
+            # Task 1.2 调整：PostType 已删除
             loc = await _create_location(db_session, s.id, f"{code}-loc", 31.0, 120.0)
             p1 = await _create_post(
-                db_session, u.id, s.id, cat.id, pt.id,
+                db_session, u.id, s.id, cat.id,
                 f"{name}-校园卡帖", f"{name}校园卡内容", PostStatus.PUBLISHED,
                 location_id=loc.id,
             )
             p2 = await _create_post(
-                db_session, u.id, s.id, cat.id, pt.id,
+                db_session, u.id, s.id, cat.id,
                 f"{name}-普通帖", f"{name}普通内容", PostStatus.PUBLISHED,
                 location_id=loc.id,
             )

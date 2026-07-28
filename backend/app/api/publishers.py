@@ -662,7 +662,6 @@ async def create_publisher_template(
         title_template=data.title_template,
         content_template=data.content_template,
         category_id=data.category_id,
-        post_type_id=data.post_type_id,
         scene=data.scene,
         sort_order=data.sort_order,
         is_active=True,
@@ -720,8 +719,6 @@ async def update_template(
         t.content_template = data.content_template
     if data.category_id is not None:
         t.category_id = data.category_id
-    if data.post_type_id is not None:
-        t.post_type_id = data.post_type_id
     if data.scene is not None:
         t.scene = data.scene
     if data.sort_order is not None:
@@ -746,7 +743,6 @@ def _template_to_dict(t: PostTemplate) -> dict:
         "title_template": t.title_template,
         "content_template": t.content_template,
         "category_id": t.category_id,
-        "post_type_id": t.post_type_id,
         "scene": t.scene,
         "sort_order": t.sort_order,
         "is_active": t.is_active,

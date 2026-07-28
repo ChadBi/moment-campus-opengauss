@@ -25,7 +25,6 @@ from app.core.security import create_access_token, get_password_hash
 from app.models.ai_invocation_log import AIInvocationLog
 from app.models.admin_operation_log import AdminOperationLog
 from app.models.post import Post
-from app.models.post_change_report import PostChangeReport
 from app.models.product_event import ProductEvent
 from app.models.report import Report
 from app.models.school import School
@@ -155,7 +154,6 @@ async def seeded_events(
     db_session: AsyncSession,
     test_school: dict,
     test_category: dict,
-    test_post_type: dict,
     admin_user: dict,
 ) -> dict:
     """预置一组产品事件 + 帖子 + AI 日志，用于指标计算。"""
@@ -194,7 +192,7 @@ async def seeded_events(
     for _ in range(3):
         post = Post(
             user_id=admin_id, school_id=school_id,
-            category_id=test_category["id"], post_type_id=test_post_type["id"],
+            category_id=test_category["id"],
             title="已发布", content="内容长度至少十个字符",
             status=PS.PUBLISHED, created_at=now - timedelta(days=1),
         )
@@ -204,7 +202,7 @@ async def seeded_events(
     # 一条已过期帖子（content_valid_rate 计算为非有效）
     expired_post = Post(
         user_id=admin_id, school_id=school_id,
-        category_id=test_category["id"], post_type_id=test_post_type["id"],
+        category_id=test_category["id"],
         title="已过期", content="内容长度至少十个字符",
         status=PS.PUBLISHED, expire_at=now - timedelta(hours=1),
         created_at=now - timedelta(days=5),
@@ -234,7 +232,7 @@ async def seeded_events(
     # 审核日志 + 关联帖子（治理 SLA）
     pending_post = Post(
         user_id=admin_id, school_id=school_id,
-        category_id=test_category["id"], post_type_id=test_post_type["id"],
+        category_id=test_category["id"],
         title="审核中", content="内容长度至少十个字符",
         status=PS.PENDING, created_at=now - timedelta(hours=2),
     )

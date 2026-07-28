@@ -33,7 +33,6 @@ from app.models.browse_history import BrowseHistory
 from app.models.category import Category
 from app.models.location import Location
 from app.models.post import Post
-from app.models.post_type import PostType
 from app.models.product_plan import ProductPlan
 from app.models.school import School
 from app.models.school_membership import SchoolMembership
@@ -120,19 +119,11 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return category
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 async def _create_post(
     db: AsyncSession,
     user_id: int,
     school_id: int,
     category_id: int,
-    post_type_id: int,
     title: str,
     status: str = PostStatus.PUBLISHED,
     is_recommend: bool = False,
@@ -143,7 +134,6 @@ async def _create_post(
         user_id=user_id,
         school_id=school_id,
         category_id=category_id,
-        post_type_id=post_type_id,
         title=title,
         content=f"{title} 的内容，至少十个字符",
         status=status,
@@ -261,8 +251,6 @@ async def rec_setup(client: AsyncClient) -> dict:
         for sid in (school_a.id, school_b.id):
             await _assign_operations_subscription(session, sid)
 
-        pt = await _create_post_type(session, "普通信息", "normal")
-
         cat_a1 = await _create_category(session, school_a.id, "甲校失物", "a-lost")
         cat_a2 = await _create_category(session, school_a.id, "甲校活动", "a-event")
         cat_b = await _create_category(session, school_b.id, "乙校失物", "b-lost")
@@ -282,34 +270,34 @@ async def rec_setup(client: AsyncClient) -> dict:
         # 甲校帖子（user_admin 是作者，避免 user_a 自己的帖子被排除）
         # 3 published + 1 expired + 1 admin-recommended published + 1 draft
         post_a1 = await _create_post(
-            session, user_admin.id, school_a.id, cat_a1.id, pt.id,
+            session, user_admin.id, school_a.id, cat_a1.id,
             "甲校失物招领一", PostStatus.PUBLISHED, view_count=10, like_count=2,
         )
         post_a2 = await _create_post(
-            session, user_admin.id, school_a.id, cat_a1.id, pt.id,
+            session, user_admin.id, school_a.id, cat_a1.id,
             "甲校失物招领二", PostStatus.PUBLISHED, view_count=5, like_count=1,
         )
         post_a3 = await _create_post(
-            session, user_admin.id, school_a.id, cat_a2.id, pt.id,
+            session, user_admin.id, school_a.id, cat_a2.id,
             "甲校活动一", PostStatus.PUBLISHED, view_count=20, like_count=5,
         )
         post_a_expired = await _create_post(
-            session, user_admin.id, school_a.id, cat_a1.id, pt.id,
+            session, user_admin.id, school_a.id, cat_a1.id,
             "甲校已过期失物", PostStatus.EXPIRED, view_count=2,
         )
         post_a_rec = await _create_post(
-            session, user_admin.id, school_a.id, cat_a2.id, pt.id,
+            session, user_admin.id, school_a.id, cat_a2.id,
             "甲校管理员精选活动", PostStatus.PUBLISHED, is_recommend=True,
             view_count=8, like_count=3,
         )
         post_a_draft = await _create_post(
-            session, user_admin.id, school_a.id, cat_a1.id, pt.id,
+            session, user_admin.id, school_a.id, cat_a1.id,
             "甲校草稿帖子", PostStatus.DRAFT,
         )
 
         # 乙校帖子（用于跨校隔离测试）
         post_b1 = await _create_post(
-            session, user_admin.id, school_b.id, cat_b.id, pt.id,
+            session, user_admin.id, school_b.id, cat_b.id,
             "乙校失物招领", PostStatus.PUBLISHED, view_count=100,
         )
 

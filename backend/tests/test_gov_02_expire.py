@@ -26,7 +26,6 @@ from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.category import Category
-from app.models.post_type import PostType
 from app.models.post import Post
 from app.models.notification import Notification
 from app.models.job_run_record import JobRunRecord
@@ -112,19 +111,11 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return cat
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True, sort_order=0)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 async def _create_published_post(
     db: AsyncSession,
     user_id: int,
     school_id: int,
     category_id: int,
-    post_type_id: int,
     title: str = "测试帖子",
     expire_at: datetime | None = None,
     content: str = "这是测试内容，至少十个字符",
@@ -134,7 +125,6 @@ async def _create_published_post(
         user_id=user_id,
         school_id=school_id,
         category_id=category_id,
-        post_type_id=post_type_id,
         title=title,
         content=content,
         status=PostStatus.PUBLISHED,
@@ -161,7 +151,6 @@ async def gov_02_setup(db_session: AsyncSession) -> dict:
     await _assign_operations_subscription(db_session, school.id)
 
     cat = await _create_category(db_session, school.id, "失物招领", "gov02-lost")
-    pt = await _create_post_type(db_session, "普通信息", "gov02-normal")
 
     user = await _create_user(
         db_session, "gov02user@example.com", "GOV-02 用户", school.id
@@ -176,28 +165,28 @@ async def gov_02_setup(db_session: AsyncSession) -> dict:
 
     # 已过期帖子（expire_at 在过去）
     expired_post = await _create_published_post(
-        db_session, user.id, school.id, cat.id, pt.id,
+        db_session, user.id, school.id, cat.id,
         title="已过期帖子",
         expire_at=now - timedelta(hours=1),
     )
 
     # 未过期帖子（expire_at 在未来）
     future_post = await _create_published_post(
-        db_session, user.id, school.id, cat.id, pt.id,
+        db_session, user.id, school.id, cat.id,
         title="未过期帖子",
         expire_at=now + timedelta(days=7),
     )
 
     # 无 expire_at 帖子（不应被扫描）
     no_expire_post = await _create_published_post(
-        db_session, user.id, school.id, cat.id, pt.id,
+        db_session, user.id, school.id, cat.id,
         title="无过期时间帖子",
         expire_at=None,
     )
 
     # 已删除的过期帖子（不应被扫描）
     deleted_post = await _create_published_post(
-        db_session, user.id, school.id, cat.id, pt.id,
+        db_session, user.id, school.id, cat.id,
         title="已删除过期帖子",
         expire_at=now - timedelta(hours=2),
     )
@@ -209,7 +198,6 @@ async def gov_02_setup(db_session: AsyncSession) -> dict:
     return {
         "school": {"id": school.id, "code": school.code},
         "category": {"id": cat.id},
-        "post_type": {"id": pt.id},
         "user": {"id": user.id, "email": user.email},
         "admin": {"id": admin.id, "email": admin.email},
         "posts": {

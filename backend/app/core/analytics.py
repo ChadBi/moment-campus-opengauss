@@ -19,7 +19,7 @@
     share_clicked       分享按钮被点击
     subscribed          订阅分类/地点/专题/官方主体
     draft_saved         草稿被保存（只记 has_title/has_image/content_length，不记内容）
-    post_submitted      帖子被提交审核（不记标题/正文，只记 category_code/post_type_code）
+    post_submitted      帖子被提交审核（不记标题/正文，只记 category_code）
     publisher_verified  官方主体认证状态变化
     tenant_activated    学校开通漏斗阶段推进
 """
@@ -100,10 +100,11 @@ EVENT_WHITELIST: dict[str, frozenset[str]] = {
     "draft_saved": frozenset({
         "post_id", "has_title", "has_image", "content_length",
     }),
-    # 帖子提交审核：post_id / category_code / post_type_code / is_anonymous(bool)
+    # 帖子提交审核：post_id / category_code / is_anonymous(bool)
     # **严禁**记标题/正文/标签原文
+    # Task 1.2 调整：post_type_code 已随 PostType 模型删除移除
     "post_submitted": frozenset({
-        "post_id", "category_code", "post_type_code", "is_anonymous",
+        "post_id", "category_code", "is_anonymous",
     }),
     # 官方主体认证：publisher_id / action（apply/approved/rejected/revoked）
     "publisher_verified": frozenset({"publisher_id", "action"}),

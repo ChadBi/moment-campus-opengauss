@@ -69,8 +69,6 @@ print(f"\nUser1 通知数（操作前）: {notif_before}")
 # 3. user2 创建帖子
 r = requests.get(f"{BASE}/categories", headers=headers2)
 cats = r.json() if r.status_code == 200 else []
-r = requests.get(f"{BASE}/post-types", headers=headers2)
-ptypes = r.json() if r.status_code == 200 else []
 
 r = requests.post(
     f"{BASE}/posts",
@@ -78,7 +76,6 @@ r = requests.post(
         "title": "[E2E订阅链路修复验证] 加入专题触发订阅通知",
         "content": "验证修复：admin 将帖子加入专题后，订阅该专题的 user1 应收到 subscription_new 通知。这条内容长度足够通过校验。",
         "category_id": cats[0]["id"],
-        "post_type_id": ptypes[0]["id"],
     },
     headers=headers2,
 )

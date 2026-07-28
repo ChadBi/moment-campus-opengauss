@@ -37,7 +37,6 @@ from app.models.category import Category
 from app.models.location import Location
 from app.models.notification import Notification
 from app.models.post import Post
-from app.models.post_type import PostType
 from app.models.product_plan import ProductPlan
 from app.models.school import School
 from app.models.school_membership import SchoolMembership
@@ -121,19 +120,11 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return category
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 async def _create_post(
     db: AsyncSession,
     user_id: int,
     school_id: int,
     category_id: int,
-    post_type_id: int,
     title: str,
     status: str = PostStatus.PUBLISHED,
 ) -> Post:
@@ -141,7 +132,6 @@ async def _create_post(
         user_id=user_id,
         school_id=school_id,
         category_id=category_id,
-        post_type_id=post_type_id,
         title=title,
         content=f"{title} 的内容，至少十个字符",
         status=status,
@@ -200,8 +190,6 @@ async def two_schools_setup() -> dict:
         for sid in (school_a.id, school_b.id):
             await _assign_operations_subscription(session, sid)
 
-        pt = await _create_post_type(session, "普通信息", "normal")
-
         cat_a = await _create_category(session, school_a.id, "甲校失物", "a-lost")
         cat_b = await _create_category(session, school_b.id, "乙校失物", "b-lost")
 
@@ -228,29 +216,29 @@ async def two_schools_setup() -> dict:
 
         # 甲校帖子：1 published + 1 draft + 1 pending + 1 expired
         post_a_pub = await _create_post(
-            session, user_a.id, school_a.id, cat_a.id, pt.id,
+            session, user_a.id, school_a.id, cat_a.id,
             "甲校已发布帖子", PostStatus.PUBLISHED,
         )
         post_a_draft = await _create_post(
-            session, user_a.id, school_a.id, cat_a.id, pt.id,
+            session, user_a.id, school_a.id, cat_a.id,
             "甲校草稿帖子", PostStatus.DRAFT,
         )
         post_a_pending = await _create_post(
-            session, user_a.id, school_a.id, cat_a.id, pt.id,
+            session, user_a.id, school_a.id, cat_a.id,
             "甲校待审核帖子", PostStatus.PENDING,
         )
         post_a_expired = await _create_post(
-            session, user_a.id, school_a.id, cat_a.id, pt.id,
+            session, user_a.id, school_a.id, cat_a.id,
             "甲校已过期帖子", PostStatus.EXPIRED,
         )
 
         # 乙校帖子：1 published + 1 draft（用于验证跨校不计入统计）
         post_b_pub = await _create_post(
-            session, user_b.id, school_b.id, cat_b.id, pt.id,
+            session, user_b.id, school_b.id, cat_b.id,
             "乙校已发布帖子", PostStatus.PUBLISHED,
         )
         post_b_draft = await _create_post(
-            session, user_b.id, school_b.id, cat_b.id, pt.id,
+            session, user_b.id, school_b.id, cat_b.id,
             "乙校草稿帖子", PostStatus.DRAFT,
         )
 
@@ -275,7 +263,6 @@ async def two_schools_setup() -> dict:
                 "b_draft": {"id": post_b_draft.id, "school_id": school_b.id, "status": PostStatus.DRAFT},
             },
             "category_ids": {"a": cat_a.id, "b": cat_b.id},
-            "post_type_id": pt.id,
         }
     # session 已关闭，连接已释放，避免阻塞 API 侧查询
     return result
@@ -326,7 +313,6 @@ class TestMyStats:
             user_id=setup["users"]["a"]["id"],
             school_id=setup["schools"]["b"]["id"],
             category_id=setup["category_ids"]["b"],
-            post_type_id=setup["post_type_id"],
             title="user_a 在乙校的帖子",
             status=PostStatus.PUBLISHED,
         )
@@ -988,7 +974,6 @@ class TestMyPostsSchoolIsolation:
                 user_id=setup["users"]["a"]["id"],
                 school_id=setup["schools"]["b"]["id"],
                 category_id=setup["category_ids"]["b"],
-                post_type_id=setup["post_type_id"],
                 title="user_a 在乙校的跨校帖子",
                 status=PostStatus.PUBLISHED,
             )

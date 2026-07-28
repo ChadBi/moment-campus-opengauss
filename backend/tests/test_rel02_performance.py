@@ -30,7 +30,6 @@ from app.models.school import School
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.category import Category
-from app.models.post_type import PostType
 from app.models.post import Post
 from app.models.product_plan import ProductPlan
 from app.models.school_subscription import SchoolSubscription
@@ -115,13 +114,6 @@ async def _create_category(db: AsyncSession, school_id: int, name: str, code: st
     return c
 
 
-async def _create_post_type(db: AsyncSession, name: str, code: str) -> PostType:
-    pt = PostType(name=name, code=code, is_active=True)
-    db.add(pt)
-    await db.flush()
-    return pt
-
-
 def _school(code: str) -> dict:
     return {"X-School-Code": code}
 
@@ -166,7 +158,6 @@ async def perf_setup(db_session: AsyncSession) -> dict:
     user = await _create_user(db_session, "perfuser@example.com", "性能用户", school.id)
     await _create_membership(db_session, user.id, school.id)
     cat = await _create_category(db_session, school.id, "失物招领", "perf-lost")
-    pt = await _create_post_type(db_session, "普通信息", "perf-normal")
 
     # 批量插入 30 条帖子
     now = datetime.now()
@@ -174,7 +165,7 @@ async def perf_setup(db_session: AsyncSession) -> dict:
     for i in range(30):
         p = Post(
             user_id=user.id, school_id=school.id,
-            category_id=cat.id, post_type_id=pt.id,
+            category_id=cat.id,
             title=f"校园卡测试帖{i}", content=f"性能测试内容{i}，在图书馆丢失校园卡",
             status=PostStatus.PUBLISHED, created_at=now - timedelta(minutes=i),
         )
@@ -186,7 +177,6 @@ async def perf_setup(db_session: AsyncSession) -> dict:
         "school": {"id": school.id, "code": school.code},
         "user": {"id": user.id, "token": create_access_token(data={"sub": str(user.id)})},
         "category": cat,
-        "post_type": pt,
         "posts_count": len(posts),
     }
 

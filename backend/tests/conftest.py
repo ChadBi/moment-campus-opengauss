@@ -78,8 +78,15 @@ async def _create_test_tables():
     注意：仅创建 ORM 模型表，不创建高级 SQL 对象（表空间/分区/物化视图/存储过程/触发器），
     这些由 integration 测试单独验证（未安装时跳过）。
     测试结束后保留表结构（不 DROP DATABASE），数据由 setup_database 用 TRUNCATE 清理。
+
+    Task 1.2 调整：先 DROP SCHEMA CASCADE 清理所有旧表（含已删除模型遗留的表
+    如 post_change_reports / post_types，避免它们阻止 drop_all），再 create_all。
     """
+    from sqlalchemy import text
     async with test_engine.begin() as conn:
+        # DROP 所有旧表与依赖对象（CASCADE），处理已删除模型遗留的孤儿表
+        await conn.execute(text("DROP SCHEMA public CASCADE"))
+        await conn.execute(text("CREATE SCHEMA public"))
         await conn.run_sync(Base.metadata.create_all)
     yield
     # session 结束时仅 dispose engine，不删库不删表
@@ -434,17 +441,6 @@ async def test_category(db_session: AsyncSession, test_school: dict) -> dict:
 
 
 @pytest_asyncio.fixture
-async def test_post_type(db_session: AsyncSession) -> dict:
-    """Create a test post type and return its id."""
-    from app.models.post_type import PostType
-    post_type = PostType(name="普通信息", code="normal", is_active=True)
-    db_session.add(post_type)
-    await db_session.commit()
-    await db_session.refresh(post_type)
-    return {"id": post_type.id, "name": post_type.name, "code": post_type.code}
-
-
-@pytest_asyncio.fixture
 async def test_user(client: AsyncClient, test_school: dict) -> dict:
     """Register a test user and return user info with tokens."""
     response = await client.post(
@@ -475,15 +471,17 @@ async def auth_headers(test_user: dict) -> dict:
 
 
 @pytest_asyncio.fixture
-async def test_post(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict, test_post_type: dict) -> dict:
-    """Create a test post and return its data."""
+async def test_post(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict) -> dict:
+    """Create a test post and return its data.
+
+    Task 1.2 调整：移除 test_post_type fixture 依赖（PostType 已删除）
+    """
     response = await client.post(
         "/api/v1/posts",
         json={
             "title": "测试帖子标题",
             "content": "这是测试帖子的内容，至少十个字符",
             "category_id": test_category["id"],
-            "post_type_id": test_post_type["id"],
             "is_anonymous": False,
         },
         headers=auth_headers,

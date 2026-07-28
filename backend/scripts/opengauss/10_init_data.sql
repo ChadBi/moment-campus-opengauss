@@ -1,6 +1,6 @@
 -- ============================================================
 -- 脚本名称：10_init_data.sql
--- 用途：初始化江南大学核心数据（学校 + 地点 + 分类 + 信息类型 + 管理员）
+-- 用途：初始化江南大学核心数据（学校 + 地点 + 分类 + 管理员）
 -- 依据：
 --   - docs/23_江南大学模拟核心决策说明.md 第 2、4 节
 --   - docs/27_数据库物理模型设计.md 第 11 节
@@ -9,10 +9,9 @@
 -- 说明：
 --   1. 江南大学为项目唯一模拟学校（蠡湖校区）
 --   2. 15 个地点为建议清单，坐标为估算值，需通过地图工具核对
---   3. 12 个分类覆盖校园生活主要场景
---   4. 3 个信息类型对应不同业务流程
---   5. 默认管理员密码为 admin123（bcrypt 哈希），生产环境请修改
---   6. 使用 ON CONFLICT DO NOTHING 保证可重复执行
+--   3. 5 类统一信息分类（Task 1.2 调整：原 12 类 + 3 类 PostType 已合并为 5 类）
+--   4. 默认管理员密码为 admin123（bcrypt 哈希），生产环境请修改
+--   5. 使用 ON CONFLICT DO NOTHING 保证可重复执行
 -- ============================================================
 
 -- ============================================================
@@ -79,64 +78,34 @@ ON CONFLICT DO NOTHING;
 SELECT id, name, latitude, longitude FROM locations WHERE school_id = 1 ORDER BY id;
 
 -- ============================================================
--- 第三部分：12 个分类（覆盖校园生活主要场景）
+-- 第三部分：5 类统一信息分类（Task 1.2 调整：原 12 类 + 3 类 PostType 已合并）
+-- share      - 分享吐槽（校园生活分享、吐槽、心得）
+-- teamup     - 组队交友（组队、交友、活动搭子）
+-- trade      - 二手交易（二手物品买卖、赠予）
+-- lost_found - 失物招领（丢失与拾到物品信息）
+-- other      - 其他（其他类型信息）
 -- ============================================================
 INSERT INTO categories (
     name, code, icon, description, default_validity_days, sort_order, is_active,
     created_at, updated_at
 ) VALUES
-    ('校园活动', 'activity', '🎪', '社团活动、讲座、演出等', 30, 1, TRUE,
+    ('分享吐槽', 'share', '💬', '校园生活分享、吐槽、心得', 30, 1, TRUE,
      CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('失物招领', 'lost_found', '🔍', '丢失与拾到物品信息', 30, 2, TRUE,
+    ('组队交友', 'teamup', '🤝', '组队、交友、活动搭子', 30, 2, TRUE,
      CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('求助问答', 'help', '❓', '学习、生活求助', 60, 3, TRUE,
+    ('二手交易', 'trade', '💰', '二手物品买卖、赠予', 30, 3, TRUE,
      CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('校园美食', 'food', '🍜', '食堂、周边美食推荐', 30, 4, TRUE,
+    ('失物招领', 'lost_found', '🔍', '丢失与拾到物品信息', 30, 4, TRUE,
      CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('学习资源', 'study', '📚', '资料共享、学习心得', 90, 5, TRUE,
-     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('校园设施', 'facility', '🏫', '教学楼、体育馆、图书馆等', 90, 6, TRUE,
-     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('生活服务', 'life', '🛒', '超市、快递、文印等', 60, 7, TRUE,
-     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('校园动物', 'animal', '🐱', '校园流浪动物、宠物', 60, 8, TRUE,
-     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('二手交易', 'trade', '💰', '二手物品买卖', 30, 9, TRUE,
-     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('兼职招聘', 'job', '💼', '兼职、招聘信息', 30, 10, TRUE,
-     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('打印服务', 'print', '🖨️', '打印、复印、扫描', 30, 11, TRUE,
-     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('其他', 'other', '📝', '其他类型信息', 30, 12, TRUE,
+    ('其他', 'other', '📝', '其他类型信息', 30, 5, TRUE,
      CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT (code) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- 验证分类记录
 SELECT id, name, code, sort_order FROM categories ORDER BY sort_order;
 
 -- ============================================================
--- 第四部分：3 个信息类型
--- normal  - 普通信息（默认）
--- event   - 活动信息（带活动时间）
--- lost_found - 失物信息（带 lost_type）
--- ============================================================
-INSERT INTO post_types (
-    name, code, description, sort_order, is_active,
-    created_at, updated_at
-) VALUES
-    ('普通信息', 'normal', '通用校园信息，无特殊字段', 1, TRUE,
-     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('活动信息', 'event', '校园活动，需填写活动起止时间', 2, TRUE,
-     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-    ('失物信息', 'lost_found', '失物招领，需填写 lost_type（lost/picked）', 3, TRUE,
-     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-ON CONFLICT (code) DO NOTHING;
-
--- 验证信息类型记录
-SELECT id, name, code, sort_order FROM post_types ORDER BY sort_order;
-
--- ============================================================
--- 第五部分：默认管理员账号
+-- 第四部分：默认管理员账号
 -- 邮箱：admin@momentcampus.com
 -- 密码：admin123（bcrypt 哈希，cost=12）
 -- 角色：admin
@@ -178,7 +147,6 @@ SELECT
     (SELECT COUNT(*) FROM schools)              AS school_count,
     (SELECT COUNT(*) FROM locations)            AS location_count,
     (SELECT COUNT(*) FROM categories)           AS category_count,
-    (SELECT COUNT(*) FROM post_types)           AS post_type_count,
     (SELECT COUNT(*) FROM users WHERE role='admin') AS admin_count;
 
 -- ============================================================

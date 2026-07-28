@@ -13,7 +13,6 @@ class Post(Base):
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=False, index=True)
     school_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("schools.id"), nullable=False, index=True)
     category_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("categories.id"), nullable=False, index=True)
-    post_type_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("post_types.id"), nullable=False, index=True)
     location_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("locations.id"), nullable=True, index=True)
     # ORG-01: 关联官方发布主体（NULL 表示普通用户发布；非空表示由认证主体发布，但仍走原状态机审核，认证不代表免审）
     publisher_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("publisher_profiles.id"), nullable=True, index=True)
@@ -53,7 +52,6 @@ class Post(Base):
     user: Mapped["User"] = relationship(back_populates="posts")
     school: Mapped["School"] = relationship(back_populates="posts")
     category: Mapped["Category"] = relationship(back_populates="posts")
-    post_type: Mapped["PostType"] = relationship(back_populates="posts")
     location: Mapped["Location | None"] = relationship(back_populates="posts")
     post_tags: Mapped[list["PostTag"]] = relationship(back_populates="post")
     post_images: Mapped[list["PostImage"]] = relationship(back_populates="post")
@@ -67,7 +65,6 @@ class Post(Base):
         Index("idx_post_user", "user_id"),
         Index("idx_post_school_status", "school_id", "status"),
         Index("idx_post_category", "category_id"),
-        Index("idx_post_type", "post_type_id"),
         Index("idx_post_location", "location_id"),
         Index("idx_post_status_created", "status", "created_at"),
         Index("idx_post_status_recommend", "status", "is_recommend", "created_at"),

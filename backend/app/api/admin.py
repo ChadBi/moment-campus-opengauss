@@ -11,10 +11,8 @@ from app.database import get_db
 from app.models.user import User
 from app.models.post import Post
 from app.models.post_image import PostImage
-from app.models.post_type import PostType
 from app.models.location import Location
 from app.models.report import Report
-from app.models.post_change_report import PostChangeReport
 from app.models.admin_operation_log import AdminOperationLog
 from app.models.category import Category
 from app.models.tag import Tag
@@ -44,8 +42,6 @@ from app.schemas.admin import (
     AuthorHistoryStats,
     ReasonTemplate,
     ReasonTemplateResponse,
-    GovernanceReportBrief,
-    GovernanceHandleRequest,
     LocationAdminResponse,
     ExpirePostsJobRequest,
     JobRunRecordResponse,
@@ -720,22 +716,6 @@ async def get_admin_todos(
         )
     )
 
-    # 3 类未结案问题报告（open/in_review），join Post 按学校过滤
-    async def _count_change_reports(report_type: str) -> int:
-        return await db.scalar(
-            select(func.count(PostChangeReport.id))
-            .join(Post, PostChangeReport.post_id == Post.id)
-            .where(
-                PostChangeReport.report_type == report_type,
-                PostChangeReport.status.in_(["open", "in_review"]),
-                Post.school_id == tenant.school_id,
-            )
-        ) or 0
-
-    expiration_reports = await _count_change_reports("expiration_report")
-    conflict_reports = await _count_change_reports("conflict_report")
-    update_suggestions = await _count_change_reports("update")
-
     # 异常任务：24h 内失败的任务运行记录（全局任务，跨校共享）
     from app.models.job_run_record import JobRunRecord
     from datetime import timedelta
@@ -773,12 +753,6 @@ async def get_admin_todos(
                  queue_url="/admin/reports?status=pending"),
         TodoItem(key="unverified_locations", label="待核验地点", count=unverified_locations or 0,
                  queue_url="/admin/locations?verified=false"),
-        TodoItem(key="expiration_reports", label="过期报告", count=expiration_reports,
-                 queue_url="/admin/governance?type=expiration_report&status=open"),
-        TodoItem(key="conflict_reports", label="冲突报告", count=conflict_reports,
-                 queue_url="/admin/governance?type=conflict_report&status=open"),
-        TodoItem(key="update_suggestions", label="更新建议", count=update_suggestions,
-                 queue_url="/admin/governance?type=update&status=open"),
         TodoItem(key="failed_jobs", label="异常任务", count=failed_jobs or 0,
                  queue_url="/admin/jobs?status=failed"),
     ]
@@ -788,9 +762,6 @@ async def get_admin_todos(
         pending_posts=pending_posts or 0,
         pending_reports=pending_reports or 0,
         unverified_locations=unverified_locations or 0,
-        expiration_reports=expiration_reports,
-        conflict_reports=conflict_reports,
-        update_suggestions=update_suggestions,
         failed_jobs=failed_jobs or 0,
         total=total,
         items=items,
@@ -862,7 +833,6 @@ async def get_admin_post_detail(
         .options(
             joinedload(Post.user),
             joinedload(Post.category),
-            joinedload(Post.post_type),
             joinedload(Post.location),
         )
     )
@@ -897,13 +867,7 @@ async def get_admin_post_detail(
         .where(Post.user_id == post.user_id, Post.school_id == tenant.school_id)
     )
 
-    # 本帖治理概况
-    open_change_reports = await db.scalar(
-        select(func.count(PostChangeReport.id)).where(
-            PostChangeReport.post_id == post_id,
-            PostChangeReport.status.in_(["open", "in_review"]),
-        )
-    )
+    # 本帖治理概况（调整后：仅举报队列，原问题报告已移除）
     pending_user_reports = await db.scalar(
         select(func.count(Report.id)).where(
             Report.post_id == post_id,
@@ -932,8 +896,6 @@ async def get_admin_post_detail(
         author_email=post.user.email if post.user else None,
         category_id=post.category_id,
         category_name=post.category.name if post.category else None,
-        post_type_id=post.post_type_id,
-        post_type_name=post.post_type.name if post.post_type else None,
         location_id=post.location_id,
         location_name=post.location.name if post.location else None,
         location_verified=post.location.is_verified if post.location else None,
@@ -944,230 +906,15 @@ async def get_admin_post_detail(
             rejected_posts=status_counts.get(PostStatus.ARCHIVED, 0),
             report_received_count=author_report_count or 0,
         ),
-        open_change_reports=open_change_reports or 0,
         pending_user_reports=pending_user_reports or 0,
     )
 
 
 # ============================================================
-# ADM-01.5: 治理工作台（3 类问题报告队列 + 处理动作）
+# ADM-01.5: 治理工作台
+# 调整后：原 3 类问题报告（update/expiration_report/conflict_report）已移除
+# 帖子过期/冲突状态由管理员通过举报队列处理
 # ============================================================
-@router.get(
-    "/admin/governance/reports",
-    response_model=PaginatedResponse[GovernanceReportBrief],
-    summary="治理报告队列（ADM-01.5）",
-)
-async def list_governance_reports(
-    page: int = Query(1, ge=1, description="页码"),
-    page_size: int = Query(20, ge=1, le=100, description="每页数量"),
-    report_type: Optional[str] = Query(
-        None, description="按类型筛选：update/expiration_report/conflict_report"
-    ),
-    status: Optional[str] = Query(
-        None, description="按状态筛选：open/in_review/resolved/dismissed"
-    ),
-    admin: User = AdminDep,
-    db: AsyncSession = Depends(get_db),
-    tenant: TenantContext = Depends(get_tenant_context),
-):
-    """跨帖子的问题报告队列（合并 3 类协同治理报告的管理入口）。
-
-    TEN-02.3：join Post 强制按当前学校过滤，跨校报告不会出现。
-    """
-    base_filter = [Post.school_id == tenant.school_id]
-    if report_type:
-        base_filter.append(PostChangeReport.report_type == report_type)
-    if status:
-        base_filter.append(PostChangeReport.status == status)
-
-    query = (
-        select(PostChangeReport)
-        .join(Post, PostChangeReport.post_id == Post.id)
-        .where(*base_filter)
-        .options(
-            selectinload(PostChangeReport.post),
-            selectinload(PostChangeReport.reporter),
-            selectinload(PostChangeReport.handler),
-        )
-        .order_by(PostChangeReport.created_at.desc())
-    )
-
-    count_query = (
-        select(func.count(PostChangeReport.id))
-        .join(Post, PostChangeReport.post_id == Post.id)
-        .where(*base_filter)
-    )
-    total = await db.scalar(count_query)
-
-    offset = (page - 1) * page_size
-    result = await db.execute(query.offset(offset).limit(page_size))
-    reports = result.unique().scalars().all()
-
-    items = [
-        GovernanceReportBrief(
-            id=r.id,
-            post_id=r.post_id,
-            post_title=r.post.title if r.post else None,
-            post_status=r.post.status if r.post else None,
-            reporter_id=r.reporter_id,
-            reporter_name=r.reporter.nickname if r.reporter else None,
-            report_type=r.report_type,
-            description=r.description,
-            evidence_url=r.evidence_url,
-            status=r.status,
-            handler_id=r.handler_id,
-            handler_name=r.handler.nickname if r.handler else None,
-            handler_note=r.handler_note,
-            handled_at=r.handled_at,
-            created_at=r.created_at,
-        )
-        for r in reports
-    ]
-    return PaginatedResponse.create(items, page, page_size, total or 0)
-
-
-@router.put(
-    "/admin/governance/reports/{report_id}/handle",
-    response_model=GovernanceReportBrief,
-    summary="处理治理报告（ADM-01.5，同事务提交）",
-)
-async def handle_governance_report(
-    report_id: int,
-    data: GovernanceHandleRequest,
-    admin: User = AdminDep,
-    db: AsyncSession = Depends(get_db),
-    tenant: TenantContext = Depends(get_tenant_context),
-):
-    """处理问题报告：报告状态流转 + 帖子状态变化 + 通知在同一事务中提交。
-
-    - resolve：标记已解决（帖子状态不变）
-    - dismiss：驳回报告（帖子状态不变）
-    - mark_expired：确认过期 → 帖子转 expired（状态机校验）
-    - mark_conflict：确认冲突 → 帖子转 conflict（状态机校验）
-
-    处理动作、报告状态、帖子状态与通知作者/报告人在同一事务提交，
-    任一失败整体回滚。TEN-02.3：跨校报告统一返回 404。
-    """
-    result = await db.execute(
-        select(PostChangeReport)
-        .where(PostChangeReport.id == report_id)
-        .options(
-            selectinload(PostChangeReport.reporter),
-            selectinload(PostChangeReport.handler),
-        )
-    )
-    report = result.scalar_one_or_none()
-    if report is None:
-        raise NotFoundException(detail="报告不存在")
-
-    post = await db.scalar(select(Post).where(Post.id == report.post_id))
-    if post is None:
-        raise NotFoundException(detail="帖子不存在")
-    _check_post_in_admin_school(post, tenant)
-
-    if report.status in ("resolved", "dismissed"):
-        raise BadRequestException(detail="报告已结案，不能重复处理")
-
-    now = datetime.now()
-    action_label = {
-        "resolve": "标记已解决",
-        "dismiss": "驳回",
-        "mark_expired": "确认过期",
-        "mark_conflict": "确认冲突",
-    }[data.action]
-
-    # 帖子状态变化（状态机校验）
-    post_status_changed: Optional[str] = None
-    if data.action == "mark_expired":
-        if post.status != PostStatus.EXPIRED:
-            if not can_transition(post.status, PostStatus.EXPIRED):
-                raise BadRequestException(
-                    detail=f"帖子当前状态 {post.status} 不允许转为 expired"
-                )
-            post.status = PostStatus.EXPIRED
-            post_status_changed = PostStatus.EXPIRED
-    elif data.action == "mark_conflict":
-        if post.status != PostStatus.CONFLICT:
-            if not can_transition(post.status, PostStatus.CONFLICT):
-                raise BadRequestException(
-                    detail=f"帖子当前状态 {post.status} 不允许转为 conflict"
-                )
-            post.status = PostStatus.CONFLICT
-            post_status_changed = PostStatus.CONFLICT
-
-    if post_status_changed:
-        post.updated_at = now
-
-    # 报告状态流转
-    report.status = "resolved" if data.action != "dismiss" else "dismissed"
-    report.handler_id = admin.id
-    report.handler_note = f"{action_label}：{data.reason}"
-    report.handled_at = now
-    report.updated_at = now
-
-    # 通知（同一事务）：通知报告人处理结果；帖子状态变化时同时通知作者
-    type_label = {
-        "update": "更新建议", "expiration_report": "过期报告", "conflict_report": "冲突报告",
-    }.get(report.report_type, report.report_type)
-    db.add(Notification(
-        user_id=report.reporter_id,
-        type="audit",
-        title="问题报告已处理",
-        content=f"你对《{post.title}》提交的{type_label}已处理：{action_label}。备注：{data.reason}"[:500],
-        target_type="post",
-        target_id=post.id,
-        actor_id=admin.id,
-        is_read=False,
-    ))
-    if post_status_changed and post.user_id != report.reporter_id:
-        status_label = "已过期" if post_status_changed == PostStatus.EXPIRED else "冲突中"
-        db.add(Notification(
-            user_id=post.user_id,
-            type="audit",
-            title="帖子状态变更",
-            content=f"你的《{post.title}》经管理员确认转为「{status_label}」。备注：{data.reason}"[:500],
-            target_type="post",
-            target_id=post.id,
-            actor_id=admin.id,
-            is_read=False,
-        ))
-
-    # 操作日志（同一事务）
-    db.add(AdminOperationLog(
-        admin_id=admin.id,
-        action=f"governance_{data.action}",
-        target_type="post_change_report",
-        target_id=report_id,
-        detail=f"{type_label} #{report_id} → {action_label}；原因：{data.reason}"
-               + (f"；帖子 → {post_status_changed}" if post_status_changed else ""),
-    ))
-
-    # SUB-01.2: 订阅冲突通知（帖子转 conflict 时通知订阅者，与作者通知互补）
-    if post_status_changed == PostStatus.CONFLICT:
-        from app.services.subscription_notifier import notify_post_conflict
-        await notify_post_conflict(db, post, actor_id=admin.id, reason=data.reason)
-
-    # 同事务提交：报告状态 + 帖子状态 + 通知 + 日志
-    await db.commit()
-
-    handler_name = admin.nickname
-    return GovernanceReportBrief(
-        id=report.id,
-        post_id=report.post_id,
-        post_title=post.title,
-        post_status=post.status,
-        reporter_id=report.reporter_id,
-        reporter_name=report.reporter.nickname if report.reporter else None,
-        report_type=report.report_type,
-        description=report.description,
-        evidence_url=report.evidence_url,
-        status=report.status,
-        handler_id=report.handler_id,
-        handler_name=handler_name,
-        handler_note=report.handler_note,
-        handled_at=report.handled_at,
-        created_at=report.created_at,
-    )
 
 
 # ============================================================

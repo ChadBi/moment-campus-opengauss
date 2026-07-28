@@ -57,7 +57,6 @@ async def _create_post(
     user_id: int,
     school_id: int,
     category_id: int,
-    post_type_id: int,
     title: str = "SP测试帖子",
     content: str = "这是存储过程测试帖子的内容",
     status: str = "pending",
@@ -71,7 +70,6 @@ async def _create_post(
         user_id=user_id,
         school_id=school_id,
         category_id=category_id,
-        post_type_id=post_type_id,
         location_id=location_id,
         title=title,
         content=content,
@@ -142,7 +140,7 @@ class TestSP01RecalcCredibility:
     @pytest.mark.asyncio
     async def test_sp01_base_score_default_reputation(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 1：作者默认信誉 60，无验证记录，可信度 = 60*0.3+50*0.7 = 53.00"""
         author = await _create_user(
@@ -151,7 +149,7 @@ class TestSP01RecalcCredibility:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
         )
 
         result = await db_conn.fetchval(
@@ -163,7 +161,7 @@ class TestSP01RecalcCredibility:
     @pytest.mark.asyncio
     async def test_sp01_with_one_confirmation(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 2：1 条 confirmation，可信度 = 53+5 = 58.00
 
@@ -181,7 +179,7 @@ class TestSP01RecalcCredibility:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
         )
 
         await _insert_validation_record(
@@ -203,7 +201,7 @@ class TestSP01RecalcCredibility:
     @pytest.mark.asyncio
     async def test_sp01_with_one_refutation(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 3：1 条 refutation（从 0 记录开始），可信度 = 53-8 = 45.00"""
         author = await _create_user(
@@ -216,7 +214,7 @@ class TestSP01RecalcCredibility:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
         )
 
         await _insert_validation_record(
@@ -238,7 +236,7 @@ class TestSP01RecalcCredibility:
     @pytest.mark.asyncio
     async def test_sp01_clamp_to_zero(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 4：20 条 refutation，可信度 clamp 到 0.00
 
@@ -250,7 +248,7 @@ class TestSP01RecalcCredibility:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
         )
 
         # 创建 20 个验证者并各插入 1 条 refutation
@@ -279,7 +277,7 @@ class TestSP01RecalcCredibility:
     @pytest.mark.asyncio
     async def test_sp01_syncs_valid_invalid_count(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 5：验证 posts.valid_count / invalid_count 被同步更新"""
         author = await _create_user(
@@ -288,7 +286,7 @@ class TestSP01RecalcCredibility:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
         )
 
         v1 = await _create_user(
@@ -333,7 +331,7 @@ class TestSP02MarkExpiredPosts:
     @pytest.mark.asyncio
     async def test_sp02_marks_expired_post(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 1：published 帖子（expire_at 为过去），调用 SP 返回 1，状态变 expired"""
         author = await _create_user(
@@ -345,7 +343,7 @@ class TestSP02MarkExpiredPosts:
         past_time = (datetime.now(timezone.utc) - timedelta(hours=1)).replace(tzinfo=None)
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             status="published", expire_at=past_time,
         )
 
@@ -361,7 +359,7 @@ class TestSP02MarkExpiredPosts:
     @pytest.mark.asyncio
     async def test_sp02_skips_future_expire(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 2：published 帖子（expire_at 为未来），调用 SP 返回 0"""
         author = await _create_user(
@@ -371,7 +369,7 @@ class TestSP02MarkExpiredPosts:
         future_time = (datetime.now(timezone.utc) + timedelta(days=7)).replace(tzinfo=None)
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             status="published", expire_at=future_time,
         )
 
@@ -398,7 +396,7 @@ class TestSP03DetectConflict:
     @pytest.mark.asyncio
     async def test_sp03_detects_conflict(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 1：2 个帖子同地点+时间重叠+published，返回 1，当前帖子 status=conflict"""
         author = await _create_user(
@@ -414,14 +412,14 @@ class TestSP03DetectConflict:
         # 帖子 A：已 published
         post_a = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             status="published", location_id=location.id,
             activity_start_at=start, activity_end_at=end,
         )
         # 帖子 B：时间重叠，published
         post_b = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             status="published", location_id=location.id,
             activity_start_at=start, activity_end_at=end,
         )
@@ -440,7 +438,7 @@ class TestSP03DetectConflict:
     @pytest.mark.asyncio
     async def test_sp03_no_location_returns_zero(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 2：无地点或无活动时间，返回 0"""
         author = await _create_user(
@@ -449,7 +447,7 @@ class TestSP03DetectConflict:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             status="published",
             # 无 location_id, 无 activity 时间
         )
@@ -490,7 +488,7 @@ class TestSP04UpdateReputation:
     @pytest.mark.asyncio
     async def test_sp04_with_two_posts(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 2：用户发布 2 个帖子，信誉 = 60 + 0 + 2*0.5 - 0 - 0 = 61.00"""
         author = await _create_user(
@@ -499,12 +497,12 @@ class TestSP04UpdateReputation:
         )
         await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             title="SP04帖子A", content="内容A内容A内容A",
         )
         await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             title="SP04帖子B", content="内容B内容B内容B",
         )
 
@@ -587,7 +585,7 @@ class TestSP06CleanupSoftDeleted:
     @pytest.mark.asyncio
     async def test_sp06_cleans_old_soft_deleted_posts(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试：插入 1 条 40 天前软删除 + 1 条 10 天前软删除的 post，SP 返回 >= 1"""
         author = await _create_user(
@@ -598,7 +596,7 @@ class TestSP06CleanupSoftDeleted:
         # 40 天前软删除的帖子
         old_post = Post(
             user_id=author.id, school_id=test_school["id"],
-            category_id=test_category["id"], post_type_id=test_post_type["id"],
+            category_id=test_category["id"],
             title="SP06旧帖", content="40天前软删除的内容",
             is_deleted=True,
             deleted_at=datetime.now() - timedelta(days=40),
@@ -606,7 +604,7 @@ class TestSP06CleanupSoftDeleted:
         # 10 天前软删除的帖子（不应被清理）
         recent_post = Post(
             user_id=author.id, school_id=test_school["id"],
-            category_id=test_category["id"], post_type_id=test_post_type["id"],
+            category_id=test_category["id"],
             title="SP06新帖", content="10天前软删除的内容",
             is_deleted=True,
             deleted_at=datetime.now() - timedelta(days=10),
@@ -645,7 +643,7 @@ class TestSP07PublishPost:
     @pytest.mark.asyncio
     async def test_sp07_valid_publish(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 1：合法调用，返回 post_id > 0，帖子已插入且 credibility_score = 53.00"""
         author = await _create_user(
@@ -663,7 +661,7 @@ class TestSP07PublishPost:
             author.id,                       # p_user_id
             test_school["id"],               # p_school_id
             test_category["id"],             # p_category_id
-            test_post_type["id"],            # p_post_type_id
+            None,
             None,                            # p_location_id
             "SP07合法标题",                   # p_title
             "SP07合法内容至少十个字符",        # p_content
@@ -692,7 +690,7 @@ class TestSP07PublishPost:
     @pytest.mark.asyncio
     async def test_sp07_invalid_user_raises(
         self, db_conn, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 2：传入不存在的 user_id，抛异常"""
         import asyncpg
@@ -707,7 +705,6 @@ class TestSP07PublishPost:
                 999999,                          # 不存在的 user_id
                 test_school["id"],
                 test_category["id"],
-                test_post_type["id"],
                 None,
                 "标题", "内容内容内容",
                 False, None, None, None, None, "pending",
@@ -717,7 +714,7 @@ class TestSP07PublishPost:
     @pytest.mark.asyncio
     async def test_sp07_empty_title_raises(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 3：传入 NULL 标题，抛异常（p_title IS NULL 分支）"""
         import asyncpg
@@ -737,7 +734,6 @@ class TestSP07PublishPost:
                 author.id,
                 test_school["id"],
                 test_category["id"],
-                test_post_type["id"],
                 None,
                 None,                             # NULL 标题
                 "内容内容内容",
@@ -760,7 +756,7 @@ class TestSP08SubmitValidation:
     @pytest.mark.asyncio
     async def test_sp08_valid_submission(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 1：用户 A 发布帖子（published），用户 B 提交 confirmation，返回 record_id > 0"""
         author_a = await _create_user(
@@ -773,7 +769,7 @@ class TestSP08SubmitValidation:
         )
         post = await _create_post(
             db_session, author_a.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             status="published",
         )
 
@@ -800,7 +796,7 @@ class TestSP08SubmitValidation:
     @pytest.mark.asyncio
     async def test_sp08_self_validation_raises(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 2：用户 A 为自己的帖子调用 SP08，抛异常"""
         import asyncpg
@@ -811,7 +807,7 @@ class TestSP08SubmitValidation:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             status="published",
         )
 
@@ -825,7 +821,7 @@ class TestSP08SubmitValidation:
     @pytest.mark.asyncio
     async def test_sp08_draft_post_raises(
         self, db_conn, db_session, ensure_physical_objects,
-        test_school, test_category, test_post_type,
+        test_school, test_category,
     ):
         """测试 3：对 draft 状态的帖子调用 SP08，抛异常"""
         import asyncpg
@@ -840,7 +836,7 @@ class TestSP08SubmitValidation:
         )
         post = await _create_post(
             db_session, author.id, test_school["id"],
-            test_category["id"], test_post_type["id"],
+            test_category["id"],
             status="draft",
         )
 

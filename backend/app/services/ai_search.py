@@ -384,7 +384,6 @@ async def _query_posts(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        joinedload(Post.post_type),
         selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )
@@ -615,7 +614,6 @@ async def _fallback_search(
         joinedload(Post.user),
         joinedload(Post.category),
         joinedload(Post.location),
-        joinedload(Post.post_type),
         selectinload(Post.post_tags).selectinload(PostTag.tag),
         selectinload(Post.post_images),
     )

@@ -234,7 +234,7 @@ async def test_admin_post_detail_visible_for_pending_with_author_history(
     # 作者历史统计
     assert data["author_history"]["total_posts"] >= 1
     # 治理概况字段存在
-    assert "open_change_reports" in data
+    # Task 1.2 调整：open_change_reports 已随 PostChangeReport 删除移除
     assert "pending_user_reports" in data
 
 

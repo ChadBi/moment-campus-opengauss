@@ -75,19 +75,14 @@ print("\n--- 用 user2 创建帖子触发订阅通知 ---")
 token2 = login("user2@example.com")
 headers2 = h(token2)
 
-# 先获取分类与帖子类型
+# 先获取分类
 r = requests.get(f"{BASE}/categories", headers=headers2)
 cats = r.json() if r.status_code == 200 else []
 print(f"Categories: {len(cats)}")
 
-r = requests.get(f"{BASE}/post-types", headers=headers2)
-ptypes = r.json() if r.status_code == 200 else []
-print(f"PostTypes: {len(ptypes)}")
-
 # 创建帖子（如果有 topic_id）
-if topics and cats and ptypes:
+if topics and cats:
     cat_id = cats[0]["id"]
-    pt_id = ptypes[0]["id"]
     topic_id = topics[0]["id"]
     r = requests.post(
         f"{BASE}/posts",
@@ -95,7 +90,6 @@ if topics and cats and ptypes:
             "title": "[E2E订阅测试] 订阅通知触发帖",
             "content": "用于验证专题订阅后新内容通知链路。这条内容长度足够通过校验。",
             "category_id": cat_id,
-            "post_type_id": pt_id,
             "topic_id": topic_id,
         },
         headers=headers2,

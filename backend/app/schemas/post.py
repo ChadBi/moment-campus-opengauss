@@ -34,14 +34,6 @@ class LocationBrief(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PostTypeBrief(BaseModel):
-    id: int
-    name: str
-    code: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-
 class TagBrief(BaseModel):
     id: int
     name: str
@@ -69,7 +61,6 @@ class PostCreate(BaseModel):
     location_name: Optional[str] = Field(None, max_length=100, description="地点名称（与 location_lat/lng 配合使用，自动创建地点）")
     location_lat: Optional[float] = Field(None, ge=-90, le=90, description="纬度（与 location_name 配合使用）")
     location_lng: Optional[float] = Field(None, ge=-180, le=180, description="经度（与 location_name 配合使用）")
-    post_type_id: Optional[int] = Field(None, description="信息类型ID")
     is_anonymous: bool = Field(default=False, description="是否匿名")
     tags: Optional[List[str]] = Field(default=None, max_length=5, description="标签列表，最多5个")
     image_urls: Optional[List[str]] = Field(default=None, max_length=9, description="图片URL列表，最多9个")
@@ -110,7 +101,6 @@ class PostUpdate(BaseModel):
     content: Optional[str] = Field(None, min_length=10, max_length=5000, description="内容描述")
     category_id: Optional[int] = Field(None, description="分类ID")
     location_id: Optional[int] = Field(None, description="地点ID")
-    post_type_id: Optional[int] = Field(None, description="信息类型ID")
     is_anonymous: Optional[bool] = Field(None, description="是否匿名")
     tags: Optional[List[str]] = Field(None, max_length=5, description="标签列表")
     image_urls: Optional[List[str]] = Field(None, max_length=9, description="图片URL列表")
@@ -127,7 +117,6 @@ class PostResponse(BaseModel):
     user_id: int
     school_id: int
     category_id: int
-    post_type_id: Optional[int] = None
     location_id: Optional[int] = None
     # ORG-01: 关联官方发布主体 ID（None 表示普通用户发布）
     publisher_id: Optional[int] = None
@@ -153,7 +142,6 @@ class PostResponse(BaseModel):
     author: Optional[UserBrief] = None
     category: Optional[CategoryBrief] = None
     location: Optional[LocationBrief] = None
-    post_type: Optional[PostTypeBrief] = None
     tags: Optional[List[TagBrief]] = Field(default=None, description="标签列表")
     images: Optional[List[PostImageBrief]] = Field(default=None, description="图片列表")
 
