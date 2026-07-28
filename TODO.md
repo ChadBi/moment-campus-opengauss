@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-28（全功能 E2E 测试完成：74 场景 72 PASS / 2 FAIL / 97.3% + 后端 935 passed / 17 skipped / 0 failed + 前端 build 通过 + 244 张截图）
+> 最后更新：2026-07-28（E2E 测试反馈四项修复完成：2.2.5 按钮遮挡 + 3.8 分类核查 + 限流倍率 + verify_governance 重写；后端 938 passed / 79 skipped / 0 failed + 前端 build 通过 + MCP 浏览器 E2E 验证 PASS）
 
 ## 状态总览
 
@@ -39,6 +39,18 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### E2E 测试反馈四项修复（2026-07-28 完成）
+
+针对《全功能 E2E 测试任务报告》中暴露的 4 项遗留问题进行修复，全部完成并通过验证。
+
+- [x] 2.2.5 PostForm 提交审核按钮被底部导航遮挡：`PostForm.tsx` 的 `submitRow` 添加 `relative z-40 pb-24 md:pb-2`（移动端 96px 底部留白 + z-40 高于 MobileNav 的 z-30）；panel 变体同步加 `z-40 + pb-6 md:pb-1`
+- [x] 3.8 分类名称核查：`seed_data.py` 确认名称为「分享吐槽」与测试期望一致；AdminCategoriesPage `PAGE_SIZE=20` 足以容纳 5 类；测试 FAIL 根因为 `browser_evaluate` 时序问题（未等表格渲染）
+- [x] 后端登录限流优化：`middleware.py` 新增 `_is_production_env()` + `_get_rate_limit_multiplier()`，非生产环境倍率 ×4（登录 5→20/60s，发布 20→80/60s，AI 搜索 10→40/60s）；生产环境保持严格限流；新增 2 个单元测试验证倍率逻辑
+- [x] verify_governance.py 脚本更新：确认 `PostChangeReport` 模型在 Task 1.1 已删除；重写脚本移除 `/change-reports` 与 `/governance/reports/{id}` 端点测试；保留 2 类互斥投票 + governance 聚合字段验证
+- [x] 任务报告：[AIwork/E2E测试反馈四项修复_任务报告.md](AIwork/E2E测试反馈四项修复_任务报告.md)
+
+**验证结果**：后端 938 passed / 79 skipped / 0 failed（804.83s）；前端 build 通过（1.42s）；MCP 浏览器 E2E 验证 PASS（移动端视口下按钮可见、可点击、提交后跳转 /profile + 成功 Toast）
 
 ### 全功能 E2E 测试：覆盖所有页面与功能点（2026-07-28 完成）
 

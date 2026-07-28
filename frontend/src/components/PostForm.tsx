@@ -195,7 +195,8 @@ function getVariantStyles(variant: 'page' | 'panel') {
       catChipActive: 'bg-lake text-white shadow-lake',
       catChipInactive: 'bg-mist text-ink-sub hover:bg-line',
       typeChip: 'px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all',
-      submitRow: 'flex flex-col gap-2 pt-1',
+      // 2.2.5 修复：panel 侧滑面板内按钮也需高于 MobileNav（z-30）以防被遮挡
+      submitRow: 'flex flex-col gap-2 pt-1 relative z-40 pb-6 md:pb-1',
       draftFull: true,
     };
   }
@@ -210,7 +211,9 @@ function getVariantStyles(variant: 'page' | 'panel') {
     catChipActive: 'bg-lake text-white shadow-sm',
     catChipInactive: 'bg-paper-hover text-ink-sub hover:bg-line',
     typeChip: 'px-3 py-1.5 rounded-[10px] text-xs font-medium transition-all',
-    submitRow: 'flex gap-2 pt-2',
+    // 2.2.5 修复：提交审核按钮容器添加 padding-bottom: 96px（仅移动端）
+    //   + relative z-40（高于 MobileNav 的 z-30），确保按钮不被底部固定导航栏遮挡
+    submitRow: 'flex gap-2 pt-2 relative z-40 pb-24 md:pb-2',
     submitFlex: '1',
     draftFull: false,
   };

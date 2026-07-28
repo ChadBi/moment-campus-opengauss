@@ -31,6 +31,23 @@ def _is_test_env() -> bool:
     return bool(os.environ.get("TEST_DATABASE_URL"))
 
 
+def _is_production_env() -> bool:
+    """检测是否在生产环境（APP_ENV=production）
+
+    非生产环境（默认 opengauss，包含 dev / demo / seed / pytest）放宽限流 4 倍：
+    - 登录 5 → 20 次/60 秒（避免 API 验证脚本 verify_*.py 频繁登录触发 429）
+    - 注册 5 → 20 次/60 秒
+    - 发布 / 评论 20 → 80 次/60 秒
+    - AI 搜索 / AI 建议 10 → 40 次/60 秒
+    """
+    return os.environ.get("APP_ENV", "opengauss") == "production"
+
+
+def _get_rate_limit_multiplier() -> int:
+    """获取限流倍率（生产=1，非生产=4）"""
+    return 1 if _is_production_env() else 4
+
+
 # ============================================================
 # FND-03.5.1: 请求 ID 中间件
 # ============================================================
@@ -121,6 +138,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         max_req, window = rule
+        # 非生产环境放宽限流（dev / demo / seed / pytest 等）：倍率 ×4
+        # - 登录 5 → 20 次/60 秒，避免 verify_*.py 脚本频繁登录触发 429
+        max_req = max_req * _get_rate_limit_multiplier()
         client_ip = _get_client_ip(request)
         key = (client_ip, path)
 

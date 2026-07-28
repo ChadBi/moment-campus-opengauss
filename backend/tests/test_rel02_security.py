@@ -499,6 +499,35 @@ class TestRateLimitLogic:
             rule = _match_rate_limit_rule(path, "POST")
             assert rule is not None, f"路径 {path} 缺少限流规则"
 
+    def test_rate_limit_multiplier_non_production(self, monkeypatch):
+        """非生产环境（APP_ENV != production）限流倍率应为 4
+
+        场景：开发 / 测试 / 演示环境运行 verify_*.py API 验证脚本时，
+        登录端点 5/60s → 20/60s，避免频繁触发 429。
+        """
+        from app.middleware import _get_rate_limit_multiplier, _is_production_env
+
+        # 默认 APP_ENV=opengauss → 非生产 → 倍率 4
+        monkeypatch.delenv("APP_ENV", raising=False)
+        assert _is_production_env() is False
+        assert _get_rate_limit_multiplier() == 4
+
+        # 显式 APP_ENV=opengauss → 非生产 → 倍率 4
+        monkeypatch.setenv("APP_ENV", "opengauss")
+        assert _is_production_env() is False
+        assert _get_rate_limit_multiplier() == 4
+
+    def test_rate_limit_multiplier_production(self, monkeypatch):
+        """生产环境（APP_ENV=production）限流倍率应为 1
+
+        场景：生产部署保持严格限流（登录 5/60s 防爆破）。
+        """
+        from app.middleware import _get_rate_limit_multiplier, _is_production_env
+
+        monkeypatch.setenv("APP_ENV", "production")
+        assert _is_production_env() is True
+        assert _get_rate_limit_multiplier() == 1
+
 
 # ============================================================
 # 日志脱敏单元测试
