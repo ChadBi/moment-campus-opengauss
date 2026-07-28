@@ -145,6 +145,32 @@ async def test_create_post_authenticated(client: AsyncClient, auth_headers: dict
 
 
 @pytest.mark.asyncio
+async def test_create_post_without_location(
+    client: AsyncClient, auth_headers: dict, test_category: dict
+):
+    """Task 2.1: 验证不传 location_id / location_name / lat / lng 也能成功创建 Post。
+
+    地点应为可选字段——无地点的帖子（如纯文字吐槽）应能正常创建并审核。
+    """
+    response = await client.post(
+        "/api/v1/posts",
+        json={
+            "title": "无地点帖子测试",
+            "content": "这是一条没有关联地点的帖子，至少十个字符",
+            "category_id": test_category["id"],
+            # 不传 location_id / location_name / location_lat / location_lng
+        },
+        headers=auth_headers,
+    )
+    assert response.status_code == 201, response.text
+    data = response.json()
+    # location_id 应为 None（Post 模型字段允许 NULL）
+    assert data["location_id"] is None
+    # location 关联对象也应为 None
+    assert data.get("location") is None
+
+
+@pytest.mark.asyncio
 async def test_create_post_unauthenticated(client: AsyncClient, test_category: dict):
     """Test creating a post without authentication returns 401."""
     response = await client.post(
