@@ -12,6 +12,19 @@ export default defineConfig({
       '@': path.resolve(rootDir, './src'),
     },
   },
+  server: {
+    // 代理 API 请求到后端，避免浏览器跨域问题（MCP 浏览器测试时尤为重要）
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     // P2-001: 拆分大依赖到独立 chunk，避免单个 chunk 超 500KB 警告
     // MapPage 由 1043KB 降至约 30KB（仅业务代码），maplibre-gl 单独成 chunk
