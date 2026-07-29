@@ -7,6 +7,15 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [Unreleased] - 2026-07-29
+
+### 地图缩放漂移彻底修复
+
+- `MapPage.tsx` marker 容器添加 `transition: none` 内联样式 + Marker 构造参数 `subpixelPositioning: true`
+- `index.css` 新增 `.maplibregl-marker` 与 `.maplibregl-canvas-container` 全局 CSS 覆盖，禁用所有 transition/animation
+- `MapLocationPicker.tsx` Picker 组件 Marker 同步添加 `subpixelPositioning: true`
+- MCP 浏览器 E2E 验证：13 个 marker 缩放前后位置稳定，39 个 DOM 元素 0 CSS transition 违规
+
 ## [Unreleased] - 2026-07-26
 
 ### 阶段四+五：性能优化与质量收尾

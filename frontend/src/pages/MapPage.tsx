@@ -180,10 +180,9 @@ const MapPage: React.FC = () => {
 
         const el = document.createElement('div');
         el.className = 'custom-marker';
-        // ACC-01.4: 统一单帖与多帖 CSS（都加 position: relative），避免定位行为不一致
         el.style.cssText = isGrouped
-          ? 'width: 36px; height: 36px; cursor: pointer; position: relative;'
-          : 'width: 28px; height: 28px; cursor: pointer; position: relative;';
+          ? 'width: 36px; height: 36px; cursor: pointer; position: relative; transition: none;'
+          : 'width: 28px; height: 28px; cursor: pointer; position: relative; transition: none;';
 
         // 内层水滴形 pin
         // ACC-01.4: 移除 transition: transform 0.2s，避免缩放时干扰 maplibre 定位更新
@@ -226,8 +225,7 @@ const MapPage: React.FC = () => {
           pin.style.transform = 'rotate(-45deg) scale(1)';
         });
 
-        // ACC-01.4: anchor='bottom' 让水滴形 pin 的尖端对齐坐标点，缩放时不偏移
-        const markerInstance = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        const markerInstance = new maplibregl.Marker({ element: el, anchor: 'bottom', subpixelPositioning: true })
           .setLngLat([first.longitude, first.latitude])
           .addTo(map.current!);
 

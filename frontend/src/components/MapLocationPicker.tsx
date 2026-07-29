@@ -146,9 +146,8 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     };
     map.getContainer().addEventListener('wheel', wheelListener, { passive: false });
 
-    // 初始 marker（若有 initialLat/Lng）
     if (initialLat != null && initialLng != null) {
-      const m = new maplibregl.Marker({ draggable: false })
+      const m = new maplibregl.Marker({ draggable: false, subpixelPositioning: true })
         .setLngLat([initialLng, initialLat])
         .addTo(map);
       markerRef.current = m;
@@ -166,8 +165,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
         if (markerRef.current) {
           markerRef.current.remove();
         }
-        // 添加新 marker
-        const m = new maplibregl.Marker({ draggable: false })
+        const m = new maplibregl.Marker({ draggable: false, subpixelPositioning: true })
           .setLngLat([lng, lat])
           .addTo(map);
         markerRef.current = m;

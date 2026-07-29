@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-29（五项问题修复与注册全链路 E2E：onboarding_completed 后端持久化 + super_admin 学校切换放行 + 地图 marker CSS 三件套修复 + 单/多帖侧滑面板统一 + seed 分类码修复 + 8 用例 E2E 全 PASS）
+> 最后更新：2026-07-29（六项问题修复与注册全链路 E2E：onboarding_completed 后端持久化 + super_admin 学校切换放行 + 地图 marker CSS 三件套修复 + 地图缩放漂移彻底修复 + 单/多帖侧滑面板统一 + seed 分类码修复 + 8 用例 E2E 全 PASS）
 
 ## 状态总览
 
@@ -40,26 +40,27 @@
 
 ## 已完成
 
-### 五项问题修复与注册全链路 E2E（2026-07-29 完成）
+### 六项问题修复与注册全链路 E2E（2026-07-29 完成）
 
-依据用户反馈的 5 项问题，完成 onboarding 后端持久化、super_admin 学校切换放行、地图 marker CSS 修复、单/多帖侧滑面板统一、seed 分类码修复，并使用 MCP 浏览器跑通注册→教程→发布→审核→首页可见全链路 E2E（8 用例全 PASS）。
+依据用户反馈的 6 项问题，完成 onboarding 后端持久化、super_admin 学校切换放行、地图 marker CSS 修复、地图缩放漂移彻底修复、单/多帖侧滑面板统一、seed 分类码修复，并使用 MCP 浏览器跑通注册→教程→发布→审核→首页可见全链路 E2E（8 用例全 PASS）。
 
 - [x] 问题 1 复旦帖子数修复：seed_data.py 中 FUDAN_POSTS/ZJU_POSTS 旧分类码（food/study/event 等）替换为统一分类码（share/teamup/trade/lost_found/other）；重跑后 fudan=25 / zju=25 / jiangnan=36
 - [x] 问题 2 浙大切换失败修复：useSchoolSync.ts super_admin 跳过 ensureValidSchool + useSwitchSchool 普通用户校验 membership 无权限提示
 - [x] 问题 3 地图缩放标记漂移修复：MapPage.tsx marker CSS 三件套——anchor='bottom' + transition='none' + position='relative' 统一单帖/多帖
 - [x] 问题 4 教程每次登录显示修复：后端 User.onboarding_completed 字段 + alembic migration b7c8d9e0f1a2 + PUT /me/onboarding 端点 + 前端 FirstUseGuide 改读后端字段 + seed 账号设 true
 - [x] 问题 5 单帖/多帖侧滑面板统一：移除单帖完整详情视图，统一为预览卡片列表（单帖 posts=[m] 复用多帖渲染）
+- [x] 问题 6 地图缩放漂移彻底修复：marker 容器 `transition: none` 内联样式 + `subpixelPositioning: true` 精准亚像素定位 + index.css 全局覆盖 `.maplibregl-marker` 与 `.maplibregl-canvas-container` 禁用 transition/animation；MCP 浏览器 E2E 验证 13 marker 缩放前后位置稳定，0 个 CSS transition 违规
 - [x] 注册全链路 E2E 8 用例（MCP 浏览器）全 PASS：
   - TC-01 注册新用户→教程弹出→完成 PASS（用户 id=27，onboarding_completed=True）
   - TC-02 新用户登录→教程不弹出 PASS
   - TC-03 新用户发布→管理员审核通过→首页可见 PASS（帖子 id=86 pending→published）
   - TC-04 super_admin 切换三校 PASS（jiangnan→zju→fudan）
   - TC-05 普通用户切换无权限学校 PASS（user1 zju 拒绝保持 jiangnan；fudan 放行）
-  - TC-06 地图缩放稳定性 PASS（anchor=bottom + transition=none + position=relative）
+  - TC-06 地图缩放稳定性 PASS（anchor=bottom + transition=none + position=relative + subpixelPositioning + 全局 CSS 覆盖）
   - TC-07 地图单帖/多帖侧滑面板统一 PASS（均为预览卡片）
   - TC-08 复旦/浙大帖子数量 PASS（fudan=25 / zju=25 / jiangnan=36）
 - [x] CORS 新增 5175 端口（config.py + .env.opengauss）
-- [x] AIwork 任务报告：`AIwork/五项问题修复与注册全链路E2E_任务报告.md`
+- [x] AIwork 任务报告：`AIwork/六项问题修复与注册全链路E2E_任务报告.md`
 
 ### 后续完善与 E2E 回归测试（2026-07-29 完成）
 

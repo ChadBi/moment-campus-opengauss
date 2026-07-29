@@ -247,3 +247,16 @@ img {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* === 地图 Marker 修复：禁用所有 transition/transform 动画，防止缩放漂移 === */
+.maplibregl-marker,
+.maplibregl-marker * {
+  transition: none !important;
+  animation: none !important;
+  will-change: transform;
+}
+
+.maplibregl-canvas-container,
+.maplibregl-canvas-container * {
+  transition: none !important;
+}
