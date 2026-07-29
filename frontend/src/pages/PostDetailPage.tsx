@@ -133,9 +133,9 @@ const PostDetailPage: React.FC = () => {
   // 当前学校 code（用于构造分享 URL 含 school_code）
   const currentSchoolCode = useCampusStore((s) => s.currentSchoolCode);
 
-  const loadPost = async () => {
+  const loadPost = async (skipViewCount = false) => {
     try {
-      const response = await postsApi.getPost(Number(id));
+      const response = await postsApi.getPost(Number(id), !skipViewCount);
       setPost(response as Post);
     } catch (error) {
       logger.error('加载帖子失败:', error);
@@ -191,7 +191,7 @@ const PostDetailPage: React.FC = () => {
       } else {
         setToast({ message: '验证已提交', type: 'success' });
       }
-      void loadPost();
+      void loadPost(true);
     } catch {
       setToast({ message: '验证失败', type: 'error' });
     }
@@ -203,8 +203,13 @@ const PostDetailPage: React.FC = () => {
       return;
     }
     try {
-      await interactionsApi.likePost(Number(id));
-      void loadPost();
+      const resp = await interactionsApi.likePost(Number(id));
+      setPost((prev) => (prev ? {
+        ...prev,
+        like_count: resp.like_count,
+        is_liked: resp.is_liked,
+      } : prev));
+      setToast({ message: resp.is_liked ? '点赞成功' : '已取消点赞', type: 'success' });
     } catch {
       setToast({ message: '操作失败', type: 'error' });
     }
@@ -225,7 +230,7 @@ const PostDetailPage: React.FC = () => {
       await commentsApi.createComment(Number(id), commentText);
       setCommentText('');
       void loadComments();
-      void loadPost();
+      setPost((prev) => (prev ? { ...prev, comment_count: prev.comment_count + 1 } : prev));
       setToast({ message: '评论成功', type: 'success' });
     } catch {
       setToast({ message: '评论失败', type: 'error' });
@@ -255,7 +260,7 @@ const PostDetailPage: React.FC = () => {
       setReplyText('');
       setReplyTarget(null);
       void loadComments();
-      void loadPost();
+      setPost((prev) => (prev ? { ...prev, comment_count: prev.comment_count + 1 } : prev));
       setToast({ message: '回复成功', type: 'success' });
     } catch {
       setToast({ message: '回复失败', type: 'error' });
@@ -265,6 +270,7 @@ const PostDetailPage: React.FC = () => {
   };
 
   const handleReport = async () => {
+    if (reporting) return;
     if (!isAuthenticated) {
       setToast({ message: '请先登录后再举报', type: 'warning' });
       return;

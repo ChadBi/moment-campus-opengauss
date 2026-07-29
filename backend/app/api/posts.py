@@ -208,11 +208,12 @@ async def get_posts(
 @router.get("/{post_id}", response_model=PostResponse, summary="获取信息详情")
 async def get_post(
     post_id: int,
+    increment_view: bool = Query(default=True, description="是否增加浏览次数（操作类刷新传 false）"),
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """获取信息详情，增加浏览次数
+    """获取信息详情，支持可选增加浏览次数
 
     FND-03.1 可见性策略（由 can_view_post 集中判断）：
         - 公开访问（游客/非作者）：仅 published / expired 可见
@@ -221,6 +222,8 @@ async def get_post(
         - 草稿/待审/归档/冲突 帖子对无权限用户返回 404（不泄露存在性）
 
     TEN-02.3：跨校对象统一返回 404（不返回 403 以免泄露存在性）
+
+    increment_view=False 用于点赞/评论/验证等操作后的刷新，避免虚增浏览量。
     """
     # 查询信息（含已软删除，由 can_view_post 统一判断）
     query = select(Post).where(Post.id == post_id)
@@ -244,12 +247,13 @@ async def get_post(
     if not can_view_post(post, current_user):
         raise NotFoundException(detail="信息不存在")
 
-    # 增加浏览次数（仅在可见时才计入）
-    post.view_count += 1
+    # 增加浏览次数（仅在可见时才计入；操作类刷新传 increment_view=False 以避免虚增）
+    if increment_view:
+        post.view_count += 1
 
     # PRF-01.3: 登录用户记录浏览历史（按当前学校隔离）
     # 同一用户在同一学校对同一帖子只保留一条记录，更新 viewed_at
-    if current_user is not None:
+    if current_user is not None and increment_view:
         now_ts = datetime.now()
         existing = (
             await db.execute(
@@ -274,7 +278,8 @@ async def get_post(
             )
 
     await db.commit()
-    await db.refresh(post, attribute_names=["view_count"])
+    if increment_view:
+        await db.refresh(post, attribute_names=["view_count"])
 
     # 检查当前用户是否点赞
     is_liked = False

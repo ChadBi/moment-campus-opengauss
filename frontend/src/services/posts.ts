@@ -73,8 +73,10 @@ export const postsApi = {
     return response.data;
   },
 
-  getPost: async (id: number): Promise<Post> => {
-    const response = await api.get(`/posts/${id}`);
+  getPost: async (id: number, incrementView = true): Promise<Post> => {
+    const response = await api.get(`/posts/${id}`, {
+      params: incrementView ? {} : { increment_view: false },
+    });
     return response.data;
   },
 
