@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-29（MapLibre 原生图层与 GCJ-02 对齐最终验收完成：后端 919 PASS，前端 E2E 27 PASS/1 SKIP，MCP 发布→审核→证实→权限链路通过）
+> 最后更新：2026-07-29（v2.0.0 华为云部署完成：openGauss 重置+迁移+种子数据+AI Key 更新+全链路验证通过）
 
 ## 状态总览
 
@@ -207,6 +207,24 @@
 - [x] 任务报告：[AIwork/华为云混合部署更新_任务报告.md](AIwork/华为云混合部署更新_任务报告.md)
 
 **未做（可选）**：OPENAI_API_KEY 配置（AI 搜索降级不影响其他功能）；seed_data.py 重跑（现有演示数据已保留）
+
+### v2.0.0 华为云完整部署（2026-07-29 完成）
+
+将线上 `campus.chaina1.com` 部署到 v2.0.0 版本，完整替换旧版本。数据库重置，演示数据重新填充，AI API Key 更新。
+
+- [x] 本地代码提交：版本号 2.0.0（package.json）、CHANGELOG 更新、Logo 全量替换、Bug 修复（浏览量虚增、举报表单重复提交）
+- [x] 前端构建：`npm run build` 通过
+- [x] 后端上传：`backend/app/`、`backend/scripts/`、`backend/alembic/`、`backend/requirements.txt` 分 zip 打包 SCP 上传
+- [x] 前端上传：`frontend/dist/` zip 打包 SCP 上传（修复嵌套 dist/dist 目录问题）
+- [x] 数据库重置：openGauss DROP/CREATE DATABASE（`docker exec -e LD_LIBRARY_PATH` 设置环境变量）
+- [x] Alembic 迁移：全量迁移执行（含 onboarding_completed 字段、GCJ-02 坐标对齐等新迁移）
+- [x] 种子数据：三校演示数据填充成功（3 套餐 + 3 校 + 15 分类 + 36 用户 + 86 帖子 + 12 专题 + 通知/举报记录）
+- [x] 后端重启：systemd `moment-backend` 服务启动，健康检查 `{"status":"ok"}` ✅
+- [x] AI API Key 更新：`.env.opengauss` 中的新 Key 已同步到服务器 `.env.prod`
+- [x] Nginx 验证：`nginx -t` 通过，HTTPS 前端正常渲染，API 代理正常
+- [x] 浏览器验证：MCP 浏览器访问 `https://campus.chaina1.com`，首页帖子列表正常展示
+- [x] API 验证：管理员登录 `admin@momentcampus.com / pass123` 获取 token 成功
+- [x] 任务报告：[AIwork/华为云服务器v2.0.0部署任务报告.md](AIwork/华为云服务器v2.0.0部署任务报告.md)
 
 ### E2E 测试反馈四项修复（2026-07-28 完成）
 
