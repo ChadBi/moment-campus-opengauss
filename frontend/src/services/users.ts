@@ -32,6 +32,14 @@ export const usersApi = {
   updateUser: (data: { nickname?: string; bio?: string; avatar_url?: string }) =>
     api.put('/users/me', data),
 
+  /**
+   * ACC-01.4: 标记完成首次使用引导
+   * FirstUseGuide 完成/跳过时调用，后端将 onboarding_completed 设为 True
+   */
+  completeOnboarding: async (): Promise<void> => {
+    await api.put('/users/me/onboarding');
+  },
+
   uploadAvatar: (file: File) => {
     const formData = new FormData();
     formData.append('file', file);

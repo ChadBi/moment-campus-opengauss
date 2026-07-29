@@ -53,6 +53,8 @@ class UserResponse(BaseModel):
     bio: Optional[str] = None
     is_active: bool
     created_at: datetime
+    # ACC-01.4: 首次使用引导标记（前端 FirstUseGuide 据此决定是否弹出教程）
+    onboarding_completed: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

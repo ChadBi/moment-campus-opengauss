@@ -9,6 +9,8 @@ interface User {
   school_id: number;
   role: string;
   bio?: string;
+  // ACC-01.4: 首次使用引导标记（后端 User.onboarding_completed）
+  onboarding_completed?: boolean;
 }
 
 interface AuthState {
@@ -18,6 +20,8 @@ interface AuthState {
   isAuthenticated: boolean;
   setAuth: (user: User, accessToken: string, refreshToken: string) => void;
   setUser: (user: User) => void;
+  /** ACC-01.4: 局部更新 user 字段（如 onboarding_completed），不替换整个 user 对象 */
+  updateUser: (partial: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -36,6 +40,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
         }),
       setUser: (user) => set({ user }),
+      updateUser: (partial) =>
+        set((state) => (state.user ? { user: { ...state.user, ...partial } } : {})),
       logout: () =>
         set({
           user: null,

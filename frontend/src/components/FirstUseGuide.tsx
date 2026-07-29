@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCampusStore } from '../store/useCampusStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { categoriesApi } from '../services/categories';
+import { usersApi } from '../services/users';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { School as SchoolIcon, Search, Check, Tag, MapPin, ArrowRight, X } from 'lucide-react';
@@ -67,10 +68,13 @@ export const FirstUseGuide: React.FC = () => {
   );
 
   // 检查是否需要显示引导
+  // ACC-01.4: 改为读后端 user.onboarding_completed 字段
+  // - 新注册用户 onboarding_completed=false → 弹出教程
+  // - 已完成引导的用户 onboarding_completed=true → 不弹出（即使换浏览器/清缓存）
+  // - 登录不再触发教程（已注册用户的 onboarding_completed 已为 true）
   useEffect(() => {
     if (!user) return;
-    const completed = localStorage.getItem(GUIDE_STORAGE_KEY);
-    if (!completed) {
+    if (user.onboarding_completed === false) {
       // 用 microtask 延迟同步 setState，避免 react-hooks/set-state-in-effect 规则告警
       void Promise.resolve().then(() => setOpen(true));
     }
@@ -97,13 +101,25 @@ export const FirstUseGuide: React.FC = () => {
     });
   }, [currentSchoolId, open]);
 
-  const handleSkip = () => {
-    localStorage.setItem(GUIDE_STORAGE_KEY, new Date().toISOString());
+  const handleSkip = async () => {
+    // ACC-01.4: 跳过也标记后端 onboarding_completed=true，避免再次弹出
+    try {
+      await usersApi.completeOnboarding();
+      useAuthStore.getState().updateUser({ onboarding_completed: true });
+    } catch {
+      // API 失败时仍关闭弹窗，避免阻塞用户
+    }
     setOpen(false);
   };
 
-  const handleComplete = () => {
-    localStorage.setItem(GUIDE_STORAGE_KEY, new Date().toISOString());
+  const handleComplete = async () => {
+    // ACC-01.4: 完成引导，标记后端 onboarding_completed=true
+    try {
+      await usersApi.completeOnboarding();
+      useAuthStore.getState().updateUser({ onboarding_completed: true });
+    } catch {
+      // API 失败时仍关闭弹窗，避免阻塞用户
+    }
     setOpen(false);
   };
 

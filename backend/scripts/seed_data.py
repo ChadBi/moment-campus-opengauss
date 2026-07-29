@@ -1049,53 +1049,53 @@ def _build_demo_post(title, content, category_code, location_name, user_email,
 FUDAN_POSTS = [
     _build_demo_post(
         "本部食堂二楼麻辣香锅推荐", "本部食堂二楼麻辣香锅，荤素自选，14元/份，加饭免费。",
-        "food", "本部食堂", "fudan_user3@example.com", 234, 18, True,
+        "share", "本部食堂", "fudan_user3@example.com", 234, 18, True,
         comments=[{"user_email": "fudan_user1@example.com", "content": "昨天去吃了，确实不错", "likes": 3}],
         validations=[{"user_email": "fudan_user1@example.com", "type": "confirmation", "comment": "亲测好吃"}]
     ),
     _build_demo_post(
         "南区食堂早餐豆浆油条测评", "南区食堂早餐豆浆1元油条1.5元，性价比之王。",
-        "food", "南区食堂", "fudan_user3@example.com", 156, 12
+        "share", "南区食堂", "fudan_user3@example.com", 156, 12
     ),
     _build_demo_post(
         "文科图书馆开放时间汇总", "文科图书馆周一到周日 8:00-22:00，期末延长到23:00。",
-        "study", "文科图书馆", "fudan_user1@example.com", 432, 34, True,
+        "teamup", "文科图书馆", "fudan_user1@example.com", 432, 34, True,
         comments=[{"user_email": "fudan_user2@example.com", "content": "期末占座要早7点去", "likes": 5}]
     ),
     _build_demo_post(
         "光华楼自习室预约指南", "光华楼3-5层自习室需提前1天预约，扫码签到。",
-        "study", "光华楼", "fudan_user2@example.com", 289, 22,
+        "teamup", "光华楼", "fudan_user2@example.com", 289, 22,
         comments=[{"user_email": "fudan_user1@example.com", "content": "预约系统经常卡", "likes": 2}]
     ),
     _build_demo_post(
         "相辉堂周五话剧《雷雨》演出", "本周五晚7点相辉堂话剧社演《雷雨》，免费入场。",
-        "event", "相辉堂", "fudan_user4@example.com", 367, 28, True,
+        "teamup", "相辉堂", "fudan_user4@example.com", 367, 28, True,
         comments=[{"user_email": "fudan_user3@example.com", "content": "期待！必须去", "likes": 4}],
         validations=[{"user_email": "fudan_user3@example.com", "type": "confirmation", "comment": "看完了，演技在线"}]
     ),
     _build_demo_post(
         "学生活动中心街舞社招新", "本周一到周五中午学生活动中心一楼街舞社招新。",
-        "event", "学生活动中心", "fudan_user4@example.com", 298, 21
+        "teamup", "学生活动中心", "fudan_user4@example.com", 298, 21
     ),
     _build_demo_post(
         "复旦大讲堂：人工智能伦理", "下周三晚7点光华楼报告厅，清华教授讲AI伦理。",
-        "event", "光华楼", "fudan_user1@example.com", 412, 35, True
+        "teamup", "光华楼", "fudan_user1@example.com", 412, 35, True
     ),
     _build_demo_post(
         "南区快递点高峰时段提醒", "南区快递点工作日饭点排队30分钟+，建议错峰。",
-        "service", "南区学生公寓", "fudan_user3@example.com", 198, 14
+        "other", "南区学生公寓", "fudan_user3@example.com", 198, 14
     ),
     _build_demo_post(
         "南区学生公寓洗衣机使用规则", "南区公寓每层4台洗衣机，3元/次，禁洗鞋。",
-        "service", "南区学生公寓", "fudan_user5@example.com", 167, 9
+        "other", "南区学生公寓", "fudan_user5@example.com", 167, 9
     ),
     _build_demo_post(
         "邯郸路校门到地铁10号线攻略", "邯郸路校门步行8分钟到地铁10号线国权路站。",
-        "transport", "邯郸路校门", "fudan_user5@example.com", 312, 18
+        "other", "邯郸路校门", "fudan_user5@example.com", 312, 18
     ),
     _build_demo_post(
         "本部体育场夜跑照明维修通知", "本部体育场东侧照明维修中，建议西侧跑道。",
-        "transport", "本部体育场", "fudan_user5@example.com", 145, 7,
+        "other", "本部体育场", "fudan_user5@example.com", 145, 7,
         validations=[{"user_email": "fudan_user1@example.com", "type": "refutation", "comment": "今天看修好了"}]
     ),
     _build_demo_post(
@@ -1108,11 +1108,11 @@ FUDAN_POSTS = [
     ),
     _build_demo_post(
         "邯郸路校门外咖啡店招兼职", "邯郸路校门外星巴克招兼职，时薪20元。",
-        "job", "邯郸路校门", "fudan_user2@example.com", 367, 22
+        "other", "邯郸路校门", "fudan_user2@example.com", 367, 22
     ),
     _build_demo_post(
         "接高数家教", "数学系大三接高数家教，80元/次，图书馆面授。",
-        "job", "文科图书馆", "fudan_user1@example.com", 289, 14
+        "other", "文科图书馆", "fudan_user1@example.com", 289, 14
     ),
     _build_demo_post(
         "燕园春季樱花观赏指南", "燕园樱花3月底盛开，建议工作日去，周末人爆满。",
@@ -1122,43 +1122,43 @@ FUDAN_POSTS = [
     # 补充 4 条 published 帖子，确保已发布帖 ≥20
     _build_demo_post(
         "南区学生公寓空调使用须知", "南区公寓空调为集中式，遥控器需在宿管处押金借用，电费另算。",
-        "service", "南区学生公寓", "fudan_user5@example.com", 178, 11
+        "other", "南区学生公寓", "fudan_user5@example.com", 178, 11
     ),
     _build_demo_post(
         "本部体育场足球场预约规则", "本部体育场足球场需提前2天预约，每场2小时，免费。",
-        "transport", "本部体育场", "fudan_user5@example.com", 234, 14,
+        "other", "本部体育场", "fudan_user5@example.com", 234, 14,
         comments=[{"user_email": "fudan_user1@example.com", "content": "周末基本约不到", "likes": 3}]
     ),
     _build_demo_post(
         "文科图书馆期末延长开放通知", "期末期间文科图书馆延长至24:00，需刷校园卡入馆。",
-        "study", "文科图书馆", "fudan_user1@example.com", 412, 31, True,
+        "teamup", "文科图书馆", "fudan_user1@example.com", 412, 31, True,
         comments=[{"user_email": "fudan_user2@example.com", "content": "终于不用挤理科馆了", "likes": 4}]
     ),
     _build_demo_post(
         "邯郸路校门周边早餐车汇总", "邯郸路校门外3个早餐车，5-9点营业，煎饼果子5元最推荐。",
-        "food", "邯郸路校门", "fudan_user3@example.com", 289, 19,
+        "share", "邯郸路校门", "fudan_user3@example.com", 289, 19,
         validations=[{"user_email": "fudan_user1@example.com", "type": "confirmation", "comment": "煎饼果子确实好吃"}]
     ),
     # 6 态样本
     _build_demo_post(
         "【草稿】本部食堂新菜测评（草稿中）", "正在整理本部食堂新菜测评，待完善后发布。",
-        "food", "本部食堂", "fudan_user3@example.com", 0, 0, status="draft"
+        "share", "本部食堂", "fudan_user3@example.com", 0, 0, status="draft"
     ),
     _build_demo_post(
         "【待审核】光华楼讲座通知", "下周光华楼讲座通知，等待管理员审核。",
-        "event", "光华楼", "fudan_user1@example.com", 0, 0, status="pending"
+        "teamup", "光华楼", "fudan_user1@example.com", 0, 0, status="pending"
     ),
     _build_demo_post(
         "【已过期】上学期期末复习资料", "上学期期末复习资料，已过期归档。",
-        "study", "文科图书馆", "fudan_user2@example.com", 134, 6, status="expired"
+        "teamup", "文科图书馆", "fudan_user2@example.com", 134, 6, status="expired"
     ),
     _build_demo_post(
         "【冲突】食堂价格争议帖", "本帖价格信息与其他帖子冲突，待处理。",
-        "food", "本部食堂", "fudan_user3@example.com", 67, 2, status="conflict"
+        "share", "本部食堂", "fudan_user3@example.com", 67, 2, status="conflict"
     ),
     _build_demo_post(
         "【已归档】已结束的招新通知", "该招新活动已结束，归档保存。",
-        "event", "学生活动中心", "fudan_user4@example.com", 198, 11, status="archived"
+        "teamup", "学生活动中心", "fudan_user4@example.com", 198, 11, status="archived"
     ),
 ]
 
@@ -1166,60 +1166,60 @@ FUDAN_POSTS = [
 ZJU_POSTS = [
     _build_demo_post(
         "西区食堂二楼麻辣香锅推荐", "西区食堂二楼麻辣香锅，13元/份，量足味正。",
-        "food", "西区食堂", "zju_user3@example.com", 256, 19, True,
+        "share", "西区食堂", "zju_user3@example.com", 256, 19, True,
         comments=[{"user_email": "zju_user1@example.com", "content": "经常去，确实不错", "likes": 3}],
         validations=[{"user_email": "zju_user1@example.com", "type": "confirmation", "comment": "亲测好吃"}]
     ),
     _build_demo_post(
         "东区食堂早餐小笼包测评", "东区食堂早餐小笼包6元8个，皮薄馅多。",
-        "food", "东区食堂", "zju_user3@example.com", 178, 13
+        "share", "东区食堂", "zju_user3@example.com", 178, 13
     ),
     _build_demo_post(
         "紫金港图书馆开放时间汇总", "图书馆周一到周日 8:00-22:30，期末延长到23:30。",
-        "study", "图书馆", "zju_user4@example.com", 478, 38, True,
+        "teamup", "图书馆", "zju_user4@example.com", 478, 38, True,
         comments=[{"user_email": "zju_user1@example.com", "content": "期末必须早6:30去排队", "likes": 6}]
     ),
     _build_demo_post(
         "图书馆三楼自习室预约规则", "图书馆三楼需预约，签到制，违约3次扣信用分。",
-        "study", "图书馆", "zju_user4@example.com", 312, 24
+        "teamup", "图书馆", "zju_user4@example.com", 312, 24
     ),
     _build_demo_post(
         "学生活动中心话剧社演出", "本周末学生活动中心话剧社演《茶馆》，免费入场。",
-        "event", "学生活动中心", "zju_user3@example.com", 345, 27, True,
+        "teamup", "学生活动中心", "zju_user3@example.com", 345, 27, True,
         validations=[{"user_email": "zju_user1@example.com", "type": "confirmation", "comment": "看完了，超棒"}]
     ),
     _build_demo_post(
         "紫金港ACM集训队招新", "面向全校招新，每周10小时训练，简历发 acm@zju.edu.cn。",
-        "event", "教学楼群", "zju_user1@example.com", 398, 31, True
+        "teamup", "教学楼群", "zju_user1@example.com", 398, 31, True
     ),
     _build_demo_post(
         "浙大讲堂：量子计算前沿", "下周三晚7点图书馆报告厅，院士讲座量子计算。",
-        "event", "图书馆", "zju_user4@example.com", 456, 36, True
+        "teamup", "图书馆", "zju_user4@example.com", 456, 36, True
     ),
     _build_demo_post(
         "快递服务中心取件高峰提醒", "快递中心工作日饭点排队30分钟，建议错峰。",
-        "service", "快递服务中心", "zju_user3@example.com", 198, 14
+        "other", "快递服务中心", "zju_user3@example.com", 198, 14
     ),
     _build_demo_post(
         "学生公寓洗衣机使用规则", "学生公寓每层4台洗衣机，3元/次，禁洗鞋。",
-        "service", "学生公寓", "zju_user5@example.com", 167, 9
+        "other", "学生公寓", "zju_user5@example.com", 167, 9
     ),
     _build_demo_post(
         "紫金港校门到地铁5号线攻略", "紫金港校门步行10分钟到地铁5号线浙大紫金港站。",
-        "transport", "紫金港校门", "zju_user5@example.com", 289, 16
+        "other", "紫金港校门", "zju_user5@example.com", 289, 16
     ),
     _build_demo_post(
         "校车冬季时刻表更新", "校车冬季首发延后30分钟，末班不变。",
-        "transport", "紫金港校门", "zju_user1@example.com", 312, 15
+        "other", "紫金港校门", "zju_user1@example.com", 312, 15
     ),
     _build_demo_post(
         "体育馆游泳馆开放时间", "游泳馆周一到周五16:00-21:00，学期卡300元。",
-        "facility", "体育馆", "zju_user5@example.com", 234, 12,
+        "other", "体育馆", "zju_user5@example.com", 234, 12,
         validations=[{"user_email": "zju_user1@example.com", "type": "confirmation", "comment": "学期卡已办"}]
     ),
     _build_demo_post(
         "田径场照明维修通知", "田径场东侧照明维修，建议西侧跑道。",
-        "facility", "田径场", "zju_user5@example.com", 134, 6,
+        "other", "田径场", "zju_user5@example.com", 134, 6,
         validations=[{"user_email": "zju_user1@example.com", "type": "refutation", "comment": "已修好"}]
     ),
     _build_demo_post(
@@ -1228,53 +1228,53 @@ ZJU_POSTS = [
     ),
     _build_demo_post(
         "启真湖黑天鹅孵化幼崽", "启真湖黑天鹅带3只小天鹅，保持5米距离观赏。",
-        "animal", "启真湖", "zju_user2@example.com", 478, 38, True,
+        "share", "启真湖", "zju_user2@example.com", 478, 38, True,
         validations=[{"user_email": "zju_user1@example.com", "type": "confirmation", "comment": "亲眼所见"}]
     ),
     _build_demo_post(
         "校园流浪猫喂食指南", "校园流浪猫请用专门猫粮，禁喂人类食物。",
-        "animal", "学生公寓", "zju_user2@example.com", 312, 24
+        "share", "学生公寓", "zju_user2@example.com", 312, 24
     ),
     # 补充 4 条 published 帖子，确保已发布帖 ≥20
     _build_demo_post(
         "启真湖晨跑路线推荐", "启真湖一圈约2.5公里，早晨6-7点人少风景好，适合晨跑。",
-        "facility", "启真湖", "zju_user5@example.com", 267, 21, True,
+        "other", "启真湖", "zju_user5@example.com", 267, 21, True,
         comments=[{"user_email": "zju_user1@example.com", "content": "亲测2.6公里，很准", "likes": 4}]
     ),
     _build_demo_post(
         "学生公寓快递代收点汇总", "学生公寓1号楼下快递柜+菜鸟驿站，顺丰在校门口。",
-        "service", "学生公寓", "zju_user3@example.com", 298, 17
+        "other", "学生公寓", "zju_user3@example.com", 298, 17
     ),
     _build_demo_post(
         "图书馆考研自习室预约攻略", "图书馆5楼考研自习室需预约，每周一放号，违约2次拉黑。",
-        "study", "图书馆", "zju_user4@example.com", 389, 28, True,
+        "teamup", "图书馆", "zju_user4@example.com", 389, 28, True,
         comments=[{"user_email": "zju_user1@example.com", "content": "周一8点抢号必崩", "likes": 6}],
         validations=[{"user_email": "zju_user1@example.com", "type": "confirmation", "comment": "违约拉黑属实"}]
     ),
     _build_demo_post(
         "紫金港校车早高峰排队提醒", "早8点校车排队30分钟+，建议提前15分钟或骑行。",
-        "transport", "紫金港校门", "zju_user5@example.com", 234, 13
+        "other", "紫金港校门", "zju_user5@example.com", 234, 13
     ),
     # 6 态样本
     _build_demo_post(
         "【草稿】西区食堂新菜测评（草稿中）", "正在整理西区食堂新菜测评，待完善后发布。",
-        "food", "西区食堂", "zju_user3@example.com", 0, 0, status="draft"
+        "share", "西区食堂", "zju_user3@example.com", 0, 0, status="draft"
     ),
     _build_demo_post(
         "【待审核】图书馆讲座通知", "下周图书馆讲座通知，等待管理员审核。",
-        "event", "图书馆", "zju_user4@example.com", 0, 0, status="pending"
+        "teamup", "图书馆", "zju_user4@example.com", 0, 0, status="pending"
     ),
     _build_demo_post(
         "【已过期】上学期期末复习资料", "上学期期末复习资料，已过期归档。",
-        "study", "图书馆", "zju_user4@example.com", 145, 7, status="expired"
+        "teamup", "图书馆", "zju_user4@example.com", 145, 7, status="expired"
     ),
     _build_demo_post(
         "【冲突】食堂价格争议帖", "本帖价格信息与其他帖子冲突，待处理。",
-        "food", "西区食堂", "zju_user3@example.com", 78, 3, status="conflict"
+        "share", "西区食堂", "zju_user3@example.com", 78, 3, status="conflict"
     ),
     _build_demo_post(
         "【已归档】已结束的招新通知", "该招新活动已结束，归档保存。",
-        "event", "学生活动中心", "zju_user3@example.com", 187, 9, status="archived"
+        "teamup", "学生活动中心", "zju_user3@example.com", 187, 9, status="archived"
     ),
 ]
 
@@ -1618,6 +1618,8 @@ async def seed_users(session: AsyncSession, schools: list):
                 role=u["role"],
                 bio=u["bio"],
                 is_active=True,
+                # ACC-01.4: 演示账号视为已完成首次使用引导，避免每次登录弹教程
+                onboarding_completed=True,
             )
             session.add(user)
             users.append(user)

@@ -56,6 +56,23 @@ async def update_user_info(
     return current_user
 
 
+@router.put("/me/onboarding", response_model=UserResponse, summary="ACC-01.4: 标记完成首次使用引导")
+async def complete_onboarding(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """标记当前用户已完成首次使用引导。
+
+    前端 FirstUseGuide 完成/跳过时调用，将 onboarding_completed 设为 True。
+    后续登录不再弹出教程（即使换浏览器/清缓存）。
+    """
+    current_user.onboarding_completed = True
+    current_user.updated_at = datetime.now()
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
 @router.post("/me/avatar", response_model=MessageResponse, summary="上传头像")
 async def upload_avatar(
     file: UploadFile = File(...),

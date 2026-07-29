@@ -36,6 +36,16 @@ class User(Base):
         nullable=True,
         comment="历史字段：用户信誉分（当前主应用不再维护）",
     )
+    # ACC-01.4: 首次使用引导标记。注册时默认 False，完成引导后设为 True。
+    # 教程只在 onboarding_completed=False 时显示（新注册用户首次登录），
+    # 登录不再触发教程（已注册用户已为 True）。
+    onboarding_completed: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        server_default="false",
+        comment="ACC-01.4: 是否已完成首次使用引导（注册后默认 False）",
+    )
 
     # 关系
     school: Mapped["School"] = relationship(back_populates="users")

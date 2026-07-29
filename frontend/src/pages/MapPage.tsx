@@ -4,7 +4,6 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Navigation, Plus, Minus, Filter, X, MapPin, ArrowRight, Edit3, AlertCircle, RefreshCw, ChevronRight } from 'lucide-react';
 import { mapApi, type MapMarker } from '../services/map';
-import { postsApi } from '../services/posts';
 import { categoriesApi, type CategoryListItem } from '../services/categories';
 import { Loading } from '../components/ui/Loading';
 import PostForm from '../components/PostForm';
@@ -131,9 +130,6 @@ const MapPage: React.FC = () => {
   const [allMarkers, setAllMarkers] = useState<MapMarker[]>([]);
   // 侧滑面板模式
   const [panel, setPanel] = useState<PanelMode>(null);
-  // 选中的帖子详情（view 模式下点击 marker 后异步加载）
-  const [postDetail, setPostDetail] = useState<{ content: string } | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
 
   // 清除地图上的标记
   const clearMarkers = useCallback(() => {
@@ -184,15 +180,17 @@ const MapPage: React.FC = () => {
 
         const el = document.createElement('div');
         el.className = 'custom-marker';
+        // ACC-01.4: 统一单帖与多帖 CSS（都加 position: relative），避免定位行为不一致
         el.style.cssText = isGrouped
           ? 'width: 36px; height: 36px; cursor: pointer; position: relative;'
-          : 'width: 28px; height: 28px; cursor: pointer;';
+          : 'width: 28px; height: 28px; cursor: pointer; position: relative;';
 
         // 内层水滴形 pin
+        // ACC-01.4: 移除 transition: transform 0.2s，避免缩放时干扰 maplibre 定位更新
         const pin = document.createElement('div');
         pin.style.cssText = isGrouped
-          ? `width: 100%; height: 100%; border-radius: 50% 50% 50% 0; background: ${color}; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.35); transition: transform 0.2s;`
-          : `width: 100%; height: 100%; border-radius: 50% 50% 50% 0; background: ${color}; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s;`;
+          ? `width: 100%; height: 100%; border-radius: 50% 50% 50% 0; background: ${color}; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.35);`
+          : `width: 100%; height: 100%; border-radius: 50% 50% 50% 0; background: ${color}; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3);`;
 
         const inner = document.createElement('div');
         if (isGrouped) {
@@ -218,15 +216,18 @@ const MapPage: React.FC = () => {
         pin.appendChild(inner);
         el.appendChild(pin);
 
-        // 悬停效果
+        // 悬停效果：通过 el.classList 控制，避免内联 transform 干扰定位
         el.addEventListener('mouseenter', () => {
+          el.style.zIndex = '10';
           pin.style.transform = `rotate(-45deg) scale(1.2)`;
         });
         el.addEventListener('mouseleave', () => {
+          el.style.zIndex = '';
           pin.style.transform = 'rotate(-45deg) scale(1)';
         });
 
-        const markerInstance = new maplibregl.Marker({ element: el })
+        // ACC-01.4: anchor='bottom' 让水滴形 pin 的尖端对齐坐标点，缩放时不偏移
+        const markerInstance = new maplibregl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat([first.longitude, first.latitude])
           .addTo(map.current!);
 
@@ -238,26 +239,13 @@ const MapPage: React.FC = () => {
             setPanel({ type: 'view', marker: first });
             // 通过 markersById 暂存聚合数据（供 Panel 渲染读取）
             groupedMarkersRef.current = markersAtLocation;
-            setPostDetail(null);
-            setDetailLoading(true);
-            postsApi
-              .getPost(first.post_id)
-              .then((detail) => setPostDetail({ content: (detail as { content?: string }).content ?? '' }))
-              .catch(() => setPostDetail(null))
-              .finally(() => setDetailLoading(false));
           });
         } else {
           // 单帖 marker：保持原有行为（打开侧滑面板）
           el.addEventListener('click', (e) => {
             e.stopPropagation();
             setPanel({ type: 'view', marker: first });
-            setPostDetail(null);
-            setDetailLoading(true);
-            postsApi
-              .getPost(first.post_id)
-              .then((detail) => setPostDetail({ content: (detail as { content?: string }).content ?? '' }))
-              .catch(() => setPostDetail(null))
-              .finally(() => setDetailLoading(false));
+            groupedMarkersRef.current = null;
           });
         }
 
@@ -457,16 +445,10 @@ const MapPage: React.FC = () => {
   }, []);
 
   // DSC-01.3: 列表降级视图中的 marker 点击处理
-  // 与地图 marker 点击逻辑一致：打开侧滑面板 + 异步加载详情
+  // 与地图 marker 点击逻辑一致：打开侧滑面板（统一预览卡片视图）
   const handleListMarkerClick = useCallback((marker: MapMarker) => {
     setPanel({ type: 'view', marker });
-    setPostDetail(null);
-    setDetailLoading(true);
-    postsApi
-      .getPost(marker.post_id)
-      .then((detail) => setPostDetail({ content: (detail as { content?: string }).content ?? '' }))
-      .catch(() => setPostDetail(null))
-      .finally(() => setDetailLoading(false));
+    groupedMarkersRef.current = null;
   }, []);
 
   // 定位按钮
@@ -686,145 +668,55 @@ const MapPage: React.FC = () => {
               </button>
 
               {panel.type === 'view' && (() => {
+                // ACC-01.4: 统一单帖与多帖渲染逻辑，都使用预览卡片列表
                 const m = panel.marker;
                 const grouped = groupedMarkersRef.current;
-                const isGroupedView = grouped && grouped.length > 1;
-
-                if (isGroupedView) {
-                  // 多帖侧滑面板：与首页卡片风格统一，精简版
-                  return (
-                    <>
-                      <div className="h-[80px] bg-gradient-to-br from-lake/15 via-mist to-lamp/10 flex items-center px-5 flex-shrink-0">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-full bg-lamp/20 flex items-center justify-center">
-                            <MapPin size={16} className="text-lamp" />
-                          </div>
-                          <div>
-                            <div className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">{m.location_name || '相同地点'}</div>
-                            <div className="font-display font-bold text-base text-ink">{grouped.length} 条信息 · 同一地点</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-                        {grouped.map((gm) => {
-                          const color = CATEGORY_COLORS[gm.category_id] || '#95A5A6';
-                          return (
-                            <button
-                              key={gm.post_id}
-                              onClick={() => navigate(`/posts/${gm.post_id}`)}
-                              className="w-full text-left bg-white hover:bg-mist/60 rounded-lg border border-line p-3 transition-colors"
-                            >
-                              <div className="flex items-start gap-2">
-                                <span
-                                  className="mt-1 w-2 h-2 rounded-full flex-shrink-0"
-                                  style={{ backgroundColor: color }}
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <div className="font-medium text-ink text-sm line-clamp-2">{gm.title}</div>
-                                  <div className="flex items-center gap-2 mt-1 text-[11px] text-ink-muted">
-                                    <span style={{ color }}>{getCategoryName(gm.category_id)}</span>
-                                    <span>·</span>
-                                    <span>{gm.location_name || ''}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </>
-                  );
-                }
+                const posts = grouped && grouped.length > 1 ? grouped : [m];
+                const count = posts.length;
+                const isGroupedView = count > 1;
 
                 return (
                   <>
-                    {/* 封面图（如有） */}
-                    {m.cover_image ? (
-                      <div className="relative h-[160px] sm:h-[140px] overflow-hidden bg-mist">
-                        <img
-                          src={m.cover_image}
-                          alt={m.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.currentTarget.parentElement!.style.display = 'none');
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-ink/40 via-transparent to-transparent" />
-                      </div>
-                    ) : (
-                      <div className="h-[100px] bg-gradient-to-br from-lake/15 via-mist to-lamp/10 flex items-center justify-center">
-                        <MapPin size={32} className="text-lake/50" />
-                      </div>
-                    )}
-
-                    {/* 内容区 */}
-                    <div className="flex-1 overflow-y-auto px-5 py-4">
-                      {/* 分类徽章 */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <span
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold font-data"
-                          style={{
-                            backgroundColor: `${CATEGORY_COLORS[m.category_id] || '#95A5A6'}20`,
-                            color: CATEGORY_COLORS[m.category_id] || '#95A5A6',
-                          }}
-                        >
-                          <span
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: CATEGORY_COLORS[m.category_id] || '#95A5A6' }}
-                          />
-                          {getCategoryName(m.category_id)}
-                        </span>
-                      </div>
-
-                      {/* 标题 */}
-                      <h3 className="font-display font-extrabold text-xl text-ink leading-tight mb-3 pr-8">
-                        {m.title}
-                      </h3>
-
-                      {/* 位置 */}
-                      <div className="flex items-start gap-2 text-sm text-ink-sub mb-4">
-                        <MapPin size={15} className="flex-shrink-0 mt-0.5 text-lamp" />
-                        <span className="leading-relaxed">{m.location_name}</span>
-                      </div>
-
-                      {/* 帖子内容 */}
-                      <div className="mb-4">
-                        <div className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-1.5">
-                          内容
+                    <div className="h-[80px] bg-gradient-to-br from-lake/15 via-mist to-lamp/10 flex items-center px-5 flex-shrink-0">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-full bg-lamp/20 flex items-center justify-center">
+                          <MapPin size={16} className="text-lamp" />
                         </div>
-                        {detailLoading ? (
-                          <div className="py-3">
-                            <Loading size="sm" />
+                        <div>
+                          <div className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">{m.location_name || '相同地点'}</div>
+                          <div className="font-display font-bold text-base text-ink">
+                            {isGroupedView ? `${count} 条信息 · 同一地点` : '1 条信息'}
                           </div>
-                        ) : postDetail?.content ? (
-                          <p className="text-sm text-ink leading-relaxed whitespace-pre-line line-clamp-[12]">
-                            {postDetail.content}
-                          </p>
-                        ) : (
-                          <p className="text-sm text-ink-muted italic">暂无内容</p>
-                        )}
-                      </div>
-
-                      {/* 坐标信息（小字、技术感） */}
-                      <div className="font-data text-[11px] text-ink-muted bg-mist/60 rounded-md px-3 py-2 mb-5 border border-line/60">
-                        <div className="flex justify-between">
-                          <span>LAT</span>
-                          <span className="text-ink-sub">{m.latitude.toFixed(6)}</span>
-                        </div>
-                        <div className="flex justify-between mt-0.5">
-                          <span>LNG</span>
-                          <span className="text-ink-sub">{m.longitude.toFixed(6)}</span>
                         </div>
                       </div>
-
-                      {/* 查看详情按钮 */}
-                      <button
-                        onClick={() => navigate(`/posts/${m.post_id}`)}
-                        className="w-full flex items-center justify-center gap-2 bg-lamp text-white font-semibold py-2.5 rounded-md shadow-md hover:bg-lamp/90 transition-colors"
-                      >
-                        查看详情
-                        <ArrowRight size={16} />
-                      </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+                      {posts.map((gm) => {
+                        const color = CATEGORY_COLORS[gm.category_id] || '#95A5A6';
+                        return (
+                          <button
+                            key={gm.post_id}
+                            onClick={() => navigate(`/posts/${gm.post_id}`)}
+                            className="w-full text-left bg-white hover:bg-mist/60 rounded-lg border border-line p-3 transition-colors"
+                          >
+                            <div className="flex items-start gap-2">
+                              <span
+                                className="mt-1 w-2 h-2 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: color }}
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium text-ink text-sm line-clamp-2">{gm.title}</div>
+                                <div className="flex items-center gap-2 mt-1 text-[11px] text-ink-muted">
+                                  <span style={{ color }}>{getCategoryName(gm.category_id)}</span>
+                                  <span>·</span>
+                                  <span>{gm.location_name || ''}</span>
+                                </div>
+                              </div>
+                              <ArrowRight size={14} className="text-ink-muted mt-1 flex-shrink-0" />
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </>
                 );
