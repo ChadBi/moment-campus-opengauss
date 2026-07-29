@@ -7,7 +7,9 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
-## [Unreleased] - 2026-07-29
+## [Unreleased]
+
+## [2.0.0] - 2026-07-29
 
 ### 多轮测试问题修复
 
@@ -65,15 +67,13 @@
 - `MapLocationPicker.tsx` Picker 组件 Marker 同步添加 `subpixelPositioning: true`
 - MCP 浏览器 E2E 验证：13 个 marker 缩放前后位置稳定，39 个 DOM 元素 0 CSS transition 违规
 
-## [Unreleased] - 2026-07-26
-
 ### 阶段四+五：性能优化与质量收尾
 
 - `P2-001` vite.config.ts 添加 manualChunks 拆分 maplibre-gl/react-vendor/icons，MapPage chunk 1043KB→16KB（97% 下降），index.js 307KB→128KB
 - `P2-008` MapPage 瓦片源 OSM→高德栅格（4 个 webrd0{1-4}.is.autonavi.com 子域加速），国内可达性提升
-- `P2-006` api.ts 401 并发刷新加锁：refreshPromise 单例 promise 复用，避免并发 401 多次消费 refresh_token
-- `P2-007` 新增 utils/logger.ts（dev 打印/prod 静默），48 处 console.* 替换为 logger.*（21 个文件）
-- `P2-003` SearchPage HOT_TAGS 改为多租户动态化：useMemo 从当前学校 categories 派生 top 8，fallback 到 FALLBACK_HOT_TAGS
+- `P2-006` api.ts 401 并发刷新加锁：refreshPromise 单例 promise 复用，避免并发 401 多次消费 refresh\_token
+- `P2-007` 新增 utils/logger.ts（dev 打印/prod 静默），48 处 console.\* 替换为 logger.\*（21 个文件）
+- `P2-003` SearchPage HOT\_TAGS 改为多租户动态化：useMemo 从当前学校 categories 派生 top 8，fallback 到 FALLBACK\_HOT\_TAGS
 - `P3-001` 删除 AdminTagsPage.tsx（602 行死代码）+ 4 个零引用 tag API + 3 个 tag 类型
 - `P3-003` 新增 utils/date.ts 4 个函数（formatRelativeTime/formatDate/formatDateTime/formatShortDateTime），15 个文件的本地实现替换为导入
 - `P3-004` 删除 3 对重复 API 定义：uploadApi.uploadAvatar / usersApi.getMyPosts / interactionsApi.transitionPost（零引用）
@@ -84,19 +84,19 @@
 
 ### 阶段三：仓库卫生与部署配置
 
-- `P2-009` 7 个 verify_*.py 调试脚本迁移到 backend/tests/manual/（git mv 保留历史），.gitignore 新增 `/verify_*.py` 规则
+- `P2-009` 7 个 verify\_\*.py 调试脚本迁移到 backend/tests/manual/（git mv 保留历史），.gitignore 新增 `/verify_*.py` 规则
 - `P2-010` 清理 backend/ 76 个 + 根目录 16 个调试脚本/日志（全部已被 .gitignore 覆盖）
-- `P2-012` 新增 backend/.dockerignore 与 frontend/.dockerignore，排除 .git/.venv/node_modules/tests/logs/.env 等
-- `P2-011` deploy/.env.prod.example 与 backend/.env.example 同步补齐 9 项 AI_* 变量模板；backend/.env.example 修复 SQLite 残留改为 openGauss
+- `P2-012` 新增 backend/.dockerignore 与 frontend/.dockerignore，排除 .git/.venv/node\_modules/tests/logs/.env 等
+- `P2-011` deploy/.env.prod.example 与 backend/.env.example 同步补齐 9 项 AI\_\* 变量模板；backend/.env.example 修复 SQLite 残留改为 openGauss
 - `P2-002` index.html title/description 移除江南大学硬编码，改为多租户通用文案
 - `P2-005` ProfilePage 与 AdminDashboard 的 handleLogout 改为先 await authApi.logout() 后清本地 state
 
 ### 阶段二：多租户与代码质量
 
-- `P1-002` MapPage 接入 useCampusStore 学校中心点 + 分类映射动态化（categoriesApi 拉取，CATEGORY_COLORS/NAMES 保留 fallback）
+- `P1-002` MapPage 接入 useCampusStore 学校中心点 + 分类映射动态化（categoriesApi 拉取，CATEGORY\_COLORS/NAMES 保留 fallback）
 - `P1-001` 确认收藏相关代码已彻底移除（前端无残留 UI/调用，后端无残留路由）
 - `P1-004` 清零 ESLint 24 个 error（react-hooks/exhaustive-deps 等），保留 set-state-in-effect 为 warning（项目设计）
-- `P2-013` auth.py:380 移除明文 reset_token 日志，降级为 DEBUG 级别且只记 token 前 8 位
+- `P2-013` auth.py:380 移除明文 reset\_token 日志，降级为 DEBUG 级别且只记 token 前 8 位
 
 ### 阶段一：紧急修复
 
@@ -105,22 +105,22 @@
 - `P1-006` docs/12/13/22 头部增加「⚠️ 本文档已过时」声明
 - `P2-014` AGENTS.md「演示学校唯一」更新为三校口径（江南为主，附带 fudan/zju）
 
-## [0.1.1] - 2026-07-04
+## \[1.0.0] - 2026-07-04
 
 ### 变更
 
 - `api/posts` 修复帖子列表/详情/创建/更新接口 author 字段返回问题（移除 alias="user"，手动映射 author，非匿名帖子正确显示作者昵称）
 - `api/comments` 修复评论创建 500 错误（MissingGreenlet，添加 selectinload 预加载 replies）；修复评论/回复 author 字段返回
 - `api/search` 修复搜索结果 author 字段名称不一致问题，content 返回完整内容
-- `schemas/post` PostListResponse 补充 user_id、is_anonymous 字段；PostResponse/PostListResponse 移除 author 的 alias="user"
+- `schemas/post` PostListResponse 补充 user\_id、is\_anonymous 字段；PostResponse/PostListResponse 移除 author 的 alias="user"
 - `schemas/comment` CommentResponse 移除 author 的 alias="user"
-- `schemas/user` 删除重复 LoginResponse 定义，改用 Pydantic v2 的 model_config
-- `frontend` 个人中心显示真实信誉分（reputation_score），User 类型补充 reputation_score 字段
-- 信誉分系统完善：登录/个人信息接口正确返回 reputation_score，发帖后信誉分正确触发存储过程更新
+- `schemas/user` 删除重复 LoginResponse 定义，改用 Pydantic v2 的 model\_config
+- `frontend` 个人中心显示真实信誉分（reputation\_score），User 类型补充 reputation\_score 字段
+- 信誉分系统完善：登录/个人信息接口正确返回 reputation\_score，发帖后信誉分正确触发存储过程更新
 - 清理数据库测试垃圾数据（"123123"帖子及相关评论）
 - `.gitignore` 添加 .trae/ 目录
 
-## [0.1.0] - 2026-06-18
+## [0.1.0](https://github.com/yourusername/moment-campus/releases/tag/v0.1.0) - 2026-06-18
 
 ### 新增
 
@@ -143,4 +143,3 @@
 - 9 阶段开发路线图
 - 风险识别与应对措施
 
-[0.1.0]: https://github.com/yourusername/moment-campus/releases/tag/v0.1.0
