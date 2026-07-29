@@ -11,7 +11,14 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 import { useCampusStore } from '../store/useCampusStore';
 import { logger } from '../utils/logger';
-import { createMapMarkerElement } from '../utils/mapMarker';
+import {
+  clearMapMarkerLayer,
+  installMapMarkerLayer,
+  MAP_MARKER_LAYER_ID,
+  setHoveredMapMarker,
+  setMapMarkerLayerData,
+  type MapMarkerGroup,
+} from '../utils/mapMarker';
 import { wgs84ToGcj02 } from '../utils/coordinates';
 
 // PUB-01.1: 分类列表改为从 API 动态拉取（按当前学校过滤），不再硬编码
@@ -63,12 +70,13 @@ const MapPage: React.FC = () => {
   const { currentSchoolCenter, currentSchoolZoom } = useCampusStore();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
-  const markersRef = useRef<maplibregl.Marker[]>([]);
-  // DSC-01.3: marker -> post_id 映射，用于支持 focus_post_id 深链接自动打开面板
-  const markersByIdRef = useRef<Map<number, { marker: MapMarker; element: HTMLDivElement }>>(new Map());
+  // Map marker 与高德瓦片由同一个 WebGL canvas 渲染；这里仅保存交互索引。
+  const markerGroupsRef = useRef<Map<string, MapMarkerGroup>>(new Map());
+  // DSC-01.3: post_id -> source feature 映射，用于 focus_post_id 深链接。
+  const markersByIdRef = useRef<Map<number, { marker: MapMarker; groupKey: string }>>(new Map());
+  const markerRequestRef = useRef(0);
   // 聚合 marker 暂存的多帖列表（供侧滑面板渲染）
   const [groupedMarkers, setGroupedMarkers] = useState<MapMarker[] | null>(null);
-  const popupRef = useRef<maplibregl.Popup | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 用 ref 同步 isAuthenticated，避免地图 click 闭包陷阱
   const authRef = useRef(isAuthenticated);
@@ -133,14 +141,9 @@ const MapPage: React.FC = () => {
   // 侧滑面板模式
   const [panel, setPanel] = useState<PanelMode>(null);
 
-  // 清除地图上的标记
-  const clearMarkers = useCallback(() => {
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
-  }, []);
-
   // 获取并更新地图标记
   const fetchMarkers = useCallback(async (bounds: maplibregl.LngLatBounds, categoryId?: number) => {
+    const requestId = ++markerRequestRef.current;
     setLoading(true);
     try {
       const params = {
@@ -151,73 +154,20 @@ const MapPage: React.FC = () => {
         ...(categoryId ? { category_id: categoryId } : {}),
       };
       const data = await mapApi.getMapMarkers(params);
+      // 学校切换或快速缩放时忽略较早请求，防止旧学校的点覆盖新地图。
+      if (requestId !== markerRequestRef.current || !map.current) return;
 
-      // 清除旧标记
-      clearMarkers();
-      // DSC-01.3: 同步清空 post_id -> marker 索引，避免旧数据残留
-      markersByIdRef.current.clear();
       // DSC-01.3: 保存所有 markers 到 state，用于地图失败时的列表降级视图
       setAllMarkers(data);
-
-      // Task 3.5: 按坐标聚合相同地点的帖子
-      // key = `${lng.toFixed(6)},${lat.toFixed(6)}`，同一坐标的帖子聚合成一个 marker
-      const grouped = new Map<string, MapMarker[]>();
-      for (const m of data) {
-        const key = `${m.longitude.toFixed(6)},${m.latitude.toFixed(6)}`;
-        const arr = grouped.get(key);
-        if (arr) {
-          arr.push(m);
-        } else {
-          grouped.set(key, [m]);
-        }
-      }
-
-      // 为每个分组创建 marker
-      grouped.forEach((markersAtLocation) => {
-        const first = markersAtLocation[0];
-        const count = markersAtLocation.length;
-        const isGrouped = count > 1;
-        // 聚合 marker 用第一个帖子的分类色（或取数量最多分类的颜色）
-        const color = CATEGORY_COLORS[first.category_id] || '#95A5A6';
-
-        const size = isGrouped ? 36 : 28;
-        const el = createMapMarkerElement({ color, count, size });
-
-        const markerInstance = new maplibregl.Marker({ element: el, anchor: 'bottom', subpixelPositioning: true })
-          .setLngLat([first.longitude, first.latitude])
-          .addTo(map.current!);
-
-        if (isGrouped) {
-          // Task 3.5 v2: 聚合 marker 点击 → 打开侧滑面板，显示该地点所有帖子（与单帖路径统一）
-          el.addEventListener('click', (e) => {
-            e.stopPropagation();
-            // 复用 setPanel 单帖视图，但在侧滑面板里渲染"多帖"视图
-            setPanel({ type: 'view', marker: first });
-            // 通过 markersById 暂存聚合数据（供 Panel 渲染读取）
-            setGroupedMarkers(markersAtLocation);
-          });
-        } else {
-          // 单帖 marker：保持原有行为（打开侧滑面板）
-          el.addEventListener('click', (e) => {
-            e.stopPropagation();
-            setPanel({ type: 'view', marker: first });
-            setGroupedMarkers(null);
-          });
-        }
-
-        // DSC-01.3: 索引每个 post_id -> marker 数据 + DOM 元素
-        // 聚合 marker 下每个 post_id 都指向同一 DOM 元素，点击时打开 Popup（由上面的 click 处理）
-        for (const m of markersAtLocation) {
-          markersByIdRef.current.set(m.post_id, { marker: m, element: el });
-        }
-        markersRef.current.push(markerInstance);
-      });
+      const layerData = setMapMarkerLayerData(map.current, data, CATEGORY_COLORS);
+      markerGroupsRef.current = layerData.groups;
+      markersByIdRef.current = layerData.posts;
     } catch {
       // 静默处理错误，保留现有标记
     } finally {
-      setLoading(false);
+      if (requestId === markerRequestRef.current) setLoading(false);
     }
-  }, [clearMarkers, navigate]);
+  }, []);
 
   // 初始化地图
   useEffect(() => {
@@ -268,9 +218,29 @@ const MapPage: React.FC = () => {
     mapInstance.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
     mapInstance.on('load', () => {
+      installMapMarkerLayer(mapInstance);
       setMapReady(true);
       const bounds = mapInstance.getBounds();
       fetchMarkers(bounds, selectedCategory ?? undefined);
+    });
+
+    mapInstance.on('mouseenter', MAP_MARKER_LAYER_ID, (event) => {
+      mapInstance.getCanvas().style.cursor = 'pointer';
+      const groupKey = event.features?.[0]?.properties?.groupKey;
+      if (typeof groupKey === 'string') setHoveredMapMarker(mapInstance, groupKey);
+    });
+    mapInstance.on('mouseleave', MAP_MARKER_LAYER_ID, () => {
+      mapInstance.getCanvas().style.cursor = '';
+      setHoveredMapMarker(mapInstance, null);
+    });
+    mapInstance.on('click', MAP_MARKER_LAYER_ID, (event) => {
+      const groupKey = event.features?.[0]?.properties?.groupKey;
+      if (typeof groupKey !== 'string') return;
+      const group = markerGroupsRef.current.get(groupKey);
+      if (!group) return;
+      const first = group.markers[0];
+      setPanel({ type: 'view', marker: first });
+      setGroupedMarkers(group.markers.length > 1 ? group.markers : null);
     });
 
     // DSC-01.3: 监听地图加载错误（瓦片源不可达 / style 解析失败等），
@@ -286,6 +256,8 @@ const MapPage: React.FC = () => {
     // 地图点击空白处：登录用户打开发帖面板，未登录提示
     // PUB-01.1：表单逻辑已抽取到 PostForm，这里只负责打开 create 面板并传入选点坐标
     mapInstance.on('click', (e) => {
+      // symbol layer 的点击由上面的图层事件处理，不能同时打开“发布”面板。
+      if (mapInstance.queryRenderedFeatures(e.point, { layers: [MAP_MARKER_LAYER_ID] }).length > 0) return;
       if (!authRef.current) {
         showToast('请先登录后再发布信息', 'info');
         return;
@@ -305,15 +277,19 @@ const MapPage: React.FC = () => {
     });
 
     map.current = mapInstance;
+    if (import.meta.env.DEV) {
+      (window as Window & { __momentCampusMap?: maplibregl.Map }).__momentCampusMap = mapInstance;
+    }
 
     return () => {
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
-      markersRef.current.forEach((m) => m.remove());
-      markersRef.current = [];
-      if (popupRef.current) {
-        popupRef.current.remove();
+      markerRequestRef.current += 1;
+      markerGroupsRef.current.clear();
+      markersByIdRef.current.clear();
+      if (import.meta.env.DEV) {
+        delete (window as Window & { __momentCampusMap?: maplibregl.Map }).__momentCampusMap;
       }
       mapInstance.remove();
       map.current = null;
@@ -361,12 +337,14 @@ const MapPage: React.FC = () => {
     if (!entry) return;
 
     // 平移地图到该 marker 并触发点击打开面板
-    const { marker, element } = entry;
+    const { marker, groupKey } = entry;
     map.current?.flyTo({
       center: [marker.longitude, marker.latitude],
       zoom: Math.max(map.current?.getZoom() ?? activeZoomRef.current, 17),
     });
-    element.click();
+    const group = markerGroupsRef.current.get(groupKey);
+    setPanel({ type: 'view', marker });
+    setGroupedMarkers(group && group.markers.length > 1 ? group.markers : null);
 
     // 触发后清掉 URL 参数，避免刷新或后退时重复打开
     const next = new URLSearchParams(searchParams);
@@ -380,12 +358,10 @@ const MapPage: React.FC = () => {
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+    markerRequestRef.current += 1;
+    clearMapMarkerLayer(map.current);
+    markerGroupsRef.current.clear();
     markersByIdRef.current.clear();
-    if (popupRef.current) {
-      popupRef.current.remove();
-    }
     if (map.current) {
       map.current.remove();
       map.current = null;
