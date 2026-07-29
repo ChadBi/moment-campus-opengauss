@@ -9,6 +9,12 @@
 
 ## [Unreleased] - 2026-07-29
 
+### MapLibre SVG Marker 几何对齐
+
+- 废弃旋转方块与 X+Y 人工补偿，改用尖端位于 SVG 底部中心的无描边水滴路径
+- hover 以底部中心为 transform origin，单帖/聚合 Marker 在 hover 与 zoom 14/16/18 下尖端误差均不超过 0.5px
+- 新增 Playwright 几何矩阵回归测试，并修正旧报告对零圆角位置的错误推导
+
 ### 地图 Marker 尖端 X+Y 补偿修复
 
 - `MapPage.tsx` 修正水滴形 marker 补偿公式：compensator div 从仅 Y 平移 `translate(0, -tipOffset)` 改为 X+Y 同时平移 `translate(-compX, -compY)`，消除视觉尖端相对 anchor:'bottom' 偏右 25px 的问题

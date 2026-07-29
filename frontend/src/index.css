@@ -253,6 +253,9 @@ img {
 .maplibregl-marker * {
   transition: none !important;
   animation: none !important;
+}
+
+.maplibregl-marker {
   will-change: transform;
 }
 

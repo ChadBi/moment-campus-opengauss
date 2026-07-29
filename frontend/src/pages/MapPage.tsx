@@ -11,6 +11,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 import { useCampusStore } from '../store/useCampusStore';
 import { logger } from '../utils/logger';
+import { createMapMarkerElement } from '../utils/mapMarker';
 
 // PUB-01.1: 分类列表改为从 API 动态拉取（按当前学校过滤），不再硬编码
 // 分类颜色映射保留作为地图标记视觉差异化用，未命中的分类回退灰色
@@ -65,7 +66,7 @@ const MapPage: React.FC = () => {
   // DSC-01.3: marker -> post_id 映射，用于支持 focus_post_id 深链接自动打开面板
   const markersByIdRef = useRef<Map<number, { marker: MapMarker; element: HTMLDivElement }>>(new Map());
   // 聚合 marker 暂存的多帖列表（供侧滑面板渲染）
-  const groupedMarkersRef = useRef<MapMarker[] | null>(null);
+  const [groupedMarkers, setGroupedMarkers] = useState<MapMarker[] | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 用 ref 同步 isAuthenticated，避免地图 click 闭包陷阱
@@ -178,62 +179,8 @@ const MapPage: React.FC = () => {
         // 聚合 marker 用第一个帖子的分类色（或取数量最多分类的颜色）
         const color = CATEGORY_COLORS[first.category_id] || '#95A5A6';
 
-        // FIX-01: 计算视觉尖端补偿偏移量（X+Y 同时补偿）
-        // pin 经 rotate(-45deg) 后，原本的右下角 (S, S) 变成视觉尖端，
-        // 在屏幕坐标系下落在 (S, S/√2)，而非 anchor:'bottom' 所在的 (S/2, S)。
-        // 需要同时做 X 补偿（-S/2，向左）和 Y 补偿（S - S/√2，向上）。
         const size = isGrouped ? 36 : 28;
-        const compX = size / 2;                       // 向左移动 S/2
-        const compY = size - size / Math.SQRT2;       // 向上移动 S - S/√2
-
-        const el = document.createElement('div');
-        el.className = 'custom-marker';
-        el.style.cssText = isGrouped
-          ? 'width: 36px; height: 36px; cursor: pointer; position: relative; transition: none;'
-          : 'width: 28px; height: 28px; cursor: pointer; position: relative; transition: none;';
-
-        // 补偿层：在屏幕坐标系做纯 X+Y 平移，不被 pin 旋转影响
-        const compensator = document.createElement('div');
-        compensator.style.cssText = `width: 100%; height: 100%; transform: translate(${-compX}px, ${-compY}px); transform-origin: center center;`;
-
-        // 内层水滴形 pin（仅旋转，不做平移）
-        const pin = document.createElement('div');
-        pin.style.cssText = isGrouped
-          ? `width: 100%; height: 100%; border-radius: 50% 50% 50% 0; background: ${color}; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.35);`
-          : `width: 100%; height: 100%; border-radius: 50% 50% 50% 0; background: ${color}; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3);`;
-
-        const inner = document.createElement('div');
-        if (isGrouped) {
-          inner.style.cssText = `
-            font-size: 13px;
-            font-weight: 700;
-            color: white;
-            transform: rotate(45deg);
-            line-height: 1;
-          `;
-          inner.textContent = String(count);
-        } else {
-          inner.style.cssText = `
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: white;
-            transform: rotate(45deg);
-          `;
-        }
-        pin.appendChild(inner);
-        compensator.appendChild(pin);
-        el.appendChild(compensator);
-
-        // 悬停效果：pin 做 scale，compensator 保持补偿平移
-        el.addEventListener('mouseenter', () => {
-          el.style.zIndex = '10';
-          pin.style.transform = `rotate(-45deg) scale(1.2)`;
-        });
-        el.addEventListener('mouseleave', () => {
-          el.style.zIndex = '';
-          pin.style.transform = 'rotate(-45deg) scale(1)';
-        });
+        const el = createMapMarkerElement({ color, count, size });
 
         const markerInstance = new maplibregl.Marker({ element: el, anchor: 'bottom', subpixelPositioning: true })
           .setLngLat([first.longitude, first.latitude])
@@ -246,14 +193,14 @@ const MapPage: React.FC = () => {
             // 复用 setPanel 单帖视图，但在侧滑面板里渲染"多帖"视图
             setPanel({ type: 'view', marker: first });
             // 通过 markersById 暂存聚合数据（供 Panel 渲染读取）
-            groupedMarkersRef.current = markersAtLocation;
+            setGroupedMarkers(markersAtLocation);
           });
         } else {
           // 单帖 marker：保持原有行为（打开侧滑面板）
           el.addEventListener('click', (e) => {
             e.stopPropagation();
             setPanel({ type: 'view', marker: first });
-            groupedMarkersRef.current = null;
+            setGroupedMarkers(null);
           });
         }
 
@@ -456,7 +403,7 @@ const MapPage: React.FC = () => {
   // 与地图 marker 点击逻辑一致：打开侧滑面板（统一预览卡片视图）
   const handleListMarkerClick = useCallback((marker: MapMarker) => {
     setPanel({ type: 'view', marker });
-    groupedMarkersRef.current = null;
+    setGroupedMarkers(null);
   }, []);
 
   // 定位按钮
@@ -656,7 +603,7 @@ const MapPage: React.FC = () => {
             <div
               className="absolute inset-0 z-20 bg-ink/20 backdrop-blur-[1px] md:bg-transparent md:backdrop-blur-none"
               onClick={() => {
-                groupedMarkersRef.current = null;
+                setGroupedMarkers(null);
                 setPanel(null);
               }}
             />
@@ -666,7 +613,7 @@ const MapPage: React.FC = () => {
               {/* 关闭按钮 */}
               <button
                 onClick={() => {
-                  groupedMarkersRef.current = null;
+                  setGroupedMarkers(null);
                   setPanel(null);
                 }}
                 className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-mist/80 backdrop-blur-sm flex items-center justify-center text-ink-sub hover:text-ink hover:bg-mist transition-colors"
@@ -678,7 +625,7 @@ const MapPage: React.FC = () => {
               {panel.type === 'view' && (() => {
                 // ACC-01.4: 统一单帖与多帖渲染逻辑，都使用预览卡片列表
                 const m = panel.marker;
-                const grouped = groupedMarkersRef.current;
+                const grouped = groupedMarkers;
                 const posts = grouped && grouped.length > 1 ? grouped : [m];
                 const count = posts.length;
                 const isGroupedView = count > 1;
@@ -759,7 +706,7 @@ const MapPage: React.FC = () => {
                       showCancelButton={false}
                       onSuccess={(status) => {
                         void status;
-                        groupedMarkersRef.current = null;
+                        setGroupedMarkers(null);
                         setPanel(null);
                         // 刷新地图标记
                         if (map.current) {

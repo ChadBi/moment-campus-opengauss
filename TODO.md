@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-29（六项问题修复与注册全链路 E2E + 地图 Marker 尖端 X+Y 补偿修复：onboarding_completed 后端持久化 + super_admin 学校切换放行 + 地图 marker CSS 三件套修复 + 地图缩放漂移彻底修复 + 地图尖端视觉对齐补偿 + 单/多帖侧滑面板统一 + seed 分类码修复 + 8 用例 E2E 全 PASS）
+> 最后更新：2026-07-29（MapLibre SVG Marker 几何对齐完成：移除错误 X+Y 补偿，单帖/聚合/hover/zoom 14/16/18 自动化误差 ≤0.5px）
 
 ## 状态总览
 
@@ -40,9 +40,22 @@
 
 ## 已完成
 
-### 地图 Marker 尖端 X+Y 补偿修复（2026-07-29 完成）
+### MapLibre SVG Marker 几何对齐（2026-07-29 完成）
 
-修复用户反馈的「marker 尖端位置在不同截图中位置不一样」问题。根因：水滴形 marker 经 `rotate(-45deg)` 后，视觉尖端相对 MapLibre `anchor:'bottom'` 锚点同时存在 X 和 Y 偏移，但原补偿层只做 Y 方向平移，导致视觉尖端偏右 25px。
+废弃旋转方块与人工像素补偿，改用尖端固定在 SVG 底部中心的确定几何，并以浏览器矩阵自动验证真实视觉尖端。
+
+- [x] 根因纠正：`border-radius: 50% 50% 50% 0` 的尖角为左下角；旧报告按右下角推导，当前代码实际造成聚合 `dx=-18px/dy=-3.09px`、单帖 `dx=-14px/dy=-2.40px`
+- [x] 单帖 28px / 聚合 36px 均改为无描边 SVG 水滴，路径起点 `(50,100)` 与 `anchor:'bottom'` 重合
+- [x] hover 使用 `transform-origin: 50% 100%`，缩放时尖端保持不动
+- [x] 全局 CSS 不再为 Marker 全部后代设置 `will-change`
+- [x] 修复 MapPage 渲染期读取 ref 的 ESLint error，聚合列表改由 state 驱动
+- [x] `npm run lint` 通过（0 error，保留 27 个既有 warning）
+- [x] `npm run build` 通过
+- [x] Playwright `map-marker-alignment.spec.ts` 2/2 PASS：单帖/聚合、静止/hover、zoom 14/16/18、点击侧滑面板，尖端误差均 ≤0.5px
+
+### 地图 Marker 尖端 X+Y 补偿修复（历史方案，已由 SVG 方案替代）
+
+该节记录 7168fb6 的历史尝试。后续复核证明其把零圆角位置误判为右下角，结论与验收数据均不正确，现已由上方 SVG 确定几何方案替代。
 
 - [x] 根因定位：MCP 浏览器实测 anchor 点 (502.84, 215.65) vs 视觉尖端 (528.29, 215.65)，X 偏移 +25.45px
 - [x] 补偿公式修正：`compX = S/2` + `compY = S - S/√2`（原为仅 Y 的 `tipOffset = S/√2 - S/2`）
