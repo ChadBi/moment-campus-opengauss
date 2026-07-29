@@ -131,7 +131,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; requireAdmin?: boole
   // （isAuthenticated=true 但 accessToken 已过期/被清空时仍跳转登录）
   const { isAuthenticated, accessToken, user } = useAuthStore();
 
-  if (!isAuthenticated || !accessToken) {
+  // 增强检查：确保 accessToken 不为 null/undefined/空字符串
+  const hasValidToken = !!accessToken && accessToken.trim().length > 0;
+
+  if (!isAuthenticated || !hasValidToken) {
     // ACC-01.1: 记录回跳目标，登录后返回原页面
     return <Navigate to={buildLoginRedirect()} replace />;
   }

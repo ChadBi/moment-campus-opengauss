@@ -557,7 +557,7 @@ export const adminApi = {
     report_type?: string;
     status?: string;
   }): Promise<PaginatedResponse<GovernanceReportBrief>> => {
-    const response = await api.get('/admin/governance/reports', { params });
+    const response = await api.get('/admin/reports', { params });
     return response.data;
   },
 
@@ -565,7 +565,7 @@ export const adminApi = {
     id: number,
     data: GovernanceHandleRequest,
   ): Promise<GovernanceReportBrief> => {
-    const response = await api.put(`/admin/governance/reports/${id}/handle`, data);
+    const response = await api.put(`/admin/reports/${id}/handle`, data);
     return response.data;
   },
 

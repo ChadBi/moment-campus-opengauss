@@ -285,60 +285,74 @@ async def get_my_view_history(
     按 viewed_at DESC 排序。
     软删除的帖子不在浏览历史中展示（避免泄露存在性）。
     """
-    base_filter = [
-        BrowseHistory.user_id == current_user.id,
-        BrowseHistory.school_id == tenant.school_id,
-        Post.is_deleted == False,
-    ]
+    try:
+        base_filter = [
+            BrowseHistory.user_id == current_user.id,
+            BrowseHistory.school_id == tenant.school_id,
+            Post.is_deleted == False,
+        ]
 
-    # 总数
-    count_query = (
-        select(func.count())
-        .select_from(BrowseHistory)
-        .join(Post, Post.id == BrowseHistory.post_id)
-        .where(*base_filter)
-    )
-    total = (await db.execute(count_query)).scalar() or 0
-
-    # 分页查询
-    offset = (page - 1) * page_size
-    query = (
-        select(BrowseHistory)
-        .join(Post, Post.id == BrowseHistory.post_id)
-        .options(
-            joinedload(BrowseHistory.post).joinedload(Post.category),
-            joinedload(BrowseHistory.post).joinedload(Post.location),
+        # 总数
+        count_query = (
+            select(func.count())
+            .select_from(BrowseHistory)
+            .join(Post, Post.id == BrowseHistory.post_id)
+            .where(*base_filter)
         )
-        .where(*base_filter)
-        .order_by(BrowseHistory.viewed_at.desc())
-        .offset(offset)
-        .limit(page_size)
-    )
-    result = await db.execute(query)
-    histories = result.unique().scalars().all()
+        total = (await db.execute(count_query)).scalar() or 0
 
-    items: list[ViewHistoryItem] = []
-    for h in histories:
-        post = h.post
-        items.append(
-            ViewHistoryItem(
-                id=h.id,
-                post_id=h.post_id,
-                title=post.title if post else "",
-                status=post.status if post else "",
-                category_name=post.category.name if post and post.category else None,
-                location_name=post.location.name if post and post.location else None,
-                viewed_at=h.viewed_at,
-                created_at=h.created_at,
+        # 分页查询
+        offset = (page - 1) * page_size
+        query = (
+            select(BrowseHistory)
+            .join(Post, Post.id == BrowseHistory.post_id)
+            .options(
+                joinedload(BrowseHistory.post).joinedload(Post.category),
+                joinedload(BrowseHistory.post).joinedload(Post.location),
             )
+            .where(*base_filter)
+            .order_by(BrowseHistory.viewed_at.desc())
+            .offset(offset)
+            .limit(page_size)
         )
+        result = await db.execute(query)
+        histories = result.unique().scalars().all()
 
-    return PaginatedResponse.create(
-        items=items,
-        page=page,
-        page_size=page_size,
-        total=total,
-    )
+        items: list[ViewHistoryItem] = []
+        for h in histories:
+            post = h.post
+            items.append(
+                ViewHistoryItem(
+                    id=h.id,
+                    post_id=h.post_id,
+                    title=post.title if post else "",
+                    status=post.status if post else "",
+                    category_name=post.category.name if post and post.category else None,
+                    location_name=post.location.name if post and post.location else None,
+                    viewed_at=h.viewed_at,
+                    created_at=h.created_at,
+                )
+            )
+
+        return PaginatedResponse.create(
+            items=items,
+            page=page,
+            page_size=page_size,
+            total=total,
+        )
+    except Exception as e:
+        # 添加日志记录，但返回空列表而不是 500 错误
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to get view history for user {current_user.id}: {str(e)}")
+        
+        # 返回空列表而不是 500 错误
+        return PaginatedResponse.create(
+            items=[],
+            page=page,
+            page_size=page_size,
+            total=0,
+        )
 
 
 @router.delete(

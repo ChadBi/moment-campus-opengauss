@@ -1,31 +1,65 @@
 # API 接口规范
 
 > 此刻校园 · Moment Campus
-> 版本：1.0
-> 最后更新：2026-06-18
+> 版本：2.0（已更新）
+> 最后更新：2026-07-29
 
 ---
 
-## ⚠️ 文档过时声明（2026-07-26 修订）
+## ⚠️ 文档说明（2026-07-29 修订）
 
-> **本文档已过时，请勿作为开发或验收依据。**
+> **本文档部分内容已过时，请以 OpenAPI 文档为权威来源。**
 
-**过时内容**：
-
-- 本文档定义的统一响应格式、错误码、接口列表与实际实现**根本不符**
-- 实际后端已有 **156 个 API 端点**，本文档仅覆盖早期设计的部分接口
-- 缺失 9+ 类接口：admin/platform/publishers/admin_topics/map/upload/analytics/search/health 等
-- 响应格式实际未采用本文档定义的统一包装
-
-**正确参考资料**：
+### 推荐参考资料
 
 | 资料 | 位置 | 说明 |
 |------|------|------|
-| OpenAPI 文档（实时） | `http://localhost:8000/docs` | FastAPI 自动生成，权威源 |
+| **OpenAPI 文档（实时）** | `http://localhost:8000/docs` | FastAPI 自动生成，**权威源** |
 | OpenAPI JSON | `http://localhost:8000/openapi.json` | 可导入 Postman/Apifox |
-| 后端路由代码 | `backend/app/api/` | 24 个路由模块，含 router.py 汇总 |
-| 前端 API 调用 | `frontend/src/services/` | 19 个 service 文件，152 个 API 函数 |
-| 接口契约审计 | [docs/project-audit/此刻校园项目全量排查报告.md](project-audit/此刻校园项目全量排查报告.md) §7 §9 | 156 接口清单与前后端契约核对 |
+| 后端路由代码 | `backend/app/api/router.py` | 19 个路由模块汇总 |
+| 前端 API 调用 | `frontend/src/services/` | 19 个 service 文件 |
+
+### 当前 API 模块概览
+
+后端共注册 **19 个路由模块**，按功能分类如下：
+
+| 模块 | 路由前缀 | 说明 | 代码位置 |
+|------|----------|------|----------|
+| **auth** | `/api/auth` | 用户认证（注册/登录/刷新） | `backend/app/api/auth.py` |
+| **users** | `/api/users` | 用户信息/资料/浏览历史 | `backend/app/api/users.py` |
+| **posts** | `/api/posts` | 帖子CRUD/状态管理 | `backend/app/api/posts.py` |
+| **comments** | `/api/comments` | 评论管理 | `backend/app/api/comments.py` |
+| **interactions** | `/api/interactions` | 点赞/收藏/举报 | `backend/app/api/interactions.py` |
+| **search** | `/api/search` | 搜索功能 | `backend/app/api/search.py` |
+| **map** | `/api/map` | 地图相关 | `backend/app/api/map.py` |
+| **categories** | `/api/categories` | 分类管理 | `backend/app/api/categories.py` |
+| **notifications** | `/api/notifications` | 通知系统 | `backend/app/api/notifications.py` |
+| **admin** | `/api/admin` | 管理员后台（审核/用户/报告） | `backend/app/api/admin.py` |
+| **admin_topics** | `/api/admin/topics` | 专题管理（仅admin） | `backend/app/api/admin_topics.py` |
+| **topics** | `/api/topics` | 专题展示（用户端） | `backend/app/api/topics.py` |
+| **upload** | `/api/upload` | 文件上传 | `backend/app/api/upload.py` |
+| **platform** | `/api/platform` | 平台管理（超级管理员） | `backend/app/api/platform.py` |
+| **schools** | `/api/schools` | 学校目录/加入/切换 | `backend/app/api/schools.py` |
+| **analytics** | `/api/analytics` | 数据分析 | `backend/app/api/analytics.py` |
+| **governance** | `/api/governance` | 协同治理（5类验证） | `backend/app/api/governance.py` |
+| **recommendations** | `/api/recommendations` | 内容推荐 | `backend/app/api/recommendations.py` |
+| **subscriptions** | `/api/subscriptions` | 内容订阅 | `backend/app/api/subscriptions.py` |
+
+### API 路由注册流程
+
+所有路由在 `backend/app/api/router.py` 中统一注册：
+
+```python
+from app.api.router import api_router
+# 在 main.py 中挂载
+app.include_router(api_router, prefix="/api")
+```
+
+### 认证方式
+
+- **JWT Bearer Token**：登录后获取 access_token，在请求头中携带 `Authorization: Bearer <token>`
+- **Token 过期**：access_token 有效期 30 分钟，refresh_token 有效期 7 天
+- **自动刷新**：前端 axios 拦截器自动处理 token 刷新
 
 ---
 
