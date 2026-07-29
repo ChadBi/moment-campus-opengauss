@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-29（前端完整 Playwright 基线恢复：27 PASS / 1 个已下线能力 SKIP / 0 FAIL；发布表单 select 可访问名称修复）
+> 最后更新：2026-07-29（MapLibre 原生图层与 GCJ-02 对齐最终验收完成：后端 919 PASS，前端 E2E 27 PASS/1 SKIP，MCP 发布→审核→证实→权限链路通过）
 
 ## 状态总览
 
@@ -39,6 +39,16 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### MapLibre Marker 与 GCJ-02 最终验收（2026-07-29 完成）
+
+- [x] 后端 `backend/.venv` 全量：919 PASS / 79 SKIP / 0 FAIL / 0 ERROR（`127.0.0.1` openGauss，20:44）
+- [x] 前端 lint：0 error / 25 个既有 warning；build 通过
+- [x] 完整 Playwright：27 PASS / 1 个已下线历史能力 SKIP / 0 FAIL；Marker 专项 5/5 PASS
+- [x] MCP：三校 zoom 14/16/18 所有可见 feature 均在投影锚点命中，旧 DOM Marker=0
+- [x] MCP：地图点选创建 Post #87 → 管理员审核发布 → user2 证实 → 普通用户管理 API 403 全链路通过
+- [x] 清理 `.playwright-mcp/` 与 `map-audit-current.png`，保留用户移交文档
+- [x] 八节任务报告：[AIwork/MapLibreMarker与GCJ02坐标彻底对齐任务报告.md](AIwork/MapLibreMarker与GCJ02坐标彻底对齐任务报告.md)
 
 ### 前端 E2E 基线与发布表单可访问性修复（2026-07-29 完成）
 
