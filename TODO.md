@@ -40,6 +40,16 @@
 
 ## 已完成
 
+### 多轮测试问题修复（2026-07-29 完成）
+
+- [x] SEC-001: 增强 `ProtectedRoute` token 有效性检查，修复匿名访问 `/publish` 漏洞
+- [x] API-001: 修复协同治理报告 API 路径（`/admin/governance/reports` → `/admin/reports`）
+- [x] API-002: 为浏览历史接口添加异常处理，防止 500 错误
+- [x] SEC-002: 更新 `react-router-dom` 修复安全漏洞
+- [x] DOC-001: 更新 API 文档，补充 19 个路由模块概览
+- [x] DOC-002: 更新项目概述文档，反映多租户/多学校切换功能
+- [x] 任务报告：[AIwork/多轮测试问题修复_任务报告.md](AIwork/多轮测试问题修复_任务报告.md)
+
 ### MapLibre Marker 与 GCJ-02 最终验收（2026-07-29 完成）
 
 - [x] 后端 `backend/.venv` 全量：919 PASS / 79 SKIP / 0 FAIL / 0 ERROR（`127.0.0.1` openGauss，20:44）
