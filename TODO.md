@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-29（六项问题修复与注册全链路 E2E：onboarding_completed 后端持久化 + super_admin 学校切换放行 + 地图 marker CSS 三件套修复 + 地图缩放漂移彻底修复 + 单/多帖侧滑面板统一 + seed 分类码修复 + 8 用例 E2E 全 PASS）
+> 最后更新：2026-07-29（六项问题修复与注册全链路 E2E + 地图 Marker 尖端 X+Y 补偿修复：onboarding_completed 后端持久化 + super_admin 学校切换放行 + 地图 marker CSS 三件套修复 + 地图缩放漂移彻底修复 + 地图尖端视觉对齐补偿 + 单/多帖侧滑面板统一 + seed 分类码修复 + 8 用例 E2E 全 PASS）
 
 ## 状态总览
 
@@ -39,6 +39,18 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### 地图 Marker 尖端 X+Y 补偿修复（2026-07-29 完成）
+
+修复用户反馈的「marker 尖端位置在不同截图中位置不一样」问题。根因：水滴形 marker 经 `rotate(-45deg)` 后，视觉尖端相对 MapLibre `anchor:'bottom'` 锚点同时存在 X 和 Y 偏移，但原补偿层只做 Y 方向平移，导致视觉尖端偏右 25px。
+
+- [x] 根因定位：MCP 浏览器实测 anchor 点 (502.84, 215.65) vs 视觉尖端 (528.29, 215.65)，X 偏移 +25.45px
+- [x] 补偿公式修正：`compX = S/2` + `compY = S - S/√2`（原为仅 Y 的 `tipOffset = S/√2 - S/2`）
+- [x] compensator transform 改为 `translate(-compX, -compY)`
+- [x] 对 S=36（聚合）与 S=28（单帖）两种尺寸分别生效
+- [x] 3 个缩放级验证 10+ marker 偏移稳定（S=36：dx≈7.5/dy≈-3.1；S=28：dx≈5.8/dy≈-2.4），无 zoom 漂移
+- [x] `npm run build` 构建成功
+- [x] 任务报告：[AIwork/地图Marker尖端X_Y补偿修复任务报告.md](AIwork/地图Marker尖端X_Y补偿修复任务报告.md)
 
 ### 六项问题修复与注册全链路 E2E（2026-07-29 完成）
 

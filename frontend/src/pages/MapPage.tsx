@@ -178,14 +178,25 @@ const MapPage: React.FC = () => {
         // 聚合 marker 用第一个帖子的分类色（或取数量最多分类的颜色）
         const color = CATEGORY_COLORS[first.category_id] || '#95A5A6';
 
+        // FIX-01: 计算视觉尖端补偿偏移量（X+Y 同时补偿）
+        // pin 经 rotate(-45deg) 后，原本的右下角 (S, S) 变成视觉尖端，
+        // 在屏幕坐标系下落在 (S, S/√2)，而非 anchor:'bottom' 所在的 (S/2, S)。
+        // 需要同时做 X 补偿（-S/2，向左）和 Y 补偿（S - S/√2，向上）。
+        const size = isGrouped ? 36 : 28;
+        const compX = size / 2;                       // 向左移动 S/2
+        const compY = size - size / Math.SQRT2;       // 向上移动 S - S/√2
+
         const el = document.createElement('div');
         el.className = 'custom-marker';
         el.style.cssText = isGrouped
           ? 'width: 36px; height: 36px; cursor: pointer; position: relative; transition: none;'
           : 'width: 28px; height: 28px; cursor: pointer; position: relative; transition: none;';
 
-        // 内层水滴形 pin
-        // ACC-01.4: 移除 transition: transform 0.2s，避免缩放时干扰 maplibre 定位更新
+        // 补偿层：在屏幕坐标系做纯 X+Y 平移，不被 pin 旋转影响
+        const compensator = document.createElement('div');
+        compensator.style.cssText = `width: 100%; height: 100%; transform: translate(${-compX}px, ${-compY}px); transform-origin: center center;`;
+
+        // 内层水滴形 pin（仅旋转，不做平移）
         const pin = document.createElement('div');
         pin.style.cssText = isGrouped
           ? `width: 100%; height: 100%; border-radius: 50% 50% 50% 0; background: ${color}; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.35);`
@@ -193,7 +204,6 @@ const MapPage: React.FC = () => {
 
         const inner = document.createElement('div');
         if (isGrouped) {
-          // 聚合 marker：显示数字
           inner.style.cssText = `
             font-size: 13px;
             font-weight: 700;
@@ -203,7 +213,6 @@ const MapPage: React.FC = () => {
           `;
           inner.textContent = String(count);
         } else {
-          // 单帖 marker：显示圆点（保持原样）
           inner.style.cssText = `
             width: 10px;
             height: 10px;
@@ -213,9 +222,10 @@ const MapPage: React.FC = () => {
           `;
         }
         pin.appendChild(inner);
-        el.appendChild(pin);
+        compensator.appendChild(pin);
+        el.appendChild(compensator);
 
-        // 悬停效果：通过 el.classList 控制，避免内联 transform 干扰定位
+        // 悬停效果：pin 做 scale，compensator 保持补偿平移
         el.addEventListener('mouseenter', () => {
           el.style.zIndex = '10';
           pin.style.transform = `rotate(-45deg) scale(1.2)`;
