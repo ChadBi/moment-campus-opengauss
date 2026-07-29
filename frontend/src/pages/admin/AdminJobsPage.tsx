@@ -162,9 +162,9 @@ const AdminJobsPage: React.FC = () => {
       {/* 页面标题 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-ink">任务记录</h1>
+          <h1 className="text-2xl font-bold text-ink">定时任务运行记录</h1>
           <p className="text-ink-sub text-sm mt-1">
-            自动过期任务（published → expired）运行记录，共 {total} 条
+            查看系统定时任务执行情况。当前仅包含"帖子自动过期任务"（将已发布且超过有效期的帖子转为「已过期」状态），共 {total} 条
           </p>
         </div>
         <div className="flex items-center gap-2">

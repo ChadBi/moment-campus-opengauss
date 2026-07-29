@@ -36,7 +36,7 @@ class TestWhitelist:
         required = {
             "school_viewed", "search_started", "search_succeeded", "search_zero",
             "post_viewed", "share_clicked", "subscribed", "draft_saved",
-            "post_submitted", "publisher_verified", "tenant_activated",
+            "post_submitted", "tenant_activated",
         }
         assert required.issubset(EVENT_WHITELIST.keys()), (
             f"缺失事件：{required - set(EVENT_WHITELIST.keys())}"

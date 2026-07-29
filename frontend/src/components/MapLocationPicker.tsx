@@ -5,19 +5,42 @@ import { MapPin, Check } from 'lucide-react';
 import { useCampusStore } from '../store/useCampusStore';
 import { logger } from '../utils/logger';
 
-/**
- * Task 3.1 / 6.1: 基于 maplibre-gl 的地图选点组件
- *
- * 用法：
- *   - 表单选点模式（默认）：点击地图设置 marker，调用 onPick 回调
- *   - 只读模式（readOnly=true）：仅展示坐标点，不可点击
- *
- * 中心点优先级：initialLat/Lng → 当前学校中心点 → 兜底江南大学坐标
- */
-
 // 兜底中心点：江南大学蠡湖校区
 const FALLBACK_CENTER: [number, number] = [120.271166, 31.483706];
 const FALLBACK_ZOOM = 16;
+
+/**
+ * P1-003: 滚轮缩放节流
+ * 当用户快速滚动滚轮时，浏览器会在短时间内触发大量 wheel 事件，
+ * maplibre 的默认处理可能产生卡顿和"抽搐"感。
+ * 通过节流 wheel 事件至 ~30ms 一次，保证缩放平滑。
+ */
+const throttleWheel = (callback: (deltaY: number) => void, wait = 30) => {
+  let lastTime = 0;
+  let queuedDelta = 0;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const flush = () => {
+    timeoutId = null;
+    if (queuedDelta !== 0) {
+      callback(queuedDelta);
+      queuedDelta = 0;
+    }
+  };
+
+  return (deltaY: number) => {
+    const now = Date.now();
+    const elapsed = now - lastTime;
+    queuedDelta += deltaY;
+    if (elapsed >= wait) {
+      lastTime = now;
+      callback(queuedDelta);
+      queuedDelta = 0;
+    } else if (timeoutId === null) {
+      timeoutId = setTimeout(flush, wait - elapsed);
+    }
+  };
+};
 
 export interface MapLocationPickerProps {
   /** 初始纬度 */
@@ -98,9 +121,30 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
       center: activeCenter,
       zoom: activeZoom,
       interactive: !readOnly,
+      // P1-003: 地图交互稳定性
+      dragRotate: false,
+      doubleClickZoom: false,
+      pitch: 0,
+      bearing: 0,
+      maxPitch: 0,
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+    // P1-003: 节流 wheel 事件，避免快速滚动时缩放抽搐
+    const wheelHandler = throttleWheel((deltaY) => {
+      if (!mapRef.current) return;
+      const currentZoom = mapRef.current.getZoom();
+      // 单次节流周期内最多 ±0.3 zoom，防止单次滚动 zoom 过激
+      const step = Math.max(0.05, Math.min(0.3, Math.abs(deltaY) * 0.002));
+      const nextZoom = deltaY > 0 ? currentZoom - step : currentZoom + step;
+      mapRef.current.zoomTo(nextZoom, { duration: 50 });
+    }, 40);
+    const wheelListener = (e: WheelEvent) => {
+      e.preventDefault();
+      wheelHandler(e.deltaY);
+    };
+    map.getContainer().addEventListener('wheel', wheelListener, { passive: false });
 
     // 初始 marker（若有 initialLat/Lng）
     if (initialLat != null && initialLng != null) {
@@ -135,6 +179,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
     mapRef.current = map;
 
     return () => {
+      map.getContainer().removeEventListener('wheel', wheelListener);
       if (markerRef.current) {
         markerRef.current.remove();
         markerRef.current = null;

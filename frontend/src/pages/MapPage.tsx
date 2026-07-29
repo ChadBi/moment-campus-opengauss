@@ -65,6 +65,8 @@ const MapPage: React.FC = () => {
   const markersRef = useRef<maplibregl.Marker[]>([]);
   // DSC-01.3: marker -> post_id 映射，用于支持 focus_post_id 深链接自动打开面板
   const markersByIdRef = useRef<Map<number, { marker: MapMarker; element: HTMLDivElement }>>(new Map());
+  // 聚合 marker 暂存的多帖列表（供侧滑面板渲染）
+  const groupedMarkersRef = useRef<MapMarker[] | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // 用 ref 同步 isAuthenticated，避免地图 click 闭包陷阱
@@ -229,46 +231,20 @@ const MapPage: React.FC = () => {
           .addTo(map.current!);
 
         if (isGrouped) {
-          // Task 3.5: 聚合 marker 点击 → 弹出帖子列表 Popup
+          // Task 3.5 v2: 聚合 marker 点击 → 打开侧滑面板，显示该地点所有帖子（与单帖路径统一）
           el.addEventListener('click', (e) => {
             e.stopPropagation();
-            // 构建 Popup HTML：帖子标题列表，点击跳转详情页
-            const html = `
-              <div style="max-height: 240px; overflow-y: auto; padding: 4px 0;">
-                <div style="font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 8px; padding: 0 4px;">
-                  ${first.location_name} · ${count} 条信息
-                </div>
-                ${markersAtLocation.map((m) => `
-                  <a href="/posts/${m.post_id}" data-post-id="${m.post_id}"
-                     style="display: block; padding: 6px 8px; border-radius: 6px; text-decoration: none; color: #1f2937; font-size: 13px; line-height: 1.4; transition: background 0.15s;"
-                     onmouseover="this.style.background='#f3f4f6'"
-                     onmouseout="this.style.background='transparent'">
-                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${CATEGORY_COLORS[m.category_id] || '#95A5A6'}; margin-right: 6px; vertical-align: middle;"></span>
-                    ${m.title}
-                  </a>
-                `).join('')}
-              </div>
-            `;
-            const popup = new maplibregl.Popup({
-              closeButton: true,
-              closeOnClick: true,
-              maxWidth: '300px',
-              offset: 25,
-            })
-              .setLngLat([first.longitude, first.latitude])
-              .setHTML(html)
-              .addTo(map.current!);
-
-            // 拦截链接点击，使用 React Router 导航（避免整页刷新）
-            const popupEl = popup.getElement();
-            popupEl?.querySelectorAll('a[data-post-id]').forEach((a) => {
-              a.addEventListener('click', (ev) => {
-                ev.preventDefault();
-                const postId = (ev.currentTarget as HTMLAnchorElement).dataset.postId;
-                popup.remove();
-                if (postId) navigate(`/posts/${postId}`);
-              });
-            });
+            // 复用 setPanel 单帖视图，但在侧滑面板里渲染"多帖"视图
+            setPanel({ type: 'view', marker: first });
+            // 通过 markersById 暂存聚合数据（供 Panel 渲染读取）
+            groupedMarkersRef.current = markersAtLocation;
+            setPostDetail(null);
+            setDetailLoading(true);
+            postsApi
+              .getPost(first.post_id)
+              .then((detail) => setPostDetail({ content: (detail as { content?: string }).content ?? '' }))
+              .catch(() => setPostDetail(null))
+              .finally(() => setDetailLoading(false));
           });
         } else {
           // 单帖 marker：保持原有行为（打开侧滑面板）
@@ -335,6 +311,14 @@ const MapPage: React.FC = () => {
       },
       center: activeCenterRef.current,
       zoom: activeZoomRef.current,
+      // P1-003: 地图交互稳定性配置
+      // - 禁用双指旋转/倾斜，避免 zoom 后竖直位置漂移
+      // - 禁用双击缩放，与 marker 点击冲突
+      dragRotate: false,
+      doubleClickZoom: false,
+      pitch: 0,
+      bearing: 0,
+      maxPitch: 0,
     });
 
     mapInstance.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
@@ -681,14 +665,20 @@ const MapPage: React.FC = () => {
             {/* 半透明遮罩：移动端点击关闭 */}
             <div
               className="absolute inset-0 z-20 bg-ink/20 backdrop-blur-[1px] md:bg-transparent md:backdrop-blur-none"
-              onClick={() => setPanel(null)}
+              onClick={() => {
+                groupedMarkersRef.current = null;
+                setPanel(null);
+              }}
             />
             <aside
               className="absolute top-0 right-0 bottom-0 z-30 w-full sm:w-[340px] md:w-[360px] bg-paper shadow-2xl border-l border-line flex flex-col map-slide-panel"
             >
               {/* 关闭按钮 */}
               <button
-                onClick={() => setPanel(null)}
+                onClick={() => {
+                  groupedMarkersRef.current = null;
+                  setPanel(null);
+                }}
                 className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-mist/80 backdrop-blur-sm flex items-center justify-center text-ink-sub hover:text-ink hover:bg-mist transition-colors"
                 aria-label="关闭"
               >
@@ -697,6 +687,55 @@ const MapPage: React.FC = () => {
 
               {panel.type === 'view' && (() => {
                 const m = panel.marker;
+                const grouped = groupedMarkersRef.current;
+                const isGroupedView = grouped && grouped.length > 1;
+
+                if (isGroupedView) {
+                  // 多帖侧滑面板：与首页卡片风格统一，精简版
+                  return (
+                    <>
+                      <div className="h-[80px] bg-gradient-to-br from-lake/15 via-mist to-lamp/10 flex items-center px-5 flex-shrink-0">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-full bg-lamp/20 flex items-center justify-center">
+                            <MapPin size={16} className="text-lamp" />
+                          </div>
+                          <div>
+                            <div className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">{m.location_name || '相同地点'}</div>
+                            <div className="font-display font-bold text-base text-ink">{grouped.length} 条信息 · 同一地点</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+                        {grouped.map((gm) => {
+                          const color = CATEGORY_COLORS[gm.category_id] || '#95A5A6';
+                          return (
+                            <button
+                              key={gm.post_id}
+                              onClick={() => navigate(`/posts/${gm.post_id}`)}
+                              className="w-full text-left bg-white hover:bg-mist/60 rounded-lg border border-line p-3 transition-colors"
+                            >
+                              <div className="flex items-start gap-2">
+                                <span
+                                  className="mt-1 w-2 h-2 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: color }}
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-medium text-ink text-sm line-clamp-2">{gm.title}</div>
+                                  <div className="flex items-center gap-2 mt-1 text-[11px] text-ink-muted">
+                                    <span style={{ color }}>{getCategoryName(gm.category_id)}</span>
+                                    <span>·</span>
+                                    <span>{gm.location_name || ''}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  );
+                }
+
                 return (
                   <>
                     {/* 封面图（如有） */}
@@ -820,6 +859,7 @@ const MapPage: React.FC = () => {
                       showCancelButton={false}
                       onSuccess={(status) => {
                         void status;
+                        groupedMarkersRef.current = null;
                         setPanel(null);
                         // 刷新地图标记
                         if (map.current) {

@@ -41,12 +41,13 @@ import {
 import { logger } from '../utils/logger';
 import { formatDateTime, formatRelativeTime as formatDate } from '../utils/date';
 
-// FND-01.1: 举报类型与后端 ReportType 枚举对齐（spam/abuse/harassment/false_info/other）
+// FND-01.1: 举报类型与后端 ReportType 枚举对齐
 const REPORT_OPTIONS: Array<{ value: ReportType; label: string }> = [
   { value: 'spam', label: '垃圾信息' },
   { value: 'abuse', label: '滥用' },
   { value: 'harassment', label: '骚扰' },
   { value: 'false_info', label: '虚假信息' },
+  { value: 'expired_info', label: '信息过期' },
   { value: 'other', label: '其他' },
 ];
 
@@ -638,10 +639,11 @@ const PostDetailPage: React.FC = () => {
         <div className="px-6 py-4 border-t border-ink-divider flex flex-wrap gap-2 items-center">
           {isAuthenticated && (
             <Button
-              variant={post.is_liked ? 'danger' : 'primary'}
+              variant={post.is_liked ? 'secondary' : 'primary'}
               size="sm"
               onClick={handleLike}
               icon={<Heart size={14} fill={post.is_liked ? 'currentColor' : 'none'} />}
+              className="min-w-[92px]"
             >
               {post.is_liked ? '已点赞' : '点赞'}
             </Button>

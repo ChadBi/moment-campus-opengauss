@@ -20,7 +20,6 @@
     subscribed          订阅分类/地点/专题/官方主体
     draft_saved         草稿被保存（只记 has_title/has_image/content_length，不记内容）
     post_submitted      帖子被提交审核（不记标题/正文，只记 category_code）
-    publisher_verified  官方主体认证状态变化
     tenant_activated    学校开通漏斗阶段推进
 """
 from __future__ import annotations
@@ -107,8 +106,6 @@ EVENT_WHITELIST: dict[str, frozenset[str]] = {
     "post_submitted": frozenset({
         "post_id", "category_code", "is_anonymous",
     }),
-    # 官方主体认证：publisher_id / action（apply/approved/rejected/revoked）
-    "publisher_verified": frozenset({"publisher_id", "action"}),
     # 学校开通漏斗阶段：stage（initial_brand/first_admin/first_location/
     # first_content/first_member/activated）
     "tenant_activated": frozenset({"stage"}),

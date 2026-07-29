@@ -210,11 +210,22 @@ const AdminGovernancePage: React.FC = () => {
     <div className="space-y-4">
       {/* 页面标题 */}
       <div>
-        <h1 className="text-2xl font-bold text-ink">治理工作台</h1>
+        <h1 className="text-2xl font-bold text-ink">协同治理</h1>
         <p className="text-ink-sub text-sm mt-1">
-          处理用户提交的过期报告 / 冲突报告 / 更新建议，共 {total} 条
+          处理用户提交的过期 / 冲突 / 更新类协同报告，共 {total} 条
         </p>
       </div>
+
+      {/* 功能说明卡片 */}
+      <Card variant="outlined" padding="sm" className="bg-mist/40">
+        <div className="flex items-start gap-2 text-xs text-ink-sub">
+          <ShieldCheck size={14} className="mt-0.5 text-lake flex-shrink-0" />
+          <div>
+            <span className="font-medium text-ink">协同治理说明：</span>{' '}
+            本页用于处理用户对帖子的协同反馈（过期 / 冲突 / 更新建议）。处理结果会影响帖子状态（如确认过期会将帖子转为「已过期」）。
+          </div>
+        </div>
+      </Card>
 
       {/* 筛选栏 */}
       <Card variant="outlined" padding="sm">

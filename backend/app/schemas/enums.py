@@ -11,11 +11,12 @@ from enum import Enum
 
 
 class ReportType(str, Enum):
-    """举报类型（5 类）"""
+    """举报类型（6 类）"""
     SPAM = "spam"                  # 垃圾信息
     ABUSE = "abuse"                # 滥用
     HARASSMENT = "harassment"      # 骚扰
     FALSE_INFO = "false_info"      # 虚假信息
+    EXPIRED_INFO = "expired_info"  # 信息过期
     OTHER = "other"                # 其他
 
 

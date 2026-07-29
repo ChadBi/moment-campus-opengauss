@@ -19,7 +19,6 @@ import type {
   CategoryListItem,
   LocationListItem,
 } from '../services/categories';
-import { publishersApi } from '../services/publishers';
 import { uploadApi } from '../services/upload';
 import { useCampusStore } from '../store/useCampusStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -29,7 +28,7 @@ import { Input } from './ui/Input';
 import { Loading } from './ui/Loading';
 import { Modal } from './ui/Modal';
 import MapLocationPicker from './MapLocationPicker';
-import type { AIPublishSuggestionResponse, PostTemplate, PublisherBrief } from '../types';
+import type { AIPublishSuggestionResponse } from '../types';
 
 /**
  * PUB-01.1: 统一发布表单（共享子组件）
@@ -76,8 +75,7 @@ interface PublishFormState {
   expire_at: string; // datetime-local 字符串（信息截止时间）
   contact_info: string;
   lost_type: '' | 'lost' | 'found';
-  // ORG-01: 关联官方发布主体（可选）
-  publisher_id: number | null;
+  // ORG-01: publisher_id 字段已随发布主体功能移除
 }
 
 const INITIAL_FORM: PublishFormState = {
@@ -93,7 +91,6 @@ const INITIAL_FORM: PublishFormState = {
   expire_at: '',
   contact_info: '',
   lost_type: '',
-  publisher_id: null,
 };
 
 /** 把 datetime-local 字符串转换为后端期望的 ISO 字符串；空值返回 undefined */
@@ -297,10 +294,7 @@ const PostForm: React.FC<PostFormProps> = ({
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaError, setMetaError] = useState<string | null>(null);
 
-  // ORG-01.3: 发布主体（已认证）+ 公共模板（用于一键补全表单）
-  const [publishers, setPublishers] = useState<PublisherBrief[]>([]);
-  const [templates, setTemplates] = useState<PostTemplate[]>([]);
-  const [appliedTemplateId, setAppliedTemplateId] = useState<number | null>(null);
+  // ORG-01.3: 发布主体与公共模板功能已下线（templates / appliedTemplateId 状态移除）
 
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -339,7 +333,7 @@ const PostForm: React.FC<PostFormProps> = ({
     draftKeyRef.current = draftStorageKey;
   }, [draftStorageKey]);
 
-  // 切换学校时重新拉取分类 / 地点 / 发布主体 / 公共模板
+  // 切换学校时重新拉取分类 / 地点 / 公共模板
   // Task 3.1 调整：移除 listPostTypes 调用（PostType 已删除）
   useEffect(() => {
     let cancelled = false;
@@ -351,24 +345,11 @@ const PostForm: React.FC<PostFormProps> = ({
     Promise.all([
       categoriesApi.listCategories(),
       categoriesApi.listLocations(),
-      // ORG-01.3: 已认证发布主体（用户仅能选择本校已认证主体关联发布）
-      publishersApi.list({ verified_status: 'verified', page_size: 100 }).catch(() => ({
-        items: [] as PublisherBrief[],
-        page: 1,
-        page_size: 100,
-        total: 0,
-        total_pages: 0,
-        has_more: false,
-      })),
-      // ORG-01.3: 学校级公共模板（publisher_id IS NULL，启用状态）
-      publishersApi.getPublicTemplates().catch(() => [] as PostTemplate[]),
     ])
-      .then(([cats, locs, pubsResp, tmpls]) => {
+      .then(([cats, locs]) => {
         if (cancelled) return;
         setCategories(cats);
         setLocations(locs);
-        setPublishers(pubsResp.items);
-        setTemplates(tmpls);
         // 默认选中第一个分类，减少用户操作
         setFormData((prev) => ({
           ...prev,
@@ -398,10 +379,7 @@ const PostForm: React.FC<PostFormProps> = ({
         new_location_name: locationCoordsReadOnly ? defaultLocationName : '',
         new_location_lat: locationCoordsReadOnly ? String(defaultLocationLat ?? '') : '',
         new_location_lng: locationCoordsReadOnly ? String(defaultLocationLng ?? '') : '',
-        // ORG-01: 切换学校时清空发布主体关联（跨校主体不可用）
-        publisher_id: null,
       }));
-      setAppliedTemplateId(null);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSchoolId]);
@@ -435,7 +413,6 @@ const PostForm: React.FC<PostFormProps> = ({
           expire_at: toDatetimeLocal(post.expire_at),
           contact_info: post.contact_info ?? '',
           lost_type: (post.lost_type as '' | 'lost' | 'found') ?? '',
-          publisher_id: post.publisher_id ?? null,
         });
       })
       .catch((err: unknown) => {
@@ -551,32 +528,7 @@ const PostForm: React.FC<PostFormProps> = ({
     handleFieldChange('category_id', id);
   };
 
-  // ============ ORG-01.3: 发布模板一键补全 ============
-  /**
-   * 应用模板：将模板的标题/正文/分类填入表单（覆盖原值，由发布者确认）。
-   * AI 只补全建议，发布者确认——模板应用后用户仍可继续编辑。
-   * 模板字段为空时保留原表单值（不强制清空）。
-   */
-  const handleApplyTemplate = (template: PostTemplate) => {
-    setFormData((prev) => ({
-      ...prev,
-      title: template.title_template || prev.title,
-      content: template.content_template || prev.content,
-      category_id: template.category_id ?? prev.category_id,
-    }));
-    setAppliedTemplateId(template.id);
-    showToast(`已应用模板「${template.name}」，可继续编辑后发布`, 'success');
-  };
-
-  /** 选择/取消选择发布主体（编辑模式不允许修改，因为后端 PostUpdate 不支持） */
-  const handlePublisherSelect = (idStr: string) => {
-    if (isEditMode) return; // 编辑模式禁用
-    if (!idStr) {
-      handleFieldChange('publisher_id', null);
-      return;
-    }
-    handleFieldChange('publisher_id', Number(idStr));
-  };
+  // ============ ORG-01.3: 发布模板一键补全（已下线，整段移除） ============
 
   const handleLocationSelect = (idStr: string) => {
     if (!idStr) {
@@ -703,17 +655,6 @@ const PostForm: React.FC<PostFormProps> = ({
     showToast('已采纳建议标题', 'success');
   };
 
-  /** 采纳建议摘要（写入正文开头，保留原内容） */
-  const adoptSummary = () => {
-    const s = aiSuggestion?.suggestions?.summary;
-    if (!s) return;
-    // 摘要作为"【摘要】xxx\n\n"前置到正文，不覆盖原内容
-    const newContent = `【摘要】${s}\n\n${formData.content}`.trim();
-    handleFieldChange('content', newContent);
-    setAdoptedFields((prev) => new Set(prev).add('summary'));
-    showToast('已采纳建议摘要（前置到正文）', 'success');
-  };
-
   /** 采纳建议分类（必须为白名单内的 category_id） */
   const adoptCategory = () => {
     const cid = aiSuggestion?.suggestions?.category_id;
@@ -829,17 +770,15 @@ const PostForm: React.FC<PostFormProps> = ({
       };
       if (isEditMode) {
         // PUB-02: 编辑模式 — 先保存修改；提交审核时再走 draft → pending 状态流转
-        // 注意：后端 PostUpdate 不支持 publisher_id，编辑模式不传该字段（保持原值）
         await postsApi.updatePost(editPostId, payload);
         if (status === 'pending') {
           await postsApi.transitionPost(editPostId, 'pending');
         }
       } else {
-        // ORG-01: 创建时携带 publisher_id（可选；关联已认证主体，仍走原审核流程，认证不代表免审）
+        // ORG-01: publisher_id 已随发布主体功能移除，创建时仅传必要字段
         await postsApi.createPost({
           ...payload,
           status,
-          publisher_id: formData.publisher_id ?? undefined,
         });
       }
       showToast(
@@ -1038,34 +977,6 @@ const PostForm: React.FC<PostFormProps> = ({
                     </div>
                   ) : null}
 
-                  {/* 建议摘要 */}
-                  {aiSuggestion.suggestions.summary ? (
-                    <div className="bg-white/60 rounded-md px-3 py-2 border border-line">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[11px] text-ink-muted mb-0.5">建议摘要</p>
-                          <p className="text-sm text-ink break-words">
-                            {aiSuggestion.suggestions.summary}
-                          </p>
-                        </div>
-                        {adoptedFields.has('summary') ? (
-                          <span className="text-[11px] text-grass flex items-center gap-0.5 flex-shrink-0">
-                            <Check size={12} /> 已采纳
-                          </span>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={adoptSummary}
-                          >
-                            采纳
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ) : null}
-
                   {/* 建议分类 */}
                   {aiSuggestion.suggestions.category_id != null ? (
                     <div className="bg-white/60 rounded-md px-3 py-2 border border-line">
@@ -1188,70 +1099,7 @@ const PostForm: React.FC<PostFormProps> = ({
           ) : null}
         </div>
 
-        {/* ORG-01.1: 关联官方发布主体（可选；仅展示本校已认证主体） */}
-        {publishers.length > 0 ? (
-          <div>
-            <label className={vs.label}>
-              官方发布主体{' '}
-              <span className="text-ink-muted text-xs">
-                （可选；关联后由主体名义发布，仍走原审核流程，认证不代表免审）
-              </span>
-            </label>
-            <select
-              value={formData.publisher_id ?? ''}
-              onChange={(e) => handlePublisherSelect(e.target.value)}
-              className={vs.select}
-              disabled={isEditMode}
-            >
-              <option value="">— 以个人名义发布 —</option>
-              {publishers.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}（{p.type === 'department' ? '部门' : p.type === 'club' ? '社团' : '服务组织'}）
-                </option>
-              ))}
-            </select>
-            {isEditMode ? (
-              <p className="text-[11px] text-ink-muted mt-1">
-                编辑模式下不可修改关联主体（如需变更请重新发布）
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {/* ORG-01.3: 高频场景发布模板（一键补全标题/正文/分类/类型，发布者确认） */}
-        {templates.length > 0 ? (
-          <div>
-            <label className={vs.label}>
-              发布模板{' '}
-              <span className="text-ink-muted text-xs">
-                （一键补全标题/正文/分类/类型，可继续编辑）
-              </span>
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {templates.map((t) => {
-                const isActive = appliedTemplateId === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => handleApplyTemplate(t)}
-                    className={`${vs.typeChip} ${
-                      isActive ? vs.catChipActive : vs.catChipInactive
-                    }`}
-                    title={t.title_template || t.name}
-                  >
-                    {t.name}
-                  </button>
-                );
-              })}
-            </div>
-            {appliedTemplateId ? (
-              <p className="text-[11px] text-ink-muted mt-1.5">
-                已应用模板，可继续编辑后发布。AI 只补全建议，发布者确认。
-              </p>
-            ) : null}
-          </div>
-        ) : null}
+        {/* ORG-01.3: 发布模板 UI 已随发布主体功能移除 */}
 
         {/* 标题 */}
         <Input

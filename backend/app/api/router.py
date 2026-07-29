@@ -17,8 +17,6 @@ from app.api.platform import router as platform_router
 from app.api.schools import schools_router, me_router as schools_me_router
 from app.api.analytics import router as analytics_router, admin_analytics_router
 from app.api.governance import router as governance_router
-from app.api.publishers import router as publishers_router
-from app.api.admin_publishers import router as admin_publishers_router
 from app.api.recommendations import router as recommendations_router
 from app.api.subscriptions import router as subscriptions_router
 
@@ -56,9 +54,6 @@ api_router.include_router(analytics_router)
 api_router.include_router(admin_analytics_router)
 # GOV-01: 五类协同治理（2 类投票 + 3 类问题报告）
 api_router.include_router(governance_router)
-# ORG-01: 官方发布主体（用户端 + 管理端）
-api_router.include_router(publishers_router)
-api_router.include_router(admin_publishers_router)
 # SUB-01: 用户级内容订阅（分类/地点/专题）
 api_router.include_router(subscriptions_router)
 # REC-01: 首页推荐 + 推荐隐私偏好（个性化开关 + 清除画像历史）

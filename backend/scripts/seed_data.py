@@ -37,7 +37,7 @@ from app.models import (
     Location, Comment, Like, ValidationRecord, Report, Notification,
     TopicCollection, TopicCollectionPost, Draft, BrowseHistory, SearchHistory,
     AdminOperationLog, SchoolMembership, SchoolSettings, SchoolSubscription,
-    ProductPlan, PlanEntitlement, PublisherProfile, PublisherMembership,
+    ProductPlan, PlanEntitlement,
 )
 import bcrypt
 
@@ -150,16 +150,6 @@ JIANGNAN_USERS = [
      "bio": "大四老学长 | 江南生存指南作者"},
 ]
 
-# 江南大学官方发布主体（≥2）
-JIANGNAN_PUBLISHERS = [
-    {"name": "江南大学学生会", "type": "service_org", "intro": "校学生会官方信息发布主体",
-     "service_hours": "工作日 9:00-17:00", "contact": "su@jiangnan.edu.cn", "verified_status": "verified"},
-    {"name": "计算机学院科协", "type": "department", "intro": "计算机学院学术活动与讲座组织",
-     "service_hours": "工作日 14:00-18:00", "contact": "cs@jiangnan.edu.cn", "verified_status": "verified"},
-    {"name": "江南话剧社", "type": "club", "intro": "校园话剧演出社团",
-     "service_hours": "周末 14:00-18:00", "contact": "drama@jiangnan.edu.cn", "verified_status": "pending"},
-]
-
 
 # --- 复旦大学（复赛演示校 A，上海邯郸校区） -------------------------------
 FUDAN_META = {
@@ -215,13 +205,6 @@ FUDAN_USERS = [
      "bio": "本部体育场夜跑爱好者"},
 ]
 
-FUDAN_PUBLISHERS = [
-    {"name": "复旦大学学生会", "type": "service_org", "intro": "校学生会官方信息发布主体",
-     "service_hours": "工作日 9:00-17:00", "contact": "su@fudan.edu.cn", "verified_status": "verified"},
-    {"name": "复旦话剧社", "type": "club", "intro": "相辉堂常驻演出社团",
-     "service_hours": "周末 14:00-18:00", "contact": "drama@fudan.edu.cn", "verified_status": "verified"},
-]
-
 
 # --- 浙江大学（复赛演示校 B，杭州紫金港校区） -------------------------------
 ZJU_META = {
@@ -275,13 +258,6 @@ ZJU_USERS = [
      "bio": "图书馆是我的第二个家"},
     {"email": "zju_user5@example.com", "nickname": "紫金港跑者", "role": "user",
      "bio": "紫金港夜跑团成员"},
-]
-
-ZJU_PUBLISHERS = [
-    {"name": "浙江大学学生会", "type": "service_org", "intro": "校学生会官方信息发布主体",
-     "service_hours": "工作日 9:00-17:00", "contact": "su@zju.edu.cn", "verified_status": "verified"},
-    {"name": "浙大计算机学院", "type": "department", "intro": "计算机学院学术活动与讲座组织",
-     "service_hours": "工作日 14:00-18:00", "contact": "cs@zju.edu.cn", "verified_status": "verified"},
 ]
 
 
@@ -1366,7 +1342,6 @@ SCHOOLS_REGISTRY = [
         "posts": JIANGNAN_POSTS,  # published 帖子
         "status_samples": JIANGNAN_STATUS_SAMPLES,  # 5 个状态样本（draft/pending/expired/conflict/archived）
         "topics": JIANGNAN_TOPICS,
-        "publishers": JIANGNAN_PUBLISHERS,
     },
     {
         "meta": FUDAN_META,
@@ -1376,7 +1351,6 @@ SCHOOLS_REGISTRY = [
         "posts": FUDAN_POSTS,  # 已包含 6 态样本
         "status_samples": [],  # 帖子列表已包含 6 态样本
         "topics": FUDAN_TOPICS,
-        "publishers": FUDAN_PUBLISHERS,
     },
     {
         "meta": ZJU_META,
@@ -1386,7 +1360,6 @@ SCHOOLS_REGISTRY = [
         "posts": ZJU_POSTS,
         "status_samples": [],
         "topics": ZJU_TOPICS,
-        "publishers": ZJU_PUBLISHERS,
     },
 ]
 
@@ -1408,10 +1381,11 @@ async def init_db():
     注：openGauss 的 PGXC 架构不支持 RESTART IDENTITY 子句，需手动 ALTER SEQUENCE。
 
     TEN-05：扩展清空多租户相关表（school_memberships/school_settings/school_subscriptions/
-    product_plans/plan_entitlements/publisher_profiles/
-    publisher_memberships/post_templates/platform_audit_logs 等），
+    product_plans/plan_entitlements/platform_audit_logs 等），
     保证重跑种子脚本时外键不冲突。
     注：原 post_change_reports 表已移除（问题报告功能与评论/举报冲突）。
+    注：publisher_profiles / publisher_memberships / post_templates 表已随
+    migration a6b7c8d9e0f1 drop，不再清空。
     """
     # 按外键依赖逆序列出所有业务表（含多租户与治理扩展表）
     tables = [
@@ -1423,10 +1397,6 @@ async def init_db():
         "comments",
         "post_images",
         "posts",
-        # 主体与模板
-        "post_templates",
-        "publisher_memberships",
-        "publisher_profiles",
         # 专题
         "topic_collection_posts",
         "topic_collections",
@@ -1734,72 +1704,6 @@ async def seed_locations(session: AsyncSession, schools: list):
         locations_by_school[school.code] = locs
     await session.flush()
     return locations_by_school
-
-
-# =============================================================================
-# 官方发布主体（ORG-01，每校 ≥2）
-# =============================================================================
-
-async def seed_publishers(session: AsyncSession, schools: list, users_by_email: dict,
-                          locations_by_school: dict):
-    """为每所学校创建官方发布主体（≥2 个，verified 状态）"""
-    now = datetime.now()
-    publishers_by_school = {}  # school_code -> [PublisherProfile]
-    for school, cfg in zip(schools, SCHOOLS_REGISTRY):
-        pubs = []
-        admin_email = next((u["email"] for u in cfg["users"] if u["role"] == "admin"), None)
-        admin_user = users_by_email.get(admin_email)
-        admin_id = admin_user.id if admin_user else None
-        school_locs = locations_by_school.get(school.code, [])
-        first_loc = school_locs[0] if school_locs else None
-
-        for i, p in enumerate(cfg["publishers"]):
-            pub = PublisherProfile(
-                school_id=school.id,
-                name=p["name"],
-                type=p["type"],
-                intro=p["intro"],
-                logo_url=None,
-                location_id=first_loc.id if first_loc else None,
-                service_hours=p["service_hours"],
-                contact=p["contact"],
-                verified_status=p["verified_status"],
-                verified_at=now if p["verified_status"] == "verified" else None,
-                verified_by=admin_id if p["verified_status"] == "verified" else None,
-                view_count=120 + i * 30,
-                subscribe_count=20 + i * 5,
-                share_count=10 + i * 2,
-                valid_feedback_count=15,
-                invalid_feedback_count=2,
-                zero_result_count=1,
-                created_at=now,
-                updated_at=now,
-            )
-            session.add(pub)
-            pubs.append(pub)
-        publishers_by_school[school.code] = pubs
-    await session.flush()
-
-    # 为每个 verified publisher 添加 owner 成员（admin 用户）
-    memberships = []
-    for school, cfg in zip(schools, SCHOOLS_REGISTRY):
-        admin_email = next((u["email"] for u in cfg["users"] if u["role"] == "admin"), None)
-        admin_user = users_by_email.get(admin_email)
-        if admin_user is None:
-            continue
-        for pub in publishers_by_school.get(school.code, []):
-            m = PublisherMembership(
-                publisher_id=pub.id,
-                user_id=admin_user.id,
-                role="owner",
-                joined_at=now,
-                created_at=now,
-                updated_at=now,
-            )
-            session.add(m)
-            memberships.append(m)
-    await session.flush()
-    return publishers_by_school
 
 
 # =============================================================================
@@ -2232,15 +2136,8 @@ async def seed_data():
         total_locs = sum(len(l) for l in locations_by_school.values())
         print(f"✓ 共创建 {total_locs} 个地点")
 
-        print("\n[9/11] 创建三校官方发布主体...")
-        publishers_by_school = await seed_publishers(
-            session, schools, users_by_email, locations_by_school
-        )
-        for code, pubs in publishers_by_school.items():
-            verified = sum(1 for p in pubs if p.verified_status == "verified")
-            print(f"  - {code}: {len(pubs)} 个主体（{verified} verified）")
-        total_pubs = sum(len(p) for p in publishers_by_school.values())
-        print(f"✓ 共创建 {total_pubs} 个官方发布主体")
+        # [9/11] 创建三校官方发布主体 — 已下线（publisher_profiles / publisher_memberships / post_templates 表已 drop）
+        # publishers_by_school = await seed_publishers(...)  # 已移除
 
         # 取 admin 用户作为订阅分配者
         admin_user = users_by_email.get("admin@momentcampus.com")

@@ -467,6 +467,9 @@ const AdminTopicsPage: React.FC = () => {
           <p className="text-ink-sub text-sm mt-1">
             共 {total} 个专题 · 切换学校只展示当前学校专题
           </p>
+          <p className="text-[11px] text-ink-muted mt-1">
+            专题由管理员在此创建/编排/上下线。用户侧通过首页「专题卡片」或 <code className="px-1 bg-mist rounded">/topics</code> 浏览已上线专题，无法自行创建专题。
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="text" onClick={handleBatchSort}>

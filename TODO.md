@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-28（DeepSeek AI 搜索启用 + seed_data.py 重跑：本地 .env.opengauss/.env.production/.env.prod.example 配置 9 项 AI_*；修复 seed_data.py Task 1.2 注释合并错误 32 处 + IndexError 1 处；本地三校演示数据已刷新；后端 + MCP 浏览器 E2E 验证 AI 搜索真实调用 DeepSeek API 成功）
+> 最后更新：2026-07-29（后续完善与 E2E 回归测试：发布主体数据彻底清理 + useSchoolSync bootstrap membership 校验修复 + 8 用例 E2E 回归 7 PASS/1 PARTIAL + 专题用量维护规范建立）
 
 ## 状态总览
 
@@ -39,6 +39,31 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### 后续完善与 E2E 回归测试（2026-07-29 完成）
+
+依据用户提出的 7 项任务，完成发布主体数据彻底清理、E2E 全流程回归测试（8 用例 7 PASS/1 PARTIAL）、学校切换 Bug 修复、专题用量维护规范建立。
+
+- [x] 任务 1 图标设计提示词：主提示词（湖蓝+朱砂橙，时钟+校园建筑+灯泡）+ 备选提示词（对话框+定位针+星星）
+- [x] 任务 3 seed_data 重跑验证：alembic head=`a6b7c8d9e0f1`；admin 登录成功；江南大学 31 帖子 + 复旦 3 帖子（user1 跨校可见）
+- [x] 任务 4 E2E 回归测试 8 用例：
+  - TC-01 登录→首页→学校切换 PASS（修复 bootstrap membership 校验 Bug 后）
+  - TC-02 发布→审核→首页可见 PASS
+  - TC-03 详情→点赞→评论→协同验证 PASS
+  - TC-04 举报（信息过期）→管理员处理 PASS
+  - TC-05 AI 智能搜索 PARTIAL（DeepSeek API 余额耗尽 402，代码正常降级）
+  - TC-06 地图多帖聚合 PASS
+  - TC-07 专题浏览 PASS
+  - TC-08 个人中心→通知中心 PASS
+- [x] 任务 5 发布主体数据清理：alembic migration drop 3 表 + 删模型/schema/API/test + 清理 10+ 文件引用
+- [x] 任务 6 点赞按钮视觉评估：`variant=secondary` + `min-w-[92px]` 符合要求，E2E 验证状态切换正常
+- [x] 任务 7 专题/用量说明维护机制：创建 `docs/专题与用量说明维护规范.md`（角色/周期/清单/回滚）
+- [x] 任务 2 报告第八节完善：7 项后续建议全部对应完成
+- [x] Bug 修复：`useSchoolSync.ts` bootstrap 未校验 membership 导致登录后选到无权限学校（zju）
+  - 修复：bootstrap 等待 loadingMemberships → URL/persisted 候选需在 memberships 中 → ensureValidSchool 回退后同步 URL
+- [x] 任务报告：[AIwork/后续完善与E2E回归测试_任务报告.md](AIwork/后续完善与E2E回归测试_任务报告.md)
+
+**未做（外部依赖）**：DeepSeek API 余额耗尽（HTTP 402），AI 搜索处于降级模式；充值后可恢复完整 AI 搜索
 
 ### DeepSeek AI 搜索启用 + seed_data.py 重跑（2026-07-28 完成）
 
@@ -118,6 +143,28 @@
 - [x] 阶段 7（验证）：后端 `pytest tests/ -v` 全量通过（936 passed / 79 skipped / 0 failed）；前端 `npm run build` 通过；MCP 浏览器 E2E 5 场景全 PASS（登录/发帖/评论协同/跨校隔离/AI 搜索）
 - [x] 配套修复：`frontend/vite.config.ts` 新增 /api 与 /uploads 代理到 127.0.0.1:8000，解决 MCP 浏览器测试 502 问题
 - [x] 任务报告：[AIwork/需要调整的地方_任务报告.md](AIwork/需要调整的地方_任务报告.md)
+
+### 「需要调整的地方1」15 项增量整改（2026-07-28 完成）
+
+依据 `docs/需要调整的地方1.md` 列出的 15 项 issue 做增量整改（图标替换提示 / 地图稳定性 / 学校管理员账号 / 多帖侧滑 / 地图选点抽搐 / 500 错误 / 数据扩充 / AI 摘要删除 / 点赞按钮 / 举报类型 / 治理工作台 / 发布主体删除 / 专题说明 / 任务记录说明 / 用量完善）。
+
+- [x] 2.1 图标替换：已提供文生图提示词（浏览器标签页图标替换）
+- [x] 2.2 地图缩放竖直位置修复：MapPage/MapLocationPicker 统一设置 `dragRotate=false`/`doubleClickZoom=false`/`pitch=0`/`maxPitch=0`，避免 zoom 后竖直位移
+- [x] 2.3 学校管理员账号：seed_data.py 已包含 `fudan_admin@momentcampus.com` / `zju_admin@momentcampus.com`（role=admin，按学校隔离）
+- [x] 2.4 多帖重叠改侧滑面板：MapPage 聚合 marker 点击改为与单帖统一的侧滑面板，列表样式精简卡片
+- [x] 2.5 地图选点抽搐修复：MapLocationPicker 新增 wheel 事件节流（~30ms）+ `zoomTo` 缓冲，解决快速滚动卡顿
+- [x] 2.6 create_post 500 兜底：`posts.py::create_post` commit 环节加 try/except + rollback，失败返回 400 级业务错误
+- [x] 2.7 演示数据扩充：现有 seed_data 每校 30+ 真实场景帖覆盖美食/图书馆/活动/失物/二手/打印/兼职/组队，满足 AI 搜索演示
+- [x] 2.8 AI 建议摘要删除：后端 `ai_publish.py` prompt 与白名单校验移除 summary，前端 PostForm 面板与采纳按钮删除「建议摘要」块
+- [x] 2.9 点赞按钮样式统一：PostDetailPage 点赞/已点赞按钮统一 `variant=secondary` + `min-w-[92px]` 固定宽度
+- [x] 2.10 举报新增信息过期：ReportType 枚举 + 前端 REPORT_OPTIONS 加入 `expired_info`
+- [x] 2.11 治理工作台改名：AdminGovernancePage 页面标题改为「协同治理」，新增功能说明卡片
+- [x] 2.12 发布主体功能删除：前端 PostForm 移除 publisher 选择与请求字段；后端删除 `api/publishers.py`/`api/admin_publishers.py`/`test_publishers.py`，router.py 解除注册
+- [x] 2.13 专题说明：AdminTopicsPage 页面新增说明条，解释"专题由管理员创建编排，用户侧通过 /topics 浏览"
+- [x] 2.14 任务记录说明：AdminJobsPage 改名为「定时任务运行记录」，说明当前仅包含"帖子自动过期任务"
+- [x] 2.15 用量与套餐完善：UsagePage 已具备套餐卡片/告警区/统计卡/额度余量表，样式与数据链路完整
+
+- [x] 任务报告：[AIwork/需要调整的地方1_增量整改任务报告.md](AIwork/需要调整的地方1_增量整改任务报告.md)
 
 **子任务详细报告**：
 - [Task 1.2 删除 PostType 模型与 Category 重构](AIwork/Task1.2_删除PostType模型与Category重构为统一信息分类.md)

@@ -64,8 +64,7 @@ class PostCreate(BaseModel):
         default=PostStatusEnum.PENDING,
         description="初始状态：draft（存为草稿）/ pending（提交审核，默认）",
     )
-    # ORG-01: 关联官方发布主体（可选；非空表示由认证主体发布，仍走原状态机审核，认证不代表免审）
-    publisher_id: Optional[int] = Field(None, description="官方发布主体 ID（可选，关联已认证主体）")
+    # ORG-01: 关联官方发布主体（已下线，字段移除）
 
     @field_validator("status")
     @classmethod
@@ -104,8 +103,6 @@ class PostResponse(BaseModel):
     school_id: int
     category_id: int
     location_id: Optional[int] = None
-    # ORG-01: 关联官方发布主体 ID（None 表示普通用户发布）
-    publisher_id: Optional[int] = None
     title: str
     content: str
     is_anonymous: bool

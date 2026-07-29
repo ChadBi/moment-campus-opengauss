@@ -24,13 +24,13 @@ from app.schemas.interaction import ReportCreate, ValidationCreate
 # ============================================================
 
 class TestReportTypeEnum:
-    """举报类型枚举（5 类）"""
+    """举报类型枚举（6 类）"""
 
-    EXPECTED_VALUES = {"spam", "abuse", "harassment", "false_info", "other"}
+    EXPECTED_VALUES = {"spam", "abuse", "harassment", "false_info", "other", "expired_info"}
 
     def test_enum_member_count(self):
-        """举报类型恰好 5 类"""
-        assert len(ReportType) == 5
+        """举报类型恰好 6 类"""
+        assert len(ReportType) == 6
 
     def test_enum_values_match_contract(self):
         """举报类型值与契约表一致"""

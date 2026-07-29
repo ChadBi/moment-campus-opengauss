@@ -14,8 +14,7 @@ class Post(Base):
     school_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("schools.id"), nullable=False, index=True)
     category_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("categories.id"), nullable=False, index=True)
     location_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("locations.id"), nullable=True, index=True)
-    # ORG-01: 关联官方发布主体（NULL 表示普通用户发布；非空表示由认证主体发布，但仍走原状态机审核，认证不代表免审）
-    publisher_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("publisher_profiles.id"), nullable=True, index=True)
+    # ORG-01: publisher_id 字段已随发布主体功能移除（migration a6b7c8d9e0f1 drop）
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     is_anonymous: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

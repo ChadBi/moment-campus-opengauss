@@ -47,6 +47,9 @@ export interface CreateLocationRequest {
   floor?: string;
 }
 
+// 注：PostTemplateListItem 与 listPublicTemplates 已随发布主体功能移除
+// （后端 /categories/templates 接口与 post_templates 表已删除）。
+
 export const categoriesApi = {
   /** 获取当前学校启用的分类列表 */
   listCategories: async (): Promise<CategoryListItem[]> => {

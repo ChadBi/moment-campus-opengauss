@@ -30,9 +30,6 @@ from .platform_audit import PlatformAuditLog
 from .password_reset_token import PasswordResetToken
 from .ai_invocation_log import AIInvocationLog
 from .job_run_record import JobRunRecord
-from .publisher_profile import PublisherProfile
-from .publisher_membership import PublisherMembership
-from .post_template import PostTemplate
 from .notification_preference import NotificationPreference
 from .subscription import UserSubscription
 from .user_recommendation_preference import UserRecommendationPreference
@@ -69,9 +66,6 @@ __all__ = [
     "PasswordResetToken",
     "AIInvocationLog",
     "JobRunRecord",
-    "PublisherProfile",
-    "PublisherMembership",
-    "PostTemplate",
     "NotificationPreference",
     "UserSubscription",
 ]

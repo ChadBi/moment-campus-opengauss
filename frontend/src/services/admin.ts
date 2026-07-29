@@ -1,14 +1,5 @@
 import { api } from './api';
 import type {
-  PublisherAdmin,
-  PublisherMembershipBrief,
-  PublisherVerifyAction,
-  PublisherMemberRole,
-  PublisherVerifiedStatus,
-  PublisherType,
-  PostTemplate,
-  PostTemplateCreateRequest,
-  PostTemplateScene,
   PostImageBrief,
 } from '../types';
 
@@ -701,115 +692,9 @@ export const adminApi = {
     return response.data;
   },
 
-  // ============ ORG-01.2: 官方发布主体管理 ============
-
-  /** 发布主体管理列表（含 pending/verified/revoked/rejected） */
-  getPublishers: async (params?: {
-    page?: number;
-    page_size?: number;
-    verified_status?: PublisherVerifiedStatus;
-    type?: PublisherType;
-    keyword?: string;
-  }): Promise<PaginatedResponse<PublisherAdmin>> => {
-    const response = await api.get<PaginatedResponse<PublisherAdmin>>('/admin/publishers', { params });
-    return response.data;
-  },
-
-  /** 发布主体管理详情 */
-  getPublisherDetail: async (id: number): Promise<PublisherAdmin> => {
-    const response = await api.get<PublisherAdmin>(`/admin/publishers/${id}`);
-    return response.data;
-  },
-
-  /** 审核/认证/撤销/恢复发布主体（ORG-01.2 状态流转） */
-  verifyPublisher: async (
-    id: number,
-    action: PublisherVerifyAction,
-    note?: string,
-  ): Promise<PublisherAdmin> => {
-    const response = await api.put<PublisherAdmin>(`/admin/publishers/${id}/verify`, {
-      action,
-      note,
-    });
-    return response.data;
-  },
-
-  /** 软删除发布主体 */
-  deletePublisher: async (id: number): Promise<{ message: string }> => {
-    const response = await api.delete<{ message: string }>(`/admin/publishers/${id}`);
-    return response.data;
-  },
-
-  /** 发布主体成员列表 */
-  getPublisherMembers: async (publisherId: number): Promise<PublisherMembershipBrief[]> => {
-    const response = await api.get<PublisherMembershipBrief[]>(
-      `/admin/publishers/${publisherId}/members`,
-    );
-    return response.data;
-  },
-
-  /** 添加成员（admin 直接指定） */
-  addPublisherMember: async (
-    publisherId: number,
-    userId: number,
-    role: PublisherMemberRole = 'member',
-  ): Promise<PublisherMembershipBrief> => {
-    const response = await api.post<PublisherMembershipBrief>(
-      `/admin/publishers/${publisherId}/members`,
-      { user_id: userId, role },
-    );
-    return response.data;
-  },
-
-  /** 更新成员角色 */
-  updatePublisherMember: async (
-    publisherId: number,
-    userId: number,
-    role: PublisherMemberRole,
-  ): Promise<PublisherMembershipBrief> => {
-    const response = await api.put<PublisherMembershipBrief>(
-      `/admin/publishers/${publisherId}/members/${userId}`,
-      { role },
-    );
-    return response.data;
-  },
-
-  /** 移除成员 */
-  removePublisherMember: async (
-    publisherId: number,
-    userId: number,
-  ): Promise<{ message: string }> => {
-    const response = await api.delete<{ message: string }>(
-      `/admin/publishers/${publisherId}/members/${userId}`,
-    );
-    return response.data;
-  },
-
-  // -------- 模板管理（admin） --------
-
-  /** 模板管理列表（含禁用项，含主体专属） */
-  getTemplates: async (params?: {
-    page?: number;
-    page_size?: number;
-    scene?: PostTemplateScene;
-    publisher_id?: number;
-    is_active?: boolean;
-  }): Promise<PaginatedResponse<PostTemplate>> => {
-    const response = await api.get<PaginatedResponse<PostTemplate>>('/admin/templates', { params });
-    return response.data;
-  },
-
-  /** 创建模板（publisher_id 为空=学校级公共模板） */
-  createTemplate: async (data: PostTemplateCreateRequest): Promise<PostTemplate> => {
-    const response = await api.post<PostTemplate>('/admin/templates', data);
-    return response.data;
-  },
-
-  /** 禁用模板（软删除 is_active=False） */
-  deleteTemplate: async (id: number): Promise<{ message: string }> => {
-    const response = await api.delete<{ message: string }>(`/admin/templates/${id}`);
-    return response.data;
-  },
+  // ============ ORG-01.2: 官方发布主体管理（已下线） ============
+  // 注：发布主体与模板相关接口已随 publisher_profiles / publisher_memberships /
+  // post_templates 表删除而移除。如需恢复，请回溯到 a6b7c8d9e0f1 迁移之前的版本。
 };
 
 // ============ TOPIC-01.2: 专题类型定义 ============

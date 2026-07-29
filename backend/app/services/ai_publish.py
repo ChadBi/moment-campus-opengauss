@@ -257,7 +257,6 @@ def _build_prompt(
 {{
   "suggestions": {{
     "title": "建议标题（仅在原文标题较弱或不规范时给出；原文标题已合适则填 null）",
-    "summary": "建议摘要（10-80 字，用于列表展示）",
     "category": "建议分类名（必须从下方分类白名单中选取；用户当前已选合适则填 null）",
     "tags": ["建议标签（最多 5 个；无建议则空数组）"],
     "default_validity_days": 建议默认信息截止天数（整数 1-365；来自分类配置或常见场景）
@@ -270,9 +269,8 @@ def _build_prompt(
 1. category 必须从下方分类白名单中选取，不得编造不存在的分类
 2. 不修改原文：title 字段仅在原文标题明显较弱时给出建议值，否则填 null
 3. 不引用其他学校的地点、词表、分类
-4. summary 应基于草稿正文概括，不编造未提及的事实
-5. missing_info 与 sensitive_warnings 可空数组
-6. 只返回 JSON，不要任何额外文字
+4. missing_info 与 sensitive_warnings 可空数组
+5. 只返回 JSON，不要任何额外文字
 
 # 上下文
 - 当前学校可用分类：{cat_list}
@@ -358,7 +356,7 @@ def _validate_suggestions(
 
     suggestions = AIPublishSuggestions(
         title=title_sug,
-        summary=summary_sug,
+        summary=None,
         category=category_name,
         category_id=category_id,
         tags=[],

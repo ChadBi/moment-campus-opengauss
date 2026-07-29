@@ -30,8 +30,7 @@ interface CreatePostRequest {
   lost_type?: string;
   // T-B-06: 支持创建时指定初始状态
   status?: 'draft' | 'pending';
-  /** ORG-01: 关联官方发布主体 ID（可选；非空表示由认证主体发布，仍走原状态机审核，认证不代表免审） */
-  publisher_id?: number | null;
+  // ORG-01: publisher_id 字段已随发布主体功能移除
 }
 
 /**

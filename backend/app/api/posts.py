@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload, joinedload
 from typing import Optional, List
 from datetime import datetime, timedelta
 from math import radians, cos, sin, asin, sqrt
+import logging
 
 from app.database import get_db
 from app.dependencies import get_current_user, get_current_user_optional
@@ -17,9 +18,6 @@ from app.models.location import Location
 from app.models.validation_record import ValidationRecord
 # PRF-01.3: 浏览历史按学校隔离，详情访问时写入
 from app.models.browse_history import BrowseHistory
-# ORG-01: 关联官方发布主体
-from app.models.publisher_profile import PublisherProfile
-from app.models.publisher_membership import PublisherMembership
 from app.schemas.post import (
     PostCreate, PostUpdate, PostResponse, PostListResponse,
     PostImageBrief,
@@ -38,6 +36,8 @@ from app.core.tenant import TenantContext, get_tenant_context, check_resource_in
 from app.services.ai_publish import execute_publish_suggestion
 
 router = APIRouter(prefix="/posts", tags=["信息"])
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
@@ -437,41 +437,12 @@ async def create_post(
             await db.flush()
         location_id = location.id
 
-    # ORG-01: 校验 publisher_id（若提供）属于当前学校且当前用户为该主体成员
-    # 关键约束：
-    #   - publisher 必须在本校（跨校 → 404，不泄露存在性）
-    #   - 当前用户必须是该 publisher 的成员（owner/admin/member）
-    #   - publisher 状态不限（pending/verified/revoked/rejected 均可关联，
-    #     因为认证不代表内容免审，状态机仍走原审核流程）
-    publisher_id = post_data.publisher_id
-    if publisher_id is not None:
-        pub_result = await db.execute(
-            select(PublisherProfile).where(
-                PublisherProfile.id == publisher_id,
-                PublisherProfile.is_deleted == False,
-            )
-        )
-        publisher = pub_result.scalar_one_or_none()
-        if publisher is None:
-            raise NotFoundException(detail="发布主体不存在")
-        check_resource_in_tenant(publisher.school_id, tenant)
-        # 校验当前用户是否为该主体成员
-        membership_result = await db.execute(
-            select(PublisherMembership).where(
-                PublisherMembership.publisher_id == publisher_id,
-                PublisherMembership.user_id == current_user.id,
-            )
-        )
-        if membership_result.scalar_one_or_none() is None:
-            raise ForbiddenException(detail="仅发布主体成员可代表该主体发布")
-
     # 创建信息（强制使用 tenant.school_id，不信任 body）
     post = Post(
         user_id=current_user.id,
         school_id=school_id,
         category_id=post_data.category_id,
         location_id=location_id,
-        publisher_id=publisher_id,  # ORG-01: 关联官方发布主体（None 表示普通用户发布）
         title=post_data.title,
         content=post_data.content,
         is_anonymous=post_data.is_anonymous,
@@ -498,7 +469,12 @@ async def create_post(
             )
             db.add(post_image)
 
-    await db.commit()
+    try:
+        await db.commit()
+    except Exception as exc:
+        await db.rollback()
+        logger.exception("create_post commit failed: %s", exc)
+        raise BadRequestException(detail=f"发布失败，请稍后重试或联系管理员") from exc
     await db.refresh(post)
 
     # 重新查询以获取关联数据

@@ -39,6 +39,7 @@ export function useSchoolSync(): void {
     ensureValidSchool,
     setLoadingSchools,
     setLoadingMemberships,
+    loadingMemberships,
   } = useCampusStore();
   const { isAuthenticated, user } = useAuthStore();
   const prevSchoolIdRef = useRef<number | null>(currentSchoolId);
@@ -88,17 +89,36 @@ export function useSchoolSync(): void {
   useEffect(() => {
     if (hasBootstrappedRef.current) return;
     if (schoolsQuery.isLoading || schools.length === 0) return;
+    // 认证用户需等待 memberships 加载完成，避免选到无权限的学校
+    // （如持久化/URL 中残留了用户未加入的学校 code）
+    if (isAuthenticated && loadingMemberships) return;
 
     hasBootstrappedRef.current = true;
 
     const urlSchoolCode = searchParams.get('school');
     const candidates: Array<{ code: string; source: string }> = [];
 
+    // 认证非 super_admin 用户可访问的学校 code 集合（用于过滤无权限候选）
+    const isSuperAdmin = user?.role === 'super_admin';
+    const accessibleCodes =
+      isAuthenticated && !isSuperAdmin && memberships.length > 0
+        ? new Set(
+            memberships
+              .filter((m) => m.status === 'active')
+              .map((m) => m.school.code)
+          )
+        : null;
+
     if (urlSchoolCode) {
-      candidates.push({ code: urlSchoolCode, source: 'url' });
+      // 认证用户：URL 候选需在可访问集合中（super_admin 除外）
+      if (!accessibleCodes || accessibleCodes.has(urlSchoolCode)) {
+        candidates.push({ code: urlSchoolCode, source: 'url' });
+      }
     }
     if (currentSchoolCode) {
-      candidates.push({ code: currentSchoolCode, source: 'persisted' });
+      if (!accessibleCodes || accessibleCodes.has(currentSchoolCode)) {
+        candidates.push({ code: currentSchoolCode, source: 'persisted' });
+      }
     }
     if (isAuthenticated && memberships.length > 0) {
       const def = memberships.find(
@@ -140,6 +160,7 @@ export function useSchoolSync(): void {
     schools,
     schoolsQuery.isLoading,
     isAuthenticated,
+    loadingMemberships,
     memberships,
     user,
     currentSchoolCode,
@@ -198,9 +219,29 @@ export function useSchoolSync(): void {
   // ----------------------------------------------------------
   useEffect(() => {
     if (isAuthenticated && memberships.length > 0) {
+      const prevCode = currentSchoolCode;
       ensureValidSchool();
+      // ensureValidSchool 可能将无权限学校回退到默认学校，
+      // 需同步 URL 避免第 4 步 URL 监听器把学校切回无权限值
+      const newCode = useCampusStore.getState().currentSchoolCode;
+      if (
+        newCode &&
+        newCode !== prevCode &&
+        searchParams.get('school') !== newCode
+      ) {
+        const next = new URLSearchParams(searchParams);
+        next.set('school', newCode);
+        setSearchParams(next, { replace: true });
+      }
     }
-  }, [isAuthenticated, memberships, ensureValidSchool]);
+  }, [
+    isAuthenticated,
+    memberships,
+    ensureValidSchool,
+    currentSchoolCode,
+    searchParams,
+    setSearchParams,
+  ]);
 }
 
 /**

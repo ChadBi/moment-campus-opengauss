@@ -13,12 +13,13 @@ export type PostStatus =
   | 'conflict'
   | 'archived';
 
-/** 举报类型（5 类） */
+/** 举报类型（6 类） */
 export type ReportType =
   | 'spam'
   | 'abuse'
   | 'harassment'
   | 'false_info'
+  | 'expired_info'
   | 'other';
 
 /** 协同验证类型（2 类：证实/证伪；问题报告已移除） */
@@ -82,8 +83,7 @@ export interface Post {
   school_id: number;
   category_id: number;
   location_id?: number;
-  // ORG-01: 关联官方发布主体 ID（None 表示普通用户发布）
-  publisher_id?: number;
+  // ORG-01: publisher_id 字段已随发布主体功能移除
   title: string;
   content: string;
   is_anonymous: boolean;
@@ -716,189 +716,11 @@ export interface AIPublishSuggestionResponse {
   ai_log_id?: number | null;
 }
 
-// ===== ORG-01 官方发布主体类型 =====
-
-/** 主体类型：部门/社团/服务组织 */
-export type PublisherType = 'department' | 'club' | 'service_org';
-
-/** 认证状态：pending/verified/revoked/rejected（仅 admin 可流转） */
-export type PublisherVerifiedStatus = 'pending' | 'verified' | 'revoked' | 'rejected';
-
-/** 成员角色：owner/admin/member */
-export type PublisherMemberRole = 'owner' | 'admin' | 'member';
-
-/** 模板场景：营业时间/讲座/失物/通知/其他 */
-export type PostTemplateScene =
-  | 'business_hours'
-  | 'lecture'
-  | 'lost'
-  | 'notification'
-  | 'other';
-
-/** 发布主体简要（列表用） */
-export interface PublisherBrief {
-  id: number;
-  name: string;
-  type: PublisherType;
-  logo_url?: string | null;
-  verified_status: PublisherVerifiedStatus;
-  intro?: string | null;
-  subscribe_count: number;
-  view_count: number;
-}
-
-/** 发布主体成员关系简要 */
-export interface PublisherMembershipBrief {
-  id: number;
-  user_id: number;
-  role: PublisherMemberRole;
-  joined_at: string;
-  user_nickname?: string | null;
-  user_email?: string | null;
-}
-
-/** 发布主体最近内容简要 */
-export interface PublisherPostBrief {
-  id: number;
-  title: string;
-  status: PostStatus;
-  category_id?: number | null;
-  category_name?: string | null;
-  created_at: string;
-  view_count: number;
-  like_count: number;
-}
-
-/** 发布主体详情（公开主页） */
-export interface PublisherProfile {
-  id: number;
-  school_id: number;
-  name: string;
-  type: PublisherType;
-  intro?: string | null;
-  logo_url?: string | null;
-  location_id?: number | null;
-  location_name?: string | null;
-  service_hours?: string | null;
-  contact?: string | null;
-  verified_status: PublisherVerifiedStatus;
-  verified_at?: string | null;
-  view_count: number;
-  subscribe_count: number;
-  share_count: number;
-  valid_feedback_count: number;
-  invalid_feedback_count: number;
-  zero_result_count: number;
-  created_at: string;
-  updated_at: string;
-  /** 当前用户是否为该主体成员 */
-  is_member: boolean;
-  /** 当前用户在该主体的角色（非成员为 null） */
-  my_role?: PublisherMemberRole | null;
-}
-
-/** 发布主体详情响应（含成员与最近内容） */
-export interface PublisherDetail extends PublisherProfile {
-  memberships: PublisherMembershipBrief[];
-  recent_posts: PublisherPostBrief[];
-}
-
-/** 发布主体聚合效果（ORG-01.4） */
-export interface PublisherAggregation {
-  publisher_id: number;
-  publisher_name: string;
-  view_count: number;
-  subscribe_count: number;
-  share_count: number;
-  valid_feedback_count: number;
-  invalid_feedback_count: number;
-  zero_result_count: number;
-  total_posts: number;
-  published_posts: number;
-  pending_posts: number;
-  /** 有效性反馈率（valid / (valid + invalid)），分母为 0 时为 null */
-  valid_rate?: number | null;
-}
-
-/** 管理端发布主体详情（含审核字段） */
-export interface PublisherAdmin {
-  id: number;
-  school_id: number;
-  name: string;
-  type: PublisherType;
-  intro?: string | null;
-  logo_url?: string | null;
-  location_id?: number | null;
-  location_name?: string | null;
-  service_hours?: string | null;
-  contact?: string | null;
-  verified_status: PublisherVerifiedStatus;
-  verified_at?: string | null;
-  verified_by?: number | null;
-  verified_by_name?: string | null;
-  verify_note?: string | null;
-  view_count: number;
-  subscribe_count: number;
-  share_count: number;
-  valid_feedback_count: number;
-  invalid_feedback_count: number;
-  zero_result_count: number;
-  created_at: string;
-  updated_at: string;
-  member_count: number;
-}
-
-/** 发布模板响应 */
-export interface PostTemplate {
-  id: number;
-  school_id: number;
-  publisher_id?: number | null;
-  publisher_name?: string | null;
-  name: string;
-  title_template: string;
-  content_template: string;
-  category_id?: number | null;
-  scene: PostTemplateScene;
-  sort_order: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-/** 创建发布主体请求 */
-export interface PublisherCreateRequest {
-  name: string;
-  type: PublisherType;
-  intro?: string;
-  logo_url?: string;
-  location_id?: number;
-  service_hours?: string;
-  contact?: string;
-}
-
-/** 更新发布主体请求 */
-export interface PublisherUpdateRequest {
-  name?: string;
-  intro?: string;
-  logo_url?: string;
-  location_id?: number;
-  service_hours?: string;
-  contact?: string;
-}
-
-/** 审核动作：approve/reject/revoke/restore */
-export type PublisherVerifyAction = 'approve' | 'reject' | 'revoke' | 'restore';
-
-/** 创建/更新模板请求 */
-export interface PostTemplateCreateRequest {
-  publisher_id?: number | null;
-  name: string;
-  title_template: string;
-  content_template: string;
-  category_id?: number | null;
-  scene: PostTemplateScene;
-  sort_order?: number;
-}
+// ===== ORG-01 官方发布主体类型（已下线，类型整体移除） =====
+// 注：publisher_profiles / publisher_memberships / post_templates 表已通过
+// alembic a6b7c8d9e0f1_drop_publisher_tables 迁移删除，
+// 前端 PublisherAdmin / PostTemplate / PublisherProfile 等类型与
+// admin.ts 中的 getPublishers / verifyPublisher / getTemplates 等接口同步移除。
 
 // ===== REC-01 推荐类型 =====
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
@@ -163,3 +163,8 @@ async def create_location(
         floor=location.floor,
         is_verified=location.is_verified,
     )
+
+
+# 注：/templates 接口已随发布主体功能移除（post_templates 表已 drop），
+# 前端 PostForm 的「发布模板」UI 已同步删除。
+

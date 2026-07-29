@@ -19,7 +19,6 @@ const loadMapPage = () => import('./pages/MapPage');
 const loadSearchPage = () => import('./pages/SearchPage');
 const loadPostDetailPage = () => import('./pages/PostDetailPage');
 const loadPublishPage = () => import('./pages/PublishPage');
-const loadPublishersPage = () => import('./pages/PublishersPage');
 const loadProfilePage = () => import('./pages/ProfilePage');
 const loadNotificationsPage = () => import('./pages/NotificationsPage');
 const loadLoginPage = () => import('./pages/LoginPage');
@@ -35,7 +34,6 @@ const MapPage = lazy(loadMapPage);
 const SearchPage = lazy(loadSearchPage);
 const PostDetailPage = lazy(loadPostDetailPage);
 const PublishPage = lazy(loadPublishPage);
-const PublishersPage = lazy(loadPublishersPage);
 const ProfilePage = lazy(loadProfilePage);
 const NotificationsPage = lazy(loadNotificationsPage);
 const LoginPage = lazy(loadLoginPage);
@@ -55,7 +53,6 @@ const loadAdminUsersPage = () => import('./pages/admin/AdminUsersPage');
 const loadAdminCategoriesPage = () => import('./pages/admin/AdminCategoriesPage');
 const loadAdminLocationsPage = () => import('./pages/admin/AdminLocationsPage');
 const loadAdminTopicsPage = () => import('./pages/admin/AdminTopicsPage');
-const loadAdminPublishersPage = () => import('./pages/admin/AdminPublishersPage');
 const loadAdminJobsPage = () => import('./pages/admin/AdminJobsPage');
 const loadAdminLogsPage = () => import('./pages/admin/AdminLogsPage');
 const loadAdminSettingsPage = () => import('./pages/admin/AdminSettingsPage');
@@ -77,7 +74,6 @@ const AdminUsersPage = lazy(loadAdminUsersPage);
 const AdminCategoriesPage = lazy(loadAdminCategoriesPage);
 const AdminLocationsPage = lazy(loadAdminLocationsPage);
 const AdminTopicsPage = lazy(loadAdminTopicsPage);
-const AdminPublishersPage = lazy(loadAdminPublishersPage);
 const AdminJobsPage = lazy(loadAdminJobsPage);
 const AdminLogsPage = lazy(loadAdminLogsPage);
 const AdminSettingsPage = lazy(loadAdminSettingsPage);
@@ -94,7 +90,6 @@ const commonRouteLoaders = [
   loadSearchPage,
   loadPostDetailPage,
   loadPublishPage,
-  loadPublishersPage,
   loadProfilePage,
   loadNotificationsPage,
 ];
@@ -214,9 +209,6 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="/map" element={<MapPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/posts/:id" element={<PostDetailPage />} />
-          {/* ORG-01: 官方发布主体（公开主页，列表 + 详情） */}
-          <Route path="/publishers" element={<PublishersPage />} />
-          <Route path="/publishers/:publisherId" element={<PublishersPage />} />
           {/* TOPIC-01.1: 用户端专题（列表 + 详情，仅展示已发布） */}
           <Route path="/topics" element={<TopicListPage />} />
           <Route path="/topics/:id" element={<TopicDetailPage />} />
@@ -267,8 +259,6 @@ const AnimatedRoutes: React.FC = () => {
           <Route path="locations" element={<AdminLocationsPage />} />
           {/* TOPIC-01.2: 专题管理（CRUD/排序/上下线/编排，仅 admin 及以上） */}
           <Route path="topics" element={<AdminTopicsPage />} />
-          {/* ORG-01.2: 发布主体管理（审核/认证/撤销/成员） */}
-          <Route path="publishers" element={<AdminPublishersPage />} />
           <Route path="jobs" element={<AdminJobsPage />} />
           <Route path="logs" element={<AdminLogsPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
