@@ -447,8 +447,8 @@ class SchoolCreateRequest(BaseModel):
     """创建学校请求。"""
     code: str = Field(..., min_length=2, max_length=20, description="学校 code（唯一）")
     name: str = Field(..., min_length=2, max_length=100, description="学校名称")
-    center_lat: Optional[float] = Field(None, description="地图中心纬度")
-    center_lng: Optional[float] = Field(None, description="地图中心经度")
+    center_lat: Optional[float] = Field(None, description="GCJ-02 地图中心纬度")
+    center_lng: Optional[float] = Field(None, description="GCJ-02 地图中心经度")
     map_zoom: Optional[int] = Field(None, ge=1, le=20, description="地图缩放级别，默认 16")
     logo_url: Optional[str] = Field(None, description="Logo URL")
     brand_color: Optional[str] = Field(None, description="主题色（如 #1890ff）")

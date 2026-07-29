@@ -30,8 +30,8 @@ class LocationResponse(BaseModel):
     """地点响应"""
     id: int = Field(..., description="地点ID")
     name: str = Field(..., description="地点名称")
-    latitude: float = Field(..., description="纬度")
-    longitude: float = Field(..., description="经度")
+    latitude: float = Field(..., description="GCJ-02 纬度")
+    longitude: float = Field(..., description="GCJ-02 经度")
     description: Optional[str] = Field(None, description="描述")
     building: Optional[str] = Field(None, description="建筑物")
     floor: Optional[str] = Field(None, description="楼层")
@@ -41,8 +41,8 @@ class LocationResponse(BaseModel):
 class LocationCreate(BaseModel):
     """创建地点（TEN-02.1: school_id 字段被忽略，强制使用 TenantContext 解析的学校）"""
     name: str = Field(..., min_length=1, max_length=100, description="地点名称")
-    latitude: float = Field(..., description="纬度")
-    longitude: float = Field(..., description="经度")
+    latitude: float = Field(..., description="GCJ-02 纬度")
+    longitude: float = Field(..., description="GCJ-02 经度")
     description: Optional[str] = Field(None, max_length=500, description="描述")
     building: Optional[str] = Field(None, max_length=100, description="建筑物")
     floor: Optional[str] = Field(None, max_length=10, description="楼层")

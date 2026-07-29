@@ -18,8 +18,8 @@ class MapMarker(BaseModel):
     """地图标记"""
     post_id: int = Field(..., description="帖子ID")
     title: str = Field(..., description="标题")
-    latitude: float = Field(..., description="纬度")
-    longitude: float = Field(..., description="经度")
+    latitude: float = Field(..., description="GCJ-02 纬度")
+    longitude: float = Field(..., description="GCJ-02 经度")
     location_name: str = Field(..., description="地点名称")
     category_id: int = Field(..., description="分类ID")
     cover_image: Optional[str] = Field(None, description="封面图片")
@@ -27,10 +27,10 @@ class MapMarker(BaseModel):
 
 @router.get("/map/markers", response_model=List[MapMarker])
 async def get_map_markers(
-    north: float = Query(..., description="边界北纬度"),
-    south: float = Query(..., description="边界南纬度"),
-    east: float = Query(..., description="边界东经度"),
-    west: float = Query(..., description="边界西经度"),
+    north: float = Query(..., description="GCJ-02 边界北纬度"),
+    south: float = Query(..., description="GCJ-02 边界南纬度"),
+    east: float = Query(..., description="GCJ-02 边界东经度"),
+    west: float = Query(..., description="GCJ-02 边界西经度"),
     category_id: Optional[int] = Query(None, description="分类ID"),
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),

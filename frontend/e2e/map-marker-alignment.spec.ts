@@ -72,4 +72,24 @@ test.describe('MapLibre Marker geometry', () => {
     await page.locator('.custom-marker').first().click();
     await expect(page.locator('aside.map-slide-panel')).toBeVisible();
   });
+
+  test('browser WGS-84 geolocation is converted to the GCJ-02 map contract', async ({ page, context }) => {
+    await context.grantPermissions(['geolocation'], { origin: 'http://localhost:5173' });
+    await context.setGeolocation({
+      latitude: 31.48560159175487,
+      longitude: 120.26658886699913,
+    });
+
+    const markerRequest = page.waitForRequest((request) => request.url().includes('/map/markers?'));
+    await page.getByRole('button', { name: '定位' }).click();
+    const request = await markerRequest;
+    const url = new URL(request.url());
+    const centerLatitude =
+      (Number(url.searchParams.get('north')) + Number(url.searchParams.get('south'))) / 2;
+    const centerLongitude =
+      (Number(url.searchParams.get('east')) + Number(url.searchParams.get('west'))) / 2;
+
+    expect(centerLatitude).toBeCloseTo(31.483652, 3);
+    expect(centerLongitude).toBeCloseTo(120.271160, 3);
+  });
 });

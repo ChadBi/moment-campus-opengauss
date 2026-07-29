@@ -12,6 +12,7 @@ import { useUIStore } from '../store/useUIStore';
 import { useCampusStore } from '../store/useCampusStore';
 import { logger } from '../utils/logger';
 import { createMapMarkerElement } from '../utils/mapMarker';
+import { wgs84ToGcj02 } from '../utils/coordinates';
 
 // PUB-01.1: 分类列表改为从 API 动态拉取（按当前学校过滤），不再硬编码
 // 分类颜色映射保留作为地图标记视觉差异化用，未命中的分类回退灰色
@@ -50,7 +51,7 @@ type PanelMode = null | { type: 'view'; marker: MapMarker } | { type: 'create'; 
 
 // P1-002: 兜底中心点/缩放级别（仅当 useCampusStore.currentSchoolCenter 为 null 时使用）
 // 江南大学蠡湖校区坐标 [lng, lat]
-const FALLBACK_CENTER: [number, number] = [120.271166, 31.483706];
+const FALLBACK_CENTER: [number, number] = [120.271160, 31.483652];
 const FALLBACK_ZOOM = 16;
 
 const MapPage: React.FC = () => {
@@ -411,8 +412,9 @@ const MapPage: React.FC = () => {
     if (!navigator.geolocation || !map.current) return;
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        const gcj02 = wgs84ToGcj02(position.coords.latitude, position.coords.longitude);
         map.current!.flyTo({
-          center: [position.coords.longitude, position.coords.latitude],
+          center: [gcj02.longitude, gcj02.latitude],
           zoom: 16,
         });
       },

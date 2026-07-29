@@ -6,7 +6,7 @@ import { useCampusStore } from '../store/useCampusStore';
 import { logger } from '../utils/logger';
 
 // 兜底中心点：江南大学蠡湖校区
-const FALLBACK_CENTER: [number, number] = [120.271166, 31.483706];
+const FALLBACK_CENTER: [number, number] = [120.271160, 31.483652];
 const FALLBACK_ZOOM = 16;
 
 /**
@@ -215,7 +215,7 @@ const MapLocationPicker: React.FC<MapLocationPickerProps> = ({
             ) : null}
             <span>
               {initialName ? `${initialName} · ` : ''}
-              纬度 {picked.lat.toFixed(6)}，经度 {picked.lng.toFixed(6)}
+              GCJ-02（高德坐标）：纬度 {picked.lat.toFixed(6)}，经度 {picked.lng.toFixed(6)}
             </span>
           </>
         ) : (

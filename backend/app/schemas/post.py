@@ -51,8 +51,8 @@ class PostCreate(BaseModel):
     location_id: Optional[int] = Field(None, description="地点ID（已存在的地点）")
     # 支持地图点选发帖：直接传地点名称+坐标，后端自动创建 Location
     location_name: Optional[str] = Field(None, max_length=100, description="地点名称（与 location_lat/lng 配合使用，自动创建地点）")
-    location_lat: Optional[float] = Field(None, ge=-90, le=90, description="纬度（与 location_name 配合使用）")
-    location_lng: Optional[float] = Field(None, ge=-180, le=180, description="经度（与 location_name 配合使用）")
+    location_lat: Optional[float] = Field(None, ge=-90, le=90, description="GCJ-02 纬度（与 location_name 配合使用）")
+    location_lng: Optional[float] = Field(None, ge=-180, le=180, description="GCJ-02 经度（与 location_name 配合使用）")
     is_anonymous: bool = Field(default=False, description="是否匿名")
     image_urls: Optional[List[str]] = Field(default=None, max_length=9, description="图片URL列表，最多9个")
     expire_at: Optional[datetime] = Field(None, description="信息截止时间")

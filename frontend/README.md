@@ -121,7 +121,7 @@ npx tsc --noEmit    # TypeScript 类型检查
 
 ### 瓦片源（P2-008）
 
-MapPage 默认使用高德栅格瓦片（`webrd0{1-4}.is.autonavi.com`），国内访问可达性优于 OSM。如需切换瓦片源，修改 `MapPage.tsx` 中的 `sources.amap.tiles` 配置。
+MapPage 默认使用高德栅格瓦片（`webrd0{1-4}.is.autonavi.com`），国内访问可达性优于 OSM。如需切换瓦片源，修改 `MapPage.tsx` 中的 `sources.amap.tiles` 配置。数据库、API、地图选点和 CSV 导入统一使用 GCJ-02；浏览器 WGS-84 定位会在前端转换后再显示。
 
 ## 部署
 

@@ -1285,7 +1285,7 @@ const PostForm: React.FC<PostFormProps> = ({
             />
             <div className="grid grid-cols-2 gap-3 mt-2">
               <Input
-                label="纬度"
+                label="纬度（GCJ-02）"
                 name="new_location_lat"
                 type="number"
                 value={formData.new_location_lat}
@@ -1295,7 +1295,7 @@ const PostForm: React.FC<PostFormProps> = ({
                 readOnly={locationCoordsReadOnly}
               />
               <Input
-                label="经度"
+                label="经度（GCJ-02）"
                 name="new_location_lng"
                 type="number"
                 value={formData.new_location_lng}
@@ -1412,7 +1412,7 @@ const PostForm: React.FC<PostFormProps> = ({
       >
         <div className="p-4">
           <p className="text-xs text-ink-muted mb-3">
-            点击地图设置标记，选点后将自动填充经纬度（可继续编辑地点名称）。
+            点击地图设置标记，选点后将自动填充 GCJ-02（高德坐标）经纬度（可继续编辑地点名称）。
           </p>
           <MapLocationPicker
             initialLat={

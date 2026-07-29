@@ -372,6 +372,7 @@ const SchoolImportPage: React.FC = () => {
         </div>
         <p className="text-xs text-ink-muted mt-2">
           CSV 首行须为表头：type,name,description,latitude,longitude,floor,building,title,content,category_code,post_type_code,location_ref,expire_at,is_anonymous,contact_info
+          ；latitude/longitude 必须使用 GCJ-02（高德坐标）。
         </p>
       </Card>
 
@@ -502,7 +503,7 @@ const SchoolImportPage: React.FC = () => {
                             {loc.name}
                           </td>
                           <td className="py-1.5 px-2 text-ink-sub">
-                            {loc.latitude.toFixed(4)},{loc.longitude.toFixed(4)}
+                            GCJ-02：{loc.latitude.toFixed(4)},{loc.longitude.toFixed(4)}
                           </td>
                           <td className="py-1.5 px-2 text-ink-sub">
                             {loc.floor || '-'}

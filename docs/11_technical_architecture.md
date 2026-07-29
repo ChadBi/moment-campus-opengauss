@@ -767,11 +767,11 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 
 ### 6.4 坐标系统
 
-- **使用坐标系：** WGS 84（EPSG:4326）—— GPS 标准坐标系
-- **地图投影：** Web Mercator（EPSG:3857）—— MapLibre 默认投影
-- **前端处理：** MapLibre 自动处理坐标投影转换
-- **后端存储：** 数据库中以 WGS 84 经纬度存储（`longitude`, `latitude`）
-- **数据交换：** API 传输使用 WGS 84 经纬度
+- **唯一业务坐标系：** GCJ-02，与高德栅格底图及未来微信地图保持一致
+- **地图投影：** Web Mercator；MapLibre 负责屏幕投影，业务经纬度仍按 GCJ-02 解释
+- **浏览器定位：** `navigator.geolocation` 的 WGS-84 结果先转换为 GCJ-02 再用于地图
+- **后端存储与 API：** `longitude` / `latitude`、学校中心、地图边界、距离搜索和导入数据均使用 GCJ-02
+- **详细目录：** 见 [GCJ-02 坐标规范与三校点位目录](35_GCJ02坐标规范与三校点位目录.md)
 
 ---
 

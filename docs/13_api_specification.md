@@ -1101,6 +1101,8 @@
 
 **接口说明**：获取地图范围内的信息标记
 
+本接口及所有地点、学校中心、距离搜索坐标统一使用 **GCJ-02**。
+
 | 项目 | 说明 |
 |------|------|
 | 请求方法 | GET |
@@ -1111,39 +1113,26 @@
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| school_id | uuid | 否 | 学校ID |
-| latitude | number | 是 | 中心纬度 |
-| longitude | number | 是 | 中心经度 |
-| radius | number | 否 | 半径（米），默认 5000 |
-| category_id | uuid | 否 | 分类筛选 |
-| limit | number | 否 | 最大返回数量，默认 100 |
+| north | number | 是 | GCJ-02 北边界纬度 |
+| south | number | 是 | GCJ-02 南边界纬度 |
+| east | number | 是 | GCJ-02 东边界经度 |
+| west | number | 是 | GCJ-02 西边界经度 |
+| category_id | number | 否 | 分类筛选 |
 
 **成功响应**：
 
 ```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "markers": [
-      {
-        "post_id": "uuid",
-        "title": "string",
-        "category_id": "uuid",
-        "category_name": "string",
-        "location": {
-          "location_id": "uuid",
-          "name": "string",
-          "latitude": 0,
-          "longitude": 0
-        },
-        "validity_status": "valid",
-        "like_count": 0
-      }
-    ],
-    "total": 0
+[
+  {
+    "post_id": 1,
+    "title": "string",
+    "latitude": 31.483652,
+    "longitude": 120.271160,
+    "location_name": "string",
+    "category_id": 1,
+    "cover_image": null
   }
-}
+]
 ```
 
 ---

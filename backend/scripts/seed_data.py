@@ -17,7 +17,8 @@
 
 TEN-05.3：user1@/user2@ 加入多校（江南大学 + 复旦/浙大）用于演示切换后角色/内容/统计变化。
 
-注意：复旦大学与浙江大学的地图中心坐标为人工录入，若用于生产演示需人工核验。
+坐标约定：数据库与 API 统一使用 GCJ-02；三校点位来源与质量见
+``app.data.demo_coordinates``。
 """
 import asyncio
 import sys
@@ -32,6 +33,7 @@ import app.db_compat  # noqa: F401  openGauss 兼容性补丁，必须在 SQLAlc
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import async_session_maker, engine
+from app.data.demo_coordinates import DEMO_SCHOOL_COORDINATES, location_tuples
 from app.models import (
     Base, User, School, Post, Category, PostImage,
     Location, Comment, Like, ValidationRecord, Report, Notification,
@@ -89,8 +91,8 @@ JIANGNAN_META = {
     "province": "江苏省",
     "city": "无锡市",
     "address": "江苏省无锡市滨湖区蠡湖大道1800号",
-    "center_lat": 31.483706,
-    "center_lng": 120.271166,
+    "center_lat": DEMO_SCHOOL_COORDINATES["jiangnan"]["center_lat"],
+    "center_lng": DEMO_SCHOOL_COORDINATES["jiangnan"]["center_lng"],
     "map_zoom": 16,
     "logo_url": None,
     "brand_color": "#1B4332",  # 江南绿
@@ -106,23 +108,7 @@ JIANGNAN_CATEGORIES = [
     ("其他", "other", "📝", "其他校园信息", 30, 5),
 ]
 
-JIANGNAN_LOCATIONS = [
-    ("北门", 31.4863, 120.2712, "蠡湖大道主入口"),
-    ("南门", 31.4812, 120.2712, "校园南入口"),
-    ("第一食堂", 31.4840, 120.2700, "主食堂"),
-    ("第二食堂", 31.4845, 120.2725, "学生食堂"),
-    ("图书馆", 31.4835, 120.2715, "主图书馆"),
-    ("体育馆", 31.4855, 120.2735, "综合体育馆"),
-    ("田径场", 31.4850, 120.2745, "主田径场"),
-    ("教学楼A区", 31.4842, 120.2710, "主要教学区"),
-    ("学士公寓", 31.4825, 120.2730, "学生宿舍区"),
-    ("校园超市", 31.4838, 120.2720, "综合超市"),
-    ("文浩科学馆", 31.4830, 120.2705, "讲座演出场地"),
-    ("大学生活动中心", 31.4828, 120.2728, "社团活动场地"),
-    ("蠡湖畔", 31.4820, 120.2718, "校园水域景观"),
-    ("快递服务中心", 31.4833, 120.2738, "校园快递点"),
-    ("打印文印店", 31.4847, 120.2708, "文印服务"),
-]
+JIANGNAN_LOCATIONS = location_tuples("jiangnan")
 
 # 江南大学用户清单（1 管理员 + 10 普通用户，昵称/bio 模拟真实学生身份）
 JIANGNAN_USERS = [
@@ -158,8 +144,8 @@ FUDAN_META = {
     "province": "上海市",
     "city": "上海市",
     "address": "上海市杨浦区邯郸路220号",
-    "center_lat": 31.2983,
-    "center_lng": 121.5020,
+    "center_lat": DEMO_SCHOOL_COORDINATES["fudan"]["center_lat"],
+    "center_lng": DEMO_SCHOOL_COORDINATES["fudan"]["center_lng"],
     "map_zoom": 16,
     "logo_url": None,
     "brand_color": "#00356B",  # 复旦蓝
@@ -175,20 +161,7 @@ FUDAN_CATEGORIES = [
     ("其他", "other", "📝", "其他校园信息", 30, 5),
 ]
 
-FUDAN_LOCATIONS = [
-    ("邯郸路校门", 31.2989, 121.5015, "邯郸路主入口"),
-    ("南区校门", 31.2955, 121.5020, "南区入口"),
-    ("本部食堂", 31.2985, 121.5025, "本部主食堂"),
-    ("南区食堂", 31.2960, 121.5028, "南区学生食堂"),
-    ("文科图书馆", 31.2978, 121.5018, "文科主图书馆"),
-    ("理科图书馆", 31.2992, 121.5022, "理科图书馆"),
-    ("光华楼", 31.2975, 121.5010, "标志性教学办公楼"),
-    ("相辉堂", 31.2982, 121.5008, "历史建筑与演出场地"),
-    ("学生活动中心", 31.2970, 121.5030, "社团活动场地"),
-    ("南区学生公寓", 31.2958, 121.5035, "南区主要宿舍区"),
-    ("本部体育场", 31.2995, 121.5030, "本部运动场"),
-    ("燕园", 31.2972, 121.5015, "校园景观区"),
-]
+FUDAN_LOCATIONS = location_tuples("fudan")
 
 FUDAN_USERS = [
     {"email": "fudan_admin@momentcampus.com", "nickname": "复旦运营组", "role": "admin",
@@ -213,8 +186,8 @@ ZJU_META = {
     "province": "浙江省",
     "city": "杭州市",
     "address": "浙江省杭州市西湖区余杭塘路866号",
-    "center_lat": 30.3097,
-    "center_lng": 120.1216,
+    "center_lat": DEMO_SCHOOL_COORDINATES["zju"]["center_lat"],
+    "center_lng": DEMO_SCHOOL_COORDINATES["zju"]["center_lng"],
     "map_zoom": 16,
     "logo_url": None,
     "brand_color": "#003F7F",  # 浙大蓝
@@ -230,20 +203,7 @@ ZJU_CATEGORIES = [
     ("其他", "other", "📝", "其他校园信息", 30, 5),
 ]
 
-ZJU_LOCATIONS = [
-    ("紫金港校门", 30.3105, 120.1210, "紫金港主入口"),
-    ("东区校门", 30.3085, 120.1245, "东区入口"),
-    ("西区食堂", 30.3095, 120.1200, "西区大食堂"),
-    ("东区食堂", 30.3090, 120.1235, "东区学生食堂"),
-    ("图书馆", 30.3100, 120.1220, "主图书馆"),
-    ("体育馆", 30.3110, 120.1225, "综合体育馆"),
-    ("田径场", 30.3108, 120.1218, "主田径场"),
-    ("教学楼群", 30.3092, 120.1212, "主要教学区"),
-    ("学生公寓", 30.3080, 120.1230, "学生宿舍区"),
-    ("启真湖", 30.3102, 120.1215, "校园水域景观"),
-    ("学生活动中心", 30.3098, 120.1228, "社团活动场地"),
-    ("快递服务中心", 30.3088, 120.1222, "校园快递点"),
-]
+ZJU_LOCATIONS = location_tuples("zju")
 
 ZJU_USERS = [
     {"email": "zju_admin@momentcampus.com", "nickname": "浙大运营组", "role": "admin",
