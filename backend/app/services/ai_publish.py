@@ -356,7 +356,7 @@ def _validate_suggestions(
 
     suggestions = AIPublishSuggestions(
         title=title_sug,
-        summary=None,
+        summary=summary_sug,
         category=category_name,
         category_id=category_id,
         tags=[],

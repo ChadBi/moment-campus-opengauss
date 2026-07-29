@@ -9,6 +9,10 @@
 
 ## [Unreleased] - 2026-07-29
 
+### AI 发布建议摘要修复
+
+- 修复 `ai-suggest` 已解析摘要却在响应构造时硬编码为 `None` 的缺陷，恢复结构化 `summary` 建议
+
 ### MapLibre 原生 Marker 图层重写
 
 - 地图页帖子点由 DOM `maplibregl.Marker` 重写为 GeoJSON source + symbol layer，与高德瓦片共用 WebGL canvas 和投影帧

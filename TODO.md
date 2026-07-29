@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-29（地图帖子点改为 MapLibre 原生 symbol layer：移除 DOM Marker 分层合成，三校基准相对位移 E2E 5/5 通过）
+> 最后更新：2026-07-29（地图最终回归中修复 AI 发布摘要被硬编码丢弃；AI 发布模块 23 PASS / 2 SKIP）
 
 ## 状态总览
 
@@ -39,6 +39,12 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### AI 发布建议摘要响应修复（2026-07-29 完成）
+
+- [x] 全量回归发现 `ai-suggest` 已清洗模型 `summary`，但构造 `AIPublishSuggestions` 时错误硬编码为 `None`
+- [x] 响应改为返回 `summary_sug`，不改变标题、分类、有效期和敏感信息处理逻辑
+- [x] `backend/.venv` 运行 `tests/test_ai_publish.py`：23 PASS / 2 SKIP
 
 ### MapLibre 原生 Marker 图层重写（2026-07-29 完成）
 
