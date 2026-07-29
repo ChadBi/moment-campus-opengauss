@@ -48,35 +48,20 @@ test.describe('多租户：学校目录与切换', () => {
   });
 
   test('3. 跨租户拒绝 - A 校帖子 ID 在 B 校上下文不可见', async ({ page }) => {
-    // user1 在江南大学
-    await login(page, DEMO_ACCOUNTS.user1);
+    const loginResp = await apiLogin(DEMO_ACCOUNTS.user1);
+    const authHeaders = { Authorization: `Bearer ${loginResp.access_token}` };
+    const listResp = await page.request.get(`${API_BASE}/posts?page=1&page_size=1`, {
+      headers: { ...authHeaders, 'X-School-Code': DEMO_SCHOOLS.jiangnan.code },
+    });
+    expect(listResp.status()).toBe(200);
+    const listData = await listResp.json();
+    const postId = listData.items?.[0]?.id;
+    expect(postId).toBeTruthy();
 
-    // 先在江南大学获取首页帖子列表
-    await switchSchool(page, DEMO_SCHOOLS.jiangnan.code);
-    await page.waitForLoadState('networkidle');
-
-    // 访问帖子详情页（取首页第一个帖子链接）
-    const postLink = page.locator('a[href*="/posts/"]').first();
-    const postId = await postLink.getAttribute('href');
-
-    // 切换到复旦大学上下文
-    await switchSchool(page, DEMO_SCHOOLS.fudan.code);
-    await page.waitForLoadState('networkidle');
-
-    // 在复旦大学上下文中尝试访问江南大学的帖子
-    // 后端应通过 X-School-Code 头校验租户隔离，返回 404/403
-    if (postId) {
-      const postIdNum = postId.match(/\d+/)?.[0];
-      if (postIdNum) {
-        const token = await page.evaluate(() => localStorage.getItem('auth-storage'));
-        // 直接 API 调用验证跨租户拒绝
-        const resp = await page.request.get(`${API_BASE}/posts/${postIdNum}`, {
-          headers: { 'X-School-Code': DEMO_SCHOOLS.fudan.code },
-        });
-        // 期望 404（帖子在 fudan 上下文不存在）或 403
-        expect([403, 404]).toContain(resp.status());
-      }
-    }
+    const resp = await page.request.get(`${API_BASE}/posts/${postId}`, {
+      headers: { ...authHeaders, 'X-School-Code': DEMO_SCHOOLS.fudan.code },
+    });
+    expect([403, 404]).toContain(resp.status());
   });
 });
 
@@ -122,11 +107,12 @@ test.describe('多租户：super_admin 平台管理', () => {
     expect(loginResp.access_token).toBeTruthy();
 
     // 验证可获取学校列表
-    const resp = await page.request.get(`${API_BASE}/admin/schools`, {
+    const resp = await page.request.get(`${API_BASE}/platform/schools`, {
       headers: { Authorization: `Bearer ${loginResp.access_token}` },
     });
     expect(resp.status()).toBe(200);
     const data = await resp.json();
-    expect(data.items || data.data || Array.isArray(data) ? data.length : 0).toBeGreaterThan(0);
+    const items = Array.isArray(data) ? data : data.items ?? data.data ?? [];
+    expect(items.length).toBeGreaterThan(0);
   });
 });

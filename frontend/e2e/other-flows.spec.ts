@@ -57,7 +57,7 @@ test.describe('其他核心流程', () => {
 
     // 验证搜索框存在
     const searchInput = page.getByPlaceholder(/搜索|search|问/i).first();
-    await expect(searchInput.or(page.locator('body'))).toBeVisible();
+    await expect(searchInput).toBeVisible();
   });
 
   test('16. AI 发布 - 登录用户可访问发布页 AI 辅助', async ({ page }) => {

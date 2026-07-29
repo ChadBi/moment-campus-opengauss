@@ -1223,10 +1223,11 @@ const PostForm: React.FC<PostFormProps> = ({
 
         {/* 地点选择（本校校验） + 新增地点（is_verified=false 队列） */}
         <div>
-          <label className={vs.label}>
+          <label className={vs.label} htmlFor="post-location-select">
             地点 <span className="text-ink-muted text-xs">（可选；不选则发布为无地点信息）</span>
           </label>
           <select
+            id="post-location-select"
             value={formData.location_id ?? ''}
             onChange={(e) => handleLocationSelect(e.target.value)}
             className={vs.select}
@@ -1331,11 +1332,12 @@ const PostForm: React.FC<PostFormProps> = ({
         {/* 失物类型：仅当分类为 lost_found 时显示 */}
         {selectedCategory?.code === 'lost_found' ? (
           <div>
-            <label className={vs.label}>
+            <label className={vs.label} htmlFor="post-lost-type-select">
               失物类型 <span className="text-danger" aria-hidden="true">*</span>
               <span className="sr-only">（失物招领分类必选）</span>
             </label>
             <select
+              id="post-lost-type-select"
               value={formData.lost_type}
               onChange={(e) =>
                 handleFieldChange('lost_type', e.target.value as '' | 'lost' | 'found')

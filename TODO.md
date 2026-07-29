@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-29（地图最终回归中修复 AI 发布摘要被硬编码丢弃；AI 发布模块 23 PASS / 2 SKIP）
+> 最后更新：2026-07-29（前端完整 Playwright 基线恢复：27 PASS / 1 个已下线能力 SKIP / 0 FAIL；发布表单 select 可访问名称修复）
 
 ## 状态总览
 
@@ -39,6 +39,15 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### 前端 E2E 基线与发布表单可访问性修复（2026-07-29 完成）
+
+- [x] `axe-playwright` 改用当前包实际导出的 `injectAxe/getAxeResults`，恢复 5 条无障碍流程扫描
+- [x] 注册密码定位器、AI 搜索 strict-mode、跨租户取帖和平台学校 API 路由与当前 UI/API 对齐
+- [x] 已按产品决策下线的“官方发布主体”历史用例明确标记 skip，不再请求不存在的 `/publishers`
+- [x] 修复发布表单地点/失物类型 `<select>` 缺少可访问名称的 critical 问题
+- [x] 完整 Playwright：27 PASS / 1 SKIP / 0 FAIL；1 个 skip 为已下线历史能力
+- [x] axe 未发现 critical；仍如实记录既有 color-contrast serious 提示和学校切换器 40px 高度提示
 
 ### AI 发布建议摘要响应修复（2026-07-29 完成）
 

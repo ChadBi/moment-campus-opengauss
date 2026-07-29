@@ -9,6 +9,11 @@
 
 ## [Unreleased] - 2026-07-29
 
+### 前端 E2E 基线维护
+
+- 更新 axe、注册、AI 搜索、跨租户和平台 API 测试以匹配当前依赖与接口，完整 Playwright 恢复为 27 通过 / 1 个已下线能力跳过
+- 为发布表单地点与失物类型下拉框补充关联 label，消除 axe `select-name` critical 违规
+
 ### AI 发布建议摘要修复
 
 - 修复 `ai-suggest` 已解析摘要却在响应构造时硬编码为 `None` 的缺陷，恢复结构化 `summary` 建议

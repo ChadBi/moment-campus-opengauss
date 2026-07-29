@@ -24,8 +24,8 @@ test.describe('商业/便利：注册与认证', () => {
     // 填写注册表单
     await page.getByPlaceholder(/邮箱|email/i).fill(uniqueEmail);
     await page.getByPlaceholder(/昵称|nickname/i).fill('E2E测试用户');
-    await page.getByPlaceholder(/^密码|password/i).first().fill('Test123456');
-    await page.getByPlaceholder(/确认密码|confirm/i).fill('Test123456');
+    await page.getByRole('textbox', { name: '密码', exact: true }).fill('Test123456');
+    await page.getByRole('textbox', { name: '确认密码', exact: true }).fill('Test123456');
 
     // 提交注册
     await page.getByRole('button', { name: /注册|register/i }).click();
@@ -103,7 +103,8 @@ test.describe('商业/便利：发布与审核', () => {
 });
 
 test.describe('商业/便利：官方主体与订阅', () => {
-  test('11. 官方发布主体认证 - 用户可浏览发布主体列表', async ({ page }) => {
+  test.skip('11. 官方发布主体认证 - 用户可浏览发布主体列表', async ({ page }) => {
+    // publisher_profiles / publisher_memberships 已按产品决策下线，保留用例编号追踪历史能力。
     // 发布主体页是公开的
     await page.goto('/publishers');
     await page.waitForLoadState('networkidle');

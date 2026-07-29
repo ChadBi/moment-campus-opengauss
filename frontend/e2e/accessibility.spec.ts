@@ -1,5 +1,5 @@
 import { test, expect, DEMO_ACCOUNTS, login } from './helpers';
-import AxeBuilder from 'axe-playwright';
+import { getAxeResults, injectAxe } from 'axe-playwright';
 
 /**
  * REL-01.4 无障碍测试：axe + 人工抽查
@@ -24,6 +24,15 @@ import AxeBuilder from 'axe-playwright';
  */
 
 const VIOLATION_TAGS = ['critical', 'serious', 'moderate'];
+const runAxe = async (page: Parameters<typeof getAxeResults>[0]) => {
+  await injectAxe(page);
+  return getAxeResults(page, undefined, {
+    runOnly: {
+      type: 'tag',
+      values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'],
+    },
+  });
+};
 
 /**
  * 分析 axe 结果并打印违规摘要
@@ -85,9 +94,7 @@ test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
     }
 
     // axe 扫描
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
+    const results = await runAxe(page);
 
     const relevant = analyzeAxeResults(results.violations, '登录页');
     // 软断言：登录页不应有 critical 违规（serious/moderate 记录到报告）
@@ -112,9 +119,7 @@ test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
     }
 
     // axe 扫描
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
+    const results = await runAxe(page);
 
     const relevant = analyzeAxeResults(results.violations, '搜索页');
     const critical = relevant.filter((v) => v.impact === 'critical');
@@ -148,9 +153,7 @@ test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
     }
 
     // axe 扫描
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
+    const results = await runAxe(page);
 
     const relevant = analyzeAxeResults(results.violations, '首页（学校切换）');
     const critical = relevant.filter((v) => v.impact === 'critical');
@@ -188,9 +191,7 @@ test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
     }
 
     // axe 扫描
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
+    const results = await runAxe(page);
 
     const relevant = analyzeAxeResults(results.violations, '发布页');
     const critical = relevant.filter((v) => v.impact === 'critical');
@@ -222,9 +223,7 @@ test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
     }
 
     // axe 扫描
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
+    const results = await runAxe(page);
 
     const relevant = analyzeAxeResults(results.violations, '后台');
     const critical = relevant.filter((v) => v.impact === 'critical');
