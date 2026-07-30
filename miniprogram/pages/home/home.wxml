@@ -1,15 +1,14 @@
 <view class="home-page">
-  <!-- 顶部栏：学校名称 + 搜索入口 -->
+  <!-- 顶部栏：校名 + 搜索入口 + 专题入口 -->
   <view class="top-bar">
     <view class="school-info">
       <text class="school-name">{{schoolName}}</text>
     </view>
     <view class="search-entry" bindtap="goToSearch">
-      <text class="search-icon">🔍</text>
+      <text class="search-icon">搜</text>
       <text class="search-text">搜索校园信息...</text>
     </view>
     <view class="topics-entry" bindtap="goToTopics">
-      <text class="topics-icon">📚</text>
       <text class="topics-label">专题</text>
     </view>
   </view>
@@ -35,7 +34,7 @@
   <view class="post-list">
     <!-- 空状态 -->
     <view wx:if="{{posts.length === 0 && !loading}}" class="empty-state">
-      <text class="empty-icon">📭</text>
+      <text class="empty-icon">○</text>
       <text class="empty-text">暂无内容，来发布第一条吧</text>
     </view>
 
@@ -49,8 +48,7 @@
 
   <!-- 底部加载状态 -->
   <view wx:if="{{loading}}" class="loading-state">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
+    <text class="loading-text">加载中</text>
   </view>
   <view wx:if="{{loadingMore}}" class="loading-more">
     <text>加载更多...</text>
@@ -60,14 +58,12 @@
   </view>
 </view>
 
-<!-- 底部 tab bar：首页、地图、发布、搜索、我的 -->
+<!-- 底部导航：首页 / 地图 / 发布 / 我的 -->
 <view class="tab-bar">
   <view class="bar-tab {{activeTab === 'home' ? 'active' : ''}}" bindtap="goToHome">
-    <text class="bar-icon">🏠</text>
     <text class="bar-label">首页</text>
   </view>
   <view class="bar-tab {{activeTab === 'map' ? 'active' : ''}}" bindtap="goToMap">
-    <text class="bar-icon">📍</text>
     <text class="bar-label">地图</text>
   </view>
   <view class="bar-tab bar-publish" bindtap="goToPublish">
@@ -76,12 +72,7 @@
     </view>
     <text class="bar-label publish-label">发布</text>
   </view>
-  <view class="bar-tab {{activeTab === 'search' ? 'active' : ''}}" bindtap="goToSearch">
-    <text class="bar-icon">🔍</text>
-    <text class="bar-label">搜索</text>
-  </view>
   <view class="bar-tab {{activeTab === 'profile' ? 'active' : ''}}" bindtap="goToProfile">
-    <text class="bar-icon">👤</text>
     <text class="bar-label">我的</text>
   </view>
 </view>

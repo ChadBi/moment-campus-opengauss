@@ -5,7 +5,7 @@
       <text class="author-name">{{post.author_nickname || '匿名用户'}}</text>
       <text class="post-time">{{formattedTime}}</text>
     </view>
-    <view wx:if="{{post.category_name}}" class="category-tag">
+    <view wx:if="{{post.category_name}}" class="category-tag cat-{{categoryClass}}">
       <text>{{post.category_name}}</text>
     </view>
   </view>
@@ -28,14 +28,13 @@
 
   <view class="card-footer">
     <view wx:if="{{post.location_name}}" class="location-info">
-      <text class="location-icon">📍</text>
+      <text class="location-icon">⊙</text>
       <text class="location-text">{{post.location_name}}</text>
     </view>
     <view class="post-stats">
-      <text class="stat-item">👁 {{formattedViews}}</text>
-      <text class="stat-item">👍 {{formattedLikes}}</text>
-      <text class="stat-item">💬 {{formattedComments}}</text>
-      <text class="stat-item">✅ {{formattedValidations}}</text>
+      <text class="stat-item">浏览 <text class="stat-num">{{formattedViews}}</text></text>
+      <text class="stat-item">赞 <text class="stat-num">{{formattedLikes}}</text></text>
+      <text class="stat-item">评 <text class="stat-num">{{formattedComments}}</text></text>
     </view>
   </view>
 </view>

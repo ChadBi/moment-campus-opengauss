@@ -1,9 +1,69 @@
+/* ============================================================
+ * 此刻校园 - 小程序全局样式
+ * 水墨风设计系统 (对齐 Web 端 frontend/src/index.css + tokens.ts)
+ * ============================================================ */
+
 page {
-  background: #f5f5f5;
-  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  /* === 五级墨 === */
+  --ink: #152629;
+  --ink-2: #3d5458;
+  --muted: #6a7d81;
+  --ink-disabled: #9aabae;
+  --ink-divider: #e8eded;
+
+  /* === 宣纸 / 背景 === */
+  --paper: #fafcfb;
+  --mist: #f4f7f6;
+  --paper-alt: #f6f3ed;
+  --paper-hover: #edf1f2;
+
+  /* === 主色 - 墨青 / 湖水蓝 === */
+  --lake: #174d5e;
+  --lake-2: #2d6270;
+  --lake-dark: #0f3a47;
+  --lake-light: #e7f0f1;
+
+  /* === 强调色 - 朱砂 / 灯笼橙 === */
+  --lamp: #e67340;
+  --lamp-light: #f08a5a;
+  --lamp-dark: #cc5f30;
+
+  /* === 辅助色 === */
+  --grass: #73a068;
+  --sun: #dbb352;
+  --danger: #cd5852;
+  --info: #5878a6;
+
+  /* === 线条 === */
+  --line: #d8e1e3;
+  --line-strong: #c4d0d3;
+
+  /* === 阴影 - 墨韵晕染 === */
+  --shadow-sm: 0 4rpx 16rpx rgba(21, 38, 41, 0.06);
+  --shadow: 0 8rpx 32rpx rgba(21, 38, 41, 0.06), 0 2rpx 6rpx rgba(21, 38, 41, 0.04);
+  --shadow-lg: 0 16rpx 56rpx rgba(21, 38, 41, 0.10), 0 4rpx 12rpx rgba(21, 38, 41, 0.05);
+  --shadow-lamp: 0 12rpx 32rpx rgba(230, 115, 64, 0.22);
+  --shadow-lake: 0 12rpx 36rpx rgba(23, 77, 94, 0.18);
+
+  /* === 圆角 === */
+  --radius-sm: 12rpx;
+  --radius-md: 20rpx;
+  --radius-lg: 32rpx;
+  --radius-xl: 40rpx;
+
+  /* === 字体 === */
+  --font-display: "STKaiti", "KaiTi", "楷体", "Noto Serif SC", serif;
+  --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-data: "DIN Alternate", "Arial Narrow", "Segoe UI", sans-serif;
+
+  /* === 基础设置 === */
+  background: var(--mist);
+  background-image: radial-gradient(rgba(23, 77, 94, 0.04) 0.5px, transparent 0.5px);
+  background-size: 16rpx 16rpx;
+  font-family: var(--font-body);
+  color: var(--ink);
   font-size: 28rpx;
-  color: #333;
-  box-sizing: border-box;
+  line-height: 1.6;
 }
 
 view, text {
@@ -14,9 +74,9 @@ image {
   display: block;
 }
 
-.container {
-  min-height: 100vh;
-}
+/* ============================================================
+ * 工具类
+ * ============================================================ */
 
 .flex-center {
   display: flex;
@@ -43,21 +103,157 @@ image {
   overflow: hidden;
 }
 
+/* === 宣纸面板 === */
+.paper-panel {
+  background: var(--paper);
+  border: 1rpx solid rgba(216, 225, 227, 0.6);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* === 淡墨分割线 === */
+.ink-divider {
+  height: 1rpx;
+  background: var(--ink-divider);
+  margin: 32rpx 0;
+}
+
+.ink-divider-soft {
+  height: 1rpx;
+  background: var(--ink-divider);
+  margin: 24rpx 0;
+}
+
+/* === 品牌标志文字 === */
+.brand-text {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 48rpx;
+  letter-spacing: 2rpx;
+  color: var(--lake);
+}
+
+/* === 印章标签 === */
+.seal-tag {
+  background: var(--paper-hover);
+  color: var(--ink-2);
+  border-radius: var(--radius-sm);
+  padding: 8rpx 16rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+/* ============================================================
+ * 按钮系统
+ * ============================================================ */
+
 .btn-primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--lake);
   color: #fff;
-  border-radius: 44rpx;
-  padding: 28rpx 60rpx;
+  border-radius: var(--radius-md);
+  padding: 24rpx 48rpx;
   font-size: 32rpx;
   font-weight: 600;
   text-align: center;
+  letter-spacing: 1rpx;
+}
+
+.btn-primary:active {
+  background: var(--lake-dark);
 }
 
 .btn-secondary {
-  background: #f5f5f5;
-  color: #666;
-  border-radius: 44rpx;
-  padding: 28rpx 60rpx;
+  background: var(--paper-hover);
+  color: var(--ink-2);
+  border-radius: var(--radius-md);
+  padding: 24rpx 48rpx;
   font-size: 32rpx;
   text-align: center;
+}
+
+.btn-lamp {
+  background: var(--lamp);
+  color: #fff;
+  border-radius: var(--radius-md);
+  padding: 24rpx 48rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: var(--shadow-lamp);
+}
+
+/* ============================================================
+ * 分类色板 (对齐 Web tokens.ts category)
+ * ============================================================ */
+
+.cat-food { background: #f9ede7; color: #e07454; }
+.cat-event { background: #f2ebf6; color: #866cb0; }
+.cat-service { background: #e7f0f1; color: #497d86; }
+.cat-study { background: #ebf0f7; color: #5878a6; }
+.cat-lostFound { background: #f8efe0; color: #cf9335; }
+.cat-club { background: #ebf2ed; color: #639b69; }
+.cat-default { background: #edf1f2; color: #6a7d81; }
+
+/* ============================================================
+ * 状态标签 (对齐 Web Badge 变体)
+ * ============================================================ */
+
+.status-published { background: #ebf2ed; color: #639b69; }
+.status-pending { background: #f8efe0; color: #cf9335; }
+.status-draft { background: #edf1f2; color: #6a7d81; }
+.status-expired { background: #ebf0f7; color: #5878a6; }
+.status-conflict { background: #f9ede7; color: #cd5852; }
+.status-archived { background: #edf1f2; color: #9aabae; }
+
+/* ============================================================
+ * 动画
+ * ============================================================ */
+
+.page-fade-in {
+  animation: pageFadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(12rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.stagger-card {
+  animation: cardStaggerIn 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cardStaggerIn {
+  from { opacity: 0; transform: translateY(20rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+ * 通用文字颜色
+ * ============================================================ */
+
+.text-lake { color: var(--lake); }
+.text-lamp { color: var(--lamp); }
+.text-ink { color: var(--ink); }
+.text-ink-2 { color: var(--ink-2); }
+.text-muted { color: var(--muted); }
+.text-danger { color: var(--danger); }
+.text-grass { color: var(--grass); }
+
+.bg-paper { background: var(--paper); }
+.bg-mist { background: var(--mist); }
+.bg-lake { background: var(--lake); }
+.bg-lake-light { background: var(--lake-light); }
+
+.border-line { border-color: var(--line); }
+
+/* 数字字体 */
+.font-data {
+  font-family: var(--font-data);
+  font-weight: 700;
+}
+
+/* 楷书标题 */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 800;
 }
