@@ -1,0 +1,33 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/map/map",
+    "pages/search/search",
+    "pages/publish/publish",
+    "pages/post-detail/post-detail",
+    "pages/profile/profile",
+    "pages/notifications/notifications",
+    "pages/school-select/school-select",
+    "pages/login/login",
+    "pages/bind-account/bind-account"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "此刻校园",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationStyle": "default",
+    "backgroundColor": "#f5f5f5"
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于在地图上显示您的位置，方便查找附近的校园信息点"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation"
+  ],
+  "style": "v2",
+  "componentFramework": "glass-easel",
+  "lazyCodeLoading": "requiredComponents"
+}

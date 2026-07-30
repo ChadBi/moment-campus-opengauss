@@ -35,6 +35,8 @@ from app.models.school import School
 from app.models.school_invitation import SchoolInvitation
 from app.models.school_membership import SchoolMembership
 from app.models.password_reset_token import PasswordResetToken
+from app.models.user_auth_identity import UserAuthIdentity
+from app.models.auth_session import AuthSession
 from app.core.exceptions import (
     BadRequestException,
     UnauthorizedException,
@@ -133,6 +135,16 @@ async def register(
     db.add(user)
     await db.flush()
 
+    # ACC-01.5: 创建 email_password 身份记录（双读兼容策略）
+    email_identity = UserAuthIdentity(
+        user_id=user.id,
+        identity_type="email_password",
+        identity_key=data.email,
+        password_hash=password_hash,
+        last_used_at=datetime.now(),
+    )
+    db.add(email_identity)
+
     # ACC-01.2: 消费邀请码 + 创建 active membership
     if invitation is not None:
         now = datetime.now()
@@ -163,6 +175,18 @@ async def register(
     # 生成 token
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token_value = create_refresh_token(data={"sub": str(user.id)})
+
+    # 创建服务端会话记录（支持多设备管理）
+    refresh_hash = hashlib.sha256(refresh_token_value.encode("utf-8")).hexdigest()
+    session = AuthSession(
+        user_id=user.id,
+        refresh_token_hash=refresh_hash,
+        session_type="web",
+        expires_at=datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        last_active_at=datetime.now(),
+    )
+    db.add(session)
+    await db.commit()
 
     return LoginResponse(
         access_token=access_token,
@@ -237,11 +261,43 @@ async def login(
 
     # 更新最后登录时间
     user.last_login_at = datetime.now()
+
+    # ACC-01.5: 懒迁移——确保 email_password 身份记录存在
+    identity_check = await db.execute(
+        select(UserAuthIdentity).where(
+            UserAuthIdentity.user_id == user.id,
+            UserAuthIdentity.identity_type == "email_password",
+            UserAuthIdentity.identity_key == user.email,
+            UserAuthIdentity.is_deleted == False,
+        )
+    )
+    if identity_check.scalar_one_or_none() is None:
+        email_identity = UserAuthIdentity(
+            user_id=user.id,
+            identity_type="email_password",
+            identity_key=user.email,
+            password_hash=user.password_hash,
+            last_used_at=datetime.now(),
+        )
+        db.add(email_identity)
+
     await db.commit()
 
     # 生成 token
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token_value = create_refresh_token(data={"sub": str(user.id)})
+
+    # 创建服务端会话记录（支持多设备管理）
+    refresh_hash = hashlib.sha256(refresh_token_value.encode("utf-8")).hexdigest()
+    session = AuthSession(
+        user_id=user.id,
+        refresh_token_hash=refresh_hash,
+        session_type="web",
+        expires_at=datetime.now() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        last_active_at=datetime.now(),
+    )
+    db.add(session)
+    await db.commit()
 
     return LoginResponse(
         access_token=access_token,

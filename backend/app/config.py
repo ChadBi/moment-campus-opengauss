@@ -74,6 +74,16 @@ class Settings(BaseSettings):
     # 熔断恢复时间（秒）
     AI_CIRCUIT_RESET_SECONDS: int = 60
 
+    # ============================================================
+    # 微信小程序配置
+    # AppID 和 AppSecret 用于 code2Session 换取 openid/session_key
+    # AppSecret 仅存服务端环境变量，不进前端/Git
+    # ============================================================
+    WECHAT_APPID: str = ""
+    WECHAT_APPSECRET: str = ""
+    # binding_ticket 有效期（秒），默认 300 秒 = 5 分钟
+    BINDING_TICKET_EXPIRE_SECONDS: int = 300
+
     class Config:
         env_file = _env_file
         extra = "ignore"

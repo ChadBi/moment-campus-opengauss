@@ -1,0 +1,234 @@
+<view class="detail-page">
+  <!-- 加载中 -->
+  <view wx:if="{{loading && !post}}" class="loading-state">
+    <text>加载中…</text>
+  </view>
+
+  <block wx:if="{{post}}">
+    <!-- 图片轮播 -->
+    <view wx:if="{{images.length > 0}}" class="swiper-wrap">
+      <swiper
+        class="swiper"
+        indicator-dots="{{images.length > 1}}"
+        autoplay="{{false}}"
+        circular="{{images.length > 1}}"
+        current="{{swiperCurrent}}"
+        bindchange="onSwiperChange"
+      >
+        <swiper-item wx:for="{{images}}" wx:key="*this">
+          <image
+            class="swiper-image"
+            src="{{item}}"
+            mode="aspectFill"
+            data-url="{{item}}"
+            bindtap="onPreviewImage"
+          />
+        </swiper-item>
+      </swiper>
+      <view wx:if="{{images.length > 1}}" class="swiper-count">
+        <text>{{swiperCurrent + 1}} / {{images.length}}</text>
+      </view>
+    </view>
+
+    <!-- 标题 + 状态 -->
+    <view class="content-card">
+      <view class="title-row">
+        <text class="post-title">{{post.title}}</text>
+        <text class="post-status status-{{post.status}}">{{post.status}}</text>
+      </view>
+
+      <!-- 作者信息 -->
+      <view class="author-row">
+        <image
+          class="author-avatar"
+          src="{{post.author_avatar || '/assets/default-avatar.png'}}"
+          mode="aspectFill"
+        />
+        <view class="author-meta">
+          <text class="author-name">{{post.author_nickname || '匿名'}}</text>
+          <text class="post-time">{{post.created_at_text}}</text>
+        </view>
+        <view wx:if="{{post.category_name}}" class="category-tag">
+          <text>{{post.category_name}}</text>
+        </view>
+      </view>
+
+      <!-- 正文 -->
+      <view class="post-content">
+        <text>{{post.content}}</text>
+      </view>
+
+      <!-- 位置信息 -->
+      <view wx:if="{{post.location_name}}" class="location-row">
+        <text class="loc-icon">📍</text>
+        <text class="loc-text">{{post.location_name}}</text>
+      </view>
+
+      <!-- 倒计时 -->
+      <view wx:if="{{remainingTime}}" class="countdown-row {{remainingTime === '已过期' ? 'expired' : ''}}">
+        <text class="countdown-icon">⏰</text>
+        <text class="countdown-text">{{remainingTime}}</text>
+      </view>
+
+      <!-- 浏览数 -->
+      <view class="views-row">
+        <text>{{post.views_count_text}} 次浏览</text>
+      </view>
+    </view>
+
+    <!-- 互动栏 -->
+    <view class="action-bar">
+      <view class="action-item {{isLiked ? 'active' : ''}}" bindtap="onLike">
+        <text class="action-icon">{{isLiked ? '❤️' : '🤍'}}</text>
+        <text class="action-text">{{post.likes_count_text}}</text>
+      </view>
+      <view class="action-item">
+        <text class="action-icon">💬</text>
+        <text class="action-text">{{post.comments_count_text}}</text>
+      </view>
+      <view class="action-item">
+        <text class="action-icon">✅</text>
+        <text class="action-text">{{post.validations_count_text}}</text>
+      </view>
+      <view class="action-item" bindtap="openReport">
+        <text class="action-icon">⚠️</text>
+        <text class="action-text">举报</text>
+      </view>
+    </view>
+
+    <!-- 协同验证区域 -->
+    <view class="validation-card">
+      <view class="card-title">
+        <text>协同验证</text>
+        <text class="validity-badge validity-{{validityStatus}}">{{validityStatus}}</text>
+      </view>
+      <view class="validation-stats">
+        <view class="stat-block confirm">
+          <text class="stat-num">{{confirmationCount}}</text>
+          <text class="stat-label">证实</text>
+        </view>
+        <view class="stat-block refute">
+          <text class="stat-num">{{refutationCount}}</text>
+          <text class="stat-label">证伪</text>
+        </view>
+        <view class="stat-block total">
+          <text class="stat-num">{{totalValidationCount}}</text>
+          <text class="stat-label">总计</text>
+        </view>
+      </view>
+      <view class="validation-actions">
+        <view
+          class="validate-btn confirm {{userValidationType === 'confirmation' ? 'voted' : ''}}"
+          data-type="confirmation"
+          bindtap="onValidate"
+        >
+          <text>{{userValidationType === 'confirmation' ? '已证实' : '证实'}}</text>
+        </view>
+        <view
+          class="validate-btn refute {{userValidationType === 'refutation' ? 'voted' : ''}}"
+          data-type="refutation"
+          bindtap="onValidate"
+        >
+          <text>{{userValidationType === 'refutation' ? '已证伪' : '证伪'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 评论区 -->
+    <view class="comments-card">
+      <view class="card-title">
+        <text>评论 {{comments.length > 0 ? commentsCount : ''}}</text>
+      </view>
+
+      <view wx:if="{{comments.length === 0 && !commentLoading}}" class="empty-comments">
+        <text>暂无评论，快来抢沙发</text>
+      </view>
+
+      <view wx:for="{{comments}}" wx:key="id" class="comment-item">
+        <image
+          class="comment-avatar"
+          src="{{item.author_avatar || '/assets/default-avatar.png'}}"
+          mode="aspectFill"
+        />
+        <view class="comment-body">
+          <view class="comment-header">
+            <text class="comment-author">{{item.author_nickname || '匿名'}}</text>
+            <text class="comment-time">{{item.created_at_text}}</text>
+          </view>
+          <view class="comment-content">
+            <text>{{item.content}}</text>
+          </view>
+          <view class="comment-action" data-id="{{item.id}}" data-nickname="{{item.author_nickname}}" bindtap="onReplyComment">
+            <text>回复</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{commentLoading}}" class="comment-loading">
+        <text>加载中…</text>
+      </view>
+      <view wx:if="{{commentHasMore && !commentLoading}}" class="load-more-comments" bindtap="onLoadMoreComments">
+        <text>加载更多评论</text>
+      </view>
+    </view>
+
+    <!-- 占位，避免被底部输入框遮挡 -->
+    <view class="bottom-placeholder"></view>
+
+    <!-- 评论输入框 -->
+    <view class="comment-input-bar">
+      <view wx:if="{{replyingTo}}" class="replying-tip">
+        <text>回复 @{{replyingTo.nickname}}</text>
+        <text class="cancel-reply" bindtap="cancelReply">取消</text>
+      </view>
+      <view class="input-row">
+        <input
+          class="comment-input"
+          placeholder="写评论…"
+          value="{{commentInput}}"
+          confirm-type="send"
+          bindinput="onCommentInput"
+          bindconfirm="onSubmitComment"
+        />
+        <view class="send-btn {{commentInput ? 'active' : ''}}" bindtap="onSubmitComment">
+          <text>{{submittingComment ? '发送中' : '发送'}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 举报弹层 -->
+  <view wx:if="{{reportVisible}}" class="modal-mask" bindtap="closeReport">
+    <view class="modal-content" catchtap="">
+      <view class="modal-title">
+        <text>举报</text>
+      </view>
+      <view class="report-types">
+        <view
+          wx:for="{{reportReasons}}"
+          wx:key="*this"
+          class="report-type {{reportType === item ? 'active' : ''}}"
+          data-type="{{item}}"
+          bindtap="onPickReportType"
+        >
+          <text>{{item}}</text>
+        </view>
+      </view>
+      <textarea
+        class="report-textarea"
+        placeholder="请填写举报理由（必填）"
+        value="{{reportReason}}"
+        maxlength="200"
+        bindinput="onReportReasonInput"
+      />
+      <view class="modal-actions">
+        <view class="modal-btn cancel" bindtap="closeReport">
+          <text>取消</text>
+        </view>
+        <view class="modal-btn confirm" bindtap="onSubmitReport">
+          <text>{{submittingReport ? '提交中' : '提交'}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

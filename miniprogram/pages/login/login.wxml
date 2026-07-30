@@ -1,0 +1,43 @@
+<view class="login-page">
+  <view class="login-header">
+    <text class="app-name">此刻校园</text>
+    <text class="app-slogan">发现身边的精彩</text>
+  </view>
+
+  <view class="login-tabs">
+    <view class="tab {{mode === 'wechat' ? 'active' : ''}}" bindtap="switchMode" data-mode="wechat">
+      <text>微信登录</text>
+    </view>
+    <view class="tab {{mode === 'email' ? 'active' : ''}}" bindtap="switchMode" data-mode="email">
+      <text>邮箱登录</text>
+    </view>
+  </view>
+
+  <view wx:if="{{mode === 'wechat'}}" class="wechat-login">
+    <view class="wechat-btn {{loading ? 'disabled' : ''}}" bindtap="onWechatLogin">
+      <text class="wechat-icon">微信</text>
+      <text>{{loading ? '登录中...' : '使用微信登录'}}</text>
+    </view>
+    <view class="login-tip">
+      <text>首次登录需要绑定或注册账号</text>
+    </view>
+  </view>
+
+  <view wx:if="{{mode === 'email'}}" class="email-login">
+    <view class="form-item">
+      <input type="text" placeholder="请输入邮箱" value="{{email}}" bindinput="onEmailInput" class="form-input"/>
+    </view>
+    <view class="form-item">
+      <input type="password" placeholder="请输入密码" value="{{password}}" bindinput="onPasswordInput" class="form-input"/>
+    </view>
+    <view wx:if="{{errorMsg}}" class="error-msg">
+      <text>{{errorMsg}}</text>
+    </view>
+    <view class="submit-btn {{loading ? 'disabled' : ''}}" bindtap="onEmailLogin">
+      <text>{{loading ? '登录中...' : '登录'}}</text>
+    </view>
+    <view class="register-link" bindtap="goToRegister">
+      <text>还没有账号？点击注册</text>
+    </view>
+  </view>
+</view>

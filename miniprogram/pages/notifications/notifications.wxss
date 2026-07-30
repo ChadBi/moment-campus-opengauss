@@ -1,0 +1,267 @@
+.notifications-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 60rpx;
+}
+
+/* ============== 顶部操作栏 ============== */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 30rpx;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.unread-info {
+  flex: 1;
+}
+
+.unread-text {
+  font-size: 28rpx;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.unread-text-empty {
+  color: #999;
+  font-weight: 400;
+}
+
+.mark-all-btn {
+  padding: 12rpx 28rpx;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.mark-all-btn.disabled {
+  background: #e0e0e0;
+  color: #bbb;
+}
+
+/* ============== 类型筛选 Tab ============== */
+.type-tabs {
+  white-space: nowrap;
+  background: #fff;
+  padding: 12rpx 20rpx 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  position: sticky;
+  top: 96rpx;
+  z-index: 19;
+}
+
+.type-tab {
+  display: inline-block;
+  padding: 10rpx 24rpx;
+  margin-right: 12rpx;
+  font-size: 26rpx;
+  color: #666;
+  background: #f5f5f5;
+  border-radius: 28rpx;
+  transition: all 0.2s;
+}
+
+.type-tab.active {
+  color: #fff;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  font-weight: 600;
+}
+
+/* ============== 通知列表 ============== */
+.notification-list {
+  padding: 16rpx 0;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0;
+}
+
+.loading-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid #e0e0e0;
+  border-top: 4rpx solid #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 160rpx 0;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  color: #999;
+  font-size: 30rpx;
+  margin-bottom: 8rpx;
+}
+
+.empty-hint {
+  color: #bbb;
+  font-size: 24rpx;
+}
+
+/* 通知项 */
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 28rpx 30rpx;
+  background: #fff;
+  border-bottom: 1rpx solid #f5f5f5;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.notification-item.unread {
+  background: #f8f9ff;
+}
+
+.notification-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6rpx;
+  background: transparent;
+}
+
+.notification-item.unread::before {
+  background: #667eea;
+}
+
+.noti-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #eef0ff, #f5f0ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 20rpx;
+}
+
+.noti-avatar-icon {
+  font-size: 44rpx;
+}
+
+.noti-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.noti-title-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.noti-title {
+  flex: 1;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #222;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-right: 12rpx;
+}
+
+.notification-item.unread .noti-title {
+  color: #667eea;
+}
+
+/* 未读标记 */
+.unread-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #ff4d4f;
+  flex-shrink: 0;
+}
+
+.noti-content {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.5;
+  margin-bottom: 12rpx;
+}
+
+.noti-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.noti-type {
+  font-size: 22rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+  color: #fff;
+  background: #999;
+}
+
+.type-comment { background: #667eea; }
+.type-like { background: #ff7a85; }
+.type-validation { background: #52c41a; }
+.type-report { background: #ff4d4f; }
+.type-system { background: #f0a020; }
+
+.noti-time {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+.noti-delete {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ccc;
+  font-size: 28rpx;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+}
+
+.noti-delete:active {
+  color: #ff4d4f;
+}
+
+/* 加载更多 */
+.loading-more,
+.no-more {
+  text-align: center;
+  padding: 30rpx;
+  color: #ccc;
+  font-size: 24rpx;
+}

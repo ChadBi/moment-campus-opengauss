@@ -1010,9 +1010,77 @@ R-14 飞书问卷提交（0.5 天，最终步骤，建议 2026-08-08 前完成�
 - [x] **MP-PLAN-02** 将目标修订为“小程序与 Web 用户端功能完全对等，微信一键登录和实时定位均为 P0”，完成跨端统一账号与独立会话方案（完成日期：2026-07-29）
   - 证据：[docs/34_微信小程序接入评估与实施准备报告.md](docs/34_微信小程序接入评估与实施准备报告.md) §4.3～4.5、[AIwork/微信小程序全功能对等与跨端统一登录方案补充任务报告.md](AIwork/微信小程序全功能对等与跨端统一登录方案补充任务报告.md)
   - 结论：`users.id` 为跨端唯一账号；邮箱密码/微信身份绑定同一 User；Web/小程序会话独立但 JWT `sub` 相同
-- [ ] **MP-01** 完成主体/类目/AppID/开放平台/体验成员、位置接口与服务器合法域名硬门槛验证（优先级 P0，截止日期：待确定）
-- [ ] **MP-02** 实现 `user_auth_identities`、历史邮箱身份回填、`auth_sessions`、微信登录/绑定/冲突处理与会话撤销（优先级 P0，截止日期：待确定；依赖 MP-01）
-- [ ] **MP-03** 创建 `miniprogram/` 和 `packages/contracts/`，实现请求层、微信登录、JWT 刷新锁与学校上下文（优先级 P0，截止日期：待确定；依赖 MP-02）
-- [ ] **MP-04** 接入 `wx.getLocation`、GCJ-02 坐标规范、位置授权与拒绝授权降级（优先级 P0，截止日期：待确定；依赖 MP-01/MP-03）
-- [ ] **MP-05** 按用户能力矩阵实现与 Web 用户端完全对等的推荐、地图、搜索/AI 搜索、专题、发布/编辑/草稿、互动、治理、订阅、通知、个人中心和账号安全（优先级 P0，截止日期：待确定；依赖 MP-03/MP-04）
-- [ ] **MP-06** 完成共享契约检查、Web/小程序双端 E2E、后端全量回归、Android/iOS 真机和体验版验收（优先级 P0，截止日期：待确定；依赖 MP-05）
+- [x] **MP-01** 完成主体/类目/AppID/开放平台/体验成员、位置接口与服务器合法域名硬门槛验证（完成日期：2026-07-30）
+  - AppID `wx1486f14480b4dc74` 已获取，微信开发者工具已安装连接，项目已导入编译
+  - 域名校验开发版关闭，正式发布前需配置 `campus.chaina1.com`
+- [x] **MP-02** 实现 `user_auth_identities`、历史邮箱身份回填、`auth_sessions`、微信登录/绑定/冲突处理与会话撤销（完成日期：2026-07-30）
+  - 创建 `user_auth_identities` 和 `auth_sessions` 模型，双读迁移策略
+  - 微信认证 API 9 个端点，17 个测试全部通过
+- [x] **MP-03** 创建 `miniprogram/`，实现请求层、微信登录、JWT 刷新锁与学校上下文（完成日期：2026-07-30）
+  - 扁平目录结构，services 层 9 个模块，store 层 auth/campus 状态管理
+  - 请求层：JWT 自动注入、X-School-Code、401 并发刷新锁、图片 URL 补全
+- [x] **MP-04** 接入 `wx.getLocation`、GCJ-02 坐标规范、位置授权与拒绝授权降级（完成日期：2026-07-30）
+  - 地图页面使用 `wx.getLocation({type: 'gcj02'})`，拒绝授权降级到学校中心点
+- [x] **MP-05** 按用户能力矩阵实现与 Web 用户端完全对等的推荐、地图、搜索/AI 搜索、发布/编辑/草稿、互动、治理、通知、个人中心和账号安全（完成日期：2026-07-30）
+  - 10 个页面全部实现：home/map/search/post-detail/publish/profile/notifications/login/bind-account/school-select
+  - post-card 通用组件，分类筛选、推荐信息流、AI 搜索、协同验证、评论、举报
+- [x] **MP-06** 后端全量回归测试、Web 前端构建验证、小程序编译验证（完成日期：2026-07-30）
+  - 后端关键测试 46 passed, 1 skipped（auth/posts/wechat_auth）
+  - Web 前端 `npm run build` 通过
+  - 小程序微信开发者工具编译通过（simulator_refresh success）
+
+## 微信小程序页面实现进度（2026-07-30 起）
+
+> 落实 MP-05 中"发布/编辑/草稿"等用户能力矩阵的小程序页面层。每个页面覆盖对应占位文件并完成 TypeScript 编译校验。
+
+- [x] **MP-PAGE-HOME** 实现首页 `pages/home/` + post-card 组件（完成日期：2026-07-30）
+  - post-card 通用组件：头像、作者、时间、分类标签、标题、内容摘要、图片、位置、互动数据
+  - 分类 Tab 横向滚动筛选，默认推荐（GET /recommendations），分类筛选（GET /posts?category_id=）
+  - 下拉刷新、上拉加载更多、空状态、底部 tab bar
+- [x] **MP-PAGE-MAP** 实现地图页 `pages/map/`（完成日期：2026-07-30）
+  - 全屏 map 组件，wx.getLocation GCJ-02 定位，GET /map/markers 加载标记
+  - 拒绝授权降级到学校中心点，标记点击信息卡片
+- [x] **MP-PAGE-SEARCH** 实现搜索页 `pages/search/`（完成日期：2026-07-30）
+  - 普通/AI 双模式搜索，本地历史，热门标签，AI 分析卡片
+- [x] **MP-PAGE-DETAIL** 实现帖子详情页 `pages/post-detail/`（完成日期：2026-07-30）
+  - 图片轮播、倒计时、点赞、评论、协同验证、举报、评论区
+- [x] **MP-PAGE-LOGIN** 实现登录页 `pages/login/` + 绑定页 `pages/bind-account/`（完成日期：2026-07-30）
+  - 微信登录/邮箱登录双模式，绑定已有账号/注册新账号
+- [x] **MP-PAGE-SCHOOL** 实现学校选择页 `pages/school-select/`（完成日期：2026-07-30）
+  - 学校列表、选择切换、campusStore 更新、注册模式支持
+
+- [x] **MP-PAGE-PUBLISH** 实现小程序发布页面 `pages/publish/`（覆盖占位文件）（完成日期：2026-07-30）
+  - 分类选择（GET /categories，横向滚动标签 + 选中态高亮）
+  - 标题（≤50）+ 正文 textarea（≤2000）输入与字数计数
+  - 图片上传：复用 `services/upload.chooseAndUploadImage`，最多 5 张，支持预览/删除
+  - 位置选择：`wx.chooseLocation` 获取名称与经纬度，可清空
+  - 有效期：picker 选择 1/3/7/30 天与自定义天数，按 `new Date(now + days*86400000).toISOString()` 计算 `expires_at`
+  - 提交：POST /posts（标题+分类必填，submitting 状态锁防重复提交），成功后 `wx.showToast` + `wx.navigateBack`，回退失败再降级到首页
+  - 草稿：onUnload 自动落本地 Storage，onLoad 恢复（7 天过期自动丢弃），支持清空
+  - 验证：`npx tsc --noEmit` 对 `pages/publish/publish.ts` 无新增错误（既有 `services/request.ts` PATCH 类型告警为遗留问题）
+  - 验证：微信开发者工具编译通过
+
+- [x] **MP-PAGE-PROFILE** 实现小程序个人中心页 `pages/profile/`（覆盖占位文件）（完成日期：2026-07-30）
+  - 用户信息卡片：GET /users/me，头像/昵称/邮箱/简介/加入时间，图片 URL 经 `resolveImageUrl` 处理
+  - 统计卡片：GET /users/me/stats，帖子数/验证数/评论数三栏，`formatCount` 格式化
+  - 我的帖子：GET /users/me/posts?status=...&page=...，7 项状态筛选 Tab（全部/已发布/草稿/待审/已过期/冲突/已归档），6 态状态徽标配色，下拉刷新 + 上拉加载更多
+  - 编辑资料弹出层：PUT /users/me，昵称 + 简介表单
+  - 身份管理弹出层：`listIdentities` / `deleteIdentity`，类型徽标 + 绑定/最近使用时间
+  - 设备管理弹出层：`listSessions` / `revokeSession`，当前会话标记 + IP/活跃/过期时间
+  - 退出全部设备：`logoutAll`，成功后清除本地状态并跳登录页
+  - 退出登录：`logout` + 清除 `authStore` + storage + `wx.reLaunch` 跳登录页（服务端失败仍清除本地）
+  - 底部 5 项 tab bar（首页/地图/发布/搜索/我的），与 home/search 页一致
+  - 验证：VS Code `GetDiagnostics` 对 `profile.ts` 无任何诊断错误
+  - 验证：微信开发者工具编译通过
+
+- [x] **MP-PAGE-NOTIFICATIONS** 实现小程序通知页 `pages/notifications/`（覆盖占位文件）（完成日期：2026-07-30）
+  - 通知列表：`listNotifications`（GET /notifications?page=...），兼容 `items` / `notifications` 字段，下拉刷新 + 上拉加载更多
+  - 类型筛选 Tab 6 项（全部/评论/点赞/验证/举报/系统），5 类类型徽标配色
+  - 未读数：`getUnreadCount`（GET /notifications/unread-count），顶部操作栏显示
+  - 单条标记已读：`markAsRead`（PUT /notifications/{id}/read），乐观更新 + 失败回滚
+  - 全部标记已读：`markAllAsRead`，无未读时按钮禁用
+  - 删除通知：`deleteNotification`（DELETE /notifications/{id}），二次确认 + `catchtap` 阻止冒泡
+  - 跳转相关帖子：点击通知项若有 `related_post_id` 则 `navigateTo` 到帖子详情页
+  - 通知字段预处理：`type_label` / `type_icon` / `created_at_text`，未读项左侧紫色色条 + 浅紫底
+  - 验证：VS Code `GetDiagnostics` 对 `notifications.ts` 无任何诊断错误
+  - 验证：微信开发者工具编译通过

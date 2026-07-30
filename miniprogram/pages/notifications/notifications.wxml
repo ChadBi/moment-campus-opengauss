@@ -1,0 +1,83 @@
+<view class="notifications-page">
+  <!-- 顶部操作栏 -->
+  <view class="action-bar">
+    <view class="unread-info">
+      <text wx:if="{{unreadCount > 0}}" class="unread-text">{{unreadCount}} 条未读</text>
+      <text wx:else class="unread-text unread-text-empty">全部已读</text>
+    </view>
+    <view
+      class="mark-all-btn {{markingAllRead || unreadCount === 0 ? 'disabled' : ''}}"
+      bindtap="onMarkAllRead"
+    >
+      <text>{{markingAllRead ? '处理中...' : '全部已读'}}</text>
+    </view>
+  </view>
+
+  <!-- 类型筛选 Tab -->
+  <scroll-view class="type-tabs" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
+    <view
+      wx:for="{{typeTabs}}"
+      wx:key="key"
+      class="type-tab {{activeType === item.key ? 'active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onTypeTabTap"
+    >
+      <text>{{item.label}}</text>
+    </view>
+  </scroll-view>
+
+  <!-- 通知列表 -->
+  <view class="notification-list">
+    <!-- 加载中 -->
+    <view wx:if="{{loading && notifications.length === 0}}" class="loading-state">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:elif="{{notifications.length === 0}}" class="empty-state">
+      <text class="empty-icon">🔔</text>
+      <text class="empty-text">暂无通知</text>
+      <text class="empty-hint">新的消息会显示在这里</text>
+    </view>
+
+    <!-- 列表项 -->
+    <view
+      wx:for="{{notifications}}"
+      wx:key="id"
+      class="notification-item {{!item.is_read ? 'unread' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onNotificationTap"
+    >
+      <view class="noti-avatar">
+        <text class="noti-avatar-icon">{{item.type_icon}}</text>
+      </view>
+      <view class="noti-body">
+        <view class="noti-title-row">
+          <text class="noti-title">{{item.title}}</text>
+          <view wx:if="{{!item.is_read}}" class="unread-dot"></view>
+        </view>
+        <text wx:if="{{item.content}}" class="noti-content text-ellipsis-2">{{item.content}}</text>
+        <view class="noti-footer">
+          <text class="noti-type type-{{item.type}}">{{item.type_label}}</text>
+          <text class="noti-time">{{item.created_at_text}}</text>
+        </view>
+      </view>
+      <view
+        class="noti-delete"
+        catchtap="onDeleteNotification"
+        data-id="{{item.id}}"
+      >
+        <text>✕</text>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view wx:if="{{loadingMore}}" class="loading-more">
+      <text>加载更多...</text>
+    </view>
+    <view wx:if="{{!hasMore && notifications.length > 0 && !loadingMore}}" class="no-more">
+      <text>— 没有更多了 —</text>
+    </view>
+  </view>
+</view>

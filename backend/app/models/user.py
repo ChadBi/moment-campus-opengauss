@@ -68,6 +68,10 @@ class User(Base):
     notification_preference: Mapped["NotificationPreference | None"] = relationship(back_populates="user", uselist=False)
     # REC-01.2: 推荐隐私偏好（一对一）
     recommendation_preference: Mapped["UserRecommendationPreference | None"] = relationship(back_populates="user", uselist=False)
+    # 统一身份（一对多）
+    auth_identities: Mapped[list["UserAuthIdentity"]] = relationship(back_populates="user")
+    # 服务端会话（一对多）
+    auth_sessions: Mapped[list["AuthSession"]] = relationship(back_populates="user")
 
     __table_args__ = (
         Index("idx_user_school", "school_id"),

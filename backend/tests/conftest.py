@@ -455,6 +455,7 @@ async def test_user(client: AsyncClient, test_school: dict) -> dict:
     assert response.status_code == 200
     data = response.json()
     return {
+        "id": data["user"]["id"],
         "email": "testuser@example.com",
         "nickname": "测试用户",
         "password": "testpassword123",

@@ -1,0 +1,169 @@
+<view class="search-page">
+  <!-- 顶部搜索框 -->
+  <view class="search-header">
+    <view class="search-input-wrap">
+      <text class="search-icon">🔍</text>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="{{mode === 'ai' ? '用自然语言描述你想找的内容…' : '搜索关键词…'}}"
+        value="{{keyword}}"
+        confirm-type="search"
+        bindinput="onInput"
+        bindconfirm="onConfirmSearch"
+      />
+      <text wx:if="{{keyword}}" class="clear-btn" bindtap="onClearInput">✕</text>
+    </view>
+    <view class="search-btn" bindtap="onSearch">
+      <text>{{searching ? '搜索中' : '搜索'}}</text>
+    </view>
+  </view>
+
+  <!-- 模式切换 Tab -->
+  <view class="mode-tabs">
+    <view class="mode-tab {{mode === 'normal' ? 'active' : ''}}" data-mode="normal" bindtap="onModeSwitch">
+      <text>普通搜索</text>
+    </view>
+    <view class="mode-tab {{mode === 'ai' ? 'active' : ''}}" data-mode="ai" bindtap="onModeSwitch">
+      <text>✨ AI 搜索</text>
+    </view>
+  </view>
+
+  <!-- 未搜索：历史 + 热门标签 -->
+  <view wx:if="{{!hasSearched}}" class="suggest-wrap">
+    <view wx:if="{{history.length > 0}}" class="section">
+      <view class="section-header">
+        <text class="section-title">搜索历史</text>
+        <text class="section-action" bindtap="onClearHistory">清空</text>
+      </view>
+      <view class="tag-cloud">
+        <view
+          wx:for="{{history}}"
+          wx:key="*this"
+          class="tag tag-history"
+          data-keyword="{{item}}"
+          bindtap="onTagTap"
+        >
+          <text>{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{hotTags.length > 0}}" class="section">
+      <view class="section-header">
+        <text class="section-title">🔥 热门标签</text>
+      </view>
+      <view class="tag-cloud">
+        <view
+          wx:for="{{hotTags}}"
+          wx:key="*this"
+          class="tag tag-hot"
+          data-keyword="{{item}}"
+          bindtap="onTagTap"
+        >
+          <text>{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{history.length === 0 && hotTags.length === 0}}" class="empty-suggest">
+      <text class="empty-suggest-icon">🔍</text>
+      <text class="empty-suggest-text">输入关键词开始搜索</text>
+      <view wx:if="{{mode === 'ai'}}" class="ai-tip">
+        <text>AI 搜索支持自然语言查询，例如：</text>
+        <text class="ai-tip-example">"昨天图书馆丢失的校园卡"</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 搜索中 -->
+  <view wx:if="{{hasSearched && searching && results.length === 0}}" class="loading-state">
+    <text>{{mode === 'ai' ? 'AI 正在分析…' : '搜索中…'}}</text>
+  </view>
+
+  <!-- 搜索结果 -->
+  <view wx:if="{{hasSearched && !searching}}" class="results-wrap">
+    <!-- AI 分析卡片 -->
+    <view wx:if="{{mode === 'ai' && (aiIntent || aiReasons.length > 0)}}" class="ai-card">
+      <view wx:if="{{aiFallback}}" class="ai-fallback-tip">
+        <text>⚠️ {{aiFallbackReason || 'AI 暂不可用，已降级普通搜索'}}</text>
+      </view>
+      <view wx:if="{{aiIntent}}" class="ai-row">
+        <text class="ai-label">意图分析</text>
+        <text class="ai-intent">{{aiIntent}}</text>
+      </view>
+      <view wx:if="{{aiReasons.length > 0}}" class="ai-row">
+        <text class="ai-label">匹配理由</text>
+        <view class="ai-reasons">
+          <view wx:for="{{aiReasons}}" wx:key="*this" class="ai-reason-item">
+            <text>• {{item}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 结果统计 -->
+    <view class="results-summary">
+      <text>共 {{total}} 条结果</text>
+    </view>
+
+    <!-- 空结果 -->
+    <view wx:if="{{results.length === 0}}" class="empty-state">
+      <text class="empty-icon">📭</text>
+      <text class="empty-text">没有找到相关内容</text>
+      <text class="empty-hint">换个关键词试试吧</text>
+    </view>
+
+    <!-- 结果列表 -->
+    <view wx:for="{{results}}" wx:key="id" class="post-card" data-id="{{item.id}}" bindtap="goToDetail">
+      <view class="post-header">
+        <image
+          class="author-avatar"
+          src="{{item.author_avatar || '/assets/default-avatar.png'}}"
+          mode="aspectFill"
+        />
+        <view class="author-info">
+          <text class="author-name">{{item.author_nickname || '匿名'}}</text>
+          <text class="post-time">{{item.created_at_text}}</text>
+        </view>
+        <text class="post-status status-{{item.status}}">{{item.status}}</text>
+      </view>
+
+      <view class="post-body">
+        <text class="post-title">{{item.title}}</text>
+        <text class="post-content">{{item.content_brief}}</text>
+      </view>
+
+      <view wx:if="{{item.cover}}" class="post-cover">
+        <image class="cover-image" src="{{item.cover}}" mode="aspectFill" />
+      </view>
+
+      <view wx:if="{{item.location_name}}" class="post-location">
+        <text class="loc-icon">📍</text>
+        <text class="loc-text">{{item.location_name}}</text>
+      </view>
+
+      <!-- AI 单条匹配理由 -->
+      <view wx:if="{{item.match_reasons && item.match_reasons.length > 0}}" class="match-reasons">
+        <view wx:for="{{item.match_reasons}}" wx:for-item="reason" wx:key="*this" class="match-reason">
+          <text>✨ {{reason}}</text>
+        </view>
+      </view>
+
+      <view class="post-footer">
+        <text class="stat-item">👍 {{item.likes_count_text}}</text>
+        <text class="stat-item">💬 {{item.comments_count_text}}</text>
+        <text class="stat-item">✅ {{item.validations_count_text}}</text>
+        <text class="stat-item">👁 {{item.views_count_text}}</text>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view wx:if="{{loadingMore}}" class="loading-more">
+      <text>加载中…</text>
+    </view>
+    <view wx:elif="{{!hasMore && results.length > 0}}" class="no-more">
+      <text>— 已加载全部 —</text>
+    </view>
+  </view>
+</view>

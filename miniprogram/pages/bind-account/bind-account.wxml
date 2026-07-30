@@ -1,0 +1,37 @@
+<view class="bind-page">
+  <view class="page-title">
+    <text>{{mode === 'bind' ? '绑定已有账号' : '注册新账号'}}</text>
+  </view>
+
+  <view class="form-section" wx:if="{{mode === 'register'}}">
+    <view class="form-item">
+      <text class="label">昵称</text>
+      <input type="text" placeholder="请输入昵称" value="{{nickname}}" bindinput="onNicknameInput" class="input"/>
+    </view>
+    <view class="form-item">
+      <text class="label">学校</text>
+      <picker bindchange="onSchoolSelect" value="{{schoolId}}" range="{{schools}}" range-key="name">
+        <view class="picker">{{schoolId ? '请选择学校' : '点击选择学校'}}</view>
+      </picker>
+    </view>
+  </view>
+
+  <view class="form-section">
+    <view class="form-item">
+      <text class="label">邮箱</text>
+      <input type="text" placeholder="{{mode === 'bind' ? '请输入邮箱' : '选填'}}" value="{{email}}" bindinput="onEmailInput" class="input"/>
+    </view>
+    <view class="form-item">
+      <text class="label">密码</text>
+      <input type="password" placeholder="请输入密码" value="{{password}}" bindinput="onPasswordInput" class="input"/>
+    </view>
+  </view>
+
+  <view wx:if="{{errorMsg}}" class="error-msg">
+    <text>{{errorMsg}}</text>
+  </view>
+
+  <view class="submit-btn {{loading ? 'disabled' : ''}}" bindtap="onSubmit">
+    <text>{{loading ? '处理中...' : (mode === 'bind' ? '绑定并登录' : '注册并登录')}}</text>
+  </view>
+</view>

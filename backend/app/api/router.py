@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.auth import router as auth_router
+from app.api.wechat_auth import router as wechat_auth_router
 from app.api.users import router as users_router
 from app.api.posts import router as posts_router
 from app.api.comments import router as comments_router
@@ -30,6 +31,7 @@ async def test():
 
 # 注册路由
 api_router.include_router(auth_router)
+api_router.include_router(wechat_auth_router)
 api_router.include_router(users_router)
 api_router.include_router(posts_router)
 api_router.include_router(comments_router)

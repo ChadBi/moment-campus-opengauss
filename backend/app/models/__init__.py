@@ -33,6 +33,8 @@ from .job_run_record import JobRunRecord
 from .notification_preference import NotificationPreference
 from .subscription import UserSubscription
 from .user_recommendation_preference import UserRecommendationPreference
+from .user_auth_identity import UserAuthIdentity
+from .auth_session import AuthSession, BindingTicket
 
 __all__ = [
     "Base",
@@ -68,4 +70,7 @@ __all__ = [
     "JobRunRecord",
     "NotificationPreference",
     "UserSubscription",
+    "UserAuthIdentity",
+    "AuthSession",
+    "BindingTicket",
 ]

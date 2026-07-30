@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "此刻校园",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "post-card": "/components/post-card/post-card"
+  }
+}

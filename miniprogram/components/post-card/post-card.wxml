@@ -1,0 +1,41 @@
+<view class="post-card" bindtap="onTap">
+  <view class="card-header">
+    <image class="author-avatar" src="{{authorAvatar || '/assets/default-avatar.png'}}" mode="aspectFill"/>
+    <view class="header-info">
+      <text class="author-name">{{post.author_nickname || '匿名用户'}}</text>
+      <text class="post-time">{{formattedTime}}</text>
+    </view>
+    <view wx:if="{{post.category_name}}" class="category-tag">
+      <text>{{post.category_name}}</text>
+    </view>
+  </view>
+
+  <view class="card-body">
+    <text class="post-title">{{post.title}}</text>
+    <text class="post-content">{{post.content}}</text>
+  </view>
+
+  <view wx:if="{{displayImages.length > 0}}" class="card-images">
+    <image
+      wx:for="{{displayImages}}"
+      wx:key="*this"
+      src="{{item}}"
+      mode="aspectFill"
+      class="post-image"
+      catchtap="onImageTap"
+      data-src="{{item}}"/>
+  </view>
+
+  <view class="card-footer">
+    <view wx:if="{{post.location_name}}" class="location-info">
+      <text class="location-icon">📍</text>
+      <text class="location-text">{{post.location_name}}</text>
+    </view>
+    <view class="post-stats">
+      <text class="stat-item">👁 {{formattedViews}}</text>
+      <text class="stat-item">👍 {{formattedLikes}}</text>
+      <text class="stat-item">💬 {{formattedComments}}</text>
+      <text class="stat-item">✅ {{formattedValidations}}</text>
+    </view>
+  </view>
+</view>

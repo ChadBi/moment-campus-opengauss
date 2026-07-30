@@ -1,0 +1,294 @@
+<view class="profile-page">
+  <!-- 顶部用户信息卡片 -->
+  <view class="user-card">
+    <view class="user-row">
+      <image
+        class="avatar"
+        src="{{avatarUrl || '/assets/default-avatar.png'}}"
+        mode="aspectFill"
+      />
+      <view class="user-meta">
+        <view class="nickname-row">
+          <text class="nickname">{{nickname || '未命名用户'}}</text>
+          <text wx:if="{{email}}" class="email">{{email}}</text>
+        </view>
+        <text wx:if="{{bio}}" class="bio">{{bio}}</text>
+        <text wx:else class="bio bio-empty">这个人很懒，还没有简介</text>
+        <view wx:if="{{createdAtText}}" class="meta-line">
+          <text class="meta-label">加入时间</text>
+          <text class="meta-value">{{createdAtText}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="user-actions">
+      <view class="action-btn edit" bindtap="showEditPopup">
+        <text class="action-icon">✎</text>
+        <text>编辑资料</text>
+      </view>
+      <view class="action-bell" bindtap="goToNotifications">
+        <text class="action-icon">🔔</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 统计卡片 -->
+  <view class="stats-card">
+    <view class="stat-item">
+      <text class="stat-value">{{postsCountText}}</text>
+      <text class="stat-label">帖子</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-value">{{validationsCountText}}</text>
+      <text class="stat-label">验证</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-value">{{commentsCountText}}</text>
+      <text class="stat-label">评论</text>
+    </view>
+  </view>
+
+  <!-- 我的帖子 -->
+  <view class="posts-section">
+    <view class="section-title-row">
+      <text class="section-title">我的帖子</text>
+    </view>
+
+    <!-- 状态筛选 Tab -->
+    <scroll-view class="status-tabs" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
+      <view
+        wx:for="{{statusTabs}}"
+        wx:key="key"
+        class="status-tab {{activeStatus === item.key ? 'active' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onStatusTabTap"
+      >
+        <text>{{item.label}}</text>
+      </view>
+    </scroll-view>
+
+    <!-- 帖子列表 -->
+    <view class="post-list">
+      <view wx:if="{{loadingPosts && posts.length === 0}}" class="loading-state">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">加载中...</text>
+      </view>
+
+      <view wx:elif="{{posts.length === 0}}" class="empty-state">
+        <text class="empty-icon">📭</text>
+        <text class="empty-text">暂无帖子</text>
+      </view>
+
+      <view
+        wx:for="{{posts}}"
+        wx:key="id"
+        class="post-card"
+        data-id="{{item.id}}"
+        bindtap="onPostTap"
+      >
+        <view class="post-top">
+          <view class="post-title-row">
+            <text class="post-title">{{item.title}}</text>
+            <text class="post-status status-{{item.status}}">{{item.status_label}}</text>
+          </view>
+          <text class="post-content text-ellipsis-2">{{item.content}}</text>
+        </view>
+        <image wx:if="{{item.cover}}" class="post-cover" src="{{item.cover}}" mode="aspectFill" />
+        <view class="post-footer">
+          <text class="post-time">{{item.created_at_text}}</text>
+          <view class="post-stats">
+            <text class="stat-pill">👍 {{item.likes_count_text}}</text>
+            <text class="stat-pill">💬 {{item.comments_count_text}}</text>
+            <text class="stat-pill">✅ {{item.validations_count_text}}</text>
+            <text class="stat-pill">👁 {{item.views_count_text}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{loadingMorePosts}}" class="loading-more">
+        <text>加载更多...</text>
+      </view>
+      <view wx:if="{{!hasMore && posts.length > 0 && !loadingMorePosts}}" class="no-more">
+        <text>— 没有更多了 —</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 设置区域 -->
+  <view class="settings-section">
+    <view class="settings-item" bindtap="showEditPopup">
+      <text class="settings-icon">✎</text>
+      <text class="settings-label">编辑资料</text>
+      <text class="settings-arrow">›</text>
+    </view>
+    <view class="settings-item" bindtap="showIdentityPopup">
+      <text class="settings-icon">🪪</text>
+      <text class="settings-label">身份管理</text>
+      <text class="settings-arrow">›</text>
+    </view>
+    <view class="settings-item" bindtap="showSessionPopup">
+      <text class="settings-icon">📱</text>
+      <text class="settings-label">设备管理</text>
+      <text class="settings-arrow">›</text>
+    </view>
+    <view class="settings-item danger" bindtap="onLogoutAll">
+      <text class="settings-icon">🚪</text>
+      <text class="settings-label">退出全部设备</text>
+      <text class="settings-arrow">›</text>
+    </view>
+    <view class="settings-item danger" bindtap="onLogout">
+      <text class="settings-icon">↩</text>
+      <text class="settings-label">退出登录</text>
+      <text class="settings-arrow">›</text>
+    </view>
+  </view>
+</view>
+
+<!-- 编辑资料弹出层 -->
+<view wx:if="{{editVisible}}" class="popup-mask" bindtap="hideEditPopup">
+  <view class="popup-container" catchtap="noop">
+    <view class="popup-header">
+      <text class="popup-title">编辑资料</text>
+      <text class="popup-close" bindtap="hideEditPopup">✕</text>
+    </view>
+    <view class="popup-body">
+      <view class="form-item">
+        <text class="form-label">昵称</text>
+        <input
+          class="form-input"
+          type="text"
+          placeholder="请输入昵称"
+          value="{{editNickname}}"
+          maxlength="30"
+          bindinput="onEditNicknameInput"
+        />
+      </view>
+      <view class="form-item">
+        <text class="form-label">简介</text>
+        <textarea
+          class="form-textarea"
+          placeholder="介绍一下自己吧"
+          value="{{editBio}}"
+          maxlength="200"
+          auto-height
+          bindinput="onEditBioInput"
+        />
+      </view>
+    </view>
+    <view class="popup-footer">
+      <view class="popup-btn btn-cancel" bindtap="hideEditPopup">
+        <text>取消</text>
+      </view>
+      <view class="popup-btn btn-confirm" bindtap="saveEdit">
+        <text>{{savingProfile ? '保存中...' : '保存'}}</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 身份管理弹出层 -->
+<view wx:if="{{identityVisible}}" class="popup-mask" bindtap="hideIdentityPopup">
+  <view class="popup-container popup-lg" catchtap="noop">
+    <view class="popup-header">
+      <text class="popup-title">身份管理</text>
+      <text class="popup-close" bindtap="hideIdentityPopup">✕</text>
+    </view>
+    <view class="popup-body">
+      <view wx:if="{{loadingIdentities}}" class="popup-loading">
+        <text>加载中...</text>
+      </view>
+      <view wx:elif="{{identities.length === 0}}" class="popup-empty">
+        <text>暂无绑定身份</text>
+      </view>
+      <view wx:else class="identity-list">
+        <view wx:for="{{identities}}" wx:key="id" class="identity-item">
+          <view class="identity-info">
+            <view class="identity-row">
+              <text class="identity-type">{{item.type_label}}</text>
+              <text class="identity-key">{{item.identity_key}}</text>
+            </view>
+            <view class="identity-meta">
+              <text>绑定：{{item.created_at_text}}</text>
+              <text>最近使用：{{item.last_used_at_text}}</text>
+            </view>
+          </view>
+          <view class="identity-action" data-id="{{item.id}}" bindtap="onDeleteIdentity">
+            <text>删除</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 设备管理弹出层 -->
+<view wx:if="{{sessionVisible}}" class="popup-mask" bindtap="hideSessionPopup">
+  <view class="popup-container popup-lg" catchtap="noop">
+    <view class="popup-header">
+      <text class="popup-title">设备管理</text>
+      <text class="popup-close" bindtap="hideSessionPopup">✕</text>
+    </view>
+    <view class="popup-body">
+      <view wx:if="{{loadingSessions}}" class="popup-loading">
+        <text>加载中...</text>
+      </view>
+      <view wx:elif="{{sessions.length === 0}}" class="popup-empty">
+        <text>暂无活动会话</text>
+      </view>
+      <view wx:else class="session-list">
+        <view wx:for="{{sessions}}" wx:key="id" class="session-item">
+          <view class="session-info">
+            <view class="session-row">
+              <text class="session-type">{{item.type_label}}</text>
+              <text wx:if="{{item.is_current}}" class="session-current">当前</text>
+            </view>
+            <text class="session-device">{{item.device_brief}}</text>
+            <view class="session-meta">
+              <text>IP：{{item.ip_text}}</text>
+              <text>最近活跃：{{item.last_active_text}}</text>
+              <text>过期：{{item.expires_text}}</text>
+            </view>
+          </view>
+          <view
+            wx:if="{{!item.is_current}}"
+            class="session-action"
+            data-id="{{item.id}}"
+            bindtap="onRevokeSession"
+          >
+            <text>退出</text>
+          </view>
+          <view wx:else class="session-action session-action-disabled">
+            <text>当前</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 底部 tab bar -->
+<view class="tab-bar">
+  <view class="bar-tab {{activeTab === 'home' ? 'active' : ''}}" bindtap="goToHome">
+    <text class="bar-icon">🏠</text>
+    <text class="bar-label">首页</text>
+  </view>
+  <view class="bar-tab {{activeTab === 'map' ? 'active' : ''}}" bindtap="goToMap">
+    <text class="bar-icon">📍</text>
+    <text class="bar-label">地图</text>
+  </view>
+  <view class="bar-tab bar-publish" bindtap="goToPublish">
+    <view class="publish-btn">
+      <text class="publish-icon">+</text>
+    </view>
+    <text class="bar-label publish-label">发布</text>
+  </view>
+  <view class="bar-tab {{activeTab === 'search' ? 'active' : ''}}" bindtap="goToSearch">
+    <text class="bar-icon">🔍</text>
+    <text class="bar-label">搜索</text>
+  </view>
+  <view class="bar-tab {{activeTab === 'profile' ? 'active' : ''}}">
+    <text class="bar-icon">👤</text>
+    <text class="bar-label">我的</text>
+  </view>
+</view>

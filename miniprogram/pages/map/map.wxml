@@ -1,0 +1,52 @@
+<view class="map-page">
+  <map
+    class="map"
+    latitude="{{latitude}}"
+    longitude="{{longitude}}"
+    scale="{{scale}}"
+    markers="{{markers}}"
+    show-location
+    enable-zoom
+    enable-scroll
+    bindmarkertap="onMarkerTap"
+  ></map>
+
+  <view class="map-header">
+    <view class="school-info">
+      <text class="school-name">{{schoolName}}</text>
+      <text class="school-subtitle">校园地图</text>
+    </view>
+    <view class="locate-btn" bindtap="requestLocation">
+      <text class="locate-icon">📍</text>
+    </view>
+  </view>
+
+  <view wx:if="{{locationDenied}}" class="denied-tip" bindtap="openSetting">
+    <text class="denied-icon">⚠️</text>
+    <text class="denied-text">未授权位置信息，已默认显示学校中心点。点击重新授权</text>
+  </view>
+
+  <view wx:if="{{selectedMarker}}" class="info-card">
+    <view class="info-card-header">
+      <text class="info-title">{{selectedMarker.title}}</text>
+      <view class="info-close" catchtap="closeInfoCard">
+        <text>✕</text>
+      </view>
+    </view>
+    <view wx:if="{{selectedMarker.content_snippet}}" class="info-snippet">
+      <text>{{selectedMarker.content_snippet}}</text>
+    </view>
+    <view class="info-meta">
+      <view wx:if="{{selectedMarker.category_name}}" class="info-tag">
+        <text>{{selectedMarker.category_name}}</text>
+      </view>
+      <view class="info-tag info-status">
+        <text>{{selectedMarker.statusLabel}}</text>
+      </view>
+    </view>
+    <view class="info-action" catchtap="goToPostDetail">
+      <text>查看帖子详情</text>
+      <text class="action-arrow">›</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,217 @@
+.home-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 140rpx;
+}
+
+/* 顶部栏 */
+.top-bar {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.school-info {
+  flex-shrink: 0;
+  margin-right: 20rpx;
+  max-width: 280rpx;
+}
+
+.school-name {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #222;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-entry {
+  flex: 1;
+  height: 64rpx;
+  background: #f5f5f5;
+  border-radius: 32rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 24rpx;
+}
+
+.search-icon {
+  font-size: 28rpx;
+  margin-right: 10rpx;
+}
+
+.search-text {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 分类 Tab */
+.category-tabs {
+  white-space: nowrap;
+  background: #fff;
+  padding: 10rpx 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  position: sticky;
+  top: 104rpx;
+  z-index: 99;
+}
+
+.cat-tab {
+  display: inline-block;
+  padding: 12rpx 28rpx;
+  margin-right: 10rpx;
+  font-size: 28rpx;
+  color: #666;
+  border-radius: 30rpx;
+  transition: all 0.2s;
+}
+
+.cat-tab.active {
+  color: #fff;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  font-weight: 600;
+}
+
+/* 内容概要 */
+.content-summary {
+  padding: 16rpx 30rpx;
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 帖子列表 */
+.post-list {
+  padding: 0 20rpx;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.empty-icon {
+  font-size: 100rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  color: #999;
+  font-size: 28rpx;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 0;
+}
+
+.loading-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid #e0e0e0;
+  border-top: 4rpx solid #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.loading-more {
+  text-align: center;
+  padding: 30rpx;
+  color: #999;
+  font-size: 24rpx;
+}
+
+.no-more {
+  text-align: center;
+  padding: 30rpx;
+  color: #ccc;
+  font-size: 24rpx;
+}
+
+/* 底部 tab bar */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 110rpx;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.bar-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 10rpx 0;
+}
+
+.bar-icon {
+  font-size: 40rpx;
+  margin-bottom: 4rpx;
+}
+
+.bar-label {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.bar-tab.active .bar-label {
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* 发布按钮（中间凸起） */
+.bar-publish {
+  position: relative;
+}
+
+.publish-btn {
+  width: 80rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: -30rpx;
+  box-shadow: 0 6rpx 20rpx rgba(102, 126, 234, 0.4);
+}
+
+.publish-icon {
+  font-size: 48rpx;
+  color: #fff;
+  font-weight: 300;
+}
+
+.publish-label {
+  margin-top: 4rpx;
+}
