@@ -12,7 +12,7 @@
 
 **过时内容**：
 
-- 本文档仅覆盖 **21 个核心实体**，实际运行数据库已有 **41 张表**（含多租户、订阅、平台管理、AI 日志、专题合集、官方发布主体等模块）
+- 本文档仅覆盖 **17 个核心实体**，实际运行数据库已有 **41 张表**（含多租户、订阅、平台管理、AI 日志、专题合集、官方发布主体等模块）
 - 字段定义、约束、索引与实际 Alembic 迁移脚本（`backend/alembic/versions/` 22 条迁移）存在差异
 
 **正确参考资料**：
@@ -30,7 +30,7 @@
 
 ### 1.1 文档目的
 
-本文档描述"此刻校园"平台的完整数据模型设计，涵盖 21 个核心实体的字段定义、约束、索引、关系及隐私安全要求，为后端开发和数据库建表提供规范指导。
+本文档描述"此刻校园"平台的完整数据模型设计，涵盖 17 个核心实体的字段定义、约束、索引、关系及隐私安全要求，为后端开发和数据库建表提供规范指导。
 
 ### 1.2 设计原则
 
@@ -38,7 +38,7 @@
 2. **匿名不等于无主**：匿名发布仅在展示层隐藏发布者，数据库中始终记录真实发布者
 3. **唯一约束防重复**：点赞、收藏等用户行为通过唯一约束防止重复操作
 4. **时间标准化**：所有时间字段使用 UTC 存储，展示层转换为 `Asia/Shanghai`
-5. **分类与类型分离**：`Category` 为内容分类（12 个固定分类），`PostType` 为信息行为类型（普通信息、活动、失物招领等），两者正交
+5. **分类与类型分离**：`Category` 为内容分类（12 个固定分类），两者正交
 
 ---
 
@@ -48,8 +48,7 @@
 erDiagram
     User ||--o{ Post : "发布"
     User ||--o{ Comment : "发表"
-    User ||--o{ Like : "点赞"
-    User ||--o{ Favorite : "收藏"
+    User ||--o{ Like : "点赞/收藏"
     User ||--o{ ValidationRecord : "有效性确认"
     User ||--o{ Report : "举报"
     User ||--o{ Notification : "接收"
@@ -62,17 +61,12 @@ erDiagram
     School ||--o{ Location : "包含"
 
     Post }o--|| Category : "所属分类"
-    Post }o--|| PostType : "信息类型"
     Post }o--o| Location : "关联地点"
-    Post ||--o{ PostTag : "拥有标签"
     Post ||--o{ PostImage : "包含图片"
     Post ||--o{ Comment : "拥有评论"
-    Post ||--o{ Like : "被点赞"
-    Post ||--o{ Favorite : "被收藏"
+    Post ||--o{ Like : "被点赞/收藏"
     Post ||--o{ ValidationRecord : "有效性记录"
     Post ||--o{ Report : "被举报"
-
-    Tag ||--o{ PostTag : "关联信息"
 
     Comment ||--o{ Comment : "回复(parent_id)"
 
@@ -100,7 +94,6 @@ erDiagram
         bigint user_id FK
         bigint school_id FK
         bigint category_id FK
-        bigint post_type_id FK
         bigint location_id FK
         string title
         string content
@@ -114,17 +107,6 @@ erDiagram
         string name
         string code
         int default_validity_days
-    }
-
-    PostType {
-        bigint id PK
-        string name
-        string code
-    }
-
-    Tag {
-        bigint id PK
-        string name
     }
 
     Location {
@@ -144,12 +126,6 @@ erDiagram
     }
 
     Like {
-        bigint id PK
-        bigint post_id FK
-        bigint user_id FK
-    }
-
-    Favorite {
         bigint id PK
         bigint post_id FK
         bigint user_id FK
@@ -224,7 +200,7 @@ erDiagram
 - 属于一个 School（多对一）
 - 发布多个 Post（一对多）
 - 发表多个 Comment（一对多）
-- 拥有多个 Like / Favorite / ValidationRecord / Report / Notification / Draft / BrowseHistory / SearchHistory（一对多）
+- 拥有多个 Like / ValidationRecord / Report / Notification / Draft / BrowseHistory / SearchHistory（一对多）
 
 **删除策略：** 软删除（`is_deleted` + `deleted_at`）。删除后昵称显示为"已注销用户"，发布内容保留但匿名化。
 
@@ -294,7 +270,7 @@ erDiagram
 
 **中文名称：** 信息（帖子）
 
-**业务用途：** 平台核心内容实体，用户发布的校园信息。通过 `category_id` 区分内容分类（美食/动物/打印等），通过 `post_type_id` 区分信息行为类型（普通/活动/失物招领）。
+**业务用途：** 平台核心内容实体，用户发布的校园信息。通过 `category_id` 区分内容分类（美食/动物/打印等）。
 
 **核心字段：**
 
@@ -304,7 +280,6 @@ erDiagram
 | user_id | BIGINT | 是 | — | 发布者 FK（即使匿名也记录真实用户） |
 | school_id | BIGINT | 是 | — | 所属学校 FK |
 | category_id | BIGINT | 是 | — | 内容分类 FK |
-| post_type_id | BIGINT | 是 | — | 信息类型 FK |
 | location_id | BIGINT | 否 | NULL | 关联地点 FK |
 | title | VARCHAR(200) | 是 | — | 标题 |
 | content | TEXT | 是 | — | 正文内容 |
@@ -313,7 +288,6 @@ erDiagram
 | view_count | INT | 是 | 0 | 浏览次数 |
 | like_count | INT | 是 | 0 | 点赞数（冗余计数） |
 | comment_count | INT | 是 | 0 | 评论数（冗余计数） |
-| favorite_count | INT | 是 | 0 | 收藏数（冗余计数） |
 | valid_count | INT | 是 | 0 | 确认有效数（冗余计数） |
 | invalid_count | INT | 是 | 0 | 确认无效数（冗余计数） |
 | expire_at | TIMESTAMP | 否 | NULL | 信息过期时间（根据分类默认有效期或自定义） |
@@ -339,27 +313,24 @@ erDiagram
 
 **时间字段说明：**
 - `expire_at`：根据分类默认有效期自动计算，用户可手动延长
-- `activity_start_at` / `activity_end_at`：仅当 `post_type_id` 为"活动"时使用
+- `activity_start_at` / `activity_end_at`：仅当信息为"活动"类型时使用
 - 失物招领类型使用默认 30 天有效期
 
 **与其他实体的关系：**
 - 属于一个 User（多对一）
 - 属于一个 School（多对一）
 - 属于一个 Category（多对一）
-- 属于一个 PostType（多对一）
 - 关联一个 Location（多对一，可选）
-- 拥有多个 PostTag（一对多）
 - 拥有多个 PostImage（一对多）
-- 拥有多个 Comment / Like / Favorite / ValidationRecord / Report（一对多）
+- 拥有多个 Comment / Like / ValidationRecord / Report（一对多）
 - 可被多个 TopicCollectionPost 收录（一对多）
 
-**删除策略：** 软删除（`is_deleted` + `deleted_at`）。删除后关联的 Comment、Like、Favorite 保留但不再展示。
+**删除策略：** 软删除（`is_deleted` + `deleted_at`）。删除后关联的 Comment、Like 保留但不再展示。
 
 **索引建议：**
 - `idx_post_user` on `user_id`
 - `idx_post_school_status` on `school_id, status`
 - `idx_post_category` on `category_id`
-- `idx_post_type` on `post_type_id`
 - `idx_post_location` on `location_id`
 - `idx_post_status_created` on `status, created_at DESC`
 - `idx_post_status_recommend` on `status, is_recommend, created_at DESC`
@@ -374,50 +345,7 @@ erDiagram
 
 ---
 
-### 3.4 PostType（信息类型）
-
-**中文名称：** 信息类型
-
-**业务用途：** 区分信息的行为类型，决定信息拥有哪些特有字段。与 Category（内容分类）正交：Category 回答"这是什么内容"（美食/动物/打印），PostType 回答"这是什么性质的信息"（普通/活动/失物招领）。
-
-**核心字段：**
-
-| 字段名 | 类型 | 是否必填 | 默认值 | 说明 |
-|--------|------|----------|--------|------|
-| id | BIGINT | 是 | 自增 | 主键 |
-| name | VARCHAR(50) | 是 | — | 类型名称（如"普通信息"、"活动"、"失物招领"） |
-| code | VARCHAR(30) | 是 | — | 类型编码（normal / event / lost_found） |
-| description | VARCHAR(200) | 否 | NULL | 类型说明 |
-| sort_order | INT | 是 | 0 | 排序权重 |
-| is_active | BOOLEAN | 是 | true | 是否启用 |
-| created_at | TIMESTAMP | 是 | CURRENT_TIMESTAMP | 创建时间 |
-| updated_at | TIMESTAMP | 是 | CURRENT_TIMESTAMP | 更新时间 |
-
-**唯一约束：**
-- `code` 全局唯一
-
-**状态字段：**
-- `is_active`：true=启用，false=停用
-
-**类型编码说明：**
-- `normal`：普通信息，使用 Post 通用字段
-- `event`：活动信息，额外使用 `activity_start_at` / `activity_end_at`
-- `lost_found`：失物招领，额外使用 `lost_type` / `contact_info`
-
-**与其他实体的关系：**
-- 被多个 Post 引用（一对多）
-
-**删除策略：** 不硬删除，通过 `is_active=false` 停用。已关联的 Post 不受影响。
-
-**索引建议：**
-- `idx_posttype_code` UNIQUE on `code`
-
-**隐私和安全要求：**
-- 系统配置数据，仅管理员可维护
-
----
-
-### 3.5 Category（分类）
+### 3.4 Category（分类）
 
 **中文名称：** 分类
 
@@ -444,11 +372,6 @@ erDiagram
 **状态字段：**
 - `is_active`：true=启用，false=停用
 
-**与 PostType 的区别：**
-- Category 是内容维度：美食、动物、打印、活动场地等 12 个分类
-- PostType 是行为维度：普通信息、活动、失物招领
-- 一条信息同时拥有一个 Category 和一个 PostType，例如：一条"社团招新活动"的 Post，Category=校园活动，PostType=event
-
 **与其他实体的关系：**
 - 被多个 Post 引用（一对多）
 
@@ -463,85 +386,7 @@ erDiagram
 
 ---
 
-### 3.6 Tag（标签）
-
-**中文名称：** 标签
-
-**业务用途：** 灵活的标签体系，用户可为信息添加标签以便检索和归类。标签可跨分类使用。
-
-**核心字段：**
-
-| 字段名 | 类型 | 是否必填 | 默认值 | 说明 |
-|--------|------|----------|--------|------|
-| id | BIGINT | 是 | 自增 | 主键 |
-| name | VARCHAR(50) | 是 | — | 标签名称 |
-| slug | VARCHAR(60) | 是 | — | 标签标识（小写，用于 URL） |
-| usage_count | INT | 是 | 0 | 使用次数（冗余计数） |
-| is_official | BOOLEAN | 是 | false | 是否官方推荐标签 |
-| created_at | TIMESTAMP | 是 | CURRENT_TIMESTAMP | 创建时间 |
-| updated_at | TIMESTAMP | 是 | CURRENT_TIMESTAMP | 更新时间 |
-| is_deleted | BOOLEAN | 是 | false | 是否软删除 |
-| deleted_at | TIMESTAMP | 否 | NULL | 删除时间 |
-
-**唯一约束：**
-- `name` 全局唯一（不区分大小写）
-- `slug` 全局唯一
-
-**状态字段：**
-- `is_official`：true=官方标签，false=用户创建
-- `is_deleted`：软删除标记
-
-**与其他实体的关系：**
-- 通过 PostTag 与 Post 建立多对多关系
-
-**删除策略：** 软删除。删除标签时同步清理 PostTag 关联记录。
-
-**索引建议：**
-- `idx_tag_name` UNIQUE on `name`
-- `idx_tag_slug` UNIQUE on `slug`
-- `idx_tag_usage` on `usage_count DESC`
-- `idx_tag_official` on `is_official`
-
-**隐私和安全要求：**
-- 标签名为公开信息
-- 需对标签名进行敏感词过滤
-
----
-
-### 3.7 PostTag（信息-标签关联）
-
-**中文名称：** 信息-标签关联
-
-**业务用途：** 实现 Post 与 Tag 的多对多关系。一条信息可拥有多个标签，一个标签可关联多条信息。
-
-**核心字段：**
-
-| 字段名 | 类型 | 是否必填 | 默认值 | 说明 |
-|--------|------|----------|--------|------|
-| id | BIGINT | 是 | 自增 | 主键 |
-| post_id | BIGINT | 是 | — | 信息 FK |
-| tag_id | BIGINT | 是 | — | 标签 FK |
-| created_at | TIMESTAMP | 是 | CURRENT_TIMESTAMP | 创建时间 |
-
-**唯一约束：**
-- `(post_id, tag_id)` 联合唯一
-
-**与其他实体的关系：**
-- 属于一个 Post（多对一）
-- 属于一个 Tag（多对一）
-
-**删除策略：** 硬删除。当信息删除或标签移除时直接删除关联记录。
-
-**索引建议：**
-- `idx_posttag_post_tag` UNIQUE on `(post_id, tag_id)`
-- `idx_posttag_tag` on `tag_id`
-
-**隐私和安全要求：**
-- 无特殊要求
-
----
-
-### 3.8 PostImage（信息图片）
+### 3.6 PostImage（信息图片）
 
 **中文名称：** 信息图片
 
@@ -720,45 +565,11 @@ erDiagram
 
 ---
 
-### 3.12 Favorite（收藏）
-
-**中文名称：** 收藏
-
-**业务用途：** 用户收藏感兴趣的信息，便于后续查看。用户对同一信息只能收藏一次。
-
-**核心字段：**
-
-| 字段名 | 类型 | 是否必填 | 默认值 | 说明 |
-|--------|------|----------|--------|------|
-| id | BIGINT | 是 | 自增 | 主键 |
-| post_id | BIGINT | 是 | — | 信息 FK |
-| user_id | BIGINT | 是 | — | 收藏用户 FK |
-| created_at | TIMESTAMP | 是 | CURRENT_TIMESTAMP | 收藏时间 |
-
-**唯一约束：**
-- `(post_id, user_id)` 联合唯一 — 确保用户对同一信息只能收藏一次
-
-**与其他实体的关系：**
-- 属于一个 Post（多对一）
-- 属于一个 User（多对一）
-
-**删除策略：** 硬删除。取消收藏时直接删除记录。
-
-**索引建议：**
-- `idx_favorite_post_user` UNIQUE on `(post_id, user_id)`
-- `idx_favorite_user` on `user_id, created_at DESC`
-
-**隐私和安全要求：**
-- 收藏列表仅本人可见
-- 需防止刷收藏（频率限制）
-
----
-
-### 3.13 ValidationRecord（有效性确认记录）
+### 3.12 ValidationRecord（有效性确认记录）
 
 **中文名称：** 有效性确认记录
 
-**业务用途：** 用户反馈信息是否仍然有效（核心社区治理功能）。用户可以多次反馈有效性，系统保留所有历史记录。与 Like/Favorite 不同，不设置唯一约束。
+**业务用途：** 用户反馈信息是否仍然有效（核心社区治理功能）。用户可以多次反馈有效性，系统保留所有历史记录。与 Like 不同，不设置唯一约束。
 
 **核心字段：**
 
@@ -778,7 +589,7 @@ erDiagram
 - `validation_type`：valid=确认有效，invalid=确认无效
 
 **设计说明：**
-- 与 Like/Favorite 不同，ValidationRecord 不设唯一约束
+- 与 Like 不同，ValidationRecord 不设唯一约束
 - 同一用户可对同一信息多次反馈（如先确认有效，后发现已失效再确认无效）
 - 冗余计数 `Post.valid_count` / `Post.invalid_count` 取每个用户最近一次反馈汇总
 - 当 `invalid_count > valid_count` 时，信息标记为"疑似失效"，通知发布者确认
@@ -861,7 +672,7 @@ erDiagram
 |--------|------|----------|--------|------|
 | id | BIGINT | 是 | 自增 | 主键 |
 | user_id | BIGINT | 是 | — | 接收通知的用户 FK |
-| type | ENUM | 是 | — | 通知类型：comment=新评论 / reply=新回复 / like=新点赞 / favorite=新收藏 / validation=有效性变更 / system=系统通知 / audit=审核结果 |
+| type | ENUM | 是 | — | 通知类型：comment=新评论 / reply=新回复 / like=新点赞 / validation=有效性变更 / system=系统通知 / audit=审核结果 |
 | title | VARCHAR(200) | 是 | — | 通知标题 |
 | content | VARCHAR(500) | 否 | NULL | 通知内容摘要 |
 | target_type | VARCHAR(50) | 否 | NULL | 关联对象类型（post / comment / user） |
@@ -883,7 +694,6 @@ erDiagram
 - `comment`：有人评论了你的信息
 - `reply`：有人回复了你的评论
 - `like`：有人点赞了你的信息
-- `favorite`：有人收藏了你的信息
 - `validation`：你的信息有效性状态变更
 - `system`：系统公告
 - `audit`：信息审核结果
@@ -1006,7 +816,6 @@ erDiagram
 | title | VARCHAR(200) | 否 | NULL | 草稿标题 |
 | content | TEXT | 否 | NULL | 草稿内容 |
 | category_id | BIGINT | 否 | NULL | 分类 FK（预选） |
-| post_type_id | BIGINT | 否 | NULL | 信息类型 FK（预选） |
 | location_id | BIGINT | 否 | NULL | 地点 FK（预选） |
 | is_anonymous | BOOLEAN | 是 | false | 是否匿名 |
 | extra_data | JSON | 否 | NULL | 扩展字段（图片列表、标签、特有字段等，JSON 格式） |
@@ -1024,7 +833,7 @@ erDiagram
 
 **与其他实体的关系：**
 - 属于一个 User（多对一）
-- 预选关联 Category / PostType / Location（可选）
+- 预选关联 Category / Location（可选）
 
 **删除策略：** 软删除。用户删除草稿后标记为已删除。
 
@@ -1175,30 +984,23 @@ erDiagram
 
 ## 4. 关键设计决策说明
 
-### 4.1 Category 与 PostType 的区别
+### 4.1 Category 分类体系
 
-| 维度 | Category（分类） | PostType（信息类型） |
-|------|------------------|---------------------|
-| 回答的问题 | 这是什么内容？ | 这是什么性质的信息？ |
-| 示例值 | 校园美食、校园动物、打印服务… | 普通信息、活动、失物招领 |
-| 数量 | 12 个固定分类 | 3 个类型 |
-| 特有字段 | 每个分类有独立字段（如美食有价格区间、动物有性格） | 每种类型有独立字段（如活动有时间、失物有联系方式） |
-| 组合方式 | 一条信息拥有一个 Category 和一个 PostType | 如：Category=校园活动 + PostType=event |
+信息通过 `Category` 进行内容分类（12 个固定分类），每个分类有独立的特有字段和默认有效期。
 
 ### 4.2 软删除策略
 
-所有业务实体（User、Post、Tag、Location、Comment、PostImage、Notification、Draft、TopicCollection）采用软删除：
+所有业务实体（User、Post、Location、Comment、PostImage、Notification、Draft、TopicCollection）采用软删除：
 - `is_deleted = true` 标记已删除
 - `deleted_at` 记录删除时间
 - 查询时统一加 `WHERE is_deleted = false`
 
-关联表（PostTag、TopicCollectionPost）和用户行为表（Like、Favorite、BrowseHistory、SearchHistory）采用硬删除。
+关联表（TopicCollectionPost）和用户行为表（Like、BrowseHistory、SearchHistory）采用硬删除。
 
 ### 4.3 冗余计数字段
 
 以下字段使用冗余计数避免频繁 COUNT 查询：
-- `Post.like_count` / `comment_count` / `favorite_count` / `valid_count` / `invalid_count` / `view_count`
-- `Tag.usage_count`
+- `Post.like_count` / `comment_count` / `valid_count` / `invalid_count` / `view_count`
 - `Location.post_count`
 - `TopicCollection.post_count` / `view_count`
 
@@ -1227,7 +1029,6 @@ erDiagram
 | Post | 100-500 | 按 `created_at` 月度分区 |
 | Comment | 500-2000 | 按 `created_at` 月度分区 |
 | Like | 1000-5000 | 按 `created_at` 月度分区 |
-| Favorite | 200-1000 | 按 `created_at` 月度分区 |
 | ValidationRecord | 100-500 | 按 `created_at` 月度分区 |
 | BrowseHistory | 5000-20000 | 按 `created_at` 周分区，90 天后清理 |
 | SearchHistory | 2000-10000 | 按 `created_at` 周分区，30 天后清理 |
@@ -1246,7 +1047,6 @@ erDiagram
 | ValidationType | valid, invalid | 有效性确认类型 |
 | ReportType | fake, ad, privacy, illegal, inappropriate, other | 举报类型 |
 | ReportStatus | pending, processing, resolved, dismissed | 举报处理状态 |
-| NotificationType | comment, reply, like, favorite, validation, system, audit | 通知类型 |
+| NotificationType | comment, reply, like, validation, system, audit | 通知类型 |
 | TopicStatus | draft, published, archived | 专题状态 |
-| PostTypeCode | normal, event, lost_found | 信息类型编码 |
 | LostType | lost, found | 失物类型 |

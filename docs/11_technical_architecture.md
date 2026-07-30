@@ -42,8 +42,7 @@
 | **FastAPI** | 0.100+ | 高性能异步框架（基于 Starlette），性能接近 Node.js；自动生成 OpenAPI 文档；原生支持 Pydantic 数据验证和类型提示 |
 | **SQLAlchemy** | 2.0+ | Python 最成熟的 ORM，支持异步（2.0+）；类型安全、灵活的查询构建器；支持复杂的表关系映射 |
 | **Pydantic** | 2.0+ | 基于类型提示的数据验证和序列化库；与 FastAPI 深度集成，自动验证请求参数和生成 JSON Schema |
-| **SQLite** | - | 零配置、零依赖的嵌入式数据库；开发环境无需安装数据库服务，适合快速原型开发 |
-| **PostgreSQL** | 15+ | 功能强大的开源关系型数据库；支持 JSON、全文搜索、地理空间数据（PostGIS）；生产环境首选 |
+| **openGauss** | 7.0 | 华为开源关系型数据库，兼容 PostgreSQL 协议；支持 JSON、全文搜索、地理空间数据；使用 asyncpg 异步驱动 |
 | **JWT** | - | 无状态认证方案，适合前后端分离架构；Token 可自包含用户信息，减少数据库查询 |
 | **Alembic** | - | SQLAlchemy 官方迁移工具，自动生成迁移脚本；支持版本化管理数据库 Schema 变更 |
 
@@ -54,7 +53,7 @@
 | FastAPI | Django | Django 功能全面但过于重量级，自带 Admin/ORM/模板；本项目需要前后端完全分离，FastAPI 更轻量灵活 |
 | FastAPI | Express (Node.js) | Node.js 生态适合前端团队，但 Python 在 AI/数据处理方面优势明显，且校园产品后续需要 AI 能力 |
 | SQLAlchemy | Prisma | Prisma 是 Node.js 生态的 ORM，不适用于 Python 后端 |
-| SQLite | MySQL | MySQL 功能足够，但 PostgreSQL 在 JSON 支持、全文搜索、扩展性方面更优；校园产品数据量不大，PostgreSQL 完全胜任 |
+| SQLite | MySQL | MySQL 功能足够，但 openGauss 在 JSON 支持、全文搜索、国产化方面更优；校园产品数据量不大，openGauss 完全胜任 |
 | JWT | Session | Session 需要服务端存储，不利于水平扩展；JWT 无状态，适合分布式部署 |
 
 ---
@@ -89,7 +88,7 @@ graph TD
     end
 
     subgraph 数据层["数据层"]
-        DB[(PostgreSQL / SQLite)]
+        DB[(openGauss 7.0)]
         FS["文件系统<br/>图片存储"]
         Cache["缓存<br/>Redis (后续)"]
     end
@@ -833,30 +832,30 @@ class OSSStorage(StorageBackend): ...         # 阿里云 OSS
 
 ## 8. 数据库方案
 
-### 8.1 开发环境 SQLite
+### 8.1 openGauss 7.0（唯一数据库）
 
 **选择理由：**
 
-- 零配置：无需安装数据库服务，`pip install` 即可使用
-- 单文件：数据库是一个 `.db` 文件，便于备份和迁移
-- 足够用：开发阶段数据量小，SQLite 性能完全满足
+- 国产化：华为开源，自主可控
+- 兼容 PostgreSQL 协议：使用 asyncpg 驱动，SQLAlchemy 通过 PostgreSQL dialect 访问
+- 功能丰富：支持 JSON、全文搜索、地理空间数据
+- 性能优秀：支持并发读写，适合生产负载
+- 轻量版容器：部署简单，资源占用低
+
+**连接配置：**
+
+```python
+# backend/app/config.py
+DATABASE_URL: str = "postgresql+asyncpg://gaussdb:Gaussdb%40123@localhost:5432/moment_campus"
+```
 
 **注意事项：**
 
-- 不支持并发写入（开发阶段影响不大）
-- 不支持部分 PostgreSQL 特性（如 JSON 字段）
-- 通过 SQLAlchemy 抽象层，代码无需修改即可切换数据库
+- 密码中 `@` 需转义为 `%40`
+- 使用 `BigInteger().with_variant(Integer, "sqlite")` 兼容写法
+- 测试环境使用内存 SQLite 保持快速测试
 
-### 8.2 生产环境 PostgreSQL
-
-**选择理由：**
-
-- 功能丰富：支持 JSON、数组、全文搜索、地理空间（PostGIS）
-- 性能优秀：支持并发读写，适合生产负载
-- 扩展性强：支持分区表、物化视图等高级特性
-- 生态成熟：备份、监控、调优工具丰富
-
-### 8.3 数据库迁移方案（Alembic）
+### 8.2 数据库迁移方案（Alembic）
 
 **工作流程：**
 
@@ -1076,11 +1075,12 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # 应用
     APP_NAME: str = "此刻校园"
+    APP_ENV: str = "opengauss"
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
 
-    # 数据库
-    DATABASE_URL: str = "sqlite+aiosqlite:///./dev.db"
+    # 数据库（openGauss，asyncpg 异步驱动）
+    DATABASE_URL: str = "postgresql+asyncpg://gaussdb:Gaussdb%40123@localhost:5432/moment_campus"
 
     # JWT
     SECRET_KEY: str = "change-me-in-production"
@@ -1093,13 +1093,13 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
 
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"]
 
     # 日志
     LOG_LEVEL: str = "INFO"
 
     class Config:
-        env_file = ".env"
+        env_file = ".env.opengauss"
 
 settings = Settings()
 ```
@@ -1255,7 +1255,7 @@ alembic upgrade head # 初始化数据库
 uvicorn main:app --reload --port 8000
 ```
 
-**数据库：** SQLite（零配置，自动创建 `dev.db`）
+**数据库：** openGauss 7.0 容器（详见 `deploy/docker-compose.yml`）
 
 ### 13.2 生产环境部署
 
@@ -1275,7 +1275,8 @@ uvicorn main:app --reload --port 8000
         └───────────┘ └───┬───┘ └───────────┘
                           │
                     ┌─────┴─────┐
-                    │ PostgreSQL │
+                    │ openGauss  │
+                    │  7.0       │
                     └───────────┘
 ```
 
@@ -1307,23 +1308,24 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://user:pass@db:5432/moment_campus
+      - APP_ENV=opengauss
+      - DATABASE_URL=postgresql+asyncpg://gaussdb:Gaussdb%40123@db:5432/moment_campus
       - SECRET_KEY=${SECRET_KEY}
     depends_on:
-      - db
+      - opengauss
     volumes:
       - uploads:/app/uploads
 
-  db:
-    image: postgres:15
+  opengauss:
+    image: opengauss:7.0.0-RC3
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-      POSTGRES_DB: moment_campus
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      GAUSSD_INITDB_ROOT_USERNAME: gaussdb
+      GAUSSD_INITDB_ROOT_PASSWORD: Gaussdb@123
+      GAUSSD_INITDB_DATABASE: moment_campus
     ports:
       - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/opengauss/data
 
 volumes:
   pgdata:

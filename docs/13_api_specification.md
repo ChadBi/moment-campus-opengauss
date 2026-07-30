@@ -29,7 +29,7 @@
 | **users** | `/api/users` | 用户信息/资料/浏览历史 | `backend/app/api/users.py` |
 | **posts** | `/api/posts` | 帖子CRUD/状态管理 | `backend/app/api/posts.py` |
 | **comments** | `/api/comments` | 评论管理 | `backend/app/api/comments.py` |
-| **interactions** | `/api/interactions` | 点赞/收藏/举报 | `backend/app/api/interactions.py` |
+| **interactions** | `/api/interactions` | 点赞/举报 | `backend/app/api/interactions.py` |
 | **search** | `/api/search` | 搜索功能 | `backend/app/api/search.py` |
 | **map** | `/api/map` | 地图相关 | `backend/app/api/map.py` |
 | **categories** | `/api/categories` | 分类管理 | `backend/app/api/categories.py` |
@@ -203,8 +203,6 @@ app.include_router(api_router, prefix="/api")
 |--------|------|
 | 14001 | 已点赞 |
 | 14002 | 未点赞 |
-| 14003 | 已收藏 |
-| 14004 | 未收藏 |
 | 14005 | 已举报 |
 | 14006 | 举报类型无效 |
 
@@ -242,7 +240,6 @@ app.include_router(api_router, prefix="/api")
 | 信息列表 | 综合排序（有效性×0.3 + 时间×0.25 + 距离×0.2 + 互动×0.15 + 质量×0.1） |
 | 评论列表 | 时间倒序 |
 | 通知列表 | 时间倒序 |
-| 收藏列表 | 收藏时间倒序 |
 | 浏览历史 | 浏览时间倒序 |
 
 ---
@@ -529,7 +526,6 @@ app.include_router(api_router, prefix="/api")
     "bio": "string",
     "post_count": 0,
     "like_count": 0,
-    "favorite_count": 0,
     "created_at": "datetime"
   }
 }
@@ -660,8 +656,7 @@ app.include_router(api_router, prefix="/api")
       "avatar_url": "string",
       "bio": "string",
       "post_count": 0,
-      "like_count": 0,
-      "favorite_count": 0
+      "like_count": 0
     },
     "posts": {
       "items": [],
@@ -884,7 +879,6 @@ app.include_router(api_router, prefix="/api")
         "validity_status": "valid",
         "like_count": 0,
         "comment_count": 0,
-        "favorite_count": 0,
         "view_count": 0,
         "created_at": "datetime",
         "published_at": "datetime"
@@ -958,10 +952,8 @@ app.include_router(api_router, prefix="/api")
     "expired_count": 0,
     "like_count": 0,
     "comment_count": 0,
-    "favorite_count": 0,
     "view_count": 0,
     "is_liked": false,
-    "is_favorited": false,
     "extra_data": {},
     "created_at": "datetime",
     "updated_at": "datetime",
@@ -1652,129 +1644,9 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-## 16. 收藏模块
+## 16. 有效性验证模块
 
-### 16.1 收藏
-
-**接口说明**：收藏信息
-
-| 项目 | 说明 |
-|------|------|
-| 请求方法 | POST |
-| 请求路径 | /posts/{post_id}/favorite |
-| 需要登录 | 是 |
-
-**路径参数**：
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| post_id | uuid | 信息ID |
-
-**成功响应**：
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "favorite_count": 0
-  }
-}
-```
-
-**失败响应**：
-
-| 错误码 | 说明 |
-|--------|------|
-| 14003 | 已收藏 |
-
----
-
-### 16.2 取消收藏
-
-**接口说明**：取消收藏
-
-| 项目 | 说明 |
-|------|------|
-| 请求方法 | DELETE |
-| 请求路径 | /posts/{post_id}/favorite |
-| 需要登录 | 是 |
-
-**路径参数**：
-
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| post_id | uuid | 信息ID |
-
-**成功响应**：
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "favorite_count": 0
-  }
-}
-```
-
-**失败响应**：
-
-| 错误码 | 说明 |
-|--------|------|
-| 14004 | 未收藏 |
-
----
-
-### 16.3 获取收藏列表
-
-**接口说明**：获取当前用户的收藏列表
-
-| 项目 | 说明 |
-|------|------|
-| 请求方法 | GET |
-| 请求路径 | /favorites |
-| 需要登录 | 是 |
-
-**查询参数**：
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| page | number | 否 | 页码 |
-| page_size | number | 否 | 每页数量 |
-
-**成功响应**：
-
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "items": [
-      {
-        "favorite_id": "uuid",
-        "post": {
-          "post_id": "uuid",
-          "title": "string",
-          "cover_image": "string",
-          "validity_status": "valid"
-        },
-        "favorited_at": "datetime"
-      }
-    ],
-    "page": 1,
-    "page_size": 20,
-    "total": 0,
-    "total_pages": 0
-  }
-}
-```
-
----
-
-## 17. 有效性验证模块
-
-### 17.1 提交有效性确认
+### 16.1 提交有效性确认
 
 **接口说明**：确认信息是否仍然有效
 
@@ -1818,7 +1690,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 17.2 获取有效性统计
+### 16.2 获取有效性统计
 
 **接口说明**：获取信息的有效性统计
 
@@ -1859,9 +1731,9 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-## 18. 举报模块
+## 17. 举报模块
 
-### 18.1 提交举报
+### 17.1 提交举报
 
 **接口说明**：举报违规内容
 
@@ -1910,7 +1782,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 18.2 获取我的举报
+### 17.2 获取我的举报
 
 **接口说明**：获取当前用户提交的举报列表
 
@@ -1957,9 +1829,9 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-## 19. 通知模块
+## 18. 通知模块
 
-### 19.1 获取通知列表
+### 18.1 获取通知列表
 
 **接口说明**：获取当前用户的通知列表
 
@@ -2006,7 +1878,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 19.2 标记已读
+### 18.2 标记已读
 
 **接口说明**：标记通知为已读
 
@@ -2042,7 +1914,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 19.3 获取未读数
+### 18.3 获取未读数
 
 **接口说明**：获取未读通知数量
 
@@ -2070,9 +1942,9 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-## 20. 专题模块
+## 19. 专题模块
 
-### 20.1 获取专题列表
+### 19.1 获取专题列表
 
 **接口说明**：获取专题列表
 
@@ -2123,7 +1995,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 20.2 获取专题详情
+### 19.2 获取专题详情
 
 **接口说明**：获取专题详细信息
 
@@ -2178,7 +2050,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 20.3 创建专题
+### 19.3 创建专题
 
 **接口说明**：创建专题
 
@@ -2220,7 +2092,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 20.4 更新专题
+### 19.4 更新专题
 
 **接口说明**：更新专题
 
@@ -2262,9 +2134,9 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-## 21. 草稿模块
+## 20. 草稿模块
 
-### 21.1 创建草稿
+### 20.1 创建草稿
 
 **接口说明**：创建草稿
 
@@ -2290,7 +2162,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 21.2 获取草稿列表
+### 20.2 获取草稿列表
 
 **接口说明**：获取当前用户的草稿列表
 
@@ -2332,7 +2204,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 21.3 更新草稿
+### 20.3 更新草稿
 
 **接口说明**：更新草稿
 
@@ -2365,7 +2237,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 21.4 删除草稿
+### 20.4 删除草稿
 
 **接口说明**：删除草稿
 
@@ -2393,9 +2265,9 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-## 22. 浏览历史模块
+## 21. 浏览历史模块
 
-### 22.1 获取浏览历史
+### 21.1 获取浏览历史
 
 **接口说明**：获取当前用户的浏览历史
 
@@ -2441,7 +2313,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 22.2 清除浏览历史
+### 21.2 清除浏览历史
 
 **接口说明**：清除浏览历史
 
@@ -2477,9 +2349,9 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-## 23. 管理后台模块
+## 22. 管理后台模块
 
-### 23.1 获取统计数据
+### 22.1 获取统计数据
 
 **接口说明**：获取后台统计数据
 
@@ -2515,7 +2387,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 23.2 审核信息
+### 22.2 审核信息
 
 **接口说明**：审核通过信息
 
@@ -2544,7 +2416,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 23.3 拒绝信息
+### 22.3 拒绝信息
 
 **接口说明**：拒绝信息
 
@@ -2581,7 +2453,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 23.4 隐藏信息
+### 22.4 隐藏信息
 
 **接口说明**：隐藏信息
 
@@ -2610,7 +2482,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 23.5 处理举报
+### 22.5 处理举报
 
 **接口说明**：处理举报
 
@@ -2653,7 +2525,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 23.6 获取用户列表
+### 22.6 获取用户列表
 
 **接口说明**：获取用户列表
 
@@ -2701,7 +2573,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 23.7 禁用用户
+### 22.7 禁用用户
 
 **接口说明**：禁用/启用用户
 
@@ -2739,7 +2611,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 23.8 管理分类
+### 22.8 管理分类
 
 **接口说明**：创建/更新/删除分类
 
@@ -2777,7 +2649,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 23.9 管理标签
+### 22.9 管理标签
 
 **接口说明**：管理系统标签
 
@@ -2811,7 +2683,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-### 23.10 管理专题
+### 22.10 管理专题
 
 **接口说明**：管理专题（置顶/推荐/删除）
 
@@ -2854,7 +2726,7 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-## 24. 相关文档
+## 23. 相关文档
 
 - [项目总览](00_project_overview.md)
 - [产品需求文档](01_product_requirements.md)

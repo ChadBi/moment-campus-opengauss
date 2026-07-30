@@ -301,7 +301,7 @@ font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono",
 
 - **使用 Lucide React**：风格简洁现代、线条均匀、支持 Tree Shaking、与 React 深度集成
 - **线条粗细**：统一使用 `strokeWidth={2}`（Lucide 默认值）
-- **填充**：默认不填充（outline 风格），特殊状态（如已点赞、已收藏）可使用 filled 变体
+- **填充**：默认不填充（outline 风格），特殊状态（如已点赞）可使用 filled 变体
 
 ### 7.2 图标尺寸规范
 
@@ -801,7 +801,6 @@ font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono",
 | :--- | :--- | :--- | :--- | :--- |
 | 首页 | Inbox | 暂无信息 | 当前校园还没有信息，快来发布第一条吧 | 发布信息 |
 | 搜索结果 | SearchX | 未找到相关信息 | 换个关键词试试，或者发布相关信息 | 发布信息 |
-| 收藏列表 | Bookmark | 暂无收藏 | 浏览信息时点击收藏，感兴趣的内容会出现在这里 | 去浏览 |
 | 我的发布 | FileText | 暂无发布 | 你还没有发布过任何信息 | 发布信息 |
 | 通知列表 | Bell | 暂无通知 | 新的通知会出现在这里 | — |
 | 分类详情 | FolderOpen | 该分类暂无信息 | 成为第一个分享此类信息的人吧 | 发布信息 |
