@@ -1,0 +1,250 @@
+.subscriptions-page {
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding-bottom: 60rpx;
+}
+
+/* ============== 顶部 Tab ============== */
+.tab-header {
+  display: flex;
+  background: #fff;
+  border-bottom: 1rpx solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 28rpx 0;
+  font-size: 30rpx;
+  color: #666;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.tab-item.active {
+  color: #667eea;
+  font-weight: 700;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 64rpx;
+  height: 6rpx;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 3rpx;
+}
+
+/* ============== 通用加载/空状态 ============== */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 0;
+}
+
+.loading-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid #e0e0e0;
+  border-top: 4rpx solid #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.empty-icon {
+  font-size: 100rpx;
+  margin-bottom: 16rpx;
+}
+
+.empty-text {
+  color: #999;
+  font-size: 28rpx;
+}
+
+.empty-hint {
+  margin-top: 12rpx;
+  color: #bbb;
+  font-size: 24rpx;
+}
+
+/* ============== 已订阅列表 ============== */
+.sub-list {
+  background: #fff;
+  margin-top: 16rpx;
+}
+
+.sub-item {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 30rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.sub-item:last-child {
+  border-bottom: none;
+}
+
+.sub-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: #eef0ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  flex-shrink: 0;
+}
+
+.sub-body {
+  flex: 1;
+  min-width: 0;
+  margin-left: 20rpx;
+}
+
+.sub-title-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.sub-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #222;
+  margin-right: 16rpx;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 380rpx;
+}
+
+.sub-type {
+  font-size: 22rpx;
+  color: #667eea;
+  background: #eef0ff;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+}
+
+.sub-time {
+  font-size: 22rpx;
+  color: #bbb;
+}
+
+.sub-cancel {
+  padding: 12rpx 28rpx;
+  border: 1rpx solid #ff4d4f;
+  color: #ff4d4f;
+  border-radius: 28rpx;
+  font-size: 24rpx;
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+.sub-cancel:active {
+  background: #fff1f0;
+}
+
+/* ============== 分类列表（添加订阅） ============== */
+.category-list {
+  background: #fff;
+  margin-top: 16rpx;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 30rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.category-item:last-child {
+  border-bottom: none;
+}
+
+.category-item:active {
+  background: #fafafa;
+}
+
+.category-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 16rpx;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  flex-shrink: 0;
+}
+
+.category-body {
+  flex: 1;
+  min-width: 0;
+  margin-left: 20rpx;
+}
+
+.category-name {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 6rpx;
+}
+
+.category-desc {
+  font-size: 24rpx;
+  color: #999;
+  line-height: 1.4;
+}
+
+.category-action {
+  padding: 12rpx 32rpx;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border-radius: 28rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+.category-action.is-subscribed {
+  background: #f5f5f5;
+  color: #999;
+  font-weight: 400;
+}
+
+/* 文本省略 */
+.text-ellipsis-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}

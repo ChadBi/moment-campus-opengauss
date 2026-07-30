@@ -5,11 +5,15 @@
     "pages/search/search",
     "pages/publish/publish",
     "pages/post-detail/post-detail",
+    "pages/edit-post/edit-post",
     "pages/profile/profile",
     "pages/notifications/notifications",
+    "pages/subscriptions/subscriptions",
     "pages/school-select/school-select",
     "pages/login/login",
-    "pages/bind-account/bind-account"
+    "pages/bind-account/bind-account",
+    "pages/topics/topics",
+    "pages/topic-detail/topic-detail"
   ],
   "window": {
     "navigationBarTextStyle": "black",

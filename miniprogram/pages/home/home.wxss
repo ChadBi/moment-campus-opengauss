@@ -51,6 +51,28 @@
   color: #999;
 }
 
+/* 专题入口 */
+.topics-entry {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-left: 20rpx;
+  padding: 0 8rpx;
+}
+
+.topics-icon {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+.topics-label {
+  margin-top: 4rpx;
+  font-size: 20rpx;
+  color: #667eea;
+}
+
 /* 分类 Tab */
 .category-tabs {
   white-space: nowrap;

@@ -1,0 +1,185 @@
+<view class="edit-post-page">
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 加载失败 -->
+  <view wx:elif="{{loadError}}" class="error-wrap">
+    <text class="error-text">{{loadError}}</text>
+  </view>
+
+  <!-- 表单 -->
+  <block wx:else>
+    <!-- 分类选择 -->
+    <view class="section">
+      <view class="section-label">
+        <text class="label-text">分类</text>
+        <text class="required">*</text>
+      </view>
+      <scroll-view class="category-scroll" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
+        <view wx:if="{{loadingCategories && categories.length === 0}}" class="cat-loading">加载中...</view>
+        <view
+          wx:for="{{categories}}"
+          wx:key="id"
+          class="cat-tag {{selectedCategoryId === item.id ? 'active' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="onCategoryTap">
+          <text wx:if="{{item.icon}}" class="cat-icon">{{item.icon}}</text>
+          <text class="cat-name">{{item.name}}</text>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 标题 -->
+    <view class="section">
+      <view class="section-label">
+        <text class="label-text">标题</text>
+        <text class="required">*</text>
+      </view>
+      <view class="input-wrap">
+        <input
+          class="title-input"
+          type="text"
+          placeholder="一句话说清核心信息（最多50字）"
+          placeholder-class="ph"
+          maxlength="{{titleMaxLen}}"
+          value="{{title}}"
+          bindinput="onTitleInput" />
+        <text class="counter">{{title.length}}/{{titleMaxLen}}</text>
+      </view>
+    </view>
+
+    <!-- 正文 -->
+    <view class="section">
+      <view class="section-label">
+        <text class="label-text">正文</text>
+      </view>
+      <view class="input-wrap">
+        <textarea
+          class="content-input"
+          placeholder="描述详细情况、时间、地点、经过等（最多2000字）"
+          placeholder-class="ph"
+          maxlength="{{contentMaxLen}}"
+          value="{{content}}"
+          bindinput="onContentInput"
+          auto-height="true"
+          disable-default-padding="true" />
+        <text class="counter">{{content.length}}/{{contentMaxLen}}</text>
+      </view>
+    </view>
+
+    <!-- 图片 -->
+    <view class="section">
+      <view class="section-label">
+        <text class="label-text">图片</text>
+        <text class="label-hint">最多 {{maxImages}} 张，每张不超过 5MB</text>
+      </view>
+      <view class="image-grid">
+        <view
+          wx:for="{{images}}"
+          wx:key="*this"
+          class="image-item">
+          <image
+            class="preview-img"
+            src="{{item}}"
+            mode="aspectFill"
+            data-url="{{item}}"
+            bindtap="onPreviewImage" />
+          <view
+            class="remove-btn"
+            data-index="{{index}}"
+            catchtap="onRemoveImage">
+            <text class="remove-icon">×</text>
+          </view>
+        </view>
+        <view
+          wx:if="{{images.length < maxImages}}"
+          class="upload-btn {{uploadingImage ? 'uploading' : ''}}"
+          bindtap="onChooseImage">
+          <view wx:if="{{uploadingImage}}" class="upload-spinner"></view>
+          <block wx:else>
+            <text class="upload-icon">+</text>
+            <text class="upload-text">上传</text>
+          </block>
+        </view>
+      </view>
+    </view>
+
+    <!-- 位置 -->
+    <view class="section">
+      <view class="section-label">
+        <text class="label-text">位置</text>
+        <text class="label-hint">可选</text>
+      </view>
+      <view class="location-card">
+        <block wx:if="{{hasLocation}}">
+          <view class="location-info">
+            <text class="location-icon">📍</text>
+            <text class="location-name text-ellipsis">{{locationName}}</text>
+          </view>
+          <view class="location-actions">
+            <text class="loc-action" bindtap="onChooseLocation">更换</text>
+            <text class="loc-action danger" bindtap="onClearLocation">移除</text>
+          </view>
+        </block>
+        <block wx:else>
+          <view class="location-empty" bindtap="onChooseLocation">
+            <text class="location-icon">📍</text>
+            <text class="location-placeholder">选择位置（可选）</text>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 有效期 -->
+    <view class="section">
+      <view class="section-label">
+        <text class="label-text">有效期</text>
+      </view>
+      <view class="expiry-wrap">
+        <picker
+          class="expiry-picker"
+          mode="selector"
+          range="{{expiryOptions}}"
+          value="{{expiryIndex}}"
+          bindchange="onExpiryChange">
+          <view class="picker-value">
+            <text>{{expiryOptions[expiryIndex]}}</text>
+            <text class="picker-arrow">▾</text>
+          </view>
+        </picker>
+        <view wx:if="{{isCustomExpiry}}" class="custom-days-wrap">
+          <input
+            class="custom-days-input"
+            type="number"
+            placeholder="天数"
+            placeholder-class="ph"
+            value="{{customDays}}"
+            bindinput="onCustomDaysInput" />
+          <text class="custom-days-suffix">天</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 回审提示 -->
+    <view wx:if="{{originalStatus === 'published'}}" class="review-tip">
+      <text class="review-tip-text">提示：修改已发布帖子后将重新进入审核</text>
+    </view>
+
+    <!-- 占位高度，避免按钮挡住内容 -->
+    <view class="bottom-placeholder"></view>
+  </block>
+</view>
+
+<!-- 底部操作栏 -->
+<view wx:if="{{!loading && !loadError}}" class="action-bar">
+  <view
+    class="action-btn btn-primary full {{submitting ? 'disabled' : ''}}"
+    bindtap="onSubmit">
+    <text wx:if="{{submitting}}" class="btn-loading"></text>
+    <text>{{submitting ? '提交中...' : '保存修改'}}</text>
+  </view>
+</view>

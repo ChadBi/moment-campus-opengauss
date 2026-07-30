@@ -122,6 +122,10 @@ Page({
     wx.navigateTo({ url: '/pages/search/search' })
   },
 
+  goToTopics() {
+    wx.navigateTo({ url: '/pages/topics/topics' })
+  },
+
   goToMap() {
     wx.navigateTo({ url: '/pages/map/map' })
   },

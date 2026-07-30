@@ -56,6 +56,17 @@ Page({
     loadingPosts: false,
     loadingMorePosts: false,
 
+    // 顶部分区切换：我的帖子 / 浏览历史
+    activeSection: 'posts',
+
+    // 浏览历史
+    history: [] as any[],
+    historyPage: 1,
+    historyPageSize: 10,
+    historyHasMore: true,
+    loadingHistory: false,
+    loadingMoreHistory: false,
+
     // 编辑资料弹出层
     editVisible: false,
     editNickname: '',
@@ -91,7 +102,11 @@ Page({
 
   async onShow() {
     if (authStore.getState().isLoggedIn) {
-      await Promise.all([this.loadUser(), this.loadStats(), this.refreshPosts()])
+      const tasks: Promise<any>[] = [this.loadUser(), this.loadStats(), this.refreshPosts()]
+      if (this.data.activeSection === 'history') {
+        tasks.push(this.refreshHistory())
+      }
+      await Promise.all(tasks)
     }
   },
 
@@ -208,9 +223,110 @@ Page({
   },
 
   onReachBottom() {
+    if (this.data.activeSection === 'history') {
+      if (this.data.historyHasMore && !this.data.loadingHistory && !this.data.loadingMoreHistory) {
+        this.loadHistory()
+      }
+      return
+    }
     if (this.data.hasMore && !this.data.loadingPosts && !this.data.loadingMorePosts) {
       this.loadPosts()
     }
+  },
+
+  // ============== 分区切换 ==============
+  onSectionTabTap(e: any) {
+    const key = e.currentTarget.dataset.key
+    if (!key || key === this.data.activeSection) return
+    this.setData({ activeSection: key })
+    if (key === 'history' && this.data.history.length === 0) {
+      this.refreshHistory()
+    }
+  },
+
+  // ============== 浏览历史 ==============
+  async refreshHistory() {
+    this.setData({ historyPage: 1, historyHasMore: true, history: [] })
+    await this.loadHistory()
+  },
+
+  async loadHistory() {
+    if (this.data.loadingHistory || this.data.loadingMoreHistory) return
+    const isFirstPage = this.data.historyPage === 1
+    this.setData({ loadingHistory: isFirstPage, loadingMoreHistory: !isFirstPage })
+    try {
+      const { historyPage, historyPageSize } = this.data
+      const res: any = await http.get(`/users/me/view-history?page=${historyPage}&page_size=${historyPageSize}`)
+      const items = (res.items || res.history || res || []) as any[]
+      const list = items.map((h: any) => this.normalizeHistory(h))
+      this.setData({
+        history: [...this.data.history, ...list],
+        historyHasMore: res.has_more !== undefined ? !!res.has_more : list.length >= historyPageSize,
+        historyPage: historyPage + 1,
+      })
+    } catch (e: any) {
+      wx.showToast({ title: e.message || '加载浏览历史失败', icon: 'none' })
+    } finally {
+      this.setData({ loadingHistory: false, loadingMoreHistory: false })
+    }
+  },
+
+  normalizeHistory(h: any): any {
+    if (!h) return h
+    return {
+      ...h,
+      post_id: h.post_id || h.id,
+      post_title: h.post_title || h.title || '未命名帖子',
+      category_name: h.category_name || h.category || '未分类',
+      viewed_at_text: h.viewed_at ? formatDate(h.viewed_at, 'datetime') : '',
+    }
+  },
+
+  onHistoryTap(e: any) {
+    const id = e.currentTarget.dataset.id
+    if (!id) return
+    wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${id}` })
+  },
+
+  onDeleteHistoryItem(e: any) {
+    const id = e.currentTarget.dataset.id
+    if (!id) return
+    wx.showModal({
+      title: '提示',
+      content: '确定要删除该条浏览历史吗？',
+      success: async r => {
+        if (!r.confirm) return
+        try {
+          await http.delete(`/users/me/view-history/${id}`)
+          wx.showToast({ title: '已删除', icon: 'success' })
+          const list = this.data.history.filter((h: any) => h.post_id !== id)
+          this.setData({ history: list })
+        } catch (err: any) {
+          wx.showToast({ title: err.message || '删除失败', icon: 'none' })
+        }
+      },
+    })
+  },
+
+  onClearHistory() {
+    if (this.data.history.length === 0) {
+      wx.showToast({ title: '暂无浏览历史', icon: 'none' })
+      return
+    }
+    wx.showModal({
+      title: '提示',
+      content: '确定要清空全部浏览历史吗？此操作不可恢复。',
+      success: async r => {
+        if (!r.confirm) return
+        try {
+          await http.delete('/users/me/view-history')
+          wx.showToast({ title: '已清空', icon: 'success' })
+          this.setData({ history: [], historyHasMore: false })
+        } catch (err: any) {
+          wx.showToast({ title: err.message || '清空失败', icon: 'none' })
+        }
+      },
+    })
   },
 
   // ============== 编辑资料 ==============
@@ -444,5 +560,9 @@ Page({
 
   goToNotifications() {
     wx.navigateTo({ url: '/pages/notifications/notifications' })
+  },
+
+  goToSubscriptions() {
+    wx.navigateTo({ url: '/pages/subscriptions/subscriptions' })
   },
 })

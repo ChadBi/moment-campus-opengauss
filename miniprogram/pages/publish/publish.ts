@@ -32,6 +32,11 @@ Page({
     loadingCategories: true,
     uploadingImage: false,
     draftRestored: false,
+
+    // AI 助手
+    aiLoading: false,
+    aiSuggestion: null as any,
+    showAiSuggestion: false,
   },
 
   onLoad() {
@@ -323,5 +328,51 @@ Page({
     } finally {
       this.setData({ submitting: false })
     }
+  },
+
+  // ============== AI 助手 ==============
+  async onAiSuggest() {
+    if (this.data.aiLoading) return
+    const title = this.data.title.trim()
+    const content = this.data.content.trim()
+    if (!title && !content) {
+      wx.showToast({ title: '请先输入标题或内容', icon: 'none' })
+      return
+    }
+    this.setData({ aiLoading: true, showAiSuggestion: true, aiSuggestion: null })
+    try {
+      const res: any = await http.post('/posts/ai-suggest', { title, content })
+      this.setData({ aiSuggestion: res || {}, aiLoading: false })
+    } catch (e: any) {
+      this.setData({ aiLoading: false, showAiSuggestion: false })
+      wx.showToast({ title: e.message || 'AI建议获取失败', icon: 'none' })
+    }
+  },
+
+  onApplyAiSuggestion() {
+    const s = this.data.aiSuggestion
+    if (!s || !s.suggestions) {
+      wx.showToast({ title: '暂无可应用的建议', icon: 'none' })
+      return
+    }
+    const sug = s.suggestions
+    const updates: any = {}
+    if (sug.title && sug.title.trim()) {
+      updates.title = sug.title.trim().slice(0, this.data.titleMaxLen)
+    }
+    if (sug.category_id) {
+      const exists = this.data.categories.find((c: any) => c.id === sug.category_id)
+      if (exists) updates.selectedCategoryId = sug.category_id
+    }
+    if (Object.keys(updates).length === 0) {
+      wx.showToast({ title: '暂无可应用的建议', icon: 'none' })
+      return
+    }
+    this.setData(updates)
+    wx.showToast({ title: '已应用建议', icon: 'success' })
+  },
+
+  onCloseAiSuggestion() {
+    this.setData({ showAiSuggestion: false })
   },
 })

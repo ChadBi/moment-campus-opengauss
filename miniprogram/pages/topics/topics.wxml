@@ -1,0 +1,51 @@
+<view class="topics-page">
+  <!-- 顶部标题 -->
+  <view class="page-header">
+    <text class="page-title">专题</text>
+    <text wx:if="{{total > 0}}" class="page-subtitle">共 {{total}} 个专题</text>
+  </view>
+
+  <!-- 专题列表 -->
+  <view class="topic-list">
+    <!-- 空状态 -->
+    <view wx:if="{{topics.length === 0 && !loading}}" class="empty-state">
+      <text class="empty-icon">📂</text>
+      <text class="empty-text">暂无专题</text>
+    </view>
+
+    <!-- 专题卡片 -->
+    <view
+      wx:for="{{topics}}"
+      wx:key="id"
+      class="topic-card"
+      data-id="{{item.id}}"
+      bindtap="onTopicTap">
+      <view wx:if="{{item.cover_image}}" class="topic-cover">
+        <image class="cover-img" src="{{item.cover_image}}" mode="aspectFill" />
+      </view>
+      <view wx:else class="topic-cover topic-cover-placeholder">
+        <text class="placeholder-icon">📰</text>
+      </view>
+      <view class="topic-info">
+        <text class="topic-title">{{item.title}}</text>
+        <text wx:if="{{item.description}}" class="topic-desc">{{item.description}}</text>
+        <view class="topic-meta">
+          <text class="meta-item">📝 {{item.post_count_text}} 篇</text>
+          <text class="meta-item">🕒 {{item.created_at_text}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+  <view wx:if="{{loadingMore}}" class="loading-more">
+    <text>加载更多...</text>
+  </view>
+  <view wx:if="{{!hasMore && topics.length > 0 && !loadingMore}}" class="no-more">
+    <text>— 没有更多了 —</text>
+  </view>
+</view>

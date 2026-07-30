@@ -1,0 +1,90 @@
+<view class="subscriptions-page">
+  <!-- 顶部 Tab 切换 -->
+  <view class="tab-header">
+    <view
+      class="tab-item {{activeTab === 'subscribed' ? 'active' : ''}}"
+      data-key="subscribed"
+      bindtap="onTabTap"
+    >
+      <text>已订阅</text>
+    </view>
+    <view
+      class="tab-item {{activeTab === 'add' ? 'active' : ''}}"
+      data-key="add"
+      bindtap="onTabTap"
+    >
+      <text>添加订阅</text>
+    </view>
+  </view>
+
+  <!-- 已订阅列表 -->
+  <view wx:if="{{activeTab === 'subscribed'}}" class="sub-list">
+    <view wx:if="{{loadingSubscriptions && subscriptions.length === 0}}" class="loading-state">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view wx:elif="{{subscriptions.length === 0}}" class="empty-state">
+      <text class="empty-icon">🔔</text>
+      <text class="empty-text">暂无订阅</text>
+      <text class="empty-hint">切换到「添加订阅」关注感兴趣的分类</text>
+    </view>
+
+    <view
+      wx:for="{{subscriptions}}"
+      wx:key="id"
+      class="sub-item"
+    >
+      <view class="sub-icon">
+        <text>{{item.type_icon}}</text>
+      </view>
+      <view class="sub-body">
+        <view class="sub-title-row">
+          <text class="sub-name">{{item.target_name}}</text>
+          <text class="sub-type">{{item.type_label}}</text>
+        </view>
+        <text class="sub-time">订阅于 {{item.created_at_text}}</text>
+      </view>
+      <view
+        class="sub-cancel"
+        data-id="{{item.id}}"
+        bindtap="onCancelSubscription"
+      >
+        <text>取消</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 添加订阅（分类列表） -->
+  <view wx:if="{{activeTab === 'add'}}" class="category-list">
+    <view wx:if="{{loadingCategories && categories.length === 0}}" class="loading-state">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view wx:elif="{{categories.length === 0}}" class="empty-state">
+      <text class="empty-icon">🏷️</text>
+      <text class="empty-text">暂无可订阅分类</text>
+    </view>
+
+    <view
+      wx:for="{{categories}}"
+      wx:key="id"
+      class="category-item {{item.subscribed ? 'subscribed' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onToggleCategory"
+    >
+      <view class="category-icon">
+        <text>{{item.icon}}</text>
+      </view>
+      <view class="category-body">
+        <text class="category-name">{{item.name}}</text>
+        <text wx:if="{{item.description}}" class="category-desc text-ellipsis-2">{{item.description}}</text>
+      </view>
+      <view class="category-action {{item.subscribed ? 'is-subscribed' : ''}}">
+        <text wx:if="{{item.subscribed}}">{{togglingId === item.id ? '处理中...' : '已订阅'}}</text>
+        <text wx:else>{{togglingId === item.id ? '处理中...' : '订阅'}}</text>
+      </view>
+    </view>
+  </view>
+</view>

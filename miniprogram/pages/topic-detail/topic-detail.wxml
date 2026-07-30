@@ -1,0 +1,44 @@
+<view class="topic-detail-page">
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <block wx:if="{{topic}}">
+    <!-- 顶部专题封面 -->
+    <view class="topic-header">
+      <view wx:if="{{coverImage}}" class="topic-cover">
+        <image class="cover-img" src="{{coverImage}}" mode="aspectFill" />
+      </view>
+      <view class="topic-meta-wrap">
+        <text class="topic-title">{{topic.title}}</text>
+        <text wx:if="{{topic.description}}" class="topic-desc">{{topic.description}}</text>
+        <view class="topic-meta">
+          <text class="meta-item">📝 {{postCountText}} 篇</text>
+          <text wx:if="{{createdAtText}}" class="meta-item">🕒 {{createdAtText}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 关联帖子标题 -->
+    <view class="section-title">
+      <text>关联帖子</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:if="{{posts.length === 0 && !loading}}" class="empty-state">
+      <text class="empty-icon">📭</text>
+      <text class="empty-text">该专题暂无关联帖子</text>
+    </view>
+
+    <!-- 关联帖子列表：使用 post-card 组件 -->
+    <view class="post-list">
+      <post-card
+        wx:for="{{posts}}"
+        wx:key="id"
+        post="{{item}}"
+        bind:tap="onPostTap"/>
+    </view>
+  </block>
+</view>

@@ -1084,3 +1084,30 @@ R-14 飞书问卷提交（0.5 天，最终步骤，建议 2026-08-08 前完成�
   - 通知字段预处理：`type_label` / `type_icon` / `created_at_text`，未读项左侧紫色色条 + 浅紫底
   - 验证：VS Code `GetDiagnostics` 对 `notifications.ts` 无任何诊断错误
   - 验证：微信开发者工具编译通过
+
+- [x] **MP-PAGE-TOPICS** 实现小程序专题浏览页面 `pages/topics/` + `pages/topic-detail/`（完成日期：2026-07-30）
+  - 专题列表页：GET /topics?page=...&page_size=20，下拉刷新 + 上拉加载更多，封面图/标题/简介/帖子数量/创建时间卡片，空状态与加载状态
+  - 专题详情页：GET /topics/{id}，顶部封面图 + 标题 + 简介 + 帖子数，关联帖子列表复用 post-card 组件，点击跳转帖子详情
+  - 字段对齐：后端实际返回 `cover_url`（非任务描述的 `cover_image`），详情页关联帖子字段（`author_name`/`like_count`/`comment_count`/`view_count`/`cover_image_url`）与 post-card 期望字段（`author_nickname`/`likes_count`/`comments_count`/`views_count`/`images`）不一致，在 topic-detail.ts 做归一化映射
+  - 首页入口：home.wxml 顶部栏新增"📚 专题"入口，home.ts 新增 goToTopics 跳转，home.wxss 新增 .topics-entry 样式
+  - app.json pages 数组注册两个新页面
+  - 验证：VS Code `GetDiagnostics` 对 topics.ts / topic-detail.ts / home.ts 均无任何诊断错误
+  - 验证：核对后端 `app/api/topics.py` + `app/schemas/topic.py` 字段契约，前端读取字段与归一化逻辑正确
+  - 验证：微信开发者工具编译通过
+
+- [x] **MP-PAGE-EDIT-POST** 实现编辑帖子页 `pages/edit-post/`（完成日期：2026-07-30）
+  - 加载帖子详情 GET /posts/{id}，预填表单（标题/正文/分类/图片/位置/有效期）
+  - 提交编辑 PUT /posts/{id}，图片增删，位置修改，防重复提交
+  - 已发布帖子修改前弹窗提示回审
+- [x] **MP-FEATURE-AI-SUGGEST** AI辅助发布建议（完成日期：2026-07-30）
+  - 发布页新增 AI 助手按钮，POST /posts/ai-suggest 传标题+内容
+  - 展示建议结果（建议标题/分类/标签/有效期/遗漏信息/敏感提醒/降级提示）
+  - 一键应用建议
+- [x] **MP-FEATURE-BROWSE-HISTORY** 浏览历史（完成日期：2026-07-30）
+  - 个人中心新增"浏览历史"分区 Tab，GET /users/me/view-history
+  - 列表展示帖子标题/分类/浏览时间，点击跳转详情
+  - 清除全部历史 DELETE /users/me/view-history，删除单条 DELETE /users/me/view-history/{post_id}
+- [x] **MP-PAGE-SUBSCRIPTIONS** 订阅管理页 `pages/subscriptions/`（完成日期：2026-07-30）
+  - 已订阅列表 GET /subscriptions，取消订阅 DELETE /subscriptions/{id}
+  - 添加订阅 POST /subscriptions，分类列表 GET /categories
+  - 个人中心设置区域新增"订阅管理"入口

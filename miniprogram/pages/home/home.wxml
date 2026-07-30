@@ -8,6 +8,10 @@
       <text class="search-icon">🔍</text>
       <text class="search-text">搜索校园信息...</text>
     </view>
+    <view class="topics-entry" bindtap="goToTopics">
+      <text class="topics-icon">📚</text>
+      <text class="topics-label">专题</text>
+    </view>
   </view>
 
   <!-- 分类 Tab 横向滚动 -->

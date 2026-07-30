@@ -49,70 +49,144 @@
     </view>
   </view>
 
-  <!-- 我的帖子 -->
+  <!-- 我的帖子 / 浏览历史 -->
   <view class="posts-section">
-    <view class="section-title-row">
-      <text class="section-title">我的帖子</text>
+    <!-- 分区切换 Tab -->
+    <view class="section-tabs">
+      <view
+        class="section-tab {{activeSection === 'posts' ? 'active' : ''}}"
+        data-key="posts"
+        bindtap="onSectionTabTap"
+      >
+        <text>我的帖子</text>
+      </view>
+      <view
+        class="section-tab {{activeSection === 'history' ? 'active' : ''}}"
+        data-key="history"
+        bindtap="onSectionTabTap"
+      >
+        <text>浏览历史</text>
+      </view>
     </view>
 
-    <!-- 状态筛选 Tab -->
-    <scroll-view class="status-tabs" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
-      <view
-        wx:for="{{statusTabs}}"
-        wx:key="key"
-        class="status-tab {{activeStatus === item.key ? 'active' : ''}}"
-        data-key="{{item.key}}"
-        bindtap="onStatusTabTap"
-      >
-        <text>{{item.label}}</text>
-      </view>
-    </scroll-view>
-
-    <!-- 帖子列表 -->
-    <view class="post-list">
-      <view wx:if="{{loadingPosts && posts.length === 0}}" class="loading-state">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">加载中...</text>
-      </view>
-
-      <view wx:elif="{{posts.length === 0}}" class="empty-state">
-        <text class="empty-icon">📭</text>
-        <text class="empty-text">暂无帖子</text>
-      </view>
-
-      <view
-        wx:for="{{posts}}"
-        wx:key="id"
-        class="post-card"
-        data-id="{{item.id}}"
-        bindtap="onPostTap"
-      >
-        <view class="post-top">
-          <view class="post-title-row">
-            <text class="post-title">{{item.title}}</text>
-            <text class="post-status status-{{item.status}}">{{item.status_label}}</text>
-          </view>
-          <text class="post-content text-ellipsis-2">{{item.content}}</text>
+    <!-- 我的帖子区域 -->
+    <block wx:if="{{activeSection === 'posts'}}">
+      <!-- 状态筛选 Tab -->
+      <scroll-view class="status-tabs" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
+        <view
+          wx:for="{{statusTabs}}"
+          wx:key="key"
+          class="status-tab {{activeStatus === item.key ? 'active' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onStatusTabTap"
+        >
+          <text>{{item.label}}</text>
         </view>
-        <image wx:if="{{item.cover}}" class="post-cover" src="{{item.cover}}" mode="aspectFill" />
-        <view class="post-footer">
-          <text class="post-time">{{item.created_at_text}}</text>
-          <view class="post-stats">
-            <text class="stat-pill">👍 {{item.likes_count_text}}</text>
-            <text class="stat-pill">💬 {{item.comments_count_text}}</text>
-            <text class="stat-pill">✅ {{item.validations_count_text}}</text>
-            <text class="stat-pill">👁 {{item.views_count_text}}</text>
+      </scroll-view>
+
+      <!-- 帖子列表 -->
+      <view class="post-list">
+        <view wx:if="{{loadingPosts && posts.length === 0}}" class="loading-state">
+          <view class="loading-spinner"></view>
+          <text class="loading-text">加载中...</text>
+        </view>
+
+        <view wx:elif="{{posts.length === 0}}" class="empty-state">
+          <text class="empty-icon">📭</text>
+          <text class="empty-text">暂无帖子</text>
+        </view>
+
+        <view
+          wx:for="{{posts}}"
+          wx:key="id"
+          class="post-card"
+          data-id="{{item.id}}"
+          bindtap="onPostTap"
+        >
+          <view class="post-top">
+            <view class="post-title-row">
+              <text class="post-title">{{item.title}}</text>
+              <text class="post-status status-{{item.status}}">{{item.status_label}}</text>
+            </view>
+            <text class="post-content text-ellipsis-2">{{item.content}}</text>
           </view>
+          <image wx:if="{{item.cover}}" class="post-cover" src="{{item.cover}}" mode="aspectFill" />
+          <view class="post-footer">
+            <text class="post-time">{{item.created_at_text}}</text>
+            <view class="post-stats">
+              <text class="stat-pill">👍 {{item.likes_count_text}}</text>
+              <text class="stat-pill">💬 {{item.comments_count_text}}</text>
+              <text class="stat-pill">✅ {{item.validations_count_text}}</text>
+              <text class="stat-pill">👁 {{item.views_count_text}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view wx:if="{{loadingMorePosts}}" class="loading-more">
+          <text>加载更多...</text>
+        </view>
+        <view wx:if="{{!hasMore && posts.length > 0 && !loadingMorePosts}}" class="no-more">
+          <text>— 没有更多了 —</text>
+        </view>
+      </view>
+    </block>
+
+    <!-- 浏览历史区域 -->
+    <block wx:if="{{activeSection === 'history'}}">
+      <!-- 清除历史按钮 -->
+      <view class="history-action-bar">
+        <text class="history-count">共 {{history.length}} 条记录</text>
+        <view
+          class="clear-history-btn {{history.length === 0 ? 'disabled' : ''}}"
+          bindtap="onClearHistory"
+        >
+          <text>清空历史</text>
         </view>
       </view>
 
-      <view wx:if="{{loadingMorePosts}}" class="loading-more">
-        <text>加载更多...</text>
+      <!-- 历史列表 -->
+      <view class="history-list">
+        <view wx:if="{{loadingHistory && history.length === 0}}" class="loading-state">
+          <view class="loading-spinner"></view>
+          <text class="loading-text">加载中...</text>
+        </view>
+
+        <view wx:elif="{{history.length === 0}}" class="empty-state">
+          <text class="empty-icon">🕰️</text>
+          <text class="empty-text">暂无浏览历史</text>
+        </view>
+
+        <view
+          wx:for="{{history}}"
+          wx:key="post_id"
+          class="history-card"
+          data-id="{{item.post_id}}"
+          bindtap="onHistoryTap"
+        >
+          <view class="history-info">
+            <text class="history-title">{{item.post_title}}</text>
+            <view class="history-meta">
+              <text class="history-category">{{item.category_name}}</text>
+              <text class="history-time">👁 {{item.viewed_at_text}}</text>
+            </view>
+          </view>
+          <view
+            class="history-delete"
+            catchtap="onDeleteHistoryItem"
+            data-id="{{item.post_id}}"
+          >
+            <text>✕</text>
+          </view>
+        </view>
+
+        <view wx:if="{{loadingMoreHistory}}" class="loading-more">
+          <text>加载更多...</text>
+        </view>
+        <view wx:if="{{!historyHasMore && history.length > 0 && !loadingMoreHistory}}" class="no-more">
+          <text>— 没有更多了 —</text>
+        </view>
       </view>
-      <view wx:if="{{!hasMore && posts.length > 0 && !loadingMorePosts}}" class="no-more">
-        <text>— 没有更多了 —</text>
-      </view>
-    </view>
+    </block>
   </view>
 
   <!-- 设置区域 -->
@@ -130,6 +204,11 @@
     <view class="settings-item" bindtap="showSessionPopup">
       <text class="settings-icon">📱</text>
       <text class="settings-label">设备管理</text>
+      <text class="settings-arrow">›</text>
+    </view>
+    <view class="settings-item" bindtap="goToSubscriptions">
+      <text class="settings-icon">🔔</text>
+      <text class="settings-label">订阅管理</text>
       <text class="settings-arrow">›</text>
     </view>
     <view class="settings-item danger" bindtap="onLogoutAll">
