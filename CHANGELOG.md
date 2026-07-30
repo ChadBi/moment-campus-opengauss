@@ -9,6 +9,11 @@
 
 ## [Unreleased]
 
+### 变更
+
+- `.gitignore` 修复 `rubbish/` 目录未被正确忽略的问题，移除 17 个已跟踪的回收站文件，仅保留 `rubbish/README.md`
+- `.gitignore` 新增部署临时文件忽略规则（`deploy/_*.zip`、`deploy/_*.tar.gz` 等）和 `!.env.opengauss.example` 例外规则
+
 ## [2.0.0] - 2026-07-29
 
 ### 多轮测试问题修复
