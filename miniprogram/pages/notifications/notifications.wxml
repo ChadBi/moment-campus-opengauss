@@ -8,7 +8,10 @@
     <view
       class="mark-all-btn {{markingAllRead || unreadCount === 0 ? 'disabled' : ''}}"
       bindtap="onMarkAllRead"
-    >
+      hover-class="{{markingAllRead || unreadCount === 0 ? '' : 'mark-all-btn-hover'}}"
+      hover-stay-time="120">
+      <icon wx:if="{{markingAllRead}}" name="refresh-cw" size="24rpx" color="#6a7d81" />
+      <icon wx:else name="check-circle" size="24rpx" color="#174d5e" />
       <text>{{markingAllRead ? '处理中...' : '全部已读'}}</text>
     </view>
   </view>
@@ -21,24 +24,29 @@
       class="type-tab {{activeType === item.key ? 'active' : ''}}"
       data-key="{{item.key}}"
       bindtap="onTypeTabTap"
-    >
+      hover-class="type-tab-hover"
+      hover-stay-time="120">
       <text>{{item.label}}</text>
     </view>
   </scroll-view>
 
   <!-- 通知列表 -->
   <view class="notification-list">
-    <!-- 加载中 -->
-    <view wx:if="{{loading && notifications.length === 0}}" class="loading-state">
-      <view class="loading-spinner"></view>
-      <text class="loading-text">加载中...</text>
+    <!-- 加载中：骨架屏 -->
+    <view wx:if="{{loading && notifications.length === 0}}" class="loading-skeleton">
+      <skeleton variant="list-item" />
+      <skeleton variant="list-item" />
+      <skeleton variant="list-item" />
+      <skeleton variant="list-item" />
     </view>
 
     <!-- 空状态 -->
-    <view wx:elif="{{notifications.length === 0}}" class="empty-state">
-      <text class="empty-icon">🔔</text>
-      <text class="empty-text">暂无通知</text>
-      <text class="empty-hint">新的消息会显示在这里</text>
+    <view wx:elif="{{notifications.length === 0}}" class="empty-result-wrap">
+      <empty-state
+        icon="bell"
+        title="暂无通知"
+        hint="新的消息会显示在这里"
+      />
     </view>
 
     <!-- 列表项 -->
@@ -48,9 +56,10 @@
       class="notification-item {{!item.is_read ? 'unread' : ''}}"
       data-id="{{item.id}}"
       bindtap="onNotificationTap"
-    >
-      <view class="noti-avatar">
-        <text class="noti-avatar-icon">{{item.type_icon}}</text>
+      hover-class="notification-item-hover"
+      hover-stay-time="120">
+      <view class="noti-avatar type-{{item.type}}">
+        <icon name="{{item.type_icon}}" size="36rpx" color="#ffffff" />
       </view>
       <view class="noti-body">
         <view class="noti-title-row">
@@ -67,17 +76,19 @@
         class="noti-delete"
         catchtap="onDeleteNotification"
         data-id="{{item.id}}"
-      >
-        <text>✕</text>
+        hover-class="noti-delete-hover"
+        hover-stay-time="120">
+        <icon name="x" size="28rpx" color="#6a7d81" />
       </view>
     </view>
 
     <!-- 加载更多 -->
     <view wx:if="{{loadingMore}}" class="loading-more">
+      <view class="loading-spinner-sm"></view>
       <text>加载更多...</text>
     </view>
     <view wx:if="{{!hasMore && notifications.length > 0 && !loadingMore}}" class="no-more">
-      <text>— 没有更多了 —</text>
+      <text>没有更多了</text>
     </view>
   </view>
 </view>

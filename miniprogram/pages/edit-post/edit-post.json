@@ -1,3 +1,8 @@
 {
-  "navigationBarTitleText": "编辑帖子"
+  "navigationBarTitleText": "编辑帖子",
+  "usingComponents": {
+    "icon": "/components/icon/icon",
+    "skeleton": "/components/skeleton/skeleton",
+    "empty-state": "/components/empty-state/empty-state"
+  }
 }

@@ -1,4 +1,4 @@
-<view class="post-card" bindtap="onTap">
+<view class="post-card" bindtap="onTap" hover-class="post-card-hover" hover-stay-time="120">
   <view class="card-header">
     <image class="author-avatar" src="{{authorAvatar || '/assets/default-avatar.png'}}" mode="aspectFill"/>
     <view class="header-info">
@@ -28,13 +28,22 @@
 
   <view class="card-footer">
     <view wx:if="{{post.location_name}}" class="location-info">
-      <text class="location-icon">⊙</text>
+      <icon name="map-pin" size="24rpx" color="#2d6270" />
       <text class="location-text">{{post.location_name}}</text>
     </view>
     <view class="post-stats">
-      <text class="stat-item">浏览 <text class="stat-num">{{formattedViews}}</text></text>
-      <text class="stat-item">赞 <text class="stat-num">{{formattedLikes}}</text></text>
-      <text class="stat-item">评 <text class="stat-num">{{formattedComments}}</text></text>
+      <view class="stat-item">
+        <icon name="eye" size="24rpx" color="#6a7d81" />
+        <text class="stat-num">{{formattedViews}}</text>
+      </view>
+      <view class="stat-item">
+        <icon name="heart" size="24rpx" color="#6a7d81" />
+        <text class="stat-num">{{formattedLikes}}</text>
+      </view>
+      <view class="stat-item">
+        <icon name="message-circle" size="24rpx" color="#6a7d81" />
+        <text class="stat-num">{{formattedComments}}</text>
+      </view>
     </view>
   </view>
 </view>

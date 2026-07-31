@@ -1,55 +1,127 @@
 <view class="profile-page">
-  <!-- 顶部用户信息卡片 -->
+  <!-- ============== 顶部用户信息卡片（对齐 Web ProfilePage: bg-gradient-to-br from-lake to-lake-light + ring-3 ring-white/30） ============== -->
   <view class="user-card">
     <view class="user-row">
-      <image
-        class="avatar"
-        src="{{avatarUrl || '/assets/default-avatar.png'}}"
-        mode="aspectFill"
-      />
+      <view class="avatar-wrap">
+        <image
+          class="avatar"
+          src="{{avatarUrl || '/assets/default-avatar.png'}}"
+          mode="aspectFill"
+        />
+        <view class="avatar-edit" bindtap="onAvatarTap">
+          <icon name="camera" size="36rpx" color="#fff" />
+        </view>
+      </view>
       <view class="user-meta">
         <view class="nickname-row">
           <text class="nickname">{{nickname || '未命名用户'}}</text>
-          <text wx:if="{{email}}" class="email">{{email}}</text>
         </view>
+        <text wx:if="{{email}}" class="email">{{email}}</text>
         <text wx:if="{{bio}}" class="bio">{{bio}}</text>
         <text wx:else class="bio bio-empty">这个人很懒，还没有简介</text>
         <view wx:if="{{createdAtText}}" class="meta-line">
-          <text class="meta-label">加入时间</text>
-          <text class="meta-value">{{createdAtText}}</text>
+          <icon name="clock" size="20rpx" color="rgba(255,255,255,0.8)" />
+          <text class="meta-text">加入于 {{createdAtText}}</text>
         </view>
       </view>
     </view>
     <view class="user-actions">
-      <view class="action-btn edit" bindtap="showEditPopup">
-        <text class="action-icon">✎</text>
-        <text>编辑资料</text>
+      <view class="action-btn" bindtap="showEditPopup" hover-class="action-btn-hover" hover-stay-time="120">
+        <icon name="edit" size="28rpx" color="#fff" />
+        <text class="action-text">编辑资料</text>
       </view>
-      <view class="action-bell" bindtap="goToNotifications">
-        <text class="action-icon">🔔</text>
+      <view class="action-btn" bindtap="goToNotifications" hover-class="action-btn-hover" hover-stay-time="120">
+        <icon name="bell" size="28rpx" color="#fff" />
+        <text class="action-text">通知</text>
       </view>
     </view>
   </view>
 
-  <!-- 统计卡片 -->
+  <!-- ============== 统计卡片（对齐 Web ProfilePage: grid-cols-4 + 7x7 icon 框 + DIN 数字） ============== -->
   <view class="stats-card">
-    <view class="stat-item">
-      <text class="stat-value">{{postsCountText}}</text>
-      <text class="stat-label">帖子</text>
+    <view wx:if="{{statsLoading}}" class="stats-skeleton">
+      <skeleton variant="block" height="96rpx" />
     </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
-      <text class="stat-value">{{validationsCountText}}</text>
-      <text class="stat-label">验证</text>
+    <block wx:else>
+      <view class="stat-item">
+        <view class="stat-icon-box stat-icon-published">
+          <icon name="file-text" size="28rpx" color="#174d5e" />
+        </view>
+        <text class="stat-value">{{publishedCountText}}</text>
+        <text class="stat-label">已发布</text>
+      </view>
+      <view class="stat-item">
+        <view class="stat-icon-box stat-icon-draft">
+          <icon name="edit" size="28rpx" color="#6a7d81" />
+        </view>
+        <text class="stat-value">{{draftCountText}}</text>
+        <text class="stat-label">草稿</text>
+      </view>
+      <view class="stat-item">
+        <view class="stat-icon-box stat-icon-pending">
+          <icon name="clock" size="28rpx" color="#dbb352" />
+        </view>
+        <text class="stat-value">{{pendingCountText}}</text>
+        <text class="stat-label">待审核</text>
+      </view>
+      <view class="stat-item">
+        <view class="stat-icon-box stat-icon-confirm">
+          <icon name="check-circle" size="28rpx" color="#73a068" />
+        </view>
+        <text class="stat-value">{{confirmationCountText}}</text>
+        <text class="stat-label">贡献验证</text>
+      </view>
+    </block>
+  </view>
+
+  <!-- ============== 加入的学校（对齐 Web ProfilePage D2） ============== -->
+  <view class="schools-section">
+    <view class="section-header">
+      <view class="section-title-wrap">
+        <icon name="school" size="32rpx" color="#174d5e" />
+        <text class="section-title">加入的学校</text>
+      </view>
+      <text class="section-count">{{memberships.length}} 所</text>
     </view>
-    <view class="stat-divider"></view>
-    <view class="stat-item">
-      <text class="stat-value">{{commentsCountText}}</text>
-      <text class="stat-label">评论</text>
+    <view wx:if="{{memberships.length === 0}}" class="empty-membership">
+      <text class="empty-text">尚未加入任何学校</text>
+      <text class="empty-hint">可在页头切换器选择学校并自动加入</text>
+    </view>
+    <view wx:else class="membership-list">
+      <view
+        wx:for="{{memberships}}"
+        wx:key="id"
+        class="membership-card {{item.school_id === currentSchoolId ? 'current' : ''}}"
+      >
+        <view class="membership-info">
+          <view class="membership-name-row">
+            <text class="membership-name">{{item.school.name}}</text>
+            <text wx:if="{{item.is_default}}" class="default-badge">
+              <icon name="star" size="20rpx" color="#dbb352" /> 默认
+            </text>
+            <text wx:if="{{item.school_id === currentSchoolId}}" class="current-badge">当前</text>
+          </view>
+          <text class="membership-meta">角色：{{item.role === 'admin' ? '管理员' : '成员'}} · {{item.school.code}}</text>
+        </view>
+        <view class="membership-actions">
+          <text
+            wx:if="{{item.school_id !== currentSchoolId}}"
+            class="action-switch"
+            data-code="{{item.school.code}}"
+            bindtap="onSwitchSchool"
+          >切换</text>
+          <text
+            wx:if="{{!item.is_default}}"
+            class="action-default"
+            data-id="{{item.school_id}}"
+            bindtap="onSetDefaultSchool"
+          >设为默认</text>
+        </view>
+      </view>
     </view>
   </view>
 
-  <!-- 我的帖子 / 浏览历史 -->
+  <!-- ============== 我的帖子 / 浏览历史 ============== -->
   <view class="posts-section">
     <!-- 分区切换 Tab -->
     <view class="section-tabs">
@@ -57,6 +129,8 @@
         class="section-tab {{activeSection === 'posts' ? 'active' : ''}}"
         data-key="posts"
         bindtap="onSectionTabTap"
+        hover-class="section-tab-hover"
+        hover-stay-time="120"
       >
         <text>我的帖子</text>
       </view>
@@ -64,6 +138,8 @@
         class="section-tab {{activeSection === 'history' ? 'active' : ''}}"
         data-key="history"
         bindtap="onSectionTabTap"
+        hover-class="section-tab-hover"
+        hover-stay-time="120"
       >
         <text>浏览历史</text>
       </view>
@@ -71,7 +147,7 @@
 
     <!-- 我的帖子区域 -->
     <block wx:if="{{activeSection === 'posts'}}">
-      <!-- 状态筛选 Tab -->
+      <!-- 状态筛选 Tab（6 态 + 全部） -->
       <scroll-view class="status-tabs" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
         <view
           wx:for="{{statusTabs}}"
@@ -86,22 +162,35 @@
 
       <!-- 帖子列表 -->
       <view class="post-list">
-        <view wx:if="{{loadingPosts && posts.length === 0}}" class="loading-state">
-          <view class="loading-spinner"></view>
-          <text class="loading-text">加载中...</text>
-        </view>
+        <!-- 加载中：骨架屏 -->
+        <block wx:if="{{loadingPosts && posts.length === 0}}">
+          <view class="post-skeleton-wrap">
+            <skeleton variant="post-card" />
+            <skeleton variant="post-card" />
+            <skeleton variant="post-card" />
+          </view>
+        </block>
 
-        <view wx:elif="{{posts.length === 0}}" class="empty-state">
-          <text class="empty-icon">📭</text>
-          <text class="empty-text">暂无帖子</text>
-        </view>
+        <!-- 空状态 -->
+        <empty-state
+          wx:elif="{{posts.length === 0}}"
+          icon="file-text"
+          title="暂无帖子"
+          hint="来发布第一条校园经验吧"
+          action-text="去发布"
+          bind:action="goToPublish"
+        />
 
+        <!-- 帖子卡片 -->
         <view
+          wx:else
           wx:for="{{posts}}"
           wx:key="id"
           class="post-card"
           data-id="{{item.id}}"
           bindtap="onPostTap"
+          hover-class="post-card-hover"
+          hover-stay-time="120"
         >
           <view class="post-top">
             <view class="post-title-row">
@@ -114,19 +203,34 @@
           <view class="post-footer">
             <text class="post-time">{{item.created_at_text}}</text>
             <view class="post-stats">
-              <text class="stat-pill">👍 {{item.likes_count_text}}</text>
-              <text class="stat-pill">💬 {{item.comments_count_text}}</text>
-              <text class="stat-pill">✅ {{item.validations_count_text}}</text>
-              <text class="stat-pill">👁 {{item.views_count_text}}</text>
+              <view class="stat-pill">
+                <icon name="heart" size="22rpx" color="#6a7d81" />
+                <text>{{item.likes_count_text}}</text>
+              </view>
+              <view class="stat-pill">
+                <icon name="message-circle" size="22rpx" color="#6a7d81" />
+                <text>{{item.comments_count_text}}</text>
+              </view>
+              <view class="stat-pill">
+                <icon name="check-circle" size="22rpx" color="#6a7d81" />
+                <text>{{item.validations_count_text}}</text>
+              </view>
+              <view class="stat-pill">
+                <icon name="eye" size="22rpx" color="#6a7d81" />
+                <text>{{item.views_count_text}}</text>
+              </view>
             </view>
           </view>
         </view>
 
+        <!-- 加载更多 -->
         <view wx:if="{{loadingMorePosts}}" class="loading-more">
-          <text>加载更多...</text>
+          <view class="loading-dot"></view>
+          <view class="loading-dot loading-dot-delay1"></view>
+          <view class="loading-dot loading-dot-delay2"></view>
         </view>
         <view wx:if="{{!hasMore && posts.length > 0 && !loadingMorePosts}}" class="no-more">
-          <text>— 没有更多了 —</text>
+          <text>没有更多了</text>
         </view>
       </view>
     </block>
@@ -139,97 +243,129 @@
         <view
           class="clear-history-btn {{history.length === 0 ? 'disabled' : ''}}"
           bindtap="onClearHistory"
+          hover-class="clear-history-hover"
+          hover-stay-time="120"
         >
+          <icon name="trash2" size="24rpx" color="{{history.length === 0 ? '#9aabae' : '#cd5852'}}" />
           <text>清空历史</text>
         </view>
       </view>
 
       <!-- 历史列表 -->
       <view class="history-list">
-        <view wx:if="{{loadingHistory && history.length === 0}}" class="loading-state">
-          <view class="loading-spinner"></view>
-          <text class="loading-text">加载中...</text>
-        </view>
+        <!-- 加载中：骨架屏 -->
+        <block wx:if="{{loadingHistory && history.length === 0}}">
+          <view class="post-skeleton-wrap">
+            <skeleton variant="list-item" />
+            <skeleton variant="list-item" />
+            <skeleton variant="list-item" />
+          </view>
+        </block>
 
-        <view wx:elif="{{history.length === 0}}" class="empty-state">
-          <text class="empty-icon">🕰️</text>
-          <text class="empty-text">暂无浏览历史</text>
-        </view>
+        <!-- 空状态 -->
+        <empty-state
+          wx:elif="{{history.length === 0}}"
+          compact
+          icon="clock"
+          title="暂无浏览历史"
+          hint="浏览过的帖子会出现在这里"
+        />
 
+        <!-- 历史卡片 -->
         <view
+          wx:else
           wx:for="{{history}}"
           wx:key="post_id"
           class="history-card"
           data-id="{{item.post_id}}"
           bindtap="onHistoryTap"
+          hover-class="history-card-hover"
+          hover-stay-time="120"
         >
           <view class="history-info">
             <text class="history-title">{{item.post_title}}</text>
             <view class="history-meta">
               <text class="history-category">{{item.category_name}}</text>
-              <text class="history-time">👁 {{item.viewed_at_text}}</text>
+              <text class="history-time">浏览于 {{item.viewed_at_text}}</text>
             </view>
           </view>
           <view
             class="history-delete"
             catchtap="onDeleteHistoryItem"
             data-id="{{item.post_id}}"
+            hover-class="history-delete-hover"
+            hover-stay-time="120"
           >
-            <text>✕</text>
+            <icon name="trash2" size="28rpx" color="#6a7d81" />
           </view>
         </view>
 
         <view wx:if="{{loadingMoreHistory}}" class="loading-more">
-          <text>加载更多...</text>
+          <view class="loading-dot"></view>
+          <view class="loading-dot loading-dot-delay1"></view>
+          <view class="loading-dot loading-dot-delay2"></view>
         </view>
         <view wx:if="{{!historyHasMore && history.length > 0 && !loadingMoreHistory}}" class="no-more">
-          <text>— 没有更多了 —</text>
+          <text>没有更多了</text>
         </view>
       </view>
     </block>
   </view>
 
-  <!-- 设置区域 -->
+  <!-- ============== 设置区域 ============== -->
   <view class="settings-section">
-    <view class="settings-item" bindtap="showEditPopup">
-      <text class="settings-icon">✎</text>
+    <view class="settings-item" bindtap="showEditPopup" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap">
+        <icon name="edit" size="32rpx" color="#174d5e" />
+      </view>
       <text class="settings-label">编辑资料</text>
-      <text class="settings-arrow">›</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-    <view class="settings-item" bindtap="showIdentityPopup">
-      <text class="settings-icon">🪪</text>
+    <view class="settings-item" bindtap="showIdentityPopup" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap">
+        <icon name="shield" size="32rpx" color="#174d5e" />
+      </view>
       <text class="settings-label">身份管理</text>
-      <text class="settings-arrow">›</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-    <view class="settings-item" bindtap="showSessionPopup">
-      <text class="settings-icon">📱</text>
+    <view class="settings-item" bindtap="showSessionPopup" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap">
+        <icon name="settings" size="32rpx" color="#174d5e" />
+      </view>
       <text class="settings-label">设备管理</text>
-      <text class="settings-arrow">›</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-    <view class="settings-item" bindtap="goToSubscriptions">
-      <text class="settings-icon">🔔</text>
+    <view class="settings-item" bindtap="goToSubscriptions" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap">
+        <icon name="bookmark" size="32rpx" color="#174d5e" />
+      </view>
       <text class="settings-label">订阅管理</text>
-      <text class="settings-arrow">›</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-    <view class="settings-item danger" bindtap="onLogoutAll">
-      <text class="settings-icon">🚪</text>
+    <view class="settings-item danger" bindtap="onLogoutAll" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap settings-icon-danger">
+        <icon name="log-out" size="32rpx" color="#cd5852" />
+      </view>
       <text class="settings-label">退出全部设备</text>
-      <text class="settings-arrow">›</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-    <view class="settings-item danger" bindtap="onLogout">
-      <text class="settings-icon">↩</text>
-      <text class="settings-label">退出登录</text>
-      <text class="settings-arrow">›</text>
-    </view>
+  </view>
+
+  <!-- 退出登录主按钮 -->
+  <view class="logout-primary" bindtap="onLogout" hover-class="logout-primary-hover" hover-stay-time="120">
+    <icon name="log-out" size="32rpx" color="#fff" />
+    <text>退出登录</text>
   </view>
 </view>
 
-<!-- 编辑资料弹出层 -->
+<!-- ============== 编辑资料弹出层 ============== -->
 <view wx:if="{{editVisible}}" class="popup-mask" bindtap="hideEditPopup">
   <view class="popup-container" catchtap="noop">
     <view class="popup-header">
       <text class="popup-title">编辑资料</text>
-      <text class="popup-close" bindtap="hideEditPopup">✕</text>
+      <view class="popup-close" bindtap="hideEditPopup" hover-class="popup-close-hover" hover-stay-time="120">
+        <icon name="x" size="32rpx" color="#6a7d81" />
+      </view>
     </view>
     <view class="popup-body">
       <view class="form-item">
@@ -238,6 +374,7 @@
           class="form-input"
           type="text"
           placeholder="请输入昵称"
+          placeholder-class="ph"
           value="{{editNickname}}"
           maxlength="30"
           bindinput="onEditNicknameInput"
@@ -248,6 +385,7 @@
         <textarea
           class="form-textarea"
           placeholder="介绍一下自己吧"
+          placeholder-class="ph"
           value="{{editBio}}"
           maxlength="200"
           auto-height
@@ -256,30 +394,38 @@
       </view>
     </view>
     <view class="popup-footer">
-      <view class="popup-btn btn-cancel" bindtap="hideEditPopup">
+      <view class="popup-btn btn-cancel" bindtap="hideEditPopup" hover-class="popup-btn-hover" hover-stay-time="120">
         <text>取消</text>
       </view>
-      <view class="popup-btn btn-confirm" bindtap="saveEdit">
+      <view class="popup-btn btn-confirm" bindtap="saveEdit" hover-class="popup-btn-hover" hover-stay-time="120">
         <text>{{savingProfile ? '保存中...' : '保存'}}</text>
       </view>
     </view>
   </view>
 </view>
 
-<!-- 身份管理弹出层 -->
+<!-- ============== 身份管理弹出层 ============== -->
 <view wx:if="{{identityVisible}}" class="popup-mask" bindtap="hideIdentityPopup">
   <view class="popup-container popup-lg" catchtap="noop">
     <view class="popup-header">
       <text class="popup-title">身份管理</text>
-      <text class="popup-close" bindtap="hideIdentityPopup">✕</text>
+      <view class="popup-close" bindtap="hideIdentityPopup" hover-class="popup-close-hover" hover-stay-time="120">
+        <icon name="x" size="32rpx" color="#6a7d81" />
+      </view>
     </view>
     <view class="popup-body">
       <view wx:if="{{loadingIdentities}}" class="popup-loading">
-        <text>加载中...</text>
+        <view class="loading-dot"></view>
+        <view class="loading-dot loading-dot-delay1"></view>
+        <view class="loading-dot loading-dot-delay2"></view>
       </view>
-      <view wx:elif="{{identities.length === 0}}" class="popup-empty">
-        <text>暂无绑定身份</text>
-      </view>
+      <empty-state
+        wx:elif="{{identities.length === 0}}"
+        compact
+        icon="shield"
+        title="暂无绑定身份"
+        hint="登录方式将显示在这里"
+      />
       <view wx:else class="identity-list">
         <view wx:for="{{identities}}" wx:key="id" class="identity-item">
           <view class="identity-info">
@@ -292,7 +438,14 @@
               <text>最近使用：{{item.last_used_at_text}}</text>
             </view>
           </view>
-          <view class="identity-action" data-id="{{item.id}}" bindtap="onDeleteIdentity">
+          <view
+            class="identity-action"
+            data-id="{{item.id}}"
+            bindtap="onDeleteIdentity"
+            hover-class="identity-action-hover"
+            hover-stay-time="120"
+          >
+            <icon name="trash2" size="24rpx" color="#cd5852" />
             <text>删除</text>
           </view>
         </view>
@@ -301,20 +454,28 @@
   </view>
 </view>
 
-<!-- 设备管理弹出层 -->
+<!-- ============== 设备管理弹出层 ============== -->
 <view wx:if="{{sessionVisible}}" class="popup-mask" bindtap="hideSessionPopup">
   <view class="popup-container popup-lg" catchtap="noop">
     <view class="popup-header">
       <text class="popup-title">设备管理</text>
-      <text class="popup-close" bindtap="hideSessionPopup">✕</text>
+      <view class="popup-close" bindtap="hideSessionPopup" hover-class="popup-close-hover" hover-stay-time="120">
+        <icon name="x" size="32rpx" color="#6a7d81" />
+      </view>
     </view>
     <view class="popup-body">
       <view wx:if="{{loadingSessions}}" class="popup-loading">
-        <text>加载中...</text>
+        <view class="loading-dot"></view>
+        <view class="loading-dot loading-dot-delay1"></view>
+        <view class="loading-dot loading-dot-delay2"></view>
       </view>
-      <view wx:elif="{{sessions.length === 0}}" class="popup-empty">
-        <text>暂无活动会话</text>
-      </view>
+      <empty-state
+        wx:elif="{{sessions.length === 0}}"
+        compact
+        icon="settings"
+        title="暂无活动会话"
+        hint="登录的设备会显示在这里"
+      />
       <view wx:else class="session-list">
         <view wx:for="{{sessions}}" wx:key="id" class="session-item">
           <view class="session-info">
@@ -334,7 +495,10 @@
             class="session-action"
             data-id="{{item.id}}"
             bindtap="onRevokeSession"
+            hover-class="identity-action-hover"
+            hover-stay-time="120"
           >
+            <icon name="log-out" size="24rpx" color="#cd5852" />
             <text>退出</text>
           </view>
           <view wx:else class="session-action session-action-disabled">
@@ -346,28 +510,41 @@
   </view>
 </view>
 
-<!-- 底部 tab bar -->
+<!-- ============== 底部 tab bar（对齐 Web MobileNav: 4 项均分 grid + bg-lake/95 + 激活态 bg-paper text-lake） ============== -->
 <view class="tab-bar">
-  <view class="bar-tab {{activeTab === 'home' ? 'active' : ''}}" bindtap="goToHome">
-    <text class="bar-icon">🏠</text>
+  <view
+    class="bar-tab {{activeTab === 'home' ? 'active' : ''}}"
+    bindtap="goToHome"
+    hover-class="bar-tab-hover"
+    hover-stay-time="120"
+  >
+    <icon name="home" size="40rpx" color="{{activeTab === 'home' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
     <text class="bar-label">首页</text>
   </view>
-  <view class="bar-tab {{activeTab === 'map' ? 'active' : ''}}" bindtap="goToMap">
-    <text class="bar-icon">📍</text>
+  <view
+    class="bar-tab {{activeTab === 'map' ? 'active' : ''}}"
+    bindtap="goToMap"
+    hover-class="bar-tab-hover"
+    hover-stay-time="120"
+  >
+    <icon name="map" size="40rpx" color="{{activeTab === 'map' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
     <text class="bar-label">地图</text>
   </view>
-  <view class="bar-tab bar-publish" bindtap="goToPublish">
-    <view class="publish-btn">
-      <text class="publish-icon">+</text>
-    </view>
-    <text class="bar-label publish-label">发布</text>
+  <view
+    class="bar-tab {{activeTab === 'publish' ? 'active' : ''}}"
+    bindtap="goToPublish"
+    hover-class="bar-tab-hover"
+    hover-stay-time="120"
+  >
+    <icon name="plus-circle" size="40rpx" color="{{activeTab === 'publish' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
+    <text class="bar-label">发布</text>
   </view>
-  <view class="bar-tab {{activeTab === 'search' ? 'active' : ''}}" bindtap="goToSearch">
-    <text class="bar-icon">🔍</text>
-    <text class="bar-label">搜索</text>
-  </view>
-  <view class="bar-tab {{activeTab === 'profile' ? 'active' : ''}}">
-    <text class="bar-icon">👤</text>
+  <view
+    class="bar-tab {{activeTab === 'profile' ? 'active' : ''}}"
+    hover-class="bar-tab-hover"
+    hover-stay-time="120"
+  >
+    <icon name="user" size="40rpx" color="{{activeTab === 'profile' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
     <text class="bar-label">我的</text>
   </view>
 </view>

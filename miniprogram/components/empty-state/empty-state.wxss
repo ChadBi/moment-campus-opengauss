@@ -1,0 +1,78 @@
+/* ============================================================
+ * empty-state 空状态组件
+ * 对齐 skill Section 4.5 "Empty States: Beautifully composed; indicate how to populate"
+ * 对齐 Web 端 HomePage.tsx:256-262 空状态设计
+ * ============================================================ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 40rpx;
+  text-align: center;
+}
+
+.empty-state-compact {
+  padding: 60rpx 40rpx;
+}
+
+.empty-icon-wrap {
+  width: 144rpx;
+  height: 144rpx;
+  border-radius: 50%;
+  background: var(--mist);
+  border: 1rpx solid var(--ink-divider);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32rpx;
+}
+
+.empty-state-compact .empty-icon-wrap {
+  width: 96rpx;
+  height: 96rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-title {
+  font-family: var(--font-display);
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.4;
+  margin-bottom: 12rpx;
+}
+
+.empty-state-compact .empty-title {
+  font-size: 28rpx;
+  margin-bottom: 8rpx;
+}
+
+.empty-hint {
+  font-size: 26rpx;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 480rpx;
+}
+
+.empty-state-compact .empty-hint {
+  font-size: 24rpx;
+}
+
+.empty-action {
+  margin-top: 32rpx;
+  padding: 16rpx 40rpx;
+  background: var(--lake);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: 28rpx;
+  font-weight: 500;
+  letter-spacing: 1rpx;
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              background 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.empty-action-hover {
+  transform: scale(0.98);
+  background: var(--lake-dark);
+}

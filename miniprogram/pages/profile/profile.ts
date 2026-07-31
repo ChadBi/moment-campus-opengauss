@@ -7,20 +7,20 @@ import { logout } from '../../services/auth'
 
 const STATUS_TABS = [
   { key: 'all', label: '全部' },
-  { key: 'published', label: '已发布' },
   { key: 'draft', label: '草稿' },
-  { key: 'pending', label: '待审' },
+  { key: 'pending', label: '待审核' },
+  { key: 'published', label: '已发布' },
   { key: 'expired', label: '已过期' },
-  { key: 'conflict', label: '冲突' },
+  { key: 'conflict', label: '冲突中' },
   { key: 'archived', label: '已归档' },
 ]
 
 const STATUS_LABELS: Record<string, string> = {
   draft: '草稿',
-  pending: '待审',
+  pending: '待审核',
   published: '已发布',
   expired: '已过期',
-  conflict: '冲突',
+  conflict: '冲突中',
   archived: '已归档',
 }
 
@@ -38,13 +38,20 @@ Page({
     email: '',
     createdAtText: '',
 
-    // 统计
-    postsCount: 0,
-    validationsCount: 0,
-    commentsCount: 0,
-    postsCountText: '0',
-    validationsCountText: '0',
-    commentsCountText: '0',
+    // 统计（对齐 Web ProfilePage: 已发布/草稿/待审核/贡献验证）
+    publishedCount: 0,
+    draftCount: 0,
+    pendingCount: 0,
+    confirmationCount: 0,
+    publishedCountText: '0',
+    draftCountText: '0',
+    pendingCountText: '0',
+    confirmationCountText: '0',
+    statsLoading: false,
+
+    // 加入的学校（D2）
+    memberships: [] as any[],
+    currentSchoolId: 0,
 
     // 我的帖子
     statusTabs: STATUS_TABS,
@@ -102,7 +109,7 @@ Page({
 
   async onShow() {
     if (authStore.getState().isLoggedIn) {
-      const tasks: Promise<any>[] = [this.loadUser(), this.loadStats(), this.refreshPosts()]
+      const tasks: Promise<any>[] = [this.loadUser(), this.loadStats(), this.refreshPosts(), this.loadMemberships()]
       if (this.data.activeSection === 'history') {
         tasks.push(this.refreshHistory())
       }
@@ -138,23 +145,94 @@ Page({
   },
 
   async loadStats() {
+    this.setData({ statsLoading: true })
     try {
       const res: any = await http.get('/users/me/stats')
       const stats = res.stats || res
-      const postsCount = Number(stats.posts_count || 0)
-      const validationsCount = Number(stats.validations_count || 0)
-      const commentsCount = Number(stats.comments_count || 0)
+      const publishedCount = Number(stats.published_count || 0)
+      const draftCount = Number(stats.draft_count || 0)
+      const pendingCount = Number(stats.pending_count || 0)
+      const confirmationCount = Number(stats.confirmation_count || 0)
       this.setData({
-        postsCount,
-        validationsCount,
-        commentsCount,
-        postsCountText: formatCount(postsCount),
-        validationsCountText: formatCount(validationsCount),
-        commentsCountText: formatCount(commentsCount),
+        publishedCount,
+        draftCount,
+        pendingCount,
+        confirmationCount,
+        publishedCountText: formatCount(publishedCount),
+        draftCountText: formatCount(draftCount),
+        pendingCountText: formatCount(pendingCount),
+        confirmationCountText: formatCount(confirmationCount),
+        statsLoading: false,
       })
     } catch (e: any) {
       console.error('加载统计失败', e)
+      this.setData({ statsLoading: false })
     }
+  },
+
+  // ============== 加入的学校（D2） ==============
+  async loadMemberships() {
+    try {
+      const res: any = await http.get('/me/memberships')
+      const list = Array.isArray(res) ? res : (res.items || res.memberships || [])
+      const campusState = campusStore.getState()
+      this.setData({
+        memberships: list,
+        currentSchoolId: campusState.currentSchool?.id || 0,
+      })
+    } catch (e: any) {
+      console.error('加载学校成员关系失败', e)
+    }
+  },
+
+  onSwitchSchool(e: any) {
+    const code = e.currentTarget.dataset.code
+    if (!code) return
+    wx.showModal({
+      title: '提示',
+      content: `切换到该学校？相关数据将刷新。`,
+      success: async r => {
+        if (!r.confirm) return
+        try {
+          // 先获取学校信息
+          const schoolRes: any = await http.get(`/schools/${code}`)
+          const school = schoolRes.school || schoolRes
+          if (school && school.id) {
+            campusStore.setSchool(school)
+            this.setData({ currentSchoolId: school.id })
+            // 重新加载所有数据
+            await Promise.all([
+              this.loadUser(),
+              this.loadStats(),
+              this.refreshPosts(),
+              this.loadMemberships(),
+            ])
+            wx.showToast({ title: '已切换学校', icon: 'success' })
+          }
+        } catch (err: any) {
+          wx.showToast({ title: err.message || '切换失败', icon: 'none' })
+        }
+      },
+    })
+  },
+
+  onSetDefaultSchool(e: any) {
+    const schoolId = Number(e.currentTarget.dataset.id)
+    if (!schoolId) return
+    wx.showModal({
+      title: '提示',
+      content: '确定将该学校设为默认？',
+      success: async r => {
+        if (!r.confirm) return
+        try {
+          await http.put('/me/default-school', { school_id: schoolId })
+          wx.showToast({ title: '已设为默认', icon: 'success' })
+          await this.loadMemberships()
+        } catch (err: any) {
+          wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+        }
+      },
+    })
   },
 
   // ============== 我的帖子 ==============
@@ -395,7 +473,7 @@ Page({
         ...it,
         type_label: this.identityTypeLabel(it.identity_type),
         created_at_text: formatDate(it.created_at, 'datetime'),
-        last_used_at_text: it.last_used_at ? formatDate(it.last_used_at, 'datetime') : '—',
+        last_used_at_text: it.last_used_at ? formatDate(it.last_used_at, 'datetime') : '未使用',
       }))
       this.setData({ identities: formatted })
     } catch (e: any) {
@@ -451,10 +529,10 @@ Page({
         ...s,
         type_label: this.sessionTypeLabel(s.session_type),
         device_brief: s.device_info || s.user_agent || '未知设备',
-        ip_text: s.client_ip || '—',
+        ip_text: s.client_ip || '未知',
         created_at_text: formatDate(s.created_at, 'datetime'),
-        last_active_text: s.last_active_at ? formatDate(s.last_active_at) : '—',
-        expires_text: s.expires_at ? formatDate(s.expires_at, 'datetime') : '—',
+        last_active_text: s.last_active_at ? formatDate(s.last_active_at) : '无记录',
+        expires_text: s.expires_at ? formatDate(s.expires_at, 'datetime') : '永久',
       }))
       this.setData({ sessions: formatted })
     } catch (e: any) {

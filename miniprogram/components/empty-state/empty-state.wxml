@@ -1,0 +1,16 @@
+<view class="empty-state {{compact ? 'empty-state-compact' : ''}}">
+  <view class="empty-icon-wrap">
+    <icon name="{{icon || 'sparkles'}}" size="{{compact ? '64rpx' : '96rpx'}}" color="{{color || '#9aabae'}}" />
+  </view>
+  <text class="empty-title">{{title}}</text>
+  <text wx:if="{{hint}}" class="empty-hint">{{hint}}</text>
+  <view
+    wx:if="{{actionText}}"
+    class="empty-action"
+    bindtap="onAction"
+    hover-class="empty-action-hover"
+    hover-stay-time="120"
+  >
+    <text>{{actionText}}</text>
+  </view>
+</view>

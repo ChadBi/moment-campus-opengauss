@@ -8,6 +8,7 @@ Page({
     password: '',
     nickname: '',
     schoolId: 0,
+    schoolName: '',
     loading: false,
     errorMsg: '',
     schools: [] as Array<{ id: number; name: string; code: string }>,
@@ -33,7 +34,13 @@ Page({
   onEmailInput(e: any) { this.setData({ email: e.detail.value }) },
   onPasswordInput(e: any) { this.setData({ password: e.detail.value }) },
   onNicknameInput(e: any) { this.setData({ nickname: e.detail.value }) },
-  onSchoolSelect(e: any) { this.setData({ schoolId: e.detail.value }) },
+  onSchoolSelect(e: any) {
+    const index = Number(e.detail.value)
+    const school = this.data.schools[index]
+    if (school) {
+      this.setData({ schoolId: school.id, schoolName: school.name })
+    }
+  },
 
   async onSubmit() {
     if (this.data.loading) return

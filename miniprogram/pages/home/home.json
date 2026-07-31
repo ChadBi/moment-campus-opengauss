@@ -3,6 +3,9 @@
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
   "usingComponents": {
-    "post-card": "/components/post-card/post-card"
+    "post-card": "/components/post-card/post-card",
+    "icon": "/components/icon/icon",
+    "skeleton": "/components/skeleton/skeleton",
+    "empty-state": "/components/empty-state/empty-state"
   }
 }

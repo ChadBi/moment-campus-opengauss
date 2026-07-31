@@ -11,26 +11,29 @@
     bindmarkertap="onMarkerTap"
   ></map>
 
+  <!-- 顶部信息栏 -->
   <view class="map-header">
     <view class="school-info">
       <text class="school-name">{{schoolName}}</text>
       <text class="school-subtitle">校园地图</text>
     </view>
-    <view class="locate-btn" bindtap="requestLocation">
-      <text class="locate-icon">📍</text>
+    <view class="locate-btn" bindtap="requestLocation" hover-class="locate-btn-hover" hover-stay-time="120">
+      <icon name="map-pin" size="36rpx" color="#ffffff" />
     </view>
   </view>
 
-  <view wx:if="{{locationDenied}}" class="denied-tip" bindtap="openSetting">
-    <text class="denied-icon">⚠️</text>
+  <!-- 权限提示 -->
+  <view wx:if="{{locationDenied}}" class="denied-tip" bindtap="openSetting" hover-class="denied-tip-hover" hover-stay-time="120">
+    <icon name="alert-circle" size="32rpx" color="#cc5f30" />
     <text class="denied-text">未授权位置信息，已默认显示学校中心点。点击重新授权</text>
   </view>
 
+  <!-- 标记点信息卡片 -->
   <view wx:if="{{selectedMarker}}" class="info-card">
     <view class="info-card-header">
       <text class="info-title">{{selectedMarker.title}}</text>
-      <view class="info-close" catchtap="closeInfoCard">
-        <text>✕</text>
+      <view class="info-close" catchtap="closeInfoCard" hover-class="info-close-hover" hover-stay-time="120">
+        <icon name="x" size="32rpx" color="#6a7d81" />
       </view>
     </view>
     <view wx:if="{{selectedMarker.content_snippet}}" class="info-snippet">
@@ -44,9 +47,9 @@
         <text>{{selectedMarker.statusLabel}}</text>
       </view>
     </view>
-    <view class="info-action" catchtap="goToPostDetail">
+    <view class="info-action" catchtap="goToPostDetail" hover-class="info-action-hover" hover-stay-time="120">
       <text>查看帖子详情</text>
-      <text class="action-arrow">›</text>
+      <icon name="chevron-right" size="28rpx" color="#ffffff" />
     </view>
   </view>
 </view>

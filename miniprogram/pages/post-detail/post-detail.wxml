@@ -1,7 +1,16 @@
 <view class="detail-page">
-  <!-- 加载中 -->
-  <view wx:if="{{loading && !post}}" class="loading-state">
-    <text>加载中…</text>
+  <!-- 加载中：骨架屏（对齐 Web 端卡片结构） -->
+  <view wx:if="{{loading && !post}}" class="loading-skeleton">
+    <skeleton variant="block" height="520rpx" />
+    <view class="sk-content-wrap">
+      <skeleton variant="post-card" />
+    </view>
+    <view class="sk-content-wrap">
+      <skeleton variant="block" height="180rpx" />
+    </view>
+    <view class="sk-content-wrap">
+      <skeleton variant="block" height="320rpx" />
+    </view>
   </view>
 
   <block wx:if="{{post}}">
@@ -48,7 +57,7 @@
           <text class="author-name">{{post.author_nickname || '匿名'}}</text>
           <text class="post-time">{{post.created_at_text}}</text>
         </view>
-        <view wx:if="{{post.category_name}}" class="category-tag">
+        <view wx:if="{{post.category_name}}" class="category-tag cat-{{categoryClass}}">
           <text>{{post.category_name}}</text>
         </view>
       </view>
@@ -60,38 +69,54 @@
 
       <!-- 位置信息 -->
       <view wx:if="{{post.location_name}}" class="location-row">
-        <text class="loc-icon">📍</text>
+        <icon name="map-pin" size="32rpx" color="#174d5e" />
         <text class="loc-text">{{post.location_name}}</text>
       </view>
 
       <!-- 倒计时 -->
       <view wx:if="{{remainingTime}}" class="countdown-row {{remainingTime === '已过期' ? 'expired' : ''}}">
-        <text class="countdown-icon">⏰</text>
+        <icon
+          wx:if="{{remainingTime === '已过期'}}"
+          name="alert-circle"
+          size="28rpx"
+          color="#cd5852"
+        />
+        <icon
+          wx:else
+          name="clock"
+          size="28rpx"
+          color="#cc5f30"
+        />
         <text class="countdown-text">{{remainingTime}}</text>
       </view>
 
       <!-- 浏览数 -->
       <view class="views-row">
+        <icon name="eye" size="24rpx" color="#6a7d81" />
         <text>{{post.views_count_text}} 次浏览</text>
       </view>
     </view>
 
     <!-- 互动栏 -->
     <view class="action-bar">
-      <view class="action-item {{isLiked ? 'active' : ''}}" bindtap="onLike">
-        <text class="action-icon">{{isLiked ? '❤️' : '🤍'}}</text>
+      <view class="action-item {{isLiked ? 'active' : ''}}" bindtap="onLike" hover-class="action-item-hover" hover-stay-time="120">
+        <icon
+          name="heart"
+          size="44rpx"
+          color="{{isLiked ? '#e67340' : '#3d5458'}}"
+        />
         <text class="action-text">{{post.likes_count_text}}</text>
       </view>
       <view class="action-item">
-        <text class="action-icon">💬</text>
+        <icon name="message-circle" size="44rpx" color="#3d5458" />
         <text class="action-text">{{post.comments_count_text}}</text>
       </view>
       <view class="action-item">
-        <text class="action-icon">✅</text>
+        <icon name="check-circle" size="44rpx" color="#3d5458" />
         <text class="action-text">{{post.validations_count_text}}</text>
       </view>
-      <view class="action-item" bindtap="openReport">
-        <text class="action-icon">⚠️</text>
+      <view class="action-item" bindtap="openReport" hover-class="action-item-hover" hover-stay-time="120">
+        <icon name="alert-circle" size="44rpx" color="#3d5458" />
         <text class="action-text">举报</text>
       </view>
     </view>
@@ -99,7 +124,10 @@
     <!-- 协同验证区域 -->
     <view class="validation-card">
       <view class="card-title">
-        <text>协同验证</text>
+        <view class="title-left">
+          <icon name="shield" size="36rpx" color="#174d5e" />
+          <text>协同验证</text>
+        </view>
         <text class="validity-badge validity-{{validityStatus}}">{{validityStatus}}</text>
       </view>
       <view class="validation-stats">
@@ -121,14 +149,30 @@
           class="validate-btn confirm {{userValidationType === 'confirmation' ? 'voted' : ''}}"
           data-type="confirmation"
           bindtap="onValidate"
+          hover-class="validate-btn-hover"
+          hover-stay-time="120"
         >
+          <icon
+            wx:if="{{userValidationType === 'confirmation'}}"
+            name="check-circle"
+            size="32rpx"
+            color="#ffffff"
+          />
           <text>{{userValidationType === 'confirmation' ? '已证实' : '证实'}}</text>
         </view>
         <view
           class="validate-btn refute {{userValidationType === 'refutation' ? 'voted' : ''}}"
           data-type="refutation"
           bindtap="onValidate"
+          hover-class="validate-btn-hover"
+          hover-stay-time="120"
         >
+          <icon
+            wx:if="{{userValidationType === 'refutation'}}"
+            name="x"
+            size="32rpx"
+            color="#ffffff"
+          />
           <text>{{userValidationType === 'refutation' ? '已证伪' : '证伪'}}</text>
         </view>
       </view>
@@ -137,12 +181,19 @@
     <!-- 评论区 -->
     <view class="comments-card">
       <view class="card-title">
-        <text>评论 {{comments.length > 0 ? commentsCount : ''}}</text>
+        <view class="title-left">
+          <icon name="message-circle" size="36rpx" color="#174d5e" />
+          <text>评论 {{comments.length > 0 ? commentsCount : ''}}</text>
+        </view>
       </view>
 
-      <view wx:if="{{comments.length === 0 && !commentLoading}}" class="empty-comments">
-        <text>暂无评论，快来抢沙发</text>
-      </view>
+      <empty-state
+        wx:if="{{comments.length === 0 && !commentLoading}}"
+        compact
+        icon="message-square"
+        title="暂无评论"
+        hint="快来抢沙发吧"
+      />
 
       <view wx:for="{{comments}}" wx:key="id" class="comment-item">
         <image
@@ -165,7 +216,8 @@
       </view>
 
       <view wx:if="{{commentLoading}}" class="comment-loading">
-        <text>加载中…</text>
+        <skeleton variant="list-item" />
+        <skeleton variant="list-item" />
       </view>
       <view wx:if="{{commentHasMore && !commentLoading}}" class="load-more-comments" bindtap="onLoadMoreComments">
         <text>加载更多评论</text>
@@ -184,14 +236,14 @@
       <view class="input-row">
         <input
           class="comment-input"
-          placeholder="写评论…"
+          placeholder="写评论..."
           value="{{commentInput}}"
           confirm-type="send"
           bindinput="onCommentInput"
           bindconfirm="onSubmitComment"
         />
-        <view class="send-btn {{commentInput ? 'active' : ''}}" bindtap="onSubmitComment">
-          <text>{{submittingComment ? '发送中' : '发送'}}</text>
+        <view class="send-btn {{commentInput ? 'active' : ''}}" bindtap="onSubmitComment" hover-class="send-btn-hover" hover-stay-time="120">
+          <icon name="send" size="32rpx" color="{{commentInput ? '#ffffff' : '#9aabae'}}" />
         </view>
       </view>
     </view>
@@ -201,7 +253,13 @@
   <view wx:if="{{reportVisible}}" class="modal-mask" bindtap="closeReport">
     <view class="modal-content" catchtap="">
       <view class="modal-title">
-        <text>举报</text>
+        <view class="title-left">
+          <icon name="alert-circle" size="36rpx" color="#174d5e" />
+          <text>举报</text>
+        </view>
+        <view class="modal-close" bindtap="closeReport">
+          <icon name="x" size="36rpx" color="#6a7d81" />
+        </view>
       </view>
       <view class="report-types">
         <view
@@ -222,10 +280,10 @@
         bindinput="onReportReasonInput"
       />
       <view class="modal-actions">
-        <view class="modal-btn cancel" bindtap="closeReport">
+        <view class="modal-btn cancel" bindtap="closeReport" hover-class="modal-btn-hover" hover-stay-time="120">
           <text>取消</text>
         </view>
-        <view class="modal-btn confirm" bindtap="onSubmitReport">
+        <view class="modal-btn confirm" bindtap="onSubmitReport" hover-class="modal-btn-hover" hover-stay-time="120">
           <text>{{submittingReport ? '提交中' : '提交'}}</text>
         </view>
       </view>

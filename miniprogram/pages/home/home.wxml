@@ -1,14 +1,19 @@
-<view class="home-page">
-  <!-- 顶部栏：校名 + 搜索入口 + 专题入口 -->
+<view class="home-page page-fade-in">
+  <!-- 顶部栏：校名 + Slogan + 搜索入口 + 专题入口 -->
   <view class="top-bar">
     <view class="school-info">
-      <text class="school-name">{{schoolName}}</text>
+      <icon name="school" size="36rpx" color="#174d5e" />
+      <view class="school-text">
+        <text class="school-name">{{schoolName}}</text>
+        <text class="school-slogan">把会消失的校园经验留下来</text>
+      </view>
     </view>
-    <view class="search-entry" bindtap="goToSearch">
-      <text class="search-icon">搜</text>
+    <view class="search-entry" bindtap="goToSearch" hover-class="search-entry-hover" hover-stay-time="120">
+      <icon name="search" size="28rpx" color="#6a7d81" />
       <text class="search-text">搜索校园信息...</text>
     </view>
-    <view class="topics-entry" bindtap="goToTopics">
+    <view class="topics-entry" bindtap="goToTopics" hover-class="topics-entry-hover" hover-stay-time="120">
+      <icon name="bookmark" size="36rpx" color="#174d5e" />
       <text class="topics-label">专题</text>
     </view>
   </view>
@@ -27,52 +32,77 @@
 
   <!-- 内容概要 -->
   <view wx:if="{{totalPosts > 0}}" class="content-summary">
+    <icon name="file-text" size="22rpx" color="#6a7d81" />
     <text>共 {{formattedTotal}} 条内容 · {{formattedRefreshTime}}更新</text>
   </view>
 
   <!-- 帖子列表 -->
   <view class="post-list">
-    <!-- 空状态 -->
-    <view wx:if="{{posts.length === 0 && !loading}}" class="empty-state">
-      <text class="empty-icon">○</text>
-      <text class="empty-text">暂无内容，来发布第一条吧</text>
+    <!-- 推荐区块标题（仅推荐 Tab 显示） -->
+    <view wx:if="{{activeCategoryId === 0 && posts.length > 0}}" class="recommend-header">
+      <icon name="sparkles" size="28rpx" color="#174d5e" />
+      <text class="recommend-title">为你推荐</text>
     </view>
+
+    <!-- 加载中：骨架屏（首次加载时显示 3 张骨架卡片） -->
+    <block wx:if="{{loading}}">
+      <skeleton variant="post-card" />
+      <skeleton variant="post-card" />
+      <skeleton variant="post-card" />
+    </block>
+
+    <!-- 空状态 -->
+    <empty-state
+      wx:if="{{posts.length === 0 && !loading}}"
+      icon="file-text"
+      title="暂无内容"
+      hint="来发布第一条校园经验吧"
+      action-text="去发布"
+      bind:action="goToPublish"
+    />
 
     <!-- post-card 组件渲染帖子 -->
     <post-card
       wx:for="{{posts}}"
       wx:key="id"
       post="{{item}}"
+      class="stagger-card"
+      style="animation-delay: {{index * 40}}ms;"
       bind:tap="onPostTap"/>
   </view>
 
   <!-- 底部加载状态 -->
-  <view wx:if="{{loading}}" class="loading-state">
-    <text class="loading-text">加载中</text>
-  </view>
   <view wx:if="{{loadingMore}}" class="loading-more">
-    <text>加载更多...</text>
+    <view class="loading-dot"></view>
+    <view class="loading-dot"></view>
+    <view class="loading-dot"></view>
+    <text>加载更多</text>
   </view>
   <view wx:if="{{!hasMore && posts.length > 0 && !loadingMore}}" class="no-more">
-    <text>— 没有更多了 —</text>
+    <view class="no-more-line"></view>
+    <text>没有更多了</text>
+    <view class="no-more-line"></view>
   </view>
 </view>
 
 <!-- 底部导航：首页 / 地图 / 发布 / 我的 -->
 <view class="tab-bar">
-  <view class="bar-tab {{activeTab === 'home' ? 'active' : ''}}" bindtap="goToHome">
+  <view class="bar-tab {{activeTab === 'home' ? 'active' : ''}}" bindtap="goToHome" hover-class="bar-tab-hover" hover-stay-time="120">
+    <icon name="home" size="44rpx" color="{{activeTab === 'home' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
     <text class="bar-label">首页</text>
   </view>
-  <view class="bar-tab {{activeTab === 'map' ? 'active' : ''}}" bindtap="goToMap">
+  <view class="bar-tab {{activeTab === 'map' ? 'active' : ''}}" bindtap="goToMap" hover-class="bar-tab-hover" hover-stay-time="120">
+    <icon name="map" size="44rpx" color="{{activeTab === 'map' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
     <text class="bar-label">地图</text>
   </view>
-  <view class="bar-tab bar-publish" bindtap="goToPublish">
+  <view class="bar-tab bar-publish" bindtap="goToPublish" hover-class="bar-tab-hover" hover-stay-time="120">
     <view class="publish-btn">
-      <text class="publish-icon">+</text>
+      <icon name="plus-circle" size="56rpx" color="#ffffff" />
     </view>
     <text class="bar-label publish-label">发布</text>
   </view>
-  <view class="bar-tab {{activeTab === 'profile' ? 'active' : ''}}" bindtap="goToProfile">
+  <view class="bar-tab {{activeTab === 'profile' ? 'active' : ''}}" bindtap="goToProfile" hover-class="bar-tab-hover" hover-stay-time="120">
+    <icon name="user" size="44rpx" color="{{activeTab === 'profile' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
     <text class="bar-label">我的</text>
   </view>
 </view>

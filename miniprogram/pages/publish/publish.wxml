@@ -1,26 +1,30 @@
 <view class="publish-page">
 
-  <!-- 分类选择 -->
+  <!-- ============== 分类选择（对齐 Web: 分类色板圆点 + lake 激活态） ============== -->
   <view class="section">
     <view class="section-label">
       <text class="label-text">分类</text>
       <text class="required">*</text>
     </view>
     <scroll-view class="category-scroll" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
-      <view wx:if="{{loadingCategories && categories.length === 0}}" class="cat-loading">加载中...</view>
+      <view wx:if="{{loadingCategories && categories.length === 0}}" class="cat-loading">
+        <skeleton variant="list-item" />
+      </view>
       <view
         wx:for="{{categories}}"
         wx:key="id"
         class="cat-tag {{selectedCategoryId === item.id ? 'active' : ''}}"
         data-id="{{item.id}}"
-        bindtap="onCategoryTap">
-        <text wx:if="{{item.icon}}" class="cat-icon">{{item.icon}}</text>
+        bindtap="onCategoryTap"
+        hover-class="cat-tag-hover"
+        hover-stay-time="120">
+        <view class="cat-dot cat-{{item.cls}}"></view>
         <text class="cat-name">{{item.name}}</text>
       </view>
     </scroll-view>
   </view>
 
-  <!-- 标题 -->
+  <!-- ============== 标题 ============== -->
   <view class="section">
     <view class="section-label">
       <text class="label-text">标题</text>
@@ -39,7 +43,7 @@
     </view>
   </view>
 
-  <!-- 正文 -->
+  <!-- ============== 正文 ============== -->
   <view class="section">
     <view class="section-label">
       <text class="label-text">正文</text>
@@ -58,7 +62,7 @@
     </view>
   </view>
 
-  <!-- 图片 -->
+  <!-- ============== 图片（对齐 Web: icon 上传 + icon 删除） ============== -->
   <view class="section">
     <view class="section-label">
       <text class="label-text">图片</text>
@@ -79,23 +83,25 @@
           class="remove-btn"
           data-index="{{index}}"
           catchtap="onRemoveImage">
-          <text class="remove-icon">×</text>
+          <icon name="x" size="28rpx" color="#ffffff" />
         </view>
       </view>
       <view
         wx:if="{{images.length < maxImages}}"
         class="upload-btn {{uploadingImage ? 'uploading' : ''}}"
-        bindtap="onChooseImage">
+        bindtap="onChooseImage"
+        hover-class="upload-btn-hover"
+        hover-stay-time="120">
         <view wx:if="{{uploadingImage}}" class="upload-spinner"></view>
         <block wx:else>
-          <text class="upload-icon">+</text>
+          <icon name="upload" size="40rpx" color="#6a7d81" />
           <text class="upload-text">上传</text>
         </block>
       </view>
     </view>
   </view>
 
-  <!-- 位置 -->
+  <!-- ============== 位置（对齐 Web: icon map-pin + icon 更换/移除） ============== -->
   <view class="section">
     <view class="section-label">
       <text class="label-text">位置</text>
@@ -104,24 +110,30 @@
     <view class="location-card">
       <block wx:if="{{hasLocation}}">
         <view class="location-info">
-          <text class="location-icon">📍</text>
+          <icon name="map-pin" size="32rpx" color="#174d5e" />
           <text class="location-name text-ellipsis">{{locationName}}</text>
         </view>
         <view class="location-actions">
-          <text class="loc-action" bindtap="onChooseLocation">更换</text>
-          <text class="loc-action danger" bindtap="onClearLocation">移除</text>
+          <view class="loc-action" bindtap="onChooseLocation" hover-class="loc-action-hover" hover-stay-time="120">
+            <icon name="map-pin" size="24rpx" color="#174d5e" />
+            <text>更换</text>
+          </view>
+          <view class="loc-action danger" bindtap="onClearLocation" hover-class="loc-action-hover" hover-stay-time="120">
+            <icon name="trash2" size="24rpx" color="#cd5852" />
+            <text>移除</text>
+          </view>
         </view>
       </block>
       <block wx:else>
-        <view class="location-empty" bindtap="onChooseLocation">
-          <text class="location-icon">📍</text>
+        <view class="location-empty" bindtap="onChooseLocation" hover-class="location-empty-hover" hover-stay-time="120">
+          <icon name="map-pin" size="32rpx" color="#6a7d81" />
           <text class="location-placeholder">选择位置（可选）</text>
         </view>
       </block>
     </view>
   </view>
 
-  <!-- 有效期 -->
+  <!-- ============== 有效期（对齐 Web: icon chevron-down 下拉箭头） ============== -->
   <view class="section">
     <view class="section-label">
       <text class="label-text">有效期</text>
@@ -135,7 +147,7 @@
         bindchange="onExpiryChange">
         <view class="picker-value">
           <text>{{expiryOptions[expiryIndex]}}</text>
-          <text class="picker-arrow">▾</text>
+          <icon name="chevron-down" size="24rpx" color="#6a7d81" />
         </view>
       </picker>
       <view wx:if="{{isCustomExpiry}}" class="custom-days-wrap">
@@ -156,23 +168,29 @@
     <text class="draft-tip-text">已恢复草稿，点击此处清空</text>
   </view>
 
-  <!-- AI 助手 -->
+  <!-- ============== AI 助手（对齐 Web: Sparkles icon + lake 背景） ============== -->
   <view class="ai-section">
-    <view class="ai-btn {{aiLoading ? 'loading' : ''}}" bindtap="onAiSuggest">
+    <view class="ai-btn {{aiLoading ? 'loading' : ''}}" bindtap="onAiSuggest" hover-class="ai-btn-hover" hover-stay-time="120">
       <view wx:if="{{aiLoading}}" class="ai-spinner"></view>
-      <text wx:else class="ai-icon">✨</text>
+      <icon wx:else name="sparkles" size="28rpx" color="#ffffff" />
       <text>{{aiLoading ? 'AI分析中...' : 'AI助手'}}</text>
     </view>
 
     <!-- AI 建议结果 -->
     <view wx:if="{{showAiSuggestion && aiSuggestion}}" class="ai-result-card">
       <view class="ai-result-header">
-        <text class="ai-result-title">AI 建议结果</text>
-        <text class="ai-close" bindtap="onCloseAiSuggestion">×</text>
+        <view class="ai-result-title-wrap">
+          <icon name="sparkles" size="24rpx" color="#174d5e" />
+          <text class="ai-result-title">AI 建议结果</text>
+        </view>
+        <view class="ai-close" bindtap="onCloseAiSuggestion" hover-class="ai-close-hover" hover-stay-time="120">
+          <icon name="x" size="32rpx" color="#6a7d81" />
+        </view>
       </view>
 
       <!-- 降级提示 -->
       <view wx:if="{{aiSuggestion.fallback}}" class="ai-fallback-tip">
+        <icon name="alert-circle" size="24rpx" color="#cc5f30" />
         <text>{{aiSuggestion.fallback_reason || 'AI建议已降级，以下为基本分析'}}</text>
       </view>
 
@@ -206,22 +224,22 @@
       <view wx:if="{{aiSuggestion.missing_info.length > 0}}" class="ai-block ai-missing">
         <text class="ai-block-title">补充建议</text>
         <view wx:for="{{aiSuggestion.missing_info}}" wx:key="*this" class="ai-list-item">
-          <text class="ai-bullet">•</text>
+          <view class="ai-bullet-dot"></view>
           <text class="ai-list-text">{{item}}</text>
         </view>
       </view>
 
       <!-- 敏感信息提醒 -->
       <view wx:if="{{aiSuggestion.sensitive_warnings.length > 0}}" class="ai-block ai-warning">
-        <text class="ai-block-title">⚠️ 敏感信息提醒</text>
+        <text class="ai-block-title">敏感信息提醒</text>
         <view wx:for="{{aiSuggestion.sensitive_warnings}}" wx:key="*this" class="ai-list-item">
-          <text class="ai-bullet">•</text>
+          <view class="ai-bullet-dot ai-bullet-dot-danger"></view>
           <text class="ai-list-text">{{item}}</text>
         </view>
       </view>
 
       <!-- 一键应用 -->
-      <view wx:if="{{aiSuggestion.suggestions}}" class="ai-apply-btn" bindtap="onApplyAiSuggestion">
+      <view wx:if="{{aiSuggestion.suggestions}}" class="ai-apply-btn" bindtap="onApplyAiSuggestion" hover-class="ai-apply-btn-hover" hover-stay-time="120">
         <text>一键应用建议</text>
       </view>
     </view>
@@ -231,14 +249,16 @@
   <view class="bottom-placeholder"></view>
 </view>
 
-<!-- 底部操作栏 -->
+<!-- ============== 底部操作栏 ============== -->
 <view class="action-bar">
-  <view class="action-btn btn-secondary" bindtap="onClearDraft">
+  <view class="action-btn btn-secondary" bindtap="onClearDraft" hover-class="action-btn-hover" hover-stay-time="120">
     <text>清空</text>
   </view>
   <view
     class="action-btn btn-primary {{submitting ? 'disabled' : ''}}"
-    bindtap="onSubmit">
+    bindtap="onSubmit"
+    hover-class="action-btn-hover"
+    hover-stay-time="120">
     <text wx:if="{{submitting}}" class="btn-loading"></text>
     <text>{{submitting ? '发布中...' : '发布'}}</text>
   </view>

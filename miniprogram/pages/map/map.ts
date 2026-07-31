@@ -116,10 +116,10 @@ Page({
         height: 32,
         callout: {
           content: m.title,
-          color: '#333333',
+          color: '#152629',
           fontSize: 12,
           borderRadius: 8,
-          bgColor: '#ffffff',
+          bgColor: '#fafcfb',
           padding: 8,
           display: 'BYCLICK',
         },

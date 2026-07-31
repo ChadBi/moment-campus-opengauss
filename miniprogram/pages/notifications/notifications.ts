@@ -20,11 +20,11 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 const TYPE_ICONS: Record<string, string> = {
-  comment: '💬',
-  like: '👍',
-  validation: '✅',
-  report: '⚠️',
-  system: '📢',
+  comment: 'message-circle',
+  like: 'heart',
+  validation: 'check-circle',
+  report: 'alert-circle',
+  system: 'bell',
 }
 
 Page({
@@ -88,7 +88,7 @@ Page({
     return {
       ...n,
       type_label: TYPE_LABELS[n.type] || n.type,
-      type_icon: TYPE_ICONS[n.type] || '🔔',
+      type_icon: TYPE_ICONS[n.type] || 'bell',
       created_at_text: formatDate(n.created_at),
     }
   },

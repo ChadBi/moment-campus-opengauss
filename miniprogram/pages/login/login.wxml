@@ -1,43 +1,81 @@
 <view class="login-page">
-  <view class="login-header">
-    <text class="app-name">此刻校园</text>
-    <text class="app-slogan">发现身边的精彩</text>
+  <!-- ============== 品牌区（对齐 Web LoginPage: brand-logo + 欢迎回来 + slogan） ============== -->
+  <view class="brand-area">
+    <view class="brand-logo">
+      <text class="brand-logo-text">此</text>
+    </view>
+    <text class="brand-title">欢迎回来</text>
+    <text class="brand-slogan">把会消失的校园经验留下来</text>
   </view>
 
-  <view class="login-tabs">
-    <view class="tab {{mode === 'wechat' ? 'active' : ''}}" bindtap="switchMode" data-mode="wechat">
-      <text>微信登录</text>
+  <!-- ============== 卡片容器 ============== -->
+  <view class="login-card">
+    <!-- Tab 切换 -->
+    <view class="login-tabs">
+      <view class="tab {{mode === 'wechat' ? 'active' : ''}}" bindtap="switchMode" data-mode="wechat">
+        <text>微信登录</text>
+      </view>
+      <view class="tab {{mode === 'email' ? 'active' : ''}}" bindtap="switchMode" data-mode="email">
+        <text>邮箱登录</text>
+      </view>
     </view>
-    <view class="tab {{mode === 'email' ? 'active' : ''}}" bindtap="switchMode" data-mode="email">
-      <text>邮箱登录</text>
+
+    <!-- 微信登录 -->
+    <view wx:if="{{mode === 'wechat'}}" class="wechat-login">
+      <view class="wechat-btn {{loading ? 'disabled' : ''}}" bindtap="onWechatLogin" hover-class="wechat-btn-hover" hover-stay-time="120">
+        <icon name="message-circle" size="32rpx" color="#ffffff" />
+        <text>{{loading ? '登录中...' : '使用微信登录'}}</text>
+      </view>
+      <view class="login-tip">
+        <text>首次登录需要绑定或注册账号</text>
+      </view>
+    </view>
+
+    <!-- 邮箱登录 -->
+    <view wx:if="{{mode === 'email'}}" class="email-login">
+      <view class="form-item">
+        <view class="input-wrap">
+          <icon name="mail" size="32rpx" color="#6a7d81" />
+          <input
+            class="form-input"
+            type="text"
+            placeholder="请输入邮箱"
+            placeholder-class="ph"
+            value="{{email}}"
+            bindinput="onEmailInput"
+          />
+        </view>
+      </view>
+      <view class="form-item">
+        <view class="input-wrap">
+          <icon name="lock" size="32rpx" color="#6a7d81" />
+          <input
+            class="form-input"
+            type="password"
+            placeholder="请输入密码"
+            placeholder-class="ph"
+            value="{{password}}"
+            bindinput="onPasswordInput"
+          />
+        </view>
+      </view>
+      <view wx:if="{{errorMsg}}" class="error-msg">
+        <icon name="alert-circle" size="24rpx" color="#cd5852" />
+        <text>{{errorMsg}}</text>
+      </view>
+      <view class="submit-btn {{loading ? 'disabled' : ''}}" bindtap="onEmailLogin" hover-class="submit-btn-hover" hover-stay-time="120">
+        <text>{{loading ? '登录中...' : '登录'}}</text>
+      </view>
+      <view class="form-links">
+        <text class="link-register" bindtap="goToRegister">还没有账号？立即注册</text>
+        <text class="link-forgot" bindtap="goToForgotPassword">忘记密码？</text>
+      </view>
     </view>
   </view>
 
-  <view wx:if="{{mode === 'wechat'}}" class="wechat-login">
-    <view class="wechat-btn {{loading ? 'disabled' : ''}}" bindtap="onWechatLogin">
-      <text class="wechat-icon">微信</text>
-      <text>{{loading ? '登录中...' : '使用微信登录'}}</text>
-    </view>
-    <view class="login-tip">
-      <text>首次登录需要绑定或注册账号</text>
-    </view>
-  </view>
-
-  <view wx:if="{{mode === 'email'}}" class="email-login">
-    <view class="form-item">
-      <input type="text" placeholder="请输入邮箱" value="{{email}}" bindinput="onEmailInput" class="form-input"/>
-    </view>
-    <view class="form-item">
-      <input type="password" placeholder="请输入密码" value="{{password}}" bindinput="onPasswordInput" class="form-input"/>
-    </view>
-    <view wx:if="{{errorMsg}}" class="error-msg">
-      <text>{{errorMsg}}</text>
-    </view>
-    <view class="submit-btn {{loading ? 'disabled' : ''}}" bindtap="onEmailLogin">
-      <text>{{loading ? '登录中...' : '登录'}}</text>
-    </view>
-    <view class="register-link" bindtap="goToRegister">
-      <text>还没有账号？点击注册</text>
-    </view>
+  <!-- 访客浏览入口 -->
+  <view class="guest-link" bindtap="goToHome" hover-class="guest-link-hover" hover-stay-time="120">
+    <icon name="arrow-left" size="24rpx" color="#6a7d81" />
+    <text>以访客身份继续浏览</text>
   </view>
 </view>

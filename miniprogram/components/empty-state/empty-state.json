@@ -2,6 +2,6 @@
   "component": true,
   "styleIsolation": "apply-shared",
   "usingComponents": {
-    "icon": "/components/icon/icon"
+    "icon": "../icon/icon"
   }
 }

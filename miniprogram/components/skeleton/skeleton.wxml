@@ -1,0 +1,65 @@
+<view class="skeleton-root skeleton-{{variant}}">
+  <!-- post-card 骨架：头像 + 标题 + 内容 + 底部统计 -->
+  <block wx:if="{{variant === 'post-card'}}">
+    <view class="sk-head">
+      <view class="sk-circle"></view>
+      <view class="sk-head-info">
+        <view class="sk-line sk-line-name"></view>
+        <view class="sk-line sk-line-time"></view>
+      </view>
+      <view class="sk-tag"></view>
+    </view>
+    <view class="sk-line sk-line-title"></view>
+    <view class="sk-line sk-line-content"></view>
+    <view class="sk-line sk-line-content sk-line-short"></view>
+    <view class="sk-foot">
+      <view class="sk-line sk-line-loc"></view>
+      <view class="sk-line sk-line-stats"></view>
+    </view>
+  </block>
+
+  <!-- list-item 骨架：通用列表项 -->
+  <block wx:elif="{{variant === 'list-item'}}">
+    <view class="sk-head">
+      <view class="sk-circle sk-circle-sm"></view>
+      <view class="sk-head-info">
+        <view class="sk-line sk-line-name"></view>
+        <view class="sk-line sk-line-time"></view>
+      </view>
+    </view>
+    <view class="sk-line sk-line-content"></view>
+  </block>
+
+  <!-- profile-card 骨架 -->
+  <block wx:elif="{{variant === 'profile-card'}}">
+    <view class="sk-profile-bg">
+      <view class="sk-head">
+        <view class="sk-circle sk-circle-lg"></view>
+        <view class="sk-head-info">
+          <view class="sk-line sk-line-name"></view>
+          <view class="sk-line sk-line-time"></view>
+        </view>
+      </view>
+    </view>
+    <view class="sk-profile-actions">
+      <view class="sk-btn"></view>
+      <view class="sk-btn"></view>
+    </view>
+  </block>
+
+  <!-- stats-grid 骨架：4 个统计卡 -->
+  <block wx:elif="{{variant === 'stats-grid'}}">
+    <view class="sk-stats-grid">
+      <view class="sk-stat-card" wx:for="{{[1,2,3,4]}}" wx:key="*this">
+        <view class="sk-circle sk-circle-sm"></view>
+        <view class="sk-line sk-line-num"></view>
+        <view class="sk-line sk-line-label"></view>
+      </view>
+    </view>
+  </block>
+
+  <!-- block 骨架：通用矩形 -->
+  <block wx:else>
+    <view class="sk-block" style="height:{{height || '200rpx'}};"></view>
+  </block>
+</view>

@@ -1,0 +1,9 @@
+/* ============================================================
+ * icon 组件 - 通过 <image> 渲染 SVG data URI
+ * 与 Web 端 lucide-react stroke-width=2 视觉对齐
+ * ============================================================ */
+
+.icon {
+  display: inline-block;
+  vertical-align: middle;
+}

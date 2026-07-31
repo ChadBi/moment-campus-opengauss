@@ -1111,3 +1111,21 @@ R-14 飞书问卷提交（0.5 天，最终步骤，建议 2026-08-08 前完成�
   - 已订阅列表 GET /subscriptions，取消订阅 DELETE /subscriptions/{id}
   - 添加订阅 POST /subscriptions，分类列表 GET /categories
   - 个人中心设置区域新增"订阅管理"入口
+
+## 小程序页面水墨风对齐 Web 端统一改造（2026-07-31 更新）
+
+> 依据 [小程序页面设计对齐Web端-水墨风统一改造计划.md](.trae/documents/小程序页面设计对齐Web端-水墨风统一改造计划.md) v5，采用 design-taste-frontend skill Redesign-Preserve 方法论。
+
+- [x] **MP-INK-01** 公共组件层：新增 icon（base64 SVG mask，20+ 图标）/ skeleton（post-card/line/avatar 变体）/ empty-state（icon+title+hint+action）三大组件；post-card 组件对齐 Web PostCard（分类色板圆点、DIN 数字、状态徽标）
+- [x] **MP-INK-02** 全部 14 页面水墨风改造：home（校名+slogan+"为你推荐"区块）/ post-detail / profile（用户卡渐变+头像环+4 列统计+浏览历史/订阅/身份/设备模块）/ login（品牌区"欢迎回来"+slogan+icon 输入框+忘记密码+访客浏览）/ search（icon 搜索框+模式 Tab+AI 卡片+骨架屏）/ publish（分类色点+icon 化+AI 助手）/ edit-post / notifications（类型 icon+未读色条）/ map（几何符号→icon+callout token 色）/ topics / topic-detail / subscriptions / bind-account / school-select
+- [x] **MP-INK-03** 统一文案对齐 Web 端：Login 标题"欢迎回来"、slogan"把会消失的校园经验留下来"、注册"还没有账号？立即注册"、空结果"没有找到相关内容"、没有更多"没有更多了"
+- [x] **MP-INK-04** Pre-Flight Check 机械扫描：em-dash 0 匹配、几何符号 0 匹配、修复 map.ts 中 `#333333`/`#ffffff` 为 token 色值
+- [x] **MP-INK-05** 验证：TypeScript `tsc --noEmit` 通过（仅余预先存在的 miniprogram-api-typings 缺失）；后端 `pytest tests/ -q` 936 passed / 79 skipped / 0 failed；前端 `npm run build` 成功
+- [x] **MP-INK-07** WXSS 编译错误全方位排查修复（2026-07-31）：
+  - icon 组件从 `mask-image + currentColor` 重构为 `<image src="data:image/svg+xml;base64,...">` 方案（`._gen.cjs` 脚本生成 41 个图标的 `ICON_PATHS` 映射 + `buildSvgSrc()` 动态颜色注入）
+  - 移除 `home.wxss` 中 `.tab-bar` 的 `backdrop-filter` / `-webkit-backdrop-filter`（WXSS 不支持）
+  - 修复 `tsconfig.json`：移除 `types: ["miniprogram-api-typings"]` 错误配置（本地 `./typings` 已含完整 wx 类型定义）
+  - 全量扫描确认小程序目录无 `mask-image` / `backdrop-filter` / `filter:` / `clip-path:` 引用（`._gen.cjs` 脚本本身除外）
+- [ ] **MP-INK-06** 微信开发者工具实机编译 + 截图对比 Web 端（待用户手动验证）
+- 任务报告：[AIwork/小程序页面水墨风对齐Web端统一改造任务报告.md](AIwork/小程序页面水墨风对齐Web端统一改造任务报告.md)
+

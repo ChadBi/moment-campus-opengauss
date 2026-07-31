@@ -4,8 +4,11 @@
     <text class="page-subtitle">不同学校的内容相互独立</text>
   </view>
 
-  <view wx:if="{{loading}}" class="loading-tip">
-    <text>加载中...</text>
+  <!-- 加载中：骨架屏 -->
+  <view wx:if="{{loading}}" class="loading-skeleton">
+    <skeleton variant="list-item" />
+    <skeleton variant="list-item" />
+    <skeleton variant="list-item" />
   </view>
 
   <view wx:else class="school-list">
@@ -15,14 +18,14 @@
       class="school-card {{item.selected ? 'school-card-active' : ''}}"
       data-id="{{item.id}}"
       bindtap="onSelectSchool"
-    >
+      hover-class="school-card-hover"
+      hover-stay-time="120">
       <view class="school-logo-wrap">
         <image
           wx:if="{{item.logoUrl}}"
           class="school-logo"
           src="{{item.logoUrl}}"
-          mode="aspectFill"
-        ></image>
+          mode="aspectFill"></image>
         <view wx:else class="school-logo-default">
           <text>{{item.short_name}}</text>
         </view>
@@ -31,29 +34,36 @@
         <view class="school-name-row">
           <text class="school-name">{{item.name}}</text>
           <view wx:if="{{item.selected}}" class="selected-badge">
-            <text>✓</text>
+            <icon name="check-circle" size="32rpx" color="#ffffff" />
           </view>
         </view>
         <view wx:if="{{item.description}}" class="school-desc">
           <text>{{item.description}}</text>
         </view>
         <view wx:if="{{item.location}}" class="school-location">
-          <text class="location-icon">📍</text>
+          <icon name="map-pin" size="22rpx" color="#6a7d81" />
           <text class="location-text">{{item.location}}</text>
         </view>
       </view>
     </view>
 
-    <view wx:if="{{!schools.length}}" class="empty-state">
-      <text class="empty-text">暂无可选学校</text>
+    <!-- 空状态 -->
+    <view wx:if="{{!schools.length}}" class="empty-result-wrap">
+      <empty-state
+        icon="school"
+        title="暂无可选学校"
+        hint="请稍后再试"
+      />
     </view>
   </view>
 
+  <!-- 底部确认栏 -->
   <view class="bottom-bar">
     <view
       class="confirm-btn {{(!selectedId || submitting) ? 'confirm-btn-disabled' : ''}}"
       bindtap="onConfirm"
-    >
+      hover-class="{{(!selectedId || submitting) ? '' : 'confirm-btn-hover'}}"
+      hover-stay-time="120">
       <text wx:if="{{submitting}}">切换中...</text>
       <text wx:else>确认选择</text>
     </view>

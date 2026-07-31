@@ -4,6 +4,23 @@ import { resolveImageUrl } from '../../services/request'
 
 const DRAFT_KEY = 'publish_draft'
 
+/**
+ * 分类名映射到分类色板 CSS 类名（与 post-card 组件保持一致）
+ * 美食/食物/餐饮→food, 活动/事件→event, 服务→service,
+ * 学习/学术→study, 失物招领/失物→lostFound, 社团→club, 其他→default
+ */
+function mapCategoryToClass(name: string): string {
+  if (!name) return 'default'
+  const n = String(name).trim()
+  if (/(美食|食物|餐饮|食品|吃饭)/.test(n)) return 'food'
+  if (/(活动|事件)/.test(n)) return 'event'
+  if (/(服务)/.test(n)) return 'service'
+  if (/(学习|学术|学习交流|课程|考研)/.test(n)) return 'study'
+  if (/(失物招领|失物)/.test(n)) return 'lostFound'
+  if (/(社团)/.test(n)) return 'club'
+  return 'default'
+}
+
 Page({
   data: {
     categories: [] as any[],
@@ -55,7 +72,9 @@ Page({
     try {
       const res: any = await http.get('/categories')
       const list = (res && (res.categories || res.items || res.data)) || []
-      const cats = list.filter((c: any) => c.is_active === undefined || c.is_active === true)
+      const cats = list
+        .filter((c: any) => c.is_active === undefined || c.is_active === true)
+        .map((c: any) => ({ ...c, cls: mapCategoryToClass(c.name) }))
       let selectedCategoryId = this.data.selectedCategoryId
       if (!selectedCategoryId && cats.length > 0) {
         selectedCategoryId = cats[0].id

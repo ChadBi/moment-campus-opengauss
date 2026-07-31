@@ -17,6 +17,21 @@ const REPORT_REASONS = [
   '其他',
 ]
 
+/**
+ * 分类名映射到分类色板 CSS 类名（与 post-card 组件一致）
+ */
+function mapCategoryToClass(name: string): string {
+  if (!name) return 'default'
+  const n = String(name).trim()
+  if (/(美食|食物|餐饮|食品|吃饭)/.test(n)) return 'food'
+  if (/(活动|事件)/.test(n)) return 'event'
+  if (/(服务)/.test(n)) return 'service'
+  if (/(学习|学术|学习交流|课程|考研)/.test(n)) return 'study'
+  if (/(失物招领|失物)/.test(n)) return 'lostFound'
+  if (/(社团)/.test(n)) return 'club'
+  return 'default'
+}
+
 Page({
   data: {
     postId: 0,
@@ -56,6 +71,9 @@ Page({
     reportType: '其他',
     reportReasons: REPORT_REASONS,
     submittingReport: false,
+
+    // 分类色板类名
+    categoryClass: 'default',
   },
 
   onLoad(options: any) {
@@ -108,7 +126,12 @@ Page({
       validations_count_text: formatCount(post.validations_count || 0),
       views_count_text: formatCount(post.views_count || 0),
     }
-    this.setData({ post: normalized, images })
+    const categoryName = post.category_name || (post.category && post.category.name) || ''
+    this.setData({
+      post: normalized,
+      images,
+      categoryClass: mapCategoryToClass(categoryName),
+    })
     this.startCountdown(post.expires_at)
   },
 

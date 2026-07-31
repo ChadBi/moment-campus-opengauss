@@ -1,8 +1,9 @@
 <view class="topic-detail-page">
-  <!-- 加载状态 -->
-  <view wx:if="{{loading}}" class="loading-state">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
+  <!-- 加载状态：骨架屏 -->
+  <view wx:if="{{loading}}" class="loading-skeleton">
+    <skeleton variant="list-item" />
+    <skeleton variant="list-item" />
+    <skeleton variant="list-item" />
   </view>
 
   <block wx:if="{{topic}}">
@@ -15,8 +16,14 @@
         <text class="topic-title">{{topic.title}}</text>
         <text wx:if="{{topic.description}}" class="topic-desc">{{topic.description}}</text>
         <view class="topic-meta">
-          <text class="meta-item">📝 {{postCountText}} 篇</text>
-          <text wx:if="{{createdAtText}}" class="meta-item">🕒 {{createdAtText}}</text>
+          <view class="meta-item meta-count">
+            <icon name="file-text" size="24rpx" color="#174d5e" />
+            <text>{{postCountText}} 篇</text>
+          </view>
+          <view wx:if="{{createdAtText}}" class="meta-item meta-time">
+            <icon name="clock" size="24rpx" color="#6a7d81" />
+            <text>{{createdAtText}}</text>
+          </view>
         </view>
       </view>
     </view>
@@ -27,9 +34,12 @@
     </view>
 
     <!-- 空状态 -->
-    <view wx:if="{{posts.length === 0 && !loading}}" class="empty-state">
-      <text class="empty-icon">📭</text>
-      <text class="empty-text">该专题暂无关联帖子</text>
+    <view wx:if="{{posts.length === 0 && !loading}}" class="empty-result-wrap">
+      <empty-state
+        icon="file-text"
+        title="暂无关联帖子"
+        hint="该专题还没有帖子"
+      />
     </view>
 
     <!-- 关联帖子列表：使用 post-card 组件 -->

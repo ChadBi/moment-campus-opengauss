@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "校园地图"
+  "navigationBarTitleText": "校园地图",
+  "usingComponents": {
+    "icon": "/components/icon/icon"
+  }
 }

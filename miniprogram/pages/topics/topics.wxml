@@ -7,45 +7,62 @@
 
   <!-- 专题列表 -->
   <view class="topic-list">
+    <!-- 加载中：骨架屏 -->
+    <view wx:if="{{loading && topics.length === 0}}" class="loading-skeleton">
+      <skeleton variant="list-item" />
+      <skeleton variant="list-item" />
+      <skeleton variant="list-item" />
+    </view>
+
     <!-- 空状态 -->
-    <view wx:if="{{topics.length === 0 && !loading}}" class="empty-state">
-      <text class="empty-icon">📂</text>
-      <text class="empty-text">暂无专题</text>
+    <view wx:elif="{{topics.length === 0}}" class="empty-result-wrap">
+      <empty-state
+        icon="file-text"
+        title="暂无专题"
+        hint="专题内容敬请期待"
+      />
     </view>
 
     <!-- 专题卡片 -->
-    <view
-      wx:for="{{topics}}"
-      wx:key="id"
-      class="topic-card"
-      data-id="{{item.id}}"
-      bindtap="onTopicTap">
-      <view wx:if="{{item.cover_image}}" class="topic-cover">
-        <image class="cover-img" src="{{item.cover_image}}" mode="aspectFill" />
-      </view>
-      <view wx:else class="topic-cover topic-cover-placeholder">
-        <text class="placeholder-icon">📰</text>
-      </view>
-      <view class="topic-info">
-        <text class="topic-title">{{item.title}}</text>
-        <text wx:if="{{item.description}}" class="topic-desc">{{item.description}}</text>
-        <view class="topic-meta">
-          <text class="meta-item">📝 {{item.post_count_text}} 篇</text>
-          <text class="meta-item">🕒 {{item.created_at_text}}</text>
+    <block wx:else>
+      <view
+        wx:for="{{topics}}"
+        wx:key="id"
+        class="topic-card"
+        data-id="{{item.id}}"
+        bindtap="onTopicTap"
+        hover-class="topic-card-hover"
+        hover-stay-time="120">
+        <view wx:if="{{item.cover_image}}" class="topic-cover">
+          <image class="cover-img" src="{{item.cover_image}}" mode="aspectFill" />
+        </view>
+        <view wx:else class="topic-cover topic-cover-placeholder">
+          <icon name="file-text" size="56rpx" color="#174d5e" />
+        </view>
+        <view class="topic-info">
+          <text class="topic-title">{{item.title}}</text>
+          <text wx:if="{{item.description}}" class="topic-desc">{{item.description}}</text>
+          <view class="topic-meta">
+            <view class="meta-item meta-count">
+              <icon name="file-text" size="22rpx" color="#174d5e" />
+              <text>{{item.post_count_text}} 篇</text>
+            </view>
+            <view class="meta-item meta-time">
+              <icon name="clock" size="22rpx" color="#6a7d81" />
+              <text>{{item.created_at_text}}</text>
+            </view>
+          </view>
         </view>
       </view>
-    </view>
+    </block>
   </view>
 
-  <!-- 加载状态 -->
-  <view wx:if="{{loading}}" class="loading-state">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
-  </view>
+  <!-- 加载更多 -->
   <view wx:if="{{loadingMore}}" class="loading-more">
+    <view class="loading-spinner-sm"></view>
     <text>加载更多...</text>
   </view>
   <view wx:if="{{!hasMore && topics.length > 0 && !loadingMore}}" class="no-more">
-    <text>— 没有更多了 —</text>
+    <text>没有更多了</text>
   </view>
 </view>

@@ -2,10 +2,10 @@ import { http } from '../../services/request'
 import { formatDate } from '../../utils/format'
 
 const TYPE_ICONS: Record<string, string> = {
-  category: '🏷️',
-  user: '👤',
-  tag: '🔖',
-  location: '📍',
+  category: 'file-text',
+  user: 'user',
+  tag: 'bookmark',
+  location: 'map-pin',
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -90,7 +90,7 @@ Page({
     return {
       ...s,
       subscription_type: type,
-      type_icon: TYPE_ICONS[type] || '🔔',
+      type_icon: TYPE_ICONS[type] || 'bell',
       type_label: TYPE_LABELS[type] || type,
       target_name: s.target_name || s.name || '未知',
       created_at_text: s.created_at ? formatDate(s.created_at, 'datetime') : '',
@@ -133,7 +133,7 @@ Page({
         id: Number(c.id),
         name: c.name || '未命名分类',
         description: c.description || '',
-        icon: c.icon || '🏷️',
+        icon: TYPE_ICONS.category,
         subscribed: ids.indexOf(Number(c.id)) !== -1,
       }))
       this.setData({ categories: list })

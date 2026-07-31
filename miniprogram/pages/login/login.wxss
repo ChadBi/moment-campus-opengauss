@@ -1,130 +1,219 @@
+/* ============================================================
+ * 登录页 - 水墨风（对齐 Web LoginPage.tsx）
+ * 品牌区 + 卡片容器 + icon 输入框 + 忘记密码 + 访客浏览
+ * ============================================================ */
+
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-  padding: 100rpx 60rpx;
+  padding: 120rpx 60rpx 60rpx;
+  display: flex;
+  flex-direction: column;
 }
 
-.login-header {
-  text-align: center;
-  margin-bottom: 120rpx;
+/* ============== 品牌区（对齐 Web LoginPage: brand-logo + 欢迎回来 + slogan） ============== */
+.brand-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 80rpx;
 }
 
-.app-name {
-  display: block;
-  font-size: 64rpx;
+.brand-logo {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 24rpx;
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 32rpx;
+}
+
+.brand-logo-text {
+  font-family: var(--font-display);
+  font-size: 44rpx;
   font-weight: 700;
-  color: #fff;
-  margin-bottom: 20rpx;
+  color: var(--lake);
+  line-height: 1;
 }
 
-.app-slogan {
-  font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.8);
+.brand-title {
+  font-family: var(--font-display);
+  font-size: 48rpx;
+  font-weight: 700;
+  color: var(--lake);
+  letter-spacing: 4rpx;
+  margin-bottom: 16rpx;
+}
+
+.brand-slogan {
+  font-size: 26rpx;
+  color: var(--muted);
+}
+
+/* ============== 卡片容器 ============== */
+.login-card {
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  padding: 48rpx 40rpx 56rpx;
+  box-shadow: var(--shadow);
 }
 
 .login-tabs {
   display: flex;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 16rpx;
+  background: var(--paper-hover);
+  border-radius: var(--radius-sm);
   padding: 8rpx;
-  margin-bottom: 60rpx;
+  margin-bottom: 48rpx;
 }
 
 .tab {
   flex: 1;
   text-align: center;
-  padding: 24rpx 0;
-  border-radius: 12rpx;
-  color: rgba(255, 255, 255, 0.7);
+  padding: 22rpx 0;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
   font-size: 28rpx;
   transition: all 0.3s;
 }
 
 .tab.active {
-  background: #fff;
-  color: #667eea;
+  background: var(--paper);
+  color: var(--lake);
   font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
-.wechat-login, .email-login {
-  background: #fff;
-  border-radius: 24rpx;
-  padding: 60rpx 40rpx;
-}
-
+/* ============== 微信登录 ============== */
 .wechat-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20rpx;
-  height: 100rpx;
-  background: #07c160;
-  border-radius: 50rpx;
-  color: #fff;
+  gap: 16rpx;
+  height: 96rpx;
+  background: var(--grass);
+  border-radius: var(--radius-md);
+  color: #ffffff;
   font-size: 32rpx;
   font-weight: 600;
+  transition: transform 0.15s;
+}
+
+.wechat-btn-hover {
+  transform: scale(0.98);
 }
 
 .wechat-btn.disabled {
   opacity: 0.6;
 }
 
-.wechat-icon {
-  font-size: 36rpx;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 10rpx 20rpx;
-  border-radius: 8rpx;
-}
-
 .login-tip {
   text-align: center;
-  margin-top: 30rpx;
-  color: #999;
-  font-size: 26rpx;
+  margin-top: 28rpx;
+  color: var(--muted);
+  font-size: 24rpx;
 }
 
+/* ============== 邮箱登录 ============== */
 .form-item {
-  margin-bottom: 30rpx;
+  margin-bottom: 28rpx;
+}
+
+.input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  background: var(--mist);
+  border: 1rpx solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 0 24rpx;
+  height: 88rpx;
+  transition: border-color 0.2s;
+}
+
+.input-wrap:focus-within {
+  border-color: var(--lake);
 }
 
 .form-input {
-  width: 100%;
-  height: 88rpx;
-  background: #f5f5f5;
-  border-radius: 12rpx;
-  padding: 0 30rpx;
+  flex: 1;
+  height: 100%;
+  background: transparent;
   font-size: 30rpx;
+  color: var(--ink);
+}
+
+.ph {
+  color: var(--ink-disabled);
 }
 
 .error-msg {
-  background: #ffebee;
-  color: #c62828;
-  padding: 20rpx;
-  border-radius: 8rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background: rgba(205, 88, 82, 0.08);
+  color: var(--danger);
+  padding: 20rpx 24rpx;
+  border-radius: var(--radius-sm);
   font-size: 26rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 24rpx;
 }
 
 .submit-btn {
   width: 100%;
-  height: 88rpx;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 44rpx;
-  color: #fff;
+  height: 96rpx;
+  background: var(--lake);
+  border-radius: var(--radius-md);
+  color: #ffffff;
   font-size: 32rpx;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: var(--shadow-lake);
+  transition: transform 0.15s;
+}
+
+.submit-btn-hover {
+  transform: scale(0.98);
 }
 
 .submit-btn.disabled {
   opacity: 0.6;
+  box-shadow: none;
 }
 
-.register-link {
-  text-align: center;
-  margin-top: 40rpx;
-  color: #667eea;
-  font-size: 28rpx;
+.form-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 36rpx;
+  font-size: 26rpx;
+}
+
+.link-register {
+  color: var(--lake);
+  font-weight: 500;
+}
+
+.link-forgot {
+  color: var(--muted);
+}
+
+/* ============== 访客浏览入口 ============== */
+.guest-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  margin-top: 48rpx;
+  padding: 24rpx 0;
+  color: var(--muted);
+  font-size: 26rpx;
+  transition: color 0.2s;
+}
+
+.guest-link-hover {
+  color: var(--lake);
 }

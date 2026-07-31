@@ -1,6 +1,9 @@
+/* ============================================================
+ * 学校选择页 - 水墨风
+ * ============================================================ */
+
 .school-page {
   min-height: 100vh;
-  background: #f5f5f5;
   padding-bottom: 200rpx;
 }
 
@@ -10,23 +13,24 @@
 
 .page-title {
   display: block;
+  font-family: var(--font-display);
   font-size: 40rpx;
-  font-weight: 700;
-  color: #222;
+  font-weight: 800;
+  color: var(--ink);
 }
 
 .page-subtitle {
   display: block;
   margin-top: 8rpx;
   font-size: 26rpx;
-  color: #999;
+  color: var(--muted);
 }
 
-.loading-tip {
-  text-align: center;
-  padding: 80rpx 0;
-  color: #999;
-  font-size: 28rpx;
+.loading-skeleton {
+  padding: 20rpx 30rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
 }
 
 .school-list {
@@ -38,17 +42,22 @@
   align-items: center;
   padding: 30rpx;
   margin-bottom: 20rpx;
-  background: #fff;
-  border-radius: 16rpx;
+  background: var(--paper);
+  border-radius: var(--radius-lg);
   border: 2rpx solid transparent;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   transition: all 0.2s;
 }
 
+.school-card-hover {
+  transform: scale(0.98);
+  box-shadow: var(--shadow);
+}
+
 .school-card-active {
-  border-color: #667eea;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.06), rgba(118, 75, 162, 0.06));
-  box-shadow: 0 4rpx 16rpx rgba(102, 126, 234, 0.2);
+  border-color: var(--lake);
+  background: var(--lake-light);
+  box-shadow: var(--shadow-lake);
 }
 
 .school-logo-wrap {
@@ -59,14 +68,14 @@
 .school-logo {
   width: 96rpx;
   height: 96rpx;
-  border-radius: 16rpx;
+  border-radius: var(--radius-md);
 }
 
 .school-logo-default {
   width: 96rpx;
   height: 96rpx;
-  border-radius: 16rpx;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: var(--radius-md);
+  background: var(--lake);
   color: #fff;
   display: flex;
   align-items: center;
@@ -86,9 +95,10 @@
 }
 
 .school-name {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #222;
+  font-family: var(--font-display);
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--ink);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -99,7 +109,7 @@
 .selected-badge {
   width: 32rpx;
   height: 32rpx;
-  background: #667eea;
+  background: var(--lake);
   color: #fff;
   border-radius: 50%;
   display: flex;
@@ -113,7 +123,7 @@
 .school-desc {
   margin-top: 8rpx;
   font-size: 24rpx;
-  color: #666;
+  color: var(--ink-2);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -125,12 +135,9 @@
   margin-top: 8rpx;
   display: flex;
   align-items: center;
+  gap: 6rpx;
   font-size: 22rpx;
-  color: #999;
-}
-
-.location-icon {
-  margin-right: 6rpx;
+  color: var(--muted);
 }
 
 .location-text {
@@ -140,16 +147,8 @@
   text-overflow: ellipsis;
 }
 
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 100rpx 0;
-}
-
-.empty-text {
-  color: #999;
-  font-size: 28rpx;
+.empty-result-wrap {
+  padding: 80rpx 0;
 }
 
 .bottom-bar {
@@ -158,20 +157,29 @@
   right: 0;
   bottom: 0;
   padding: 20rpx 30rpx 40rpx;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.08);
+  background: var(--paper);
+  box-shadow: var(--shadow);
 }
 
 .confirm-btn {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--lake);
   color: #fff;
-  border-radius: 44rpx;
+  border-radius: var(--radius-md);
   padding: 28rpx 0;
   text-align: center;
   font-size: 32rpx;
   font-weight: 600;
+  box-shadow: var(--shadow-lake);
+  transition: all 0.2s;
+}
+
+.confirm-btn-hover {
+  background: var(--lake-dark);
+  transform: scale(0.98);
 }
 
 .confirm-btn-disabled {
-  opacity: 0.5;
+  background: var(--paper-hover);
+  color: var(--ink-disabled);
+  box-shadow: none;
 }

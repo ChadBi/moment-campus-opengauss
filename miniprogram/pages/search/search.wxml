@@ -1,39 +1,46 @@
 <view class="search-page">
-  <!-- 顶部搜索框 -->
+  <!-- ============== 顶部搜索框（对齐 Web SearchPage: icon 搜索框 + lake 按钮） ============== -->
   <view class="search-header">
     <view class="search-input-wrap">
-      <text class="search-icon">🔍</text>
+      <icon name="search" size="32rpx" color="#6a7d81" />
       <input
         class="search-input"
         type="text"
         placeholder="{{mode === 'ai' ? '用自然语言描述你想找的内容…' : '搜索关键词…'}}"
+        placeholder-class="ph"
         value="{{keyword}}"
         confirm-type="search"
         bindinput="onInput"
         bindconfirm="onConfirmSearch"
       />
-      <text wx:if="{{keyword}}" class="clear-btn" bindtap="onClearInput">✕</text>
+      <view wx:if="{{keyword}}" class="clear-btn" bindtap="onClearInput" hover-class="clear-btn-hover" hover-stay-time="120">
+        <icon name="x" size="32rpx" color="#6a7d81" />
+      </view>
     </view>
-    <view class="search-btn" bindtap="onSearch">
+    <view class="search-btn {{searching ? 'disabled' : ''}}" bindtap="onSearch" hover-class="search-btn-hover" hover-stay-time="120">
       <text>{{searching ? '搜索中' : '搜索'}}</text>
     </view>
   </view>
 
-  <!-- 模式切换 Tab -->
+  <!-- ============== 模式切换 Tab（对齐 Web: active 用 lake 背景 + 白字） ============== -->
   <view class="mode-tabs">
     <view class="mode-tab {{mode === 'normal' ? 'active' : ''}}" data-mode="normal" bindtap="onModeSwitch">
       <text>普通搜索</text>
     </view>
     <view class="mode-tab {{mode === 'ai' ? 'active' : ''}}" data-mode="ai" bindtap="onModeSwitch">
-      <text>✨ AI 搜索</text>
+      <icon name="sparkles" size="24rpx" color="{{mode === 'ai' ? '#ffffff' : '#6a7d81'}}" />
+      <text>AI 搜索</text>
     </view>
   </view>
 
-  <!-- 未搜索：历史 + 热门标签 -->
+  <!-- ============== 未搜索：历史 + 热门标签 ============== -->
   <view wx:if="{{!hasSearched}}" class="suggest-wrap">
     <view wx:if="{{history.length > 0}}" class="section">
       <view class="section-header">
-        <text class="section-title">搜索历史</text>
+        <view class="section-title-wrap">
+          <icon name="clock" size="28rpx" color="#174d5e" />
+          <text class="section-title">搜索历史</text>
+        </view>
         <text class="section-action" bindtap="onClearHistory">清空</text>
       </view>
       <view class="tag-cloud">
@@ -43,6 +50,8 @@
           class="tag tag-history"
           data-keyword="{{item}}"
           bindtap="onTagTap"
+          hover-class="tag-hover"
+          hover-stay-time="120"
         >
           <text>{{item}}</text>
         </view>
@@ -51,7 +60,10 @@
 
     <view wx:if="{{hotTags.length > 0}}" class="section">
       <view class="section-header">
-        <text class="section-title">🔥 热门标签</text>
+        <view class="section-title-wrap">
+          <icon name="sparkles" size="28rpx" color="#e67340" />
+          <text class="section-title">热门标签</text>
+        </view>
       </view>
       <view class="tag-cloud">
         <view
@@ -60,33 +72,53 @@
           class="tag tag-hot"
           data-keyword="{{item}}"
           bindtap="onTagTap"
+          hover-class="tag-hot-hover"
+          hover-stay-time="120"
         >
           <text>{{item}}</text>
         </view>
       </view>
     </view>
 
-    <view wx:if="{{history.length === 0 && hotTags.length === 0}}" class="empty-suggest">
-      <text class="empty-suggest-icon">🔍</text>
-      <text class="empty-suggest-text">输入关键词开始搜索</text>
+    <view wx:if="{{history.length === 0 && hotTags.length === 0}}" class="empty-suggest-wrap">
+      <empty-state
+        icon="search"
+        title="输入关键词开始搜索"
+        hint="{{mode === 'ai' ? 'AI 搜索支持自然语言查询' : '试试搜索校园里的经验'}}"
+      />
       <view wx:if="{{mode === 'ai'}}" class="ai-tip">
-        <text>AI 搜索支持自然语言查询，例如：</text>
-        <text class="ai-tip-example">"昨天图书馆丢失的校园卡"</text>
+        <icon name="sparkles" size="24rpx" color="#174d5e" />
+        <view class="ai-tip-text">
+          <text class="ai-tip-line">AI 搜索支持自然语言查询，例如：</text>
+          <text class="ai-tip-example">"昨天图书馆丢失的校园卡"</text>
+        </view>
       </view>
     </view>
   </view>
 
-  <!-- 搜索中 -->
-  <view wx:if="{{hasSearched && searching && results.length === 0}}" class="loading-state">
-    <text>{{mode === 'ai' ? 'AI 正在分析…' : '搜索中…'}}</text>
+  <!-- ============== 搜索中：骨架屏（对齐 Web Loading） ============== -->
+  <view wx:if="{{hasSearched && searching && results.length === 0}}" class="loading-skeleton">
+    <view wx:if="{{mode === 'ai'}}" class="ai-skeleton">
+      <view class="ai-skeleton-label"></view>
+      <view class="ai-skeleton-line"></view>
+      <view class="ai-skeleton-line ai-skeleton-short"></view>
+    </view>
+    <skeleton variant="post-card" />
+    <skeleton variant="post-card" />
+    <skeleton variant="post-card" />
   </view>
 
-  <!-- 搜索结果 -->
+  <!-- ============== 搜索结果 ============== -->
   <view wx:if="{{hasSearched && !searching}}" class="results-wrap">
-    <!-- AI 分析卡片 -->
+    <!-- AI 分析卡片（对齐 Web: bg-lake/10 + Sparkles icon） -->
     <view wx:if="{{mode === 'ai' && (aiIntent || aiReasons.length > 0)}}" class="ai-card">
+      <view class="ai-card-header">
+        <icon name="sparkles" size="28rpx" color="#174d5e" />
+        <text class="ai-card-title">AI 分析</text>
+      </view>
       <view wx:if="{{aiFallback}}" class="ai-fallback-tip">
-        <text>⚠️ {{aiFallbackReason || 'AI 暂不可用，已降级普通搜索'}}</text>
+        <icon name="alert-circle" size="24rpx" color="#cc5f30" />
+        <text>{{aiFallbackReason || 'AI 暂不可用，已降级普通搜索'}}</text>
       </view>
       <view wx:if="{{aiIntent}}" class="ai-row">
         <text class="ai-label">意图分析</text>
@@ -96,7 +128,8 @@
         <text class="ai-label">匹配理由</text>
         <view class="ai-reasons">
           <view wx:for="{{aiReasons}}" wx:key="*this" class="ai-reason-item">
-            <text>• {{item}}</text>
+            <view class="reason-dot"></view>
+            <text>{{item}}</text>
           </view>
         </view>
       </view>
@@ -107,15 +140,25 @@
       <text>共 {{total}} 条结果</text>
     </view>
 
-    <!-- 空结果 -->
-    <view wx:if="{{results.length === 0}}" class="empty-state">
-      <text class="empty-icon">📭</text>
-      <text class="empty-text">没有找到相关内容</text>
-      <text class="empty-hint">换个关键词试试吧</text>
+    <!-- 空结果（empty-state 组件） -->
+    <view wx:if="{{results.length === 0}}" class="empty-result-wrap">
+      <empty-state
+        icon="search"
+        title="没有找到相关内容"
+        hint="换个关键词试试吧"
+      />
     </view>
 
-    <!-- 结果列表 -->
-    <view wx:for="{{results}}" wx:key="id" class="post-card" data-id="{{item.id}}" bindtap="goToDetail">
+    <!-- 结果列表（对齐 Web post-card） -->
+    <view
+      wx:for="{{results}}"
+      wx:key="id"
+      class="post-card"
+      data-id="{{item.id}}"
+      bindtap="goToDetail"
+      hover-class="post-card-hover"
+      hover-stay-time="120"
+    >
       <view class="post-header">
         <image
           class="author-avatar"
@@ -139,31 +182,44 @@
       </view>
 
       <view wx:if="{{item.location_name}}" class="post-location">
-        <text class="loc-icon">📍</text>
+        <icon name="map-pin" size="24rpx" color="#2d6270" />
         <text class="loc-text">{{item.location_name}}</text>
       </view>
 
       <!-- AI 单条匹配理由 -->
       <view wx:if="{{item.match_reasons && item.match_reasons.length > 0}}" class="match-reasons">
         <view wx:for="{{item.match_reasons}}" wx:for-item="reason" wx:key="*this" class="match-reason">
-          <text>✨ {{reason}}</text>
+          <view class="reason-dot"></view>
+          <text>{{reason}}</text>
         </view>
       </view>
 
       <view class="post-footer">
-        <text class="stat-item">👍 {{item.likes_count_text}}</text>
-        <text class="stat-item">💬 {{item.comments_count_text}}</text>
-        <text class="stat-item">✅ {{item.validations_count_text}}</text>
-        <text class="stat-item">👁 {{item.views_count_text}}</text>
+        <view class="stat-item">
+          <icon name="heart" size="24rpx" color="#6a7d81" />
+          <text class="stat-num">{{item.likes_count_text}}</text>
+        </view>
+        <view class="stat-item">
+          <icon name="message-circle" size="24rpx" color="#6a7d81" />
+          <text class="stat-num">{{item.comments_count_text}}</text>
+        </view>
+        <view class="stat-item">
+          <icon name="check-circle" size="24rpx" color="#6a7d81" />
+          <text class="stat-num">{{item.validations_count_text}}</text>
+        </view>
+        <view class="stat-item">
+          <icon name="eye" size="24rpx" color="#6a7d81" />
+          <text class="stat-num">{{item.views_count_text}}</text>
+        </view>
       </view>
     </view>
 
     <!-- 加载更多 -->
     <view wx:if="{{loadingMore}}" class="loading-more">
-      <text>加载中…</text>
+      <skeleton variant="list-item" />
     </view>
     <view wx:elif="{{!hasMore && results.length > 0}}" class="no-more">
-      <text>— 已加载全部 —</text>
+      <text>没有更多了</text>
     </view>
   </view>
 </view>

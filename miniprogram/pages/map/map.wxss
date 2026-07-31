@@ -9,6 +9,7 @@
   height: 100vh;
 }
 
+/* ============== 顶部信息栏 ============== */
 .map-header {
   position: fixed;
   top: 20rpx;
@@ -18,9 +19,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 20rpx 30rpx;
-  background: rgba(255, 255, 255, 0.96);
-  border-radius: 16rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.12);
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   z-index: 10;
 }
 
@@ -33,65 +34,70 @@
 .school-name {
   font-size: 32rpx;
   font-weight: 600;
-  color: #222;
+  color: var(--ink);
 }
 
 .school-subtitle {
   font-size: 22rpx;
-  color: #999;
+  color: var(--muted);
   margin-top: 4rpx;
 }
 
+/* ============== 定位按钮 ============== */
 .locate-btn {
   width: 72rpx;
   height: 72rpx;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--lake);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.35);
+  box-shadow: var(--shadow-lake);
+  transition: all 0.2s;
 }
 
-.locate-icon {
-  font-size: 32rpx;
+.locate-btn-hover {
+  background: var(--lake-dark);
+  transform: scale(0.95);
 }
 
+/* ============== 权限提示 ============== */
 .denied-tip {
   position: fixed;
   top: 140rpx;
   left: 20rpx;
   right: 20rpx;
   padding: 16rpx 24rpx;
-  background: rgba(255, 243, 224, 0.96);
-  border-radius: 12rpx;
+  background: var(--paper-alt);
+  border: 1rpx solid var(--line);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  border: 1rpx solid #ffe0b2;
+  gap: 12rpx;
   z-index: 10;
 }
 
-.denied-icon {
-  font-size: 28rpx;
-  margin-right: 12rpx;
+.denied-tip-hover {
+  background: var(--paper-hover);
 }
 
 .denied-text {
   flex: 1;
   font-size: 24rpx;
-  color: #e65100;
+  color: var(--ink-2);
   line-height: 1.4;
 }
 
+/* ============== 标记点信息卡片 ============== */
 .info-card {
   position: fixed;
   left: 20rpx;
   right: 20rpx;
   bottom: 40rpx;
   padding: 24rpx 30rpx;
-  background: #fff;
-  border-radius: 20rpx;
-  box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.15);
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
   z-index: 10;
 }
 
@@ -106,7 +112,7 @@
   flex: 1;
   font-size: 32rpx;
   font-weight: 600;
-  color: #222;
+  color: var(--ink);
   margin-right: 16rpx;
 }
 
@@ -116,13 +122,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
-  font-size: 28rpx;
+  color: var(--muted);
+  border-radius: 50%;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.info-close-hover {
+  background: var(--paper-hover);
+  color: var(--ink);
 }
 
 .info-snippet {
   font-size: 26rpx;
-  color: #555;
+  color: var(--ink-2);
   line-height: 1.5;
   margin-bottom: 16rpx;
   display: -webkit-box;
@@ -140,30 +153,33 @@
 
 .info-tag {
   padding: 4rpx 16rpx;
-  background: #f0f4ff;
-  color: #667eea;
-  border-radius: 8rpx;
+  background: var(--lake-light);
+  color: var(--lake);
+  border-radius: var(--radius-sm);
   font-size: 22rpx;
 }
 
 .info-status {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: #ebf2ed;
+  color: var(--grass);
 }
 
 .info-action {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6rpx;
   padding: 16rpx 0;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--lake);
   color: #fff;
-  border-radius: 12rpx;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lake);
   font-size: 28rpx;
   font-weight: 500;
+  transition: all 0.2s;
 }
 
-.action-arrow {
-  margin-left: 8rpx;
-  font-size: 32rpx;
+.info-action-hover {
+  background: var(--lake-dark);
+  transform: scale(0.98);
 }

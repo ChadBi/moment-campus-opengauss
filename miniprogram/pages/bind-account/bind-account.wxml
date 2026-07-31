@@ -1,37 +1,84 @@
 <view class="bind-page">
-  <view class="page-title">
-    <text>{{mode === 'bind' ? '绑定已有账号' : '注册新账号'}}</text>
+  <!-- 顶部标题区 -->
+  <view class="page-header">
+    <view class="header-icon">
+      <icon name="{{mode === 'bind' ? 'log-in' : 'user'}}" size="56rpx" color="#174d5e" />
+    </view>
+    <text class="page-title">{{mode === 'bind' ? '绑定已有账号' : '注册新账号'}}</text>
+    <text class="page-subtitle">{{mode === 'bind' ? '使用已有账号密码完成微信绑定' : '创建新账号并绑定微信'}}</text>
   </view>
 
+  <!-- 注册模式：昵称 + 学校 -->
   <view class="form-section" wx:if="{{mode === 'register'}}">
     <view class="form-item">
-      <text class="label">昵称</text>
-      <input type="text" placeholder="请输入昵称" value="{{nickname}}" bindinput="onNicknameInput" class="input"/>
+      <view class="label-row">
+        <icon name="user" size="24rpx" color="#6a7d81" />
+        <text class="label">昵称</text>
+      </view>
+      <input
+        type="text"
+        placeholder="请输入昵称"
+        placeholder-class="ph"
+        value="{{nickname}}"
+        bindinput="onNicknameInput"
+        class="input"/>
     </view>
     <view class="form-item">
-      <text class="label">学校</text>
+      <view class="label-row">
+        <icon name="school" size="24rpx" color="#6a7d81" />
+        <text class="label">学校</text>
+      </view>
       <picker bindchange="onSchoolSelect" value="{{schoolId}}" range="{{schools}}" range-key="name">
-        <view class="picker">{{schoolId ? '请选择学校' : '点击选择学校'}}</view>
+        <view class="picker {{schoolId ? 'has-value' : ''}}">
+          <text>{{schoolName || '点击选择学校'}}</text>
+          <icon name="chevron-down" size="24rpx" color="#6a7d81" />
+        </view>
       </picker>
     </view>
   </view>
 
+  <!-- 邮箱 + 密码 -->
   <view class="form-section">
     <view class="form-item">
-      <text class="label">邮箱</text>
-      <input type="text" placeholder="{{mode === 'bind' ? '请输入邮箱' : '选填'}}" value="{{email}}" bindinput="onEmailInput" class="input"/>
+      <view class="label-row">
+        <icon name="mail" size="24rpx" color="#6a7d81" />
+        <text class="label">邮箱</text>
+      </view>
+      <input
+        type="text"
+        placeholder="{{mode === 'bind' ? '请输入邮箱' : '选填'}}"
+        placeholder-class="ph"
+        value="{{email}}"
+        bindinput="onEmailInput"
+        class="input"/>
     </view>
     <view class="form-item">
-      <text class="label">密码</text>
-      <input type="password" placeholder="请输入密码" value="{{password}}" bindinput="onPasswordInput" class="input"/>
+      <view class="label-row">
+        <icon name="lock" size="24rpx" color="#6a7d81" />
+        <text class="label">密码</text>
+      </view>
+      <input
+        type="password"
+        placeholder="请输入密码"
+        placeholder-class="ph"
+        value="{{password}}"
+        bindinput="onPasswordInput"
+        class="input"/>
     </view>
   </view>
 
+  <!-- 错误提示 -->
   <view wx:if="{{errorMsg}}" class="error-msg">
+    <icon name="alert-circle" size="28rpx" color="#cd5852" />
     <text>{{errorMsg}}</text>
   </view>
 
-  <view class="submit-btn {{loading ? 'disabled' : ''}}" bindtap="onSubmit">
+  <!-- 提交按钮 -->
+  <view
+    class="submit-btn {{loading ? 'disabled' : ''}}"
+    bindtap="onSubmit"
+    hover-class="{{loading ? '' : 'submit-btn-hover'}}"
+    hover-stay-time="120">
     <text>{{loading ? '处理中...' : (mode === 'bind' ? '绑定并登录' : '注册并登录')}}</text>
   </view>
 </view>

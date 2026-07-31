@@ -10,11 +10,12 @@
   box-shadow: var(--shadow-sm);
   padding: 28rpx;
   margin-bottom: 24rpx;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.post-card:active {
+.post-card-hover {
   box-shadow: var(--shadow);
+  transform: translateY(-2rpx);
 }
 
 /* === 头部 === */
@@ -55,6 +56,7 @@
   font-size: 22rpx;
   color: var(--muted);
   margin-top: 6rpx;
+  font-family: var(--font-data);
 }
 
 /* === 分类标签（使用分类色板 CSS 类） === */
@@ -81,6 +83,7 @@
   line-height: 1.4;
   margin-bottom: 10rpx;
   letter-spacing: 0.5rpx;
+  font-family: var(--font-display);
 }
 
 .post-content {
@@ -119,24 +122,22 @@
 .location-info {
   display: flex;
   align-items: center;
+  gap: 6rpx;
   flex: 1;
   min-width: 0;
   margin-right: 16rpx;
-}
-
-.location-icon {
-  font-size: 24rpx;
-  color: var(--lake-2);
-  margin-right: 6rpx;
-  flex-shrink: 0;
+  padding: 4rpx 12rpx 4rpx 8rpx;
+  background: var(--lake-light);
+  border-radius: var(--radius-sm);
 }
 
 .location-text {
   font-size: 22rpx;
-  color: var(--muted);
+  color: var(--lake-2);
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  font-weight: 500;
 }
 
 .post-stats {
@@ -146,15 +147,25 @@
 }
 
 .stat-item {
-  font-size: 22rpx;
-  color: var(--muted);
   display: flex;
   align-items: center;
+  gap: 4rpx;
 }
 
 .stat-item .stat-num {
   font-family: var(--font-data);
   font-weight: 700;
   color: var(--ink-2);
-  margin-left: 4rpx;
+  font-size: 22rpx;
+  letter-spacing: 0.5rpx;
+}
+
+/* === reduced motion 降级 === */
+@media (prefers-reduced-motion: reduce) {
+  .post-card {
+    transition: none;
+  }
+  .post-card-hover {
+    transform: none;
+  }
 }
