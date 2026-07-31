@@ -54,9 +54,8 @@
 
 ## 3. 未完成内容
 
-- 微信开发者工具 `simulator_refresh` 实机编译验证未执行（当前环境未安装 wechatide CLI，需用户在微信开发者工具中手动验证）
-- 小程序实机截图对比 Web 端视觉未执行（需用户在微信开发者工具中截图）
-- 小程序 E2E 自动化测试未执行（需前后端启动 + 微信开发者工具联调）
+- 小程序实机截图对比 Web 端视觉未执行（automator 超时，需在开发者工具设置中开启自动化端口或手动截图）
+- 小程序 E2E 自动化测试未执行（需前后端启动 + automator 就绪）
 
 ## 4. 实现思路
 
@@ -123,9 +122,19 @@
 ### 7.4 前端构建
 - `npm run build`：成功，1.87s 构建完成 ✅
 
-### 7.5 未执行测试及原因
-- **微信开发者工具 simulator_refresh**：当前环境未安装 wechatide CLI，需用户在微信开发者工具中手动打开 `miniprogram/` 项目编译验证
-- **小程序 E2E 自动化测试**：需前后端启动 + 微信开发者工具联调，且小程序 E2E 依赖实机/模拟器环境，本次未执行
+### 7.5 微信开发者工具实机编译验证（2026-07-31）
+通过 wechatide-skill 调用微信开发者工具 CLI（版本 2.02.2607302，用户 chai_na 已登录）完成实机编译验证：
+
+- `open_project_window`（fullMode）：成功打开项目窗口 ✅
+- `simulator_refresh`：成功触发编译 ✅
+- `get_simulator_console --command "grep -i error"`：返回空字符串（无 error 匹配）✅
+- `get_simulator_console --command "grep -iE 'warn|error|fail|wxss|compile'"`：返回空字符串（无 warning/error/fail/wxss/compile 相关日志）✅
+- console 仅有 2 条正常 info 日志：`WeChatLib: 3.17.0` 加载 + `Lazy code loading is enabled` ✅
+- **结论**：WXSS 编译错误已完全消除，小程序正常编译加载
+
+### 7.6 未执行测试及原因
+- **simulator_screenshot 截图**：automator 超时（`waitForAutomatorReady timeout`），可能因后端 API 未启动导致页面卡在加载态，或需在开发者工具设置中开启自动化端口；不影响编译验证结论
+- **小程序 E2E 自动化测试**：需前后端启动 + 微信开发者工具 automator 就绪，本次未执行
 
 ## 8. 后续建议
 

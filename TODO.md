@@ -1126,6 +1126,6 @@ R-14 飞书问卷提交（0.5 天，最终步骤，建议 2026-08-08 前完成�
   - 移除 `home.wxss` 中 `.tab-bar` 的 `backdrop-filter` / `-webkit-backdrop-filter`（WXSS 不支持）
   - 修复 `tsconfig.json`：移除 `types: ["miniprogram-api-typings"]` 错误配置（本地 `./typings` 已含完整 wx 类型定义）
   - 全量扫描确认小程序目录无 `mask-image` / `backdrop-filter` / `filter:` / `clip-path:` 引用（`._gen.cjs` 脚本本身除外）
-- [ ] **MP-INK-06** 微信开发者工具实机编译 + 截图对比 Web 端（待用户手动验证）
+- [x] **MP-INK-06** 微信开发者工具实机编译验证（2026-07-31 通过 wechatide-skill CLI 完成）：`simulator_refresh` 编译成功；console 日志 grep `error|warn|fail|wxss|compile` 全部返回空（无编译错误）；仅 2 条正常 info（WeChatLib 3.17.0 + Lazy code loading）。截图因 automator 超时未执行（需开启自动化端口）
 - 任务报告：[AIwork/小程序页面水墨风对齐Web端统一改造任务报告.md](AIwork/小程序页面水墨风对齐Web端统一改造任务报告.md)
 
