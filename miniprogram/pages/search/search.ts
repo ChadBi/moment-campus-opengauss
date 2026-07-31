@@ -186,7 +186,7 @@ Page({
     const list = items.map((p: any) => this.normalizePost(p))
     this.setData({
       results: page === 1 ? list : [...this.data.results, ...list],
-      total: (res && (res.total ?? res.total_count)) || list.length,
+      total: (res && (res.total !== undefined ? res.total : res.total_count)) || list.length,
       hasMore: !!(res && res.has_more),
       page,
     })

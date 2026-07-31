@@ -141,8 +141,8 @@ Page({
       const res: any = await http.get(`/posts/${this.data.postId}/interactions`)
       this.setData({
         isLiked: !!res.is_liked,
-        likesCount: res.likes_count ?? (this.data.post && this.data.post.likes_count) ?? 0,
-        commentsCount: res.comments_count ?? (this.data.post && this.data.post.comments_count) ?? 0,
+        likesCount: res.likes_count !== undefined ? res.likes_count : ((this.data.post && this.data.post.likes_count) !== undefined ? (this.data.post && this.data.post.likes_count) : 0),
+        commentsCount: res.comments_count !== undefined ? res.comments_count : ((this.data.post && this.data.post.comments_count) !== undefined ? (this.data.post && this.data.post.comments_count) : 0),
       })
     } catch {
       // 游客或失败时静默

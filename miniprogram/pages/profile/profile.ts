@@ -102,7 +102,7 @@ Page({
     })
     campusStore.subscribe(state => {
       this.setData({
-        schoolName: state.currentSchool?.name || state.schoolCode || '此刻校园',
+        schoolName: (state.currentSchool && state.currentSchool.name) || state.schoolCode || '此刻校园',
       })
     })
   },
@@ -178,7 +178,7 @@ Page({
       const campusState = campusStore.getState()
       this.setData({
         memberships: list,
-        currentSchoolId: campusState.currentSchool?.id || 0,
+        currentSchoolId: (campusState.currentSchool && campusState.currentSchool.id) || 0,
       })
     } catch (e: any) {
       console.error('加载学校成员关系失败', e)

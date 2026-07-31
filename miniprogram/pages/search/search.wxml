@@ -218,7 +218,7 @@
     <view wx:if="{{loadingMore}}" class="loading-more">
       <skeleton variant="list-item" />
     </view>
-    <view wx:elif="{{!hasMore && results.length > 0}}" class="no-more">
+    <view wx:if="{{!hasMore && results.length > 0}}" class="no-more">
       <text>没有更多了</text>
     </view>
   </view>

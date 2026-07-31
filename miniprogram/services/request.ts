@@ -175,22 +175,22 @@ function handleResponse<T>(statusCode: number, data: any): T {
   if (statusCode === 401) {
     clearTokens()
     wx.reLaunch({ url: '/pages/login/login' })
-    throw new Error(data?.detail || '未登录或登录已过期')
+    throw new Error((data && data.detail) || '未登录或登录已过期')
   }
 
   if (statusCode === 403) {
-    throw new Error(data?.detail || '权限不足')
+    throw new Error((data && data.detail) || '权限不足')
   }
 
   if (statusCode === 404) {
-    throw new Error(data?.detail || '资源不存在')
+    throw new Error((data && data.detail) || '资源不存在')
   }
 
   if (statusCode >= 400 && statusCode < 500) {
-    throw new Error(data?.detail || data?.message || '请求参数错误')
+    throw new Error((data && data.detail) || (data && data.message) || '请求参数错误')
   }
 
-  throw new Error(data?.detail || '服务器错误')
+  throw new Error((data && data.detail) || '服务器错误')
 }
 
 export const http = {

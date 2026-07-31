@@ -43,9 +43,19 @@
   },
   "libVersion": "trial",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "value": "cli-agent-run",
+        "type": "folder"
+      }
+    ],
     "include": []
   },
   "appid": "wx1486f14480b4dc74",
-  "isGameTourist": false
+  "isGameTourist": false,
+  "watchOptions": {
+    "ignore": [
+      "cli-agent-run/**/*"
+    ]
+  }
 }

@@ -162,76 +162,80 @@
 
       <!-- 帖子列表 -->
       <view class="post-list">
-        <!-- 加载中：骨架屏 -->
-        <block wx:if="{{loadingPosts && posts.length === 0}}">
-          <view class="post-skeleton-wrap">
-            <skeleton variant="post-card" />
-            <skeleton variant="post-card" />
-            <skeleton variant="post-card" />
-          </view>
+        <block>
+          <!-- 加载中：骨架屏 -->
+          <block wx:if="{{loadingPosts}}">
+            <view class="post-skeleton-wrap">
+              <skeleton variant="post-card" />
+              <skeleton variant="post-card" />
+              <skeleton variant="post-card" />
+            </view>
+          </block>
+
+          <!-- 空状态 -->
+          <block wx:elif="{{posts.length === 0}}">
+            <empty-state
+              icon="file-text"
+              title="暂无帖子"
+              hint="来发布第一条校园经验吧"
+              action-text="去发布"
+              bind:action="goToPublish"
+            />
+          </block>
+
+          <!-- 帖子卡片 -->
+          <block wx:if="{{posts.length > 0}}">
+            <view
+              wx:for="{{posts}}"
+              wx:key="id"
+              class="post-card"
+              data-id="{{item.id}}"
+              bindtap="onPostTap"
+              hover-class="post-card-hover"
+              hover-stay-time="120"
+            >
+              <view class="post-top">
+                <view class="post-title-row">
+                  <text class="post-title">{{item.title}}</text>
+                  <text class="post-status status-{{item.status}}">{{item.status_label}}</text>
+                </view>
+                <text class="post-content text-ellipsis-2">{{item.content}}</text>
+              </view>
+              <image wx:if="{{item.cover}}" class="post-cover" src="{{item.cover}}" mode="aspectFill" />
+              <view class="post-footer">
+                <text class="post-time">{{item.created_at_text}}</text>
+                <view class="post-stats">
+                  <view class="stat-pill">
+                    <icon name="heart" size="22rpx" color="#6a7d81" />
+                    <text>{{item.likes_count_text}}</text>
+                  </view>
+                  <view class="stat-pill">
+                    <icon name="message-circle" size="22rpx" color="#6a7d81" />
+                    <text>{{item.comments_count_text}}</text>
+                  </view>
+                  <view class="stat-pill">
+                    <icon name="check-circle" size="22rpx" color="#6a7d81" />
+                    <text>{{item.validations_count_text}}</text>
+                  </view>
+                  <view class="stat-pill">
+                    <icon name="eye" size="22rpx" color="#6a7d81" />
+                    <text>{{item.views_count_text}}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+
+            <!-- 加载更多 -->
+            <view wx:if="{{loadingMorePosts}}" class="loading-more">
+              <view class="loading-dot"></view>
+              <view class="loading-dot loading-dot-delay1"></view>
+              <view class="loading-dot loading-dot-delay2"></view>
+            </view>
+            <view wx:if="{{!hasMore && !loadingMorePosts}}" class="no-more">
+              <text>没有更多了</text>
+            </view>
+          </block>
         </block>
-
-        <!-- 空状态 -->
-        <empty-state
-          wx:elif="{{posts.length === 0}}"
-          icon="file-text"
-          title="暂无帖子"
-          hint="来发布第一条校园经验吧"
-          action-text="去发布"
-          bind:action="goToPublish"
-        />
-
-        <!-- 帖子卡片 -->
-        <view
-          wx:else
-          wx:for="{{posts}}"
-          wx:key="id"
-          class="post-card"
-          data-id="{{item.id}}"
-          bindtap="onPostTap"
-          hover-class="post-card-hover"
-          hover-stay-time="120"
-        >
-          <view class="post-top">
-            <view class="post-title-row">
-              <text class="post-title">{{item.title}}</text>
-              <text class="post-status status-{{item.status}}">{{item.status_label}}</text>
-            </view>
-            <text class="post-content text-ellipsis-2">{{item.content}}</text>
-          </view>
-          <image wx:if="{{item.cover}}" class="post-cover" src="{{item.cover}}" mode="aspectFill" />
-          <view class="post-footer">
-            <text class="post-time">{{item.created_at_text}}</text>
-            <view class="post-stats">
-              <view class="stat-pill">
-                <icon name="heart" size="22rpx" color="#6a7d81" />
-                <text>{{item.likes_count_text}}</text>
-              </view>
-              <view class="stat-pill">
-                <icon name="message-circle" size="22rpx" color="#6a7d81" />
-                <text>{{item.comments_count_text}}</text>
-              </view>
-              <view class="stat-pill">
-                <icon name="check-circle" size="22rpx" color="#6a7d81" />
-                <text>{{item.validations_count_text}}</text>
-              </view>
-              <view class="stat-pill">
-                <icon name="eye" size="22rpx" color="#6a7d81" />
-                <text>{{item.views_count_text}}</text>
-              </view>
-            </view>
-          </view>
-        </view>
-
-        <!-- 加载更多 -->
-        <view wx:if="{{loadingMorePosts}}" class="loading-more">
-          <view class="loading-dot"></view>
-          <view class="loading-dot loading-dot-delay1"></view>
-          <view class="loading-dot loading-dot-delay2"></view>
-        </view>
-        <view wx:if="{{!hasMore && posts.length > 0 && !loadingMorePosts}}" class="no-more">
-          <text>没有更多了</text>
-        </view>
       </view>
     </block>
 
@@ -253,61 +257,65 @@
 
       <!-- 历史列表 -->
       <view class="history-list">
-        <!-- 加载中：骨架屏 -->
-        <block wx:if="{{loadingHistory && history.length === 0}}">
-          <view class="post-skeleton-wrap">
-            <skeleton variant="list-item" />
-            <skeleton variant="list-item" />
-            <skeleton variant="list-item" />
-          </view>
-        </block>
-
-        <!-- 空状态 -->
-        <empty-state
-          wx:elif="{{history.length === 0}}"
-          compact
-          icon="clock"
-          title="暂无浏览历史"
-          hint="浏览过的帖子会出现在这里"
-        />
-
-        <!-- 历史卡片 -->
-        <view
-          wx:else
-          wx:for="{{history}}"
-          wx:key="post_id"
-          class="history-card"
-          data-id="{{item.post_id}}"
-          bindtap="onHistoryTap"
-          hover-class="history-card-hover"
-          hover-stay-time="120"
-        >
-          <view class="history-info">
-            <text class="history-title">{{item.post_title}}</text>
-            <view class="history-meta">
-              <text class="history-category">{{item.category_name}}</text>
-              <text class="history-time">浏览于 {{item.viewed_at_text}}</text>
+        <block>
+          <!-- 加载中：骨架屏 -->
+          <block wx:if="{{loadingHistory}}">
+            <view class="post-skeleton-wrap">
+              <skeleton variant="list-item" />
+              <skeleton variant="list-item" />
+              <skeleton variant="list-item" />
             </view>
-          </view>
-          <view
-            class="history-delete"
-            catchtap="onDeleteHistoryItem"
-            data-id="{{item.post_id}}"
-            hover-class="history-delete-hover"
-            hover-stay-time="120"
-          >
-            <icon name="trash2" size="28rpx" color="#6a7d81" />
-          </view>
-        </view>
+          </block>
 
-        <view wx:if="{{loadingMoreHistory}}" class="loading-more">
-          <view class="loading-dot"></view>
-          <view class="loading-dot loading-dot-delay1"></view>
-          <view class="loading-dot loading-dot-delay2"></view>
-        </view>
-        <view wx:if="{{!historyHasMore && history.length > 0 && !loadingMoreHistory}}" class="no-more">
-          <text>没有更多了</text>
-        </view>
+          <!-- 空状态 -->
+          <block wx:elif="{{history.length === 0}}">
+            <empty-state
+              compact
+              icon="clock"
+              title="暂无浏览历史"
+              hint="浏览过的帖子会出现在这里"
+            />
+          </block>
+
+          <!-- 历史卡片 -->
+          <block wx:if="{{history.length > 0}}">
+            <view
+              wx:for="{{history}}"
+              wx:key="post_id"
+              class="history-card"
+              data-id="{{item.post_id}}"
+              bindtap="onHistoryTap"
+              hover-class="history-card-hover"
+              hover-stay-time="120"
+            >
+              <view class="history-info">
+                <text class="history-title">{{item.post_title}}</text>
+                <view class="history-meta">
+                  <text class="history-category">{{item.category_name}}</text>
+                  <text class="history-time">浏览于 {{item.viewed_at_text}}</text>
+                </view>
+              </view>
+              <view
+                class="history-delete"
+                catchtap="onDeleteHistoryItem"
+                data-id="{{item.post_id}}"
+                hover-class="history-delete-hover"
+                hover-stay-time="120"
+              >
+                <icon name="trash2" size="28rpx" color="#6a7d81" />
+              </view>
+            </view>
+
+            <view wx:if="{{loadingMoreHistory}}" class="loading-more">
+              <view class="loading-dot"></view>
+              <view class="loading-dot loading-dot-delay1"></view>
+              <view class="loading-dot loading-dot-delay2"></view>
+            </view>
+            <view wx:if="{{!historyHasMore && !loadingMoreHistory}}" class="no-more">
+              <text>没有更多了</text>
+            </view>
+          </block>
+        </block>
       </view>
     </block>
   </view>
@@ -419,14 +427,15 @@
         <view class="loading-dot loading-dot-delay1"></view>
         <view class="loading-dot loading-dot-delay2"></view>
       </view>
-      <empty-state
-        wx:elif="{{identities.length === 0}}"
-        compact
-        icon="shield"
-        title="暂无绑定身份"
-        hint="登录方式将显示在这里"
-      />
-      <view wx:else class="identity-list">
+      <block wx:elif="{{identities.length === 0}}">
+        <empty-state
+          compact
+          icon="shield"
+          title="暂无绑定身份"
+          hint="登录方式将显示在这里"
+        />
+      </block>
+      <block wx:else>
         <view wx:for="{{identities}}" wx:key="id" class="identity-item">
           <view class="identity-info">
             <view class="identity-row">
@@ -449,7 +458,7 @@
             <text>删除</text>
           </view>
         </view>
-      </view>
+      </block>
     </view>
   </view>
 </view>
@@ -469,14 +478,15 @@
         <view class="loading-dot loading-dot-delay1"></view>
         <view class="loading-dot loading-dot-delay2"></view>
       </view>
-      <empty-state
-        wx:elif="{{sessions.length === 0}}"
-        compact
-        icon="settings"
-        title="暂无活动会话"
-        hint="登录的设备会显示在这里"
-      />
-      <view wx:else class="session-list">
+      <block wx:elif="{{sessions.length === 0}}">
+        <empty-state
+          compact
+          icon="settings"
+          title="暂无活动会话"
+          hint="登录的设备会显示在这里"
+        />
+      </block>
+      <block wx:else>
         <view wx:for="{{sessions}}" wx:key="id" class="session-item">
           <view class="session-info">
             <view class="session-row">
@@ -505,7 +515,7 @@
             <text>当前</text>
           </view>
         </view>
-      </view>
+      </block>
     </view>
   </view>
 </view>

@@ -62,9 +62,9 @@ Page({
   onLoad() {
     campusStore.subscribe(state => {
       const school = state.currentSchool
-      const schoolName = school?.name || state.schoolCode
+      const schoolName = (school && school.name) || state.schoolCode
       const update: any = { schoolName }
-      if (school?.latitude && school?.longitude) {
+      if (school && school.latitude && school.longitude) {
         update.latitude = school.latitude
         update.longitude = school.longitude
         update.scale = school.map_zoom || 16
@@ -92,7 +92,7 @@ Page({
       fail: () => {
         campusStore.setLocationAuthorized(false)
         const school = campusStore.getState().currentSchool
-        if (school?.latitude && school?.longitude) {
+        if (school && school.latitude && school.longitude) {
           this.setData({
             latitude: school.latitude,
             longitude: school.longitude,

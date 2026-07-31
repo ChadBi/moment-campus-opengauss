@@ -38,7 +38,7 @@ Page({
     try {
       const res = await listSchools()
       const current = campusStore.getState().currentSchool
-      const currentId = current?.id || 0
+      const currentId = (current && current.id) || 0
       const schools: SchoolView[] = (res.schools || []).map(s => ({
         ...s,
         logoUrl: resolveImageUrl(s.logo_url),

@@ -24,7 +24,7 @@
     </view>
 
     <!-- 专题卡片 -->
-    <block wx:else>
+    <block wx:if="{{topics.length > 0}}">
       <view
         wx:for="{{topics}}"
         wx:key="id"

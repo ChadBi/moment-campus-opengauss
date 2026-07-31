@@ -27,7 +27,7 @@ Page({
     })
     campusStore.subscribe(state => {
       this.setData({
-        schoolName: state.currentSchool?.name || state.schoolCode || '此刻校园'
+        schoolName: (state.currentSchool && state.currentSchool.name) || state.schoolCode || '此刻校园'
       })
     })
     this.loadCategories()
