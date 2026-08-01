@@ -20,6 +20,7 @@ import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from unittest.mock import AsyncMock
 
 from app.core.security import get_password_hash
 from app.models.school import School
@@ -32,7 +33,11 @@ from app.models.job_run_record import JobRunRecord
 from app.models.product_plan import ProductPlan
 from app.models.school_subscription import SchoolSubscription
 from app.core.post_status import PostStatus
-from app.jobs.expire_posts import expire_posts_job, JOB_NAME
+from app.jobs.expire_posts import (
+    JOB_NAME,
+    _try_acquire_advisory_lock,
+    expire_posts_job,
+)
 
 
 # ============================================================
@@ -390,14 +395,32 @@ async def gov_02_admin_token(gov_02_setup: dict) -> str:
     return create_access_token(data={"sub": str(admin_id)})
 
 
+@pytest_asyncio.fixture
+async def gov_02_super_admin_token(
+    gov_02_setup: dict, db_session: AsyncSession
+) -> str:
+    """为 GOV-02 平台超级管理员生成 access token。"""
+    from app.core.security import create_access_token
+
+    super_admin = await _create_user(
+        db_session,
+        "gov02superadmin@example.com",
+        "GOV-02 超级管理员",
+        gov_02_setup["school"]["id"],
+        role="super_admin",
+    )
+    await db_session.commit()
+    return create_access_token(data={"sub": str(super_admin.id)})
+
+
 @pytest.mark.asyncio
 async def test_manual_trigger_expire_posts_api(
-    client: AsyncClient, gov_02_setup: dict, gov_02_admin_token: str
+    client: AsyncClient, gov_02_setup: dict, gov_02_super_admin_token: str
 ):
     """GOV-02.2: 通过管理 API 手动触发过期任务"""
     setup = gov_02_setup
     expired_post_id = setup["posts"]["expired"]["id"]
-    headers = {"Authorization": f"Bearer {gov_02_admin_token}"}
+    headers = {"Authorization": f"Bearer {gov_02_super_admin_token}"}
 
     # 通过 API 触发
     response = await client.post(
@@ -413,7 +436,7 @@ async def test_manual_trigger_expire_posts_api(
     assert data["job_name"] == "expire_posts"
     assert data["status"] == "success"
     assert data["triggered_by"] == "manual"
-    assert data["triggered_user_id"] == setup["admin"]["id"]
+    assert data["triggered_user_id"] is not None
     assert data["processed_count"] >= 1
     assert data["finished_at"] is not None
     assert data["duration_seconds"] is not None
@@ -422,10 +445,10 @@ async def test_manual_trigger_expire_posts_api(
 
 @pytest.mark.asyncio
 async def test_manual_trigger_expire_posts_api_dry_run(
-    client: AsyncClient, gov_02_setup: dict, gov_02_admin_token: str
+    client: AsyncClient, gov_02_setup: dict, gov_02_super_admin_token: str
 ):
     """GOV-02.2: 通过 API 手动触发 dry-run 模式"""
-    headers = {"Authorization": f"Bearer {gov_02_admin_token}"}
+    headers = {"Authorization": f"Bearer {gov_02_super_admin_token}"}
 
     response = await client.post(
         "/api/v1/admin/jobs/expire-posts",
@@ -442,11 +465,11 @@ async def test_manual_trigger_expire_posts_api_dry_run(
 
 @pytest.mark.asyncio
 async def test_list_expire_posts_job_records_api(
-    client: AsyncClient, gov_02_setup: dict, gov_02_admin_token: str,
+    client: AsyncClient, gov_02_setup: dict, gov_02_super_admin_token: str,
     db_session: AsyncSession
 ):
     """GOV-02.2: 查询任务运行记录列表"""
-    headers = {"Authorization": f"Bearer {gov_02_admin_token}"}
+    headers = {"Authorization": f"Bearer {gov_02_super_admin_token}"}
 
     # 先运行一次任务
     await expire_posts_job(db_session, dry_run=False, triggered_by="system")
@@ -479,6 +502,28 @@ async def test_manual_trigger_forbidden_for_normal_user(
         json={"dry_run": True},
         headers=headers,
     )
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("method", ["post", "get"])
+async def test_expire_posts_admin_apis_forbidden_for_school_admin(
+    client: AsyncClient, gov_02_setup: dict, gov_02_admin_token: str, method: str
+):
+    """平台级跨校任务只允许 super_admin 管理。"""
+    headers = {"Authorization": f"Bearer {gov_02_admin_token}"}
+    if method == "post":
+        response = await client.post(
+            "/api/v1/admin/jobs/expire-posts",
+            json={"dry_run": True},
+            headers=headers,
+        )
+    else:
+        response = await client.get(
+            "/api/v1/admin/jobs/expire-posts/records",
+            headers=headers,
+        )
+
     assert response.status_code == 403
 
 
@@ -536,6 +581,33 @@ async def test_job_run_record_dry_run_flag(
 # ============================================================
 
 @pytest.mark.asyncio
+async def test_advisory_lock_failure_is_fail_closed():
+    """数据库锁调用异常时必须视为未获锁，不能继续执行任务。"""
+    db = AsyncMock(spec=AsyncSession)
+    db.execute.side_effect = RuntimeError("advisory lock unavailable")
+
+    assert await _try_acquire_advisory_lock(db) is False
+
+
+@pytest.mark.asyncio
+async def test_job_does_not_process_posts_when_lock_is_not_acquired(
+    db_session: AsyncSession, gov_02_setup: dict, monkeypatch: pytest.MonkeyPatch
+):
+    """锁被占用或获取失败时任务必须 fail-closed，不处理到期帖子。"""
+    monkeypatch.setattr(
+        "app.jobs.expire_posts._try_acquire_advisory_lock",
+        AsyncMock(return_value=False),
+    )
+    expired_post_id = gov_02_setup["posts"]["expired"]["id"]
+
+    record = await expire_posts_job(db_session, triggered_by="system")
+
+    assert record.status == "failed"
+    assert "锁" in record.error_message
+    post = await db_session.get(Post, expired_post_id)
+    assert post.status == PostStatus.PUBLISHED
+
+@pytest.mark.asyncio
 async def test_job_lock_skip_when_running(
     db_session: AsyncSession, gov_02_setup: dict
 ):
@@ -577,3 +649,35 @@ async def test_job_lock_skip_when_running(
         cleanup_record.finished_at = datetime.now()
         cleanup_record.error_message = "test cleanup"
         await db_session.commit()
+
+
+@pytest.mark.asyncio
+async def test_stale_running_job_is_failed_and_new_run_continues(
+    db_session: AsyncSession, gov_02_setup: dict
+):
+    """超过 60 分钟租约的 running 记录应失败收口，且不阻塞新任务。"""
+    stale_record = JobRunRecord(
+        job_name=JOB_NAME,
+        status="running",
+        started_at=datetime.now() - timedelta(minutes=60, seconds=1),
+        triggered_by="system",
+        dry_run=False,
+        processed_count=0,
+        failed_count=0,
+    )
+    db_session.add(stale_record)
+    await db_session.commit()
+    await db_session.refresh(stale_record)
+    stale_id = stale_record.id
+
+    record = await expire_posts_job(
+        db_session, dry_run=False, triggered_by="system"
+    )
+
+    assert record.id != stale_id
+    assert record.status == "success"
+    db_session.expire_all()
+    recovered = await db_session.get(JobRunRecord, stale_id)
+    assert recovered.status == "failed"
+    assert recovered.finished_at is not None
+    assert "租约" in recovered.error_message

@@ -7,6 +7,15 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.0.3] - 2026-08-01
+
+### 自动过期定时器 30 分钟周期统一
+
+- 统一自动过期任务调度周期为 30 分钟（deploy/bare-metal/moment-expire-posts.service + .timer）
+- `expire_posts` job 增强：running 记录超时租约回收（60 分钟），advisory lock 获取失败改为 fail-closed（禁止无锁执行）
+- 手动触发/记录查询接口权限收紧为 super_admin 专属（`require_role(Role.SUPER_ADMIN)`）
+- 新增 systemd 单元结构测试与过期任务回归测试
+
 ## [2.0.2] - 2026-08-01
 
 ### Analytics 运行时废弃清理

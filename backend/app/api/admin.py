@@ -59,6 +59,7 @@ router = APIRouter(tags=["管理"])
 # FND-03.3: 统一管理员依赖（替代旧 get_current_admin）
 # 所有管理路由统一通过 require_role(Role.ADMIN) 校验，user < admin < super_admin
 AdminDep = Depends(require_role(Role.ADMIN))
+SuperAdminDep = Depends(require_role(Role.SUPER_ADMIN))
 
 
 def _check_post_in_admin_school(post: Post, tenant: TenantContext) -> None:
@@ -1887,7 +1888,7 @@ async def get_school_usage(
 )
 async def trigger_expire_posts_job(
     data: ExpirePostsJobRequest,
-    admin: User = AdminDep,
+    admin: User = SuperAdminDep,
     db: AsyncSession = Depends(get_db),
 ):
     """手动触发自动过期任务（支持 dry-run）
@@ -1895,7 +1896,7 @@ async def trigger_expire_posts_job(
     GOV-02.2: 支持 dry-run 与手动重跑
     - 支持 dry_run 参数（只报告不执行，不写库、不发通知）
     - 返回任务执行记录（处理数量、耗时、失败列表）
-    - 仅 admin 及以上可调用
+    - 仅 super_admin 可调用
     - 重复执行不重复通知、不产生非法状态（由 job 内部幂等保证）
 
     注意：
@@ -1944,7 +1945,7 @@ async def list_expire_posts_job_records(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
     status: Optional[str] = Query(None, description="按状态筛选：running/success/failed"),
-    admin: User = AdminDep,
+    admin: User = SuperAdminDep,
     db: AsyncSession = Depends(get_db),
 ):
     """查询过期任务的运行记录列表
@@ -1952,7 +1953,7 @@ async def list_expire_posts_job_records(
     GOV-02.2: 记录开始/成功/失败/处理数量/耗时
     - 支持按状态筛选
     - 分页返回，按 started_at 倒序
-    - 仅 admin 及以上可查询
+    - 仅 super_admin 可查询
     """
     from app.models.job_run_record import JobRunRecord
 

@@ -15,22 +15,9 @@
     # 手动触发 + dry-run
     python scripts/expire_posts_worker.py --manual --user-id 1 --dry-run
 
-systemd timer 配置示例：
-    [Unit]
-    Description=Moment Campus Expire Posts Worker
-
-    [Service]
-    Type=oneshot
-    WorkingDirectory=/opt/moment-campus/backend
-    Environment=APP_ENV=opengauss
-    ExecStart=/opt/moment-campus/backend/.venv/bin/python scripts/expire_posts_worker.py
-
-    [Timer]
-    OnCalendar=*:0/5  # 每 5 分钟运行一次
-    Persistent=true
-
-    [Install]
-    WantedBy=timers.target
+systemd 单位文件：
+    deploy/bare-metal/moment-expire-posts.service
+    deploy/bare-metal/moment-expire-posts.timer
 
 设计要点：
 1. 不依赖 FastAPI 应用上下文，直接使用 SQLAlchemy 引擎

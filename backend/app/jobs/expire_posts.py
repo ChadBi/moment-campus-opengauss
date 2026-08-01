@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from sqlalchemy import select, text
@@ -46,6 +46,9 @@ JOB_NAME = "expire_posts"
 # 选择一个不易与其它任务冲突的值
 ADVISORY_LOCK_KEY = 20260724
 
+# running 记录超过该时长视为进程异常退出留下的脏任务。
+RUNNING_JOB_LEASE = timedelta(minutes=60)
+
 
 async def _try_acquire_advisory_lock(db: AsyncSession) -> bool:
     """尝试获取 pg_advisory_lock（非阻塞）。
@@ -53,8 +56,7 @@ async def _try_acquire_advisory_lock(db: AsyncSession) -> bool:
     openGauss 兼容 PostgreSQL 协议，支持 pg_try_advisory_lock。
     若获取失败（其它实例正在执行），返回 False。
 
-    若数据库不支持 advisory lock（极少数情况），降级为始终返回 True，
-    由应用层 job_run_records 的 running 状态检查兜底。
+    数据库调用异常时 fail-closed，返回 False，禁止在无锁保护下执行。
     """
     try:
         result = await db.execute(
@@ -63,10 +65,14 @@ async def _try_acquire_advisory_lock(db: AsyncSession) -> bool:
         acquired = result.scalar()
         return bool(acquired)
     except Exception as e:
-        logger.warning(
-            f"pg_try_advisory_lock 不可用，降级为应用层检查: {type(e).__name__}: {e}"
+        logger.error(
+            f"pg_try_advisory_lock 获取失败，任务停止: {type(e).__name__}: {e}"
         )
-        return True
+        try:
+            await db.rollback()
+        except Exception:
+            logger.exception("advisory lock 失败后的事务回滚异常")
+        return False
 
 
 async def _release_advisory_lock(db: AsyncSession) -> None:
@@ -96,11 +102,13 @@ async def _release_advisory_lock(db: AsyncSession) -> None:
 
 
 async def _has_running_job(db: AsyncSession) -> Optional[JobRunRecord]:
-    """检查是否已有同名任务正在运行。
+    """回收超期租约并检查是否已有同名任务正在运行。
 
-    应用层幂等键：若存在 status='running' 的记录，返回该记录，
-    调用方应跳过本次执行。
+    60 分钟内的 running 记录视为有效租约并阻塞重复执行；更早的记录
+    视为进程异常退出留下的脏任务，标记为 failed 后允许新任务继续。
     """
+    now = datetime.now()
+    lease_started_at = now - RUNNING_JOB_LEASE
     result = await db.execute(
         select(JobRunRecord)
         .where(
@@ -110,7 +118,48 @@ async def _has_running_job(db: AsyncSession) -> Optional[JobRunRecord]:
         .order_by(JobRunRecord.started_at.desc())
         .limit(1)
     )
-    return result.scalar_one_or_none()
+    running = result.scalar_one_or_none()
+    if running is None:
+        return None
+    if running.started_at >= lease_started_at:
+        return running
+
+    running.status = "failed"
+    running.finished_at = now
+    running.error_message = "running 任务超过 60 分钟租约，已自动回收"
+    await db.commit()
+    logger.warning(
+        f"expire_posts_job 回收超期 running 任务 (id={running.id}, "
+        f"started_at={running.started_at.isoformat()})"
+    )
+    return None
+
+
+async def _create_lock_failure_record(
+    db: AsyncSession,
+    *,
+    started_at: datetime,
+    dry_run: bool,
+    triggered_by: str,
+    triggered_user_id: Optional[int],
+) -> JobRunRecord:
+    """记录未获 advisory lock 的失败执行，确保任务 fail-closed。"""
+    record = JobRunRecord(
+        job_name=JOB_NAME,
+        status="failed",
+        started_at=started_at,
+        finished_at=datetime.now(),
+        triggered_by=triggered_by,
+        triggered_user_id=triggered_user_id,
+        dry_run=dry_run,
+        processed_count=0,
+        failed_count=0,
+        error_message="未获取到自动过期任务数据库锁，任务未执行",
+    )
+    db.add(record)
+    await db.commit()
+    await db.refresh(record)
+    return record
 
 
 async def _has_expired_notification(
@@ -162,16 +211,25 @@ async def expire_posts_job(
 
     # 1. 获取 advisory lock
     lock_acquired = await _try_acquire_advisory_lock(db)
+    if not lock_acquired:
+        logger.error("expire_posts_job 未获取到数据库锁，停止执行")
+        return await _create_lock_failure_record(
+            db,
+            started_at=started_at,
+            dry_run=dry_run,
+            triggered_by=triggered_by,
+            triggered_user_id=triggered_user_id,
+        )
 
     # 2. 检查是否已有 running 任务（应用层幂等键）
-    if lock_acquired:
-        running = await _has_running_job(db)
-        if running is not None:
-            # 已有任务正在运行，跳过本次执行（锁在 finally 块中统一释放）
-            logger.info(
-                f"expire_posts_job 已有运行中任务 (id={running.id})，跳过本次执行"
-            )
-            return running
+    running = await _has_running_job(db)
+    if running is not None:
+        # 已有任务正在运行，跳过本次执行（锁在 finally 块中统一释放）
+        logger.info(
+            f"expire_posts_job 已有运行中任务 (id={running.id})，跳过本次执行"
+        )
+        await _release_advisory_lock(db)
+        return running
 
     # 3. 创建 running 记录
     record = JobRunRecord(

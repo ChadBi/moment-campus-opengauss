@@ -1,0 +1,19 @@
+[Unit]
+Description=Moment Campus Expire Posts Worker
+After=network-online.target docker.service moment-backend.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=moment
+Group=moment
+WorkingDirectory=/opt/moment-campus/backend
+Environment="PATH=/opt/moment-campus/backend/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+EnvironmentFile=-/opt/moment-campus/backend/.env.prod
+ExecStart=/opt/moment-campus/backend/.venv/bin/python scripts/expire_posts_worker.py
+TimeoutStartSec=55min
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=moment-expire-posts
+NoNewPrivileges=true
+PrivateTmp=true
