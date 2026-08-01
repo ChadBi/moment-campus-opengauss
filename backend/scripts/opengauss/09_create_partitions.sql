@@ -94,14 +94,12 @@ BEGIN
             view_count          INTEGER     DEFAULT 0 NOT NULL,
             like_count          INTEGER     DEFAULT 0 NOT NULL,
             comment_count       INTEGER     DEFAULT 0 NOT NULL,
-            favorite_count      INTEGER     DEFAULT 0 NOT NULL,
             valid_count         INTEGER     DEFAULT 0 NOT NULL,
             invalid_count       INTEGER     DEFAULT 0 NOT NULL,
             credibility_score   NUMERIC(5,2),
             expire_at           TIMESTAMP WITH TIME ZONE,
             lost_type           VARCHAR(10),
             contact_info        VARCHAR(255),
-            is_top              BOOLEAN     DEFAULT FALSE NOT NULL,
             is_recommend        BOOLEAN     DEFAULT FALSE NOT NULL,
             created_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
             updated_at          TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -129,19 +127,19 @@ BEGIN
         INSERT INTO posts (
             user_id, school_id, category_id, location_id,
             title, content, is_anonymous, status,
-            view_count, like_count, comment_count, favorite_count,
+            view_count, like_count, comment_count,
             valid_count, invalid_count, credibility_score,
             expire_at,
-            lost_type, contact_info, is_top, is_recommend,
+            lost_type, contact_info, is_recommend,
             created_at, updated_at, is_deleted, deleted_at
         )
         SELECT
             user_id, school_id, category_id, location_id,
             title, content, is_anonymous, status,
-            view_count, like_count, comment_count, favorite_count,
+            view_count, like_count, comment_count,
             valid_count, invalid_count, credibility_score,
             expire_at,
-            lost_type, contact_info, is_top, is_recommend,
+            lost_type, contact_info, is_recommend,
             created_at, updated_at, is_deleted, deleted_at
         FROM _backup_posts;
 
@@ -162,7 +160,7 @@ CREATE INDEX IF NOT EXISTS idx_post_expire ON posts (expire_at);
 CREATE INDEX IF NOT EXISTS idx_post_school_category ON posts (school_id, category_id, status);
 -- 注：openGauss 分区表不支持部分索引（WHERE 子句），改用普通索引
 CREATE INDEX IF NOT EXISTS idx_post_recommend
-    ON posts (is_top DESC, is_recommend DESC, created_at DESC);
+    ON posts (is_recommend DESC, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_post_expire_active
     ON posts (expire_at);
 

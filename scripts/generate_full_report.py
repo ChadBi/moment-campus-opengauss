@@ -172,13 +172,12 @@ def generate_full_report():
     
     add_p(doc, '"此刻校园"（Moment Campus）是一个面向大学校园的信息共享与沉淀平台。校园中存在大量真实、有用却容易消失的信息——哪个食堂窗口今天供应特色菜、哪家打印店更便宜、哪里适合自习、哪里经常出现校园小猫——这些信息分散在微信群、QQ群、朋友圈和口口相传中，发布得快，消失得也快。学生们每天都在重复询问同样的问题，而已经存在的答案却随着聊天记录的滚动被淹没在信息洪流之中。')
     
-    add_p(doc, '本系统通过"地点 + 时间 + 分类 + 标签 + 有效期"的多维组织方式，让校园信息变得可搜索、可浏览、可验证、可更新、可收藏、可长期沉淀。它不是传统的校园论坛，也不是普通的社交平台，而是一张由校园全体成员共同维护的"校园生活地图"。每一位学生、教职工都可以成为信息的贡献者，也可以成为信息的验证者，通过群体智慧让校园信息保持鲜活和可信。')
+    add_p(doc, '本系统通过"地点 + 时间 + 分类 + 标签 + 有效期"的多维组织方式，让校园信息变得可搜索、可浏览、可验证、可更新、可长期沉淀。它不是传统的校园论坛，也不是普通的社交平台，而是一张由校园全体成员共同维护的"校园生活地图"。每一位学生、教职工都可以成为信息的贡献者，也可以成为信息的验证者，通过群体智慧让校园信息保持鲜活和可信。')
     
     add_p(doc, '系统以江南大学蠡湖校区为模拟核心（中心坐标北纬31.4837度，东经120.2712度，地图缩放级别16），面向学生、教职工、管理员三类用户提供校园生活信息的发布、浏览、地图发现、协同验证、订阅与协同维护服务。典型信息覆盖校园美食、校园动物、打印服务、学习资源、校园活动、校园设施、失物招领、校园兼职等12个分类，涵盖了大学生活的方方面面。')
     
     add_p(doc, '本系统采用B/S架构，前端使用React + TypeScript + Vite + Tailwind CSS技术栈，地图展示基于MapLibre GL JS；后端使用Python + FastAPI + SQLAlchemy 2.0异步框架，通过asyncpg驱动访问数据库；数据库采用国产开源关系型数据库openGauss 7.0.0-RC3轻量版，通过Docker容器化部署。')
     
-    add_p(doc, '系统的核心创新特性体现在四个方面：第一，openGauss物理模型深度落地，包含4个表空间分离I/O、66个索引优化访问、8个存储过程封装原子业务、8个触发器实现业务自动化、4个物化视图缓存聚合结果、7张大表按时间RANGE分区；第二，信息生命周期采用6态状态机（草稿/待审核/已发布/已过期/冲突中/已归档）与13条合法流转规则，确保信息在整个生命周期中都有明确的状态定义与转换路径；第三，社区治理采用5类协同验证机制（证实/证伪/补充更新/过期上报/冲突上报），通过群体智慧保障信息质量；第四，基于RBAC的三级角色权限矩阵（普通用户<管理员<超级管理员），实现了精细化的权限控制。项目按MVP（最小可行产品）原则交付，172项自动化测试全部通过。')
     
     add_h2(doc, '1.1  项目背景与意义')
     
@@ -198,7 +197,7 @@ def generate_full_report():
         '（1）设计一套完整的数据库方案：从需求分析、概念设计、逻辑设计到物理设计，严格遵循数据库设计方法论，产出高质量的数据库设计文档与物理实现。',
         '（2）实现核心业务功能：信息发布与浏览、地图发现、协同验证、评论互动、通知推送、用户管理、内容审核等主要功能。',
         '（3）深度应用openGauss特性：充分利用openGauss的表空间、分区表、存储过程、触发器、物化视图、索引优化等高级特性，展示国产数据库的强大能力。',
-        '（4）构建可信信息生态：通过6态状态机、5类协同验证、信誉分体系等机制，实现信息的全生命周期管理与可信治理。',
+        '（4）构建可信信息生态：通过6态状态机、两类互斥协同验证、信誉分体系等机制，实现信息的全生命周期管理与可信治理。',
         '（5）提供良好的用户体验：前后端分离架构，响应式设计，地图可视化，让用户能够直观、便捷地获取和贡献校园信息。',
         '（6）保证系统质量：编写完整的自动化测试用例，确保核心业务逻辑正确可靠；编写完善的文档，便于后续维护与扩展。',
     ]
@@ -216,7 +215,7 @@ def generate_full_report():
     
     add_p(doc, '阶段A（基础能力）：数据库基础架构、用户系统、信息发布与浏览、分类标签、基础CRUD操作。本阶段为项目奠定基础，确保数据模型正确、核心API可用。')
     
-    add_p(doc, '阶段B（核心功能）：6态状态机、5类协同验证、RBAC权限体系、地图页、草稿管理、通知系统。本阶段实现平台的核心差异化功能，是课设展示的重点。')
+    add_p(doc, '阶段B（核心功能）：6态状态机、两类互斥协同验证、RBAC权限体系、地图页、草稿管理、通知系统。本阶段实现平台的核心差异化功能，是课设展示的重点。')
     
     add_p(doc, '阶段C（创新点）：可信度自动计算、自动过期、冲突检测、版本管理、信誉分自动调整。本阶段在物理层通过存储过程实现，应用层调用联动，进一步提升平台的智能化水平。')
     
@@ -259,7 +258,7 @@ def generate_full_report():
     
     add_p(doc, '所有关系模式均规范化至第三范式（3NF），消除了传递依赖和部分依赖，确保数据无冗余、更新无异常。针对不同角色设计了15个视图（11个普通视图 + 4个物化视图），实现了数据安全（隐藏敏感字段）与查询简化（预聚合统计）的双重目标。')
     
-    add_p(doc, '逻辑设计阶段的产出包括：21张关系模式的详细定义、主键与外键清单、完整性约束定义（实体完整性、参照完整性、用户定义完整性）、15个视图的SQL定义、视图权限矩阵。完整性约束涵盖了email唯一、role枚举、status枚举、validation_type枚举、report_type枚举、点赞与收藏的联合唯一约束、经纬度范围约束等。')
+    add_p(doc, '逻辑设计阶段的产出包括：21张关系模式的详细定义、主键与外键清单、完整性约束定义（实体完整性、参照完整性、用户定义完整性）、15个视图的SQL定义、视图权限矩阵。完整性约束涵盖了email唯一、role枚举、status枚举、validation_type枚举、report_type枚举、点赞与协同验证的用户/帖子联合唯一约束、经纬度范围约束等。')
     
     add_p(doc, '设计理由：3NF保证数据无冗余，是关系数据库设计的黄金标准；视图实现数据安全，不同角色只能看到其权限范围内的数据；视图同时简化了查询，将复杂的多表连接与聚合逻辑封装在数据库层；视图权限矩阵实现了"未登录用户可见公开视图、登录用户可见个人信息、管理员可见审核与治理视图、超级管理员可见完整视图"的分级安全控制。')
     
@@ -440,7 +439,7 @@ def generate_full_report():
     
     items = [
         '（1）6态状态机：解决P2（过期）和P4（无人维护）痛点，让信息有明确的生命周期，自动过期，可续期更新。',
-        '（2）5类协同验证：解决P3（矛盾）和P7（可信度）痛点，通过群体智慧让信息真假自明，可信度可量化。',
+        '（2）两类互斥协同验证：解决P3（矛盾）和P7（可信度）痛点，通过群体智慧让信息真假自明，可信度可量化。',
         '（3）地图维度发现：解决P6（按地点发现）痛点，让信息与地理位置绑定，直观发现周边信息。',
     ]
     for item in items:
@@ -467,8 +466,8 @@ def generate_full_report():
             ['U3', '按分类、标签、关键词搜索信息', 'P0', 'P1'],
             ['U4', '发布校园信息（含地点、图片、有效期）', 'P0', 'P1, P2, P6'],
             ['U5', '查看、编辑、删除自己发布的信息', 'P0', 'P4'],
-            ['U6', '对他人信息进行协同验证（5类）', 'P0', 'P3, P7'],
-            ['U7', '评论、点赞、收藏信息', 'P0', '—'],
+            ['U6', '对他人信息进行协同验证（两类互斥）', 'P0', 'P3, P7'],
+            ['U7', '评论、点赞信息', 'P0', '—'],
             ['U8', '举报违规信息或评论', 'P0', '—'],
             ['U9', '接收通知（验证、评论、举报处理结果）', 'P0', 'P8'],
             ['U10', '浏览历史与搜索历史', 'P1', 'P5'],
@@ -561,7 +560,7 @@ def generate_full_report():
     
     add_p(doc, '顶层数据流图（0层上下文图）描述了系统的边界以及系统与外部实体之间的数据交互。本系统的外部实体包括普通用户、管理员、外部地图API和文件存储四个。')
     
-    add_p(doc, '普通用户向系统提交的数据包括：注册信息、登录凭证、发布内容、验证意见、评论、点赞、收藏、举报、搜索关键词、订阅请求等。系统向普通用户返回的数据包括：信息列表、信息详情、通知消息、搜索结果、个人信誉分、操作反馈等。')
+    add_p(doc, '普通用户向系统提交的数据包括：注册信息、登录凭证、发布内容、验证意见、评论、点赞、举报、搜索关键词、订阅请求等。系统向普通用户返回的数据包括：信息列表、信息详情、通知消息、搜索结果、个人信誉分、操作反馈等。')
     
     add_p(doc, '管理员向系统发送的数据包括：审核指令、举报处理指令、封禁指令、置顶推荐指令、分类标签管理指令等。系统向管理员返回的数据包括：待审核列表、举报列表、用户列表、操作日志、统计报表等。')
     
@@ -575,13 +574,13 @@ def generate_full_report():
     
     add_p(doc, 'P2信息发布处理过程接收用户的发布请求，经过校验后将信息写入数据库，并生成待审核状态。该过程与信息表、草稿表、图片表、标签关联表等数据存储交互。')
     
-    add_p(doc, 'P3信息浏览处理过程根据用户的查询条件（分类、地点、状态等），从数据库中检索信息并返回列表或详情。该过程与信息表、评论表、点赞表、收藏表等数据存储交互。')
+    add_p(doc, 'P3信息浏览处理过程根据用户的查询条件（分类、地点、状态等），从数据库中检索信息并返回列表或详情。该过程与信息表、评论表、点赞表等数据存储交互。')
     
     add_p(doc, 'P4协同验证处理过程接收用户的验证请求，写入验证记录表，并更新信息的统计字段，同时触发可信度计算和信誉分更新。该过程与验证记录表、信息表、用户表等数据存储交互。')
     
     add_p(doc, 'P5搜索推荐处理过程接收用户的搜索关键词和筛选条件，执行搜索并返回结果。同时记录用户的搜索历史和浏览历史。该过程与信息表、搜索历史表、浏览历史表等数据存储交互。')
     
-    add_p(doc, 'P6通知推送处理过程根据系统事件（如评论、点赞、收藏、验证、举报处理等）生成通知消息，写入通知表供用户查阅。该过程与通知表数据存储交互。')
+    add_p(doc, 'P6通知推送处理过程根据系统事件（如评论、点赞、验证、举报处理等）生成通知消息，写入通知表供用户查阅。该过程与通知表数据存储交互。')
     
     add_p(doc, 'P7可信度计算处理过程在验证提交、信息过期、冲突检测等事件触发时执行，综合验证记录、时间衰减、用户信誉等因素计算信息的可信度得分。该过程与信息表、验证记录表、用户表等数据存储交互。')
     
@@ -593,7 +592,6 @@ def generate_full_report():
     
     add_p(doc, 'P2信息发布处理过程展开为5个子过程：P2.1草稿保存、P2.2信息校验、P2.3信息入库、P2.4状态置为待审核、P2.5通知生成。用户提交发布请求后，可以先保存为草稿（P2.1），随时继续编辑；确认提交后进行信息校验（P2.2），检查必填字段、内容合规性等；校验通过后将信息及关联的图片、标签写入数据库（P2.3）；将信息状态设置为pending_review（待审核）（P2.4）；最后生成通知发送给管理员（P2.5），提醒有新的信息待审核。')
     
-    add_p(doc, 'P4协同验证处理过程展开为6个子过程：P4.1验证类型判断、P4.2写入验证记录表、P4.3更新信息统计字段、P4.4触发可信度计算、P4.5更新用户信誉分、P4.6通知信息发布者。用户提交验证请求后，首先判断验证类型（P4.1），是证实、证伪、补充更新、过期上报还是冲突报告；然后将验证记录写入数据库（P4.2）；接着更新信息表中的valid_count、invalid_count等统计字段（P4.3）；随后触发可信度计算过程（P4.4），重新计算信息的可信度得分；再更新验证者和发布者的信誉分（P4.5）；最后生成通知发送给信息发布者（P4.6），告知其信息收到了新的验证。')
     
     add_p(doc, 'P7可信度计算处理过程展开为7个子过程：P7.1读取验证记录、P7.2分类统计、P7.3时间衰减计算、P7.4用户信誉加权、P7.5综合得分计算、P7.6更新信息表可信度、P7.7低于阈值标记。可信度计算在触发事件（验证提交、过期、冲突）发生时执行，首先读取该信息的所有验证记录（P7.1），按5种类型分别统计数量（P7.2）；然后根据信息发布时长计算时间衰减系数，时间越久衰减越多（P7.3）；接着考虑验证者的信誉分，高信誉用户的验证权重更高（P7.4）；最后通过加权公式计算综合得分（P7.5），更新到信息表（P7.6）；如果得分低于阈值，则标记为冲突或加入待审核队列（P7.7）。')
     
@@ -721,7 +719,7 @@ def generate_full_report():
             ['DI-15', 'location_id', '地点ID', 'BigInteger', '8字节', '正整数/可空', '外键→locations'],
             ['DI-16', 'latitude', '纬度', 'Numeric', '10,7', '-90~90', '江南大学约31.48'],
             ['DI-17', 'longitude', '经度', 'Numeric', '10,7', '-180~180', '江南大学约120.27'],
-            ['DI-18', 'validation_type', '验证类型', 'VARCHAR', '30', '5类验证', '见协同验证'],
+            ['DI-18', 'validation_type', '验证类型', 'VARCHAR', '30', '两类互斥验证', '见协同验证'],
             ['DI-19', 'report_type', '举报类型', 'VARCHAR', '30', '5类举报', '见举报处理'],
             ['DI-20', 'is_deleted', '软删除标记', 'BOOLEAN', '1字节', 'True/False', '默认False'],
             ['DI-21', 'created_at', '创建时间', 'TIMESTAMP', '8字节', '—', '默认当前时间'],
@@ -740,13 +738,12 @@ def generate_full_report():
     
     add_p(doc, 'DS-02学校（School）数据结构：由id、name、code、logo_url、province、city、address、center_lat、center_lng、map_zoom、is_active、created_at、updated_at等数据项组成。描述一所大学的基本信息与地图中心点，本项目以江南大学蠡湖校区为唯一记录，来源于系统初始化，去向为用户注册时选择、信息发布时归属、地图展示等。')
     
-    add_p(doc, 'DS-03信息（Post）数据结构：由id、user_id、school_id、category_id、post_type_id、location_id、title、content、is_anonymous、status、credibility_score、view_count、like_count、comment_count、favorite_count、valid_count、invalid_count、expire_at、activity_start_at、activity_end_at、lost_type、contact_info、is_top、is_recommend、created_at、updated_at、is_deleted、deleted_at等数据项组成。描述一条校园信息的完整内容与状态，来源于用户发布或管理员录入，去向为信息流展示、搜索结果、详情页等。')
     
     add_p(doc, 'DS-04地点（Location）数据结构：由id、school_id、name、description、latitude、longitude、floor、building、post_count、is_verified、created_at、updated_at、is_deleted、deleted_at等数据项组成。描述校园内的一个具体地点（如第一食堂、图书馆），来源于管理员录入或用户发布时创建，去向为地图标记、信息归属、地点订阅等。')
     
     add_p(doc, 'DS-05验证记录（ValidationRecord）数据结构：由id、post_id、user_id、validation_type、comment、created_at等数据项组成。记录用户对某条信息提交的协同验证意见，来源于用户验证操作，去向为可信度计算、信誉分调整等。')
     
-    add_p(doc, 'DS-06通知（Notification）数据结构：由id、user_id、type、title、content、target_type、target_id、actor_id、is_read、read_at、created_at、is_deleted、deleted_at等数据项组成。记录系统向用户推送的通知消息，来源于系统事件（评论、点赞、收藏、验证、举报处理等），去向为用户通知中心。')
+    add_p(doc, 'DS-06通知（Notification）数据结构：由id、user_id、type、title、content、target_type、target_id、actor_id、is_read、read_at、created_at、is_deleted、deleted_at等数据项组成。记录系统向用户推送的通知消息，来源于系统事件（评论、点赞、验证、举报处理等），去向为用户通知中心。')
     
     add_h3(doc, '4.7.3  数据流')
     
@@ -792,8 +789,7 @@ def generate_full_report():
             ['DS-09', '图片库', 'post_images', '—', '信息图片'],
             ['DS-10', '评论库', 'comments', '—', '评论与回复'],
             ['DS-11', '点赞库', 'likes', '—', '点赞记录'],
-            ['DS-12', '收藏库', 'favorites', '—', '收藏记录'],
-            ['DS-13', '验证库', 'validation_records', 'DS-05验证记录', '协同验证'],
+                        ['DS-13', '验证库', 'validation_records', 'DS-05验证记录', '协同验证'],
             ['DS-14', '举报库', 'reports', '—', '举报记录'],
             ['DS-15', '通知库', 'notifications', 'DS-06通知', '通知消息'],
             ['DS-16', '专题合集库', 'topic_collections', '—', '专题合集'],
@@ -900,8 +896,7 @@ def generate_full_report():
     items = [
         '（1）评论回复：用户可以对信息发表评论，也可以回复其他用户的评论，形成树形讨论结构。评论支持点赞。',
         '（2）点赞：用户可以对喜欢的信息点赞，表达认可和支持。每条信息每人只能点赞一次。',
-        '（3）收藏：用户可以收藏感兴趣的信息，方便日后查看。收藏列表在用户中心管理。',
-        '（4）通知推送：当用户的信息被评论、被点赞、被收藏、被验证、被举报处理时，系统会自动发送通知。通知分为已读和未读状态。',
+        '（4）通知推送：当用户的信息被评论、被点赞、被验证、被举报处理时，系统会自动发送通知。通知分为已读和未读状态。',
         '（5）地点订阅：用户可以订阅感兴趣的地点，当该地点有新的信息发布或重要信息变化时，会收到通知。（阶段D功能）',
     ]
     for item in items:
@@ -917,7 +912,7 @@ def generate_full_report():
     add_p(doc, '治理模块是平台的核心创新模块，通过技术机制保障信息质量和社区秩序。主要子功能包括：')
     
     items = [
-        '（1）协同验证：用户可以对他人发布的信息进行5类验证——证实（确认信息真实）、证伪（确认信息虚假）、补充更新（提供更新的信息）、过期上报（报告信息已过期）、冲突上报（报告与其他信息矛盾）。每用户对每条信息每类验证只能提交一次。',
+        '（1）协同验证：用户可以对他人发布的信息进行两类互斥验证——证实（确认信息真实）、证伪（确认信息虚假）。每用户对每条信息最多保留一条验证，可切换或取消。',
         '（2）举报处理：用户可以举报违规的信息或评论，管理员根据举报类型、证据和历史次数进行处理。处理结果包括警告、删除、封禁等。',
         '（3）可信度计算：系统根据验证记录、时间衰减、验证者信誉等因素，自动计算每条信息的可信度得分。可信度高的信息会获得更多曝光。（阶段C功能，存储过程就绪）',
         '（4）冲突检测：系统自动检测同一地点、同一分类下内容矛盾的信息，标记为冲突状态，提醒用户注意。（阶段C功能，存储过程就绪）',
@@ -958,21 +953,21 @@ def generate_full_report():
     
     add_h3(doc, '5.2.1  实体识别')
     
-    add_p(doc, '概念设计阶段首先从需求分析的结果中识别出系统的实体。实体是客观存在并可以相互区分的事物。本系统共识别出21个实体，按性质可以分为核心实体、关联实体、互动实体、辅助实体四大类。')
+    add_p(doc, '概念设计阶段首先从需求分析的结果中识别出系统的实体。实体是客观存在并可以相互区分的事物。本系统共识别出20个实体，按性质可以分为核心实体、关联实体、互动实体、辅助实体四大类。')
     
     add_table(doc,
         ['类别', '数量', '实体列表', '说明'],
         [
             ['核心实体', '6', 'School, User, Post, Location, Category, PostType', '业务的核心参与对象'],
             ['关联实体', '2', 'PostTag, TopicCollectionPost', '多对多联系的关联表'],
-            ['互动实体', '7', 'Comment, Like, Favorite, ValidationRecord, Report, Notification, TopicCollection', '用户互动与内容治理'],
+            ['互动实体', '6', 'Comment, Like, ValidationRecord, Report, Notification, TopicCollection', '用户互动与内容治理'],
             ['辅助实体', '6', 'Tag, PostImage, Draft, BrowseHistory, SearchHistory, AdminOperationLog', '辅助功能与日志'],
-            ['合计', '21', '—', '—'],
+            ['合计', '20', '—', '—'],
         ],
         caption='表5-1  实体分类统计'
     )
     
-    add_p(doc, '21个实体的详细清单与说明如下：')
+    add_p(doc, '20个实体的详细清单与说明如下：')
     
     add_table(doc,
         ['编号', '实体名', '中文名', '说明'],
@@ -988,8 +983,7 @@ def generate_full_report():
             ['E09', 'PostImage', '信息图片', '信息附属的图片，支持多张'],
             ['E10', 'Comment', '评论', '信息评论与回复，支持树形结构'],
             ['E11', 'Like', '点赞', '信息点赞记录'],
-            ['E12', 'Favorite', '收藏', '信息收藏记录'],
-            ['E13', 'ValidationRecord', '验证记录', '用户的协同验证记录，共5类'],
+                        ['E13', 'ValidationRecord', '验证记录', '用户的协同验证记录，仅 confirmation/refutation 两类且每用户每帖互斥'],
             ['E14', 'Report', '举报', '违规举报记录，含信息举报和评论举报'],
             ['E15', 'Notification', '通知', '系统通知消息'],
             ['E16', 'TopicCollection', '专题合集', '信息的集合，类似专题栏目'],
@@ -1023,8 +1017,7 @@ def generate_full_report():
             ['view_count', '浏览数', 'INTEGER', '否', '是', '默认0'],
             ['like_count', '点赞数', 'INTEGER', '否', '是', '默认0'],
             ['comment_count', '评论数', 'INTEGER', '否', '是', '默认0'],
-            ['favorite_count', '收藏数', 'INTEGER', '否', '是', '默认0'],
-            ['valid_count', '有效确认数', 'INTEGER', '否', '是', '兼容字段，对应证实数'],
+                        ['valid_count', '有效确认数', 'INTEGER', '否', '是', '兼容字段，对应证实数'],
             ['invalid_count', '无效确认数', 'INTEGER', '否', '是', '兼容字段，对应证伪数'],
             ['expire_at', '过期时间', 'TIMESTAMP', '否', '否', '信息过期时间，可空'],
             ['activity_start_at', '活动开始', 'TIMESTAMP', '否', '否', '仅活动类信息使用'],
@@ -1053,9 +1046,7 @@ def generate_full_report():
     
     add_p(doc, 'School（学校）是系统的范围边界，所有其他实体都归属于某一所学校。School与User是1:N联系（一所学校有多个用户），School与Post是1:N联系（一所学校有多条信息），School与Location是1:N联系（一所学校有多个地点），School与TopicCollection是1:N联系（一所学校有多个专题合集）。')
     
-    add_p(doc, 'User（用户）是系统的参与者，通过各种行为与信息交互。User与Post是1:N联系（一个用户发布多条信息），User与Comment是1:N联系（一个用户发表多条评论），User与Like是1:N联系（一个用户点赞多条信息），User与Favorite是1:N联系（一个用户收藏多条信息），User与ValidationRecord是1:N联系（一个用户提交多条验证），User与Report是1:N联系（一个用户提交多条举报，reporter_id），User与Report还有另一个1:N联系（一个管理员处理多条举报，handler_id），User与Notification是1:N联系（一个用户接收多条通知，user_id），User与Notification还有另一个1:N联系（一个用户触发多条通知，actor_id）。')
     
-    add_p(doc, 'Post（信息）是系统的核心业务实体，与最多的其他实体建立联系。Post与Category是N:1联系（多条信息属于一个分类），Post与PostType是N:1联系（多条信息属于一个类型），Post与Location是N:1联系（多条信息关联一个地点，可空），Post与PostImage是1:N联系（一条信息有多张图片），Post与Comment是1:N联系（一条信息有多条评论），Post与Like是1:N联系（一条信息有多个点赞），Post与Favorite是1:N联系（一条信息有多个收藏），Post与ValidationRecord是1:N联系（一条信息有多条验证），Post与Report是1:N联系（一条信息有多条举报），Post与Tag是M:N联系（通过关联实体PostTag实现），Post与TopicCollection是M:N联系（通过关联实体TopicCollectionPost实现）。')
     
     add_p(doc, 'Comment（评论）实体存在自引用联系，通过parent_id外键引用自身的主键，实现评论的回复树结构。一条评论可以有多个子回复（1:N），每个子回复有且仅有一个父评论。')
     
@@ -1074,7 +1065,7 @@ def generate_full_report():
         '（8）Post：用户发布的信息，1:N联系。',
         '（9）Comment：用户发表的评论，1:N联系。',
         '（10）Like：用户的点赞，1:N联系。',
-        '（11）Favorite：用户的收藏，1:N联系。',
+        '（11）Like：用户的点赞，1:N联系。',
         '（12）ValidationRecord：用户提交的验证，1:N联系。',
         '（13）Report：用户提交的举报（reporter_id）和处理的举报（handler_id），两个1:N联系，双角色外键。',
     ]
@@ -1118,7 +1109,7 @@ def generate_full_report():
     
     add_p(doc, 'User与Post通过Report实体建立举报关系，用户可以举报信息或评论。Report实体同时引用Post和Comment（均可空），表示可以举报信息也可以举报评论，但至少有一个不为空。Report有两个外键引用User：reporter_id（举报人）和handler_id（处理人），分别对应举报的发起者和处理者。')
     
-    add_p(doc, 'Notification实体汇聚了所有的互动事件触发。当发生评论、点赞、收藏、验证、举报处理等事件时，系统会生成一条通知，推送给相关用户。Notification有两个外键引用User：user_id是接收通知的用户，actor_id是触发通知的用户（如发表评论的用户、点赞的用户）。Notification还通过target_type和target_id字段引用不同的目标对象（如post、comment、validation等），实现了多态关联。')
+    add_p(doc, 'Notification实体汇聚了所有的互动事件触发。当发生评论、点赞、验证、举报处理等事件时，系统会生成一条通知，推送给相关用户。Notification有两个外键引用User：user_id是接收通知的用户，actor_id是触发通知的用户（如发表评论的用户、点赞的用户）。Notification还通过target_type和target_id字段引用不同的目标对象（如post、comment、validation等），实现了多态关联。')
     
     add_h3(doc, '5.3.5  E-R图设计要点')
     
@@ -1218,7 +1209,6 @@ def generate_full_report():
             ['PostImage', '—', '✓', '—', '—', '—', '—'],
             ['Comment', '—', '✓', '—', '✓', '—', '✓'],
             ['Like', '—', '✓', '—', '✓', '—', '—'],
-            ['Favorite', '—', '✓', '—', '✓', '—', '—'],
             ['ValidationRecord', '—', '✓', '—', '—', '✓', '—'],
             ['Report', '—', '—', '—', '—', '✓', '✓'],
             ['Notification', '✓', '—', '—', '✓', '✓', '✓'],
@@ -1315,7 +1305,6 @@ def generate_full_report():
     view_count          INTEGER         DEFAULT 0 NOT NULL,
     like_count          INTEGER         DEFAULT 0 NOT NULL,
     comment_count       INTEGER         DEFAULT 0 NOT NULL,
-    favorite_count      INTEGER         DEFAULT 0 NOT NULL,
     valid_count         INTEGER         DEFAULT 0 NOT NULL,
     invalid_count       INTEGER         DEFAULT 0 NOT NULL,
     expire_at           TIMESTAMP WITH TIME ZONE,
@@ -1397,8 +1386,8 @@ def generate_full_report():
     
     items = [
         '（1）email唯一约束：users表的email字段设置UNIQUE约束，确保每个邮箱只能注册一个账号。',
-        '（2）枚举约束：role字段限定为user/admin/super_admin，status字段限定为6种状态，validation_type字段限定为5类，report_type字段限定为5类。这些枚举约束在应用层通过Python枚举类和Pydantic校验实现，数据库层使用VARCHAR而非ENUM类型，便于后续扩展。',
-        '（3）联合唯一约束：likes表的(post_id, user_id)联合唯一，确保每人每条信息只能点赞一次；favorites表同理；post_tags表的(post_id, tag_id)联合唯一。',
+        '（2）枚举约束：role字段限定为user/admin/super_admin，status字段限定为6种状态，validation_type字段限定为confirmation/refutation两类，report_type字段限定为5类。这些枚举约束在应用层通过Python枚举类和Pydantic校验实现，数据库层使用VARCHAR而非ENUM类型，便于后续扩展。',
+        '（3）联合唯一约束：likes表的(post_id, user_id)联合唯一，确保每人每条信息只能点赞一次；validation_records表的(post_id, user_id)联合唯一。',
         '（4）经纬度范围约束：locations表的latitude约束在-90到90之间，longitude约束在-180到180之间，保证坐标合法。',
         '（5）可信度范围约束：posts表的credibility_score约束在0到100之间，users表的reputation_score同理。',
         '（6）非空约束：所有必填字段都设置了NOT NULL约束，避免空值导致的业务异常。',
@@ -1423,7 +1412,7 @@ def generate_full_report():
             ['V03', 'v_user_profile', '用户公开信息视图', '所有用户', '普通视图', '隐藏密码、邮箱等敏感字段'],
             ['V04', 'v_my_posts', '我的信息视图', '当前登录用户', '普通视图', '当前用户发布的所有信息'],
             ['V05', 'v_pending_review_posts', '待审核信息视图', '管理员', '普通视图', '待审核状态的信息列表'],
-            ['V06', 'v_post_validation_stats', '信息验证统计视图', '所有用户', '物化视图', '每条信息的5类验证计数'],
+            ['V06', 'v_post_validation_stats', '信息验证统计视图', '所有用户', '物化视图', '每条信息的两类互斥验证计数'],
             ['V07', 'v_location_post_count', '地点信息统计视图', '所有用户', '物化视图', '每个地点的信息数统计'],
             ['V08', 'v_user_reputation_ranking', '用户信誉排行视图', '所有用户', '物化视图', '用户信誉分排名'],
             ['V09', 'v_admin_dashboard', '管理员仪表盘视图', '管理员', '物化视图', '平台运营数据汇总'],
@@ -1431,7 +1420,7 @@ def generate_full_report():
             ['V11', 'v_expired_posts', '过期信息视图', '管理员/系统', '普通视图', '已过期状态的信息'],
             ['V12', 'v_topic_collection_detail', '专题详情视图', '所有用户', '普通视图', '专题+关联信息列表'],
             ['V13', 'v_post_full', '信息完整视图', '超级管理员', '普通视图', '信息全部字段（含软删除）'],
-            ['V14', 'v_user_activity', '用户活动视图', '当前用户', '普通视图', '发布/评论/点赞/收藏汇总'],
+            ['V14', 'v_user_activity', '用户活动视图', '当前用户', '普通视图', '发布/评论/点赞汇总'],
             ['V15', 'v_search_index', '搜索索引视图', '系统', '普通视图', '用于全文搜索的信息视图'],
         ],
         caption='表6-6  视图清单'
@@ -1456,7 +1445,7 @@ def generate_full_report():
         [
             ['ts_system', '/data/system', 'schools, categories, post_types, tags, locations', '配置类数据，读写比≈100:1', '普通SSD'],
             ['ts_core', '/data/core', 'users, posts, post_tags, post_images, validation_records, reports, drafts, topic_collections, topic_collection_posts', '核心业务，读写均衡', '高性能SSD'],
-            ['ts_interaction', '/data/interaction', 'comments, likes, favorites, notifications', '高并发写入，热点数据', '高性能SSD'],
+            ['ts_interaction', '/data/interaction', 'comments, likes, notifications', '高并发写入，热点数据', '高性能SSD'],
             ['ts_log', '/data/log', 'admin_operation_logs, browse_histories, search_histories', '仅追加写入，定期归档', '大容量HDD或冷存储'],
         ],
         caption='表6-7  表空间分配'
@@ -1479,7 +1468,7 @@ CREATE TABLESPACE ts_log OWNER gaussdb LOCATION '/data/log';''')
         ['存储引擎', '原理', '适用场景', '优势', '本项目选用的表'],
         [
             ['Astore', '追加写，更新时产生新版本，旧版本保留', '读多写少、历史数据查询多、批量查询', '读性能好，支持闪回查询', 'posts, validation_records, reports, histories, logs'],
-            ['Ustore', '原地更新，旧版本存入回滚段', '高频更新、热点行、事务多', '写性能好，空间不膨胀', 'users, comments, likes, favorites, notifications'],
+            ['Ustore', '原地更新，旧版本存入回滚段', '高频更新、热点行、事务多', '写性能好，空间不膨胀', 'users, comments, likes, notifications'],
         ],
         caption='表6-8  存储引擎对比与选择'
     )
@@ -1542,9 +1531,9 @@ ON posts (school_id, status, created_at DESC);''')
         caption='表6-10  存储过程清单'
     )
     
-    add_p(doc, '以sp_recalc_credibility为例，其核心逻辑是：统计该信息的5类验证记录数量，获取作者的信誉分，通过加权公式计算综合可信度，将结果限制在0-100范围内，最后更新信息表的credibility_score、valid_count、invalid_count字段。计算公式为：')
+    add_p(doc, '以sp_recalc_credibility为例，其核心逻辑是：统计该信息的两类互斥验证记录数量，获取作者的信誉分，通过加权公式计算综合可信度，将结果限制在0-100范围内，最后更新信息表的credibility_score、valid_count、invalid_count字段。计算公式为：')
     
-    add_p(doc, '可信度 = 作者信誉 × 0.3 + 基础分50 × 0.7 + 证实数 × 5 - 证伪数 × 8 + 补充更新数 × 2 - 过期报告数 × 10 - 冲突报告数 × 15')
+    add_p(doc, '可信度 = 作者信誉 × 0.3 + 基础分50 × 0.7 + 证实数 × 5 - 证伪数 × 8')
     
     add_p(doc, '存储过程使用PL/pgSQL语言编写，这是openGauss兼容的过程化SQL语言，支持变量声明、条件判断、循环、异常处理等丰富的语法特性。')
     
@@ -1560,8 +1549,7 @@ ON posts (school_id, status, created_at DESC);''')
             ['TR03', 'trg_post_status_change', 'AFTER UPDATE OF', 'status', 'posts', '状态变更日志记录'],
             ['TR04', 'trg_comment_update_count', 'AFTER', 'INSERT/DELETE', 'comments', '更新posts.comment_count'],
             ['TR05', 'trg_like_update_count', 'AFTER', 'INSERT/DELETE', 'likes', '更新posts.like_count'],
-            ['TR06', 'trg_favorite_update_count', 'AFTER', 'INSERT/DELETE', 'favorites', '更新posts.favorite_count'],
-            ['TR07', 'trg_post_update_view_count', 'AFTER', 'UPDATE', 'posts', '浏览数变化触发推荐重排'],
+                        ['TR07', 'trg_post_update_view_count', 'AFTER', 'UPDATE', 'posts', '浏览数变化触发推荐重排'],
             ['TR08', 'trg_user_soft_delete', 'BEFORE', 'UPDATE', 'users', '用户软删除时级联处理'],
         ],
         caption='表6-11  触发器清单'
@@ -1643,8 +1631,7 @@ ON posts (school_id, status, created_at DESC);''')
             ['posts', '200条', '7.3万条', '2KB', '146MB'],
             ['comments', '1000条', '36.5万条', '300B', '110MB'],
             ['likes', '3000条', '109.5万条', '50B', '55MB'],
-            ['favorites', '1000条', '36.5万条', '50B', '18MB'],
-            ['validation_records', '500条', '18.25万条', '500B', '90MB'],
+                        ['validation_records', '500条', '18.25万条', '500B', '90MB'],
             ['notifications', '2000条', '73万条', '200B', '146MB'],
             ['browse_histories', '5000条', '182.5万条', '100B', '183MB'],
             ['admin_operation_logs', '200条', '7.3万条', '500B', '37MB'],
@@ -1742,7 +1729,6 @@ class Post(Base):
     view_count: Mapped[int] = mapped_column(Integer, default=0)
     like_count: Mapped[int] = mapped_column(Integer, default=0)
     comment_count: Mapped[int] = mapped_column(Integer, default=0)
-    favorite_count: Mapped[int] = mapped_column(Integer, default=0)
     valid_count: Mapped[int] = mapped_column(Integer, default=0)
     invalid_count: Mapped[int] = mapped_column(Integer, default=0)
     expire_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -1862,7 +1848,7 @@ async def create_validation(
             ['信息', '/posts', '列表、详情、创建、更新、删除、状态流转、验证', '12'],
             ['用户', '/users', '个人资料、修改资料、信誉分', '5'],
             ['评论', '/comments', '发表评论、评论列表、删除评论', '5'],
-            ['互动', '/interactions', '点赞、收藏、验证', '6'],
+            ['互动', '/interactions', '点赞、验证', '6'],
             ['分类', '/categories', '分类列表', '2'],
             ['搜索', '/search', '关键词搜索、筛选', '3'],
             ['地图', '/map', '地点列表、地点详情', '4'],
@@ -1927,7 +1913,7 @@ async def create_validation(
     
     add_h3(doc, '7.2.3  信息详情页（PostDetailPage）')
     
-    add_p(doc, '信息详情页是系统的核心交互页面，集中体现了6态状态机和5类协同验证两大核心特性。页面采用卡片式布局，从上到下依次为：渐变Hero区域、信息卡片网格、作者信息卡、内容区、操作按钮区、评论区。')
+    add_p(doc, '信息详情页是系统的核心交互页面，集中体现了6态状态机和两类互斥协同验证两大核心特性。页面采用卡片式布局，从上到下依次为：渐变Hero区域、信息卡片网格、作者信息卡、内容区、操作按钮区、评论区。')
     
     add_p(doc, '页面顶部的渐变Hero区域，背景色根据信息分类而变化（如美食类橙色、学习类蓝色、活动类紫色），营造差异化的视觉体验。Hero区域展示分类标签、发布时间、标题和地点信息。')
     
@@ -1936,7 +1922,7 @@ async def create_validation(
     items = [
         '（1）现在状态：展示信息的当前状态，使用6态徽章组件，不同状态对应不同的颜色和图标。草稿是灰色、待审核是黄色、已发布是绿色、已过期是灰色、冲突中是红色、已归档是灰色。',
         '（2）信息分类：展示信息所属的分类和类型，带emoji图标。',
-        '（3）协同验证：展示总验证数和综合有效性状态（有效/无效/不确定），下方是5类验证的细分计数。',
+        '（3）协同验证：展示总验证数和当前用户验证状态，下方是两类互斥验证的细分计数。',
         '（4）贡献者：展示发布者信息和信誉分，匿名发布则显示匿名用户。',
     ]
     for item in items:
@@ -1947,19 +1933,16 @@ async def create_validation(
         r = p.add_run(item)
         set_font(r)
     
-    add_p(doc, '5类协同验证是页面的核心交互组件，通过五个操作按钮实现：证实、证伪、补充更新、过期上报、冲突上报。每个按钮配有对应的图标和颜色：证实是绿色对勾、证伪是红色叉号、补充更新是蓝色感叹号、过期上报是橙色时钟、冲突上报是红色警告三角。用户点击按钮即可提交对应类型的验证。')
+    add_p(doc, '两类互斥协同验证是页面的核心交互组件，通过五个操作按钮实现：证实、证伪。每个按钮配有对应的图标和颜色：证实是绿色对勾，证伪是红色叉号；同类再次点击取消，不同类型点击切换。用户点击按钮即可提交对应类型的验证。')
     
     add_code(doc, '''const VALIDATION_OPTIONS = [
   { type: 'confirmation',      label: '证实',     icon: <CheckCircle2 size={14} />, color: 'text-grass' },
   { type: 'refutation',        label: '证伪',     icon: <XCircle size={14} />,     color: 'text-danger' },
-  { type: 'update',            label: '补充更新', icon: <AlertCircle size={14} />, color: 'text-info' },
-  { type: 'expiration_report', label: '过期上报', icon: <ClockAlert size={14} />,  color: 'text-sun' },
-  { type: 'conflict_report',   label: '冲突上报', icon: <AlertTriangle size={14} />,color: 'text-danger' },
 ];''')
     
-    add_p(doc, '作者信息卡展示发布者头像、昵称、信誉分，以及该信息的浏览数、点赞数、评论数、收藏数等统计数据。内容区使用暖色笔记卡片风格，营造手账、便签的亲切感，与校园生活的调性相符。')
+    add_p(doc, '作者信息卡展示发布者头像、昵称、信誉分，以及该信息的浏览数、点赞数、评论数等统计数据。内容区使用暖色笔记卡片风格，营造手账、便签的亲切感，与校园生活的调性相符。')
     
-    add_p(doc, '底部操作按钮区提供点赞、收藏、分享、举报四个操作，图标+文字的形式，直观易用。评论区支持发表评论和查看评论列表，评论支持点赞和回复（回复树在MVP阶段简化为线性展示）。')
+    add_p(doc, '底部操作按钮区提供点赞、举报两个操作，图标+文字的形式，直观易用。评论区支持发表评论和查看评论列表，评论支持点赞和回复（回复树在MVP阶段简化为线性展示）。')
     
     add_h3(doc, '7.2.4  地图页（MapPage）')
     
@@ -2003,7 +1986,7 @@ async def create_validation(
         '（2）登录页（LoginPage）：邮箱+密码登录，跳转注册页。',
         '（3）注册页（RegisterPage）：邮箱注册，填写昵称、密码、学校。',
         '（4）搜索页（SearchPage）：关键词搜索+多条件筛选，搜索历史记录。',
-        '（5）个人中心（ProfilePage）：个人资料、我的发布、我的收藏、浏览历史、搜索历史、信誉分展示。',
+        '（5）个人中心（ProfilePage）：个人资料、我的发布、浏览历史、搜索历史、信誉分展示。',
         '（6）通知中心（NotificationsPage）：通知列表，按类型分组，标记已读/全部已读。',
         '（7）404页（NotFoundPage）：页面未找到的友好提示。',
     ]
@@ -2059,7 +2042,7 @@ async def create_validation(
             ['标签', '20个', '校园相关的热门标签'],
             ['评论', '50+条', '对演示信息的评论'],
             ['点赞', '100+条', '用户点赞记录'],
-            ['验证记录', '30+条', '5类验证的演示数据'],
+            ['验证记录', '30+条', '两类互斥验证的演示数据'],
             ['通知', '50+条', '各类通知消息'],
             ['专题合集', '3个', '校园美食、学习资源、校园活动'],
         ],
@@ -2078,11 +2061,11 @@ async def create_validation(
             ['单元测试', 'test_config.py', '5', '配置加载测试'],
             ['单元测试', 'test_schemas.py', '10', 'Pydantic模型校验测试'],
             ['单元测试', 'test_post_status.py', '15', '6态状态机流转测试'],
-            ['单元测试', 'test_validation_type.py', '10', '5类验证类型归一化测试'],
+            ['单元测试', 'test_validation_type.py', '10', '两类互斥验证类型归一化测试'],
             ['单元测试', 'test_permissions.py', '12', 'RBAC权限矩阵测试'],
             ['集成测试', 'test_auth.py', '15', '注册、登录、Token验证'],
             ['集成测试', 'test_posts.py', '20', '信息CRUD、状态流转'],
-            ['集成测试', 'test_interactions.py', '15', '点赞、收藏、验证'],
+            ['集成测试', 'test_interactions.py', '15', '点赞、验证'],
             ['集成测试', 'test_database.py', '8', '数据库连接与模型'],
             ['集成测试', 'test_dependencies.py', '8', '依赖注入测试'],
             ['集成测试', 'test_post_transition.py', '12', '状态流转权限测试'],
@@ -2111,14 +2094,13 @@ async def create_validation(
     items = [
         '（1）openGauss适配：从SQLite完整迁移到openGauss，主键外键类型统一、asyncpg驱动适配、Alembic迁移就绪。',
         '（2）6态状态机：draft/pending/published/expired/conflict/archived六种状态，13条合法流转规则，权限校验完善。',
-        '（3）5类协同验证：confirmation/refutation/update/expiration_report/conflict_report五类验证，归一化兼容旧数据。',
         '（4）RBAC权限矩阵：user < admin < super_admin三级角色，权限逐级递增。',
         '（5）江南大学数据改造：学校、地点、用户全部关联到江南大学蠡湖校区，地图中心点已调整。',
         '（6）地图页集成：MapLibre GL JS地图渲染，地点标记展示，分类筛选。',
         '（7）信息发布与浏览：完整的CRUD操作，分类筛选，分页加载，草稿保存。',
         '（8）搜索与分类筛选：关键词搜索，多条件筛选，搜索历史记录。',
-        '（9）评论与互动：评论发表、点赞、收藏、通知推送。',
-        '（10）用户中心：个人资料、信誉分、发布/评论/收藏汇总、浏览与搜索历史。',
+        '（9）评论与互动：评论发表、点赞、通知推送。',
+        '（10）用户中心：个人资料、信誉分、发布/评论/点赞汇总、浏览与搜索历史。',
         '（11）管理后台：待审核列表、举报处理、用户封禁、置顶推荐、操作日志。',
         '（12）openGauss物理模型：4个表空间、66个索引、8个存储过程、8个触发器、4个物化视图、7张分区表全部落地。',
     ]
@@ -2153,8 +2135,7 @@ async def create_validation(
             ['协同验证', '提交证实验证', '创建验证记录，计数更新', '一致', '通过'],
             ['点赞', '点赞信息', '创建点赞记录，like_count+1', '一致', '通过'],
             ['点赞', '重复点赞', '返回400错误', '一致', '通过'],
-            ['收藏', '收藏信息', '创建收藏记录', '一致', '通过'],
-            ['评论', '发表评论', '创建评论，comment_count+1', '一致', '通过'],
+                        ['评论', '发表评论', '创建评论，comment_count+1', '一致', '通过'],
             ['搜索', '关键词搜索', '返回匹配的信息列表', '一致', '通过'],
             ['举报', '提交举报', '创建举报记录，状态pending', '一致', '通过'],
             ['管理员审核', '通过审核', '信息状态变为published', '一致', '通过'],
@@ -2320,7 +2301,7 @@ SELECT setval(pg_get_serial_sequence('posts', 'id'), 1, false);''')
     
     add_h3(doc, '9.2.4  问题四：6态状态机与旧3态数据的兼容')
     
-    add_p(doc, '问题描述：文档中使用pending_review作为待审核状态的名称，而代码中原来使用的是pending；旧的验证数据使用valid/invalid/uncertain三类，而新设计扩展为五类。直接切换会导致历史数据不兼容。')
+    add_p(doc, '问题描述：文档中使用pending_review作为待审核状态的名称，而代码中原来使用的是pending；历史验证别名与现行 confirmation/refutation 两类需要在迁移边界兼容。直接切换会导致历史数据不兼容。')
     
     add_p(doc, '原因分析：这是典型的版本迭代中的兼容性问题。随着业务的发展，状态从3种扩展到6种，验证类型从3种扩展到5种，但已有数据不能简单地丢掉，需要向前兼容。')
     
@@ -2437,16 +2418,12 @@ def get_allowed_transitions(current: str) -> Set[str]:
     current = normalize_status(current)
     return _TRANSITIONS.get(current, set()).copy()''')
     
-    add_h2(doc, 'A.2  5类协同验证类型定义')
+    add_h2(doc, 'A.2  两类互斥协同验证类型定义')
     add_code(doc, '''class ValidationType:
     CONFIRMATION = "confirmation"            # 证实
     REFUTATION = "refutation"                # 证伪
-    UPDATE = "update"                        # 补充更新
-    EXPIRATION_REPORT = "expiration_report"  # 过期上报
-    CONFLICT_REPORT = "conflict_report"      # 冲突上报
 
     ALL: tuple = (CONFIRMATION, REFUTATION, UPDATE,
-                  EXPIRATION_REPORT, CONFLICT_REPORT)
     
     ALIASES: dict = {
         "valid": CONFIRMATION,
@@ -2498,19 +2475,13 @@ RETURNS NUMERIC(5,2) AS $$
 DECLARE
     v_confirm_cnt   INTEGER;
     v_refute_cnt    INTEGER;
-    v_update_cnt    INTEGER;
-    v_expire_cnt    INTEGER;
-    v_conflict_cnt  INTEGER;
     v_credibility   NUMERIC(5,2);
     v_author_rep    NUMERIC(5,2);
 BEGIN
     SELECT
         COUNT(*) FILTER (WHERE validation_type = 'confirmation'),
-        COUNT(*) FILTER (WHERE validation_type = 'refutation'),
-        COUNT(*) FILTER (WHERE validation_type = 'update'),
-        COUNT(*) FILTER (WHERE validation_type = 'expiration_report'),
-        COUNT(*) FILTER (WHERE validation_type = 'conflict_report')
-    INTO v_confirm_cnt, v_refute_cnt, v_update_cnt, v_expire_cnt, v_conflict_cnt
+        COUNT(*) FILTER (WHERE validation_type = 'refutation')
+    INTO v_confirm_cnt, v_refute_cnt
     FROM validation_records
     WHERE post_id = p_post_id AND is_deleted = FALSE;
 
@@ -2521,10 +2492,7 @@ BEGIN
 
     v_credibility := v_author_rep * 0.3 + 50.0 * 0.7
                    + v_confirm_cnt * 5.0
-                   - v_refute_cnt * 8.0
-                   + v_update_cnt * 2.0
-                   - v_expire_cnt * 10.0
-                   - v_conflict_cnt * 15.0;
+                   - v_refute_cnt * 8.0;
 
     v_credibility := GREATEST(0.0, LEAST(100.0, v_credibility));
 
@@ -2596,7 +2564,6 @@ WITH DATA;''')
     add_code(doc, '''CREATE OR REPLACE VIEW v_published_posts AS
 SELECT
     p.id, p.title, p.content, p.is_anonymous, p.status, p.credibility_score,
-    p.view_count, p.like_count, p.comment_count, p.favorite_count,
     p.valid_count, p.invalid_count, p.expire_at, p.is_top, p.is_recommend,
     p.created_at, p.updated_at,
     u.nickname AS author_nickname, u.avatar_url AS author_avatar,

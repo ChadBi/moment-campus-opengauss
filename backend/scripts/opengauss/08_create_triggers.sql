@@ -14,7 +14,7 @@
 -- ============================================================
 -- TR01 trg_validation_after_insert
 -- 触发时机：AFTER INSERT ON validation_records
--- 功能：重算信息可信度 + 更新验证者/作者信誉分 + 冲突检测
+-- 功能：重算信息可信度 + 更新验证者/作者信誉分
 -- ============================================================
 CREATE OR REPLACE FUNCTION trg_func_validation_after_insert()
 RETURNS TRIGGER AS $$
@@ -35,11 +35,6 @@ BEGIN
         PERFORM sp_update_reputation(v_post_author);
     END IF;
 
-    -- 若为冲突报告，触发冲突检测
-    IF NEW.validation_type = 'conflict_report' THEN
-        PERFORM sp_detect_conflict(NEW.post_id);
-    END IF;
-
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -50,7 +45,7 @@ CREATE TRIGGER trg_validation_after_insert
     FOR EACH ROW
     EXECUTE PROCEDURE trg_func_validation_after_insert();
 
-COMMENT ON FUNCTION trg_func_validation_after_insert() IS 'TR01 验证记录插入后触发：重算可信度+更新信誉分+冲突检测';
+COMMENT ON FUNCTION trg_func_validation_after_insert() IS 'TR01 验证记录插入后触发：重算可信度+更新信誉分';
 
 -- ============================================================
 -- TR02 trg_validation_after_delete
@@ -183,45 +178,6 @@ CREATE TRIGGER trg_like_delete_count
     EXECUTE PROCEDURE trg_func_like_update_count();
 
 COMMENT ON FUNCTION trg_func_like_update_count() IS 'TR05 点赞计数触发：同步 posts.like_count';
-
--- ============================================================
--- TR06 trg_favorite_update_count
--- 触发时机：AFTER INSERT/DELETE ON favorites
--- 功能：更新 posts.favorite_count
--- ============================================================
-CREATE OR REPLACE FUNCTION trg_func_favorite_update_count()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF (TG_OP = 'INSERT') THEN
-        UPDATE posts
-        SET favorite_count = favorite_count + 1,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = NEW.post_id;
-        RETURN NEW;
-    ELSIF (TG_OP = 'DELETE') THEN
-        UPDATE posts
-        SET favorite_count = GREATEST(0, favorite_count - 1),
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = OLD.post_id;
-        RETURN OLD;
-    END IF;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_favorite_insert_count ON favorites;
-CREATE TRIGGER trg_favorite_insert_count
-    AFTER INSERT ON favorites
-    FOR EACH ROW
-    EXECUTE PROCEDURE trg_func_favorite_update_count();
-
-DROP TRIGGER IF EXISTS trg_favorite_delete_count ON favorites;
-CREATE TRIGGER trg_favorite_delete_count
-    AFTER DELETE ON favorites
-    FOR EACH ROW
-    EXECUTE PROCEDURE trg_func_favorite_update_count();
-
-COMMENT ON FUNCTION trg_func_favorite_update_count() IS 'TR06 收藏计数触发：同步 posts.favorite_count';
 
 -- ============================================================
 -- TR07 trg_post_update_view_count

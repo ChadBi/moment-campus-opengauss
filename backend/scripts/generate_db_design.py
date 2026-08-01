@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 生成数据库设计产物：
-1. Excel 表结构文档（21 张表，每表一个 Sheet + 总览 Sheet）
+1. Excel 表结构文档（当前核心表，每表一个 Sheet + 总览 Sheet）
 2. ER 图（SVG 格式，总体 + 5 个子系统）
 3. ER 图（DOT 源码，供 Graphviz 渲染）
 
@@ -17,7 +17,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 # =============================================================================
-# 1. 21 张表的完整定义（基于 backend/app/models/ 实际代码）
+# 1. 当前核心表的完整定义（基于 backend/app/models/ 实际代码）
 # =============================================================================
 
 # 字段定义格式：(字段名, 数据类型, 是否主键, 外键引用表, 是否可空, 默认值, 说明)
@@ -118,13 +118,11 @@ TABLES = [
             ("view_count", "INTEGER", False, None, False, "0", "浏览数"),
             ("like_count", "INTEGER", False, None, False, "0", "点赞数"),
             ("comment_count", "INTEGER", False, None, False, "0", "评论数"),
-            ("favorite_count", "INTEGER", False, None, False, "0", "收藏数"),
             ("valid_count", "INTEGER", False, None, False, "0", "证实数"),
             ("invalid_count", "INTEGER", False, None, False, "0", "证伪数"),
             ("expire_at", "TIMESTAMP", False, None, True, None, "信息截止时间"),
             ("lost_type", "VARCHAR(10)", False, None, True, None, "失物类型：lost/found"),
             ("contact_info", "VARCHAR(255)", False, None, True, None, "联系方式"),
-            ("is_top", "BOOLEAN", False, None, False, "FALSE", "是否置顶"),
             ("is_recommend", "BOOLEAN", False, None, False, "FALSE", "是否推荐"),
             ("created_at", "TIMESTAMP", False, None, False, "CURRENT", "创建时间"),
             ("updated_at", "TIMESTAMP", False, None, False, "CURRENT", "更新时间"),
@@ -181,25 +179,14 @@ TABLES = [
         ],
     },
     {
-        "name": "favorites",
-        "cn_name": "收藏表",
-        "desc": "用户对信息的收藏记录，post_id+user_id 联合唯一",
-        "fields": [
-            ("id", "BIGINT", True, None, False, "AUTO", "主键，自增"),
-            ("post_id", "BIGINT", False, "posts", False, None, "信息ID（外键）"),
-            ("user_id", "BIGINT", False, "users", False, None, "用户ID（外键）"),
-            ("created_at", "TIMESTAMP", False, None, False, "CURRENT", "创建时间"),
-        ],
-    },
-    {
         "name": "validation_records",
         "cn_name": "协同验证记录表",
-        "desc": "用户对信息的协同验证，含5类：证实/证伪/更新/过期报告/冲突报告",
+        "desc": "用户对信息的协同验证，仅含互斥的证实/证伪两类",
         "fields": [
             ("id", "BIGINT", True, None, False, "AUTO", "主键，自增"),
             ("post_id", "BIGINT", False, "posts", False, None, "信息ID（外键）"),
             ("user_id", "BIGINT", False, "users", False, None, "验证者ID（外键）"),
-            ("validation_type", "VARCHAR(30)", False, None, False, None, "验证类型：5类"),
+            ("validation_type", "VARCHAR(20)", False, None, False, None, "验证类型：confirmation/refutation"),
             ("comment", "VARCHAR(500)", False, None, True, None, "验证评论"),
             ("created_at", "TIMESTAMP", False, None, False, "CURRENT", "创建时间"),
         ],
@@ -353,14 +340,12 @@ RELATIONS = [
     ("posts", "1", "post_images", "N", "含图"),
     ("posts", "1", "comments", "N", "评论"),
     ("posts", "1", "likes", "N", "点赞"),
-    ("posts", "1", "favorites", "N", "收藏"),
     ("posts", "1", "validation_records", "N", "验证"),
     ("posts", "1", "reports", "N", "被举报"),
     ("posts", "1", "browse_histories", "N", "被浏览"),
     ("posts", "M", "topic_collections", "N", "收录于"),  # M:N 通过 topic_collection_posts
     ("users", "1", "comments", "N", "评论"),
     ("users", "1", "likes", "N", "点赞"),
-    ("users", "1", "favorites", "N", "收藏"),
     ("users", "1", "validation_records", "N", "验证"),
     ("users", "1", "reports", "N", "举报"),  # reporter_id
     ("users", "1", "reports", "N", "处理"),  # handler_id
@@ -390,9 +375,9 @@ SUBSYSTEMS = {
         "desc": "信息发布、分类、地点、专题",
     },
     "互动子系统": {
-        "tables": ["posts", "users", "comments", "likes", "favorites",
+        "tables": ["posts", "users", "comments", "likes",
                    "browse_histories", "search_histories"],
-        "desc": "评论、点赞、收藏、浏览、搜索",
+        "desc": "评论、点赞、浏览、搜索",
     },
     "治理子系统": {
         "tables": ["posts", "users", "validation_records", "reports",
@@ -586,7 +571,7 @@ class SvgERGenerator:
         """根据表名判断实体类别"""
         config_tables = {"schools", "categories", "locations"}
         relation_tables = {"post_images", "topic_collection_posts"}
-        interaction_tables = {"comments", "likes", "favorites", "browse_histories", "search_histories", "drafts"}
+        interaction_tables = {"comments", "likes", "browse_histories", "search_histories", "drafts"}
         governance_tables = {"validation_records", "reports", "notifications"}
         system_tables = {"admin_operation_logs"}
         core_tables = {"users", "posts", "topic_collections"}

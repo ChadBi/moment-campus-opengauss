@@ -27,9 +27,6 @@ SELECT
     p.title,
     COUNT(v.id) FILTER (WHERE v.validation_type = 'confirmation')      AS confirm_cnt,
     COUNT(v.id) FILTER (WHERE v.validation_type = 'refutation')       AS refute_cnt,
-    COUNT(v.id) FILTER (WHERE v.validation_type = 'update')           AS update_cnt,
-    COUNT(v.id) FILTER (WHERE v.validation_type = 'expiration_report') AS expire_cnt,
-    COUNT(v.id) FILTER (WHERE v.validation_type = 'conflict_report')  AS conflict_cnt,
     COUNT(v.id)                                                       AS total_cnt,
     p.credibility_score,
     p.valid_count,
@@ -116,15 +113,14 @@ SELECT
     -- ===== 信息统计 =====
     (SELECT COUNT(*) FROM posts WHERE is_deleted = FALSE) AS total_posts,
     (SELECT COUNT(*) FROM posts WHERE status = 'published' AND is_deleted = FALSE) AS published_posts,
-    (SELECT COUNT(*) FROM posts WHERE status = 'pending_review' AND is_deleted = FALSE) AS pending_posts,
+    (SELECT COUNT(*) FROM posts WHERE status = 'pending' AND is_deleted = FALSE) AS pending_posts,
     (SELECT COUNT(*) FROM posts WHERE status = 'draft' AND is_deleted = FALSE) AS draft_posts,
-    (SELECT COUNT(*) FROM posts WHERE status = 'rejected' AND is_deleted = FALSE) AS rejected_posts,
+    (SELECT COUNT(*) FROM posts WHERE status = 'archived' AND is_deleted = FALSE) AS archived_posts,
     (SELECT COUNT(*) FROM posts WHERE status = 'expired' AND is_deleted = FALSE) AS expired_posts,
     (SELECT COUNT(*) FROM posts WHERE status = 'conflict' AND is_deleted = FALSE) AS conflict_posts,
     -- ===== 互动统计 =====
     (SELECT COUNT(*) FROM comments WHERE is_deleted = FALSE) AS total_comments,
     (SELECT COUNT(*) FROM likes) AS total_likes,
-    (SELECT COUNT(*) FROM favorites) AS total_favorites,
     -- ===== 验证与举报 =====
     (SELECT COUNT(*) FROM validation_records WHERE is_deleted = FALSE) AS total_validations,
     (SELECT COUNT(*) FROM reports WHERE status = 'pending') AS pending_reports,

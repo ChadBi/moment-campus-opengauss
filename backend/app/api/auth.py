@@ -504,7 +504,7 @@ async def reset_password(
     # 所有 iat < now 的 refresh token 在 refresh 端点都会被拒绝。
     # JWT iat 是 float timestamp（带微秒），此处 invalid_before 也保留微秒精度，
     # 确保同秒内 reset + 新 token 签发能正确区分（新 token iat > reset 时刻）。
-    user.refresh_tokens_invalid_before = datetime.utcnow()
+    user.refresh_tokens_invalid_before = datetime.now()
 
     # 标记 token 已使用
     prt.used_at = datetime.now()

@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import re
 
+from sqlalchemy import event
 from sqlalchemy.dialects.postgresql.base import PGDialect
+from sqlalchemy.pool import Pool
 
 _original_get_server_version_info = PGDialect._get_server_version_info
 
@@ -31,5 +33,41 @@ def _patched_get_server_version_info(self, connection):
 
 
 PGDialect._get_server_version_info = _patched_get_server_version_info
+
+
+def _encode_vector(value):
+    if value is None or isinstance(value, str):
+        return value
+    return "[" + ",".join(format(float(item), ".12g") for item in value) + "]"
+
+
+def _decode_vector(value):
+    if value is None:
+        return None
+    text = str(value).strip("[]")
+    return [float(item) for item in text.split(",")] if text else []
+
+
+@event.listens_for(Pool, "connect")
+def _register_opengauss_vector_codec(dbapi_connection, connection_record):
+    """为 asyncpg 注册 openGauss 内核级 vector 的文本 codec。"""
+    run_async = getattr(dbapi_connection, "run_async", None)
+    if run_async is None:
+        return
+
+    async def register(driver_connection):
+        try:
+            await driver_connection.set_type_codec(
+                "vector",
+                schema="pg_catalog",
+                encoder=_encode_vector,
+                decoder=_decode_vector,
+                format="text",
+            )
+        except ValueError:
+            # 兼容尚未包含 DataVec 类型的数据库实例。
+            return
+
+    run_async(register)
 
 __all__ = []

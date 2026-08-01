@@ -35,7 +35,7 @@ CREATE TABLESPACE ts_core
 
 -- ------------------------------------------------------------
 -- 1.3 互动表空间
---     存放：comments / likes / favorites / notifications
+--     存放：comments / likes / notifications
 --     访问特征：高并发写入，热点数据
 -- ------------------------------------------------------------
 CREATE TABLESPACE ts_interaction

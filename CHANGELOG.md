@@ -7,6 +7,15 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.0.8] - 2026-08-01
+
+### 运维 SQL 与部署脚本收敛
+
+- openGauss 运维 SQL 与现行数据库契约对齐：索引、物化视图、函数、触发器、分区、表空间、性能测试脚本全面修订
+- 新增 `test_opengauss_sql_contract` 契约测试，校验 SQL 文件与迁移/ORM 模型一致性
+- `deploy/` 安装/更新/混合部署脚本补充自动过期 systemd 单元安装与定时器启用
+- 后端系统层修复与加固：auth 限流、upload 安全、db_compat 兼容补丁、main 启动收敛、`verify_data`/`generate_full_report` 数据校验脚本重构
+
 ## [2.0.7] - 2026-08-01
 
 ### 小程序 AI-Skills 校验与配置

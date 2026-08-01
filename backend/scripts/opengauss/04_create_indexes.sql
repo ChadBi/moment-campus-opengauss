@@ -1,6 +1,6 @@
 -- ============================================================
 -- 脚本名称：04_create_indexes.sql
--- 用途：汇总 21 张表的所有索引（约 50 个现有 + 8 个新增部分索引）
+-- 用途：补充当前 ORM 基础表的运维索引
 -- 依据：
 --   - docs/27_数据库物理模型设计.md 第 3 节
 --   - backend/app/models/ 中各模型的 __table_args__
@@ -55,18 +55,9 @@ CREATE INDEX IF NOT EXISTS idx_post_created ON posts (created_at);
 -- 4. categories 表（2 个索引）
 -- ------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_category_code ON categories (code);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_category_code_uidx ON categories (code);
+DROP INDEX IF EXISTS idx_category_code_uidx;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_category_school_code ON categories (school_id, code);
 CREATE INDEX IF NOT EXISTS idx_category_sort ON categories (sort_order);
-
--- ------------------------------------------------------------
--- 6. tags 表（4 个索引）
--- ------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_tag_name ON tags (name);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_tag_name_uidx ON tags (name);
-CREATE INDEX IF NOT EXISTS idx_tag_slug ON tags (slug);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_tag_slug_uidx ON tags (slug);
-CREATE INDEX IF NOT EXISTS idx_tag_usage ON tags (usage_count);
-CREATE INDEX IF NOT EXISTS idx_tag_official ON tags (is_official);
 
 -- ------------------------------------------------------------
 -- 7. locations 表（4 个索引）
@@ -92,13 +83,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_like_post_user_uidx ON likes (post_id, use
 CREATE INDEX IF NOT EXISTS idx_like_user ON likes (user_id);
 
 -- ------------------------------------------------------------
--- 10. favorites 表（2 个索引 + 1 唯一）
--- ------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_favorite_post_user ON favorites (post_id, user_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_favorite_post_user_uidx ON favorites (post_id, user_id);
-CREATE INDEX IF NOT EXISTS idx_favorite_user ON favorites (user_id, created_at);
-
--- ------------------------------------------------------------
 -- 11. validation_records 表（3 个索引）
 -- ------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_validation_post ON validation_records (post_id, created_at);
@@ -119,13 +103,6 @@ CREATE INDEX IF NOT EXISTS idx_report_handler ON reports (handler_id);
 CREATE INDEX IF NOT EXISTS idx_notification_user_read ON notifications (user_id, is_read, created_at);
 CREATE INDEX IF NOT EXISTS idx_notification_user_type ON notifications (user_id, type);
 CREATE INDEX IF NOT EXISTS idx_notification_target ON notifications (target_type, target_id);
-
--- ------------------------------------------------------------
--- 14. post_tags 表（2 个索引 + 1 唯一）
--- ------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_posttag_post_tag ON post_tags (post_id, tag_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_posttag_post_tag_uidx ON post_tags (post_id, tag_id);
-CREATE INDEX IF NOT EXISTS idx_posttag_tag ON post_tags (tag_id);
 
 -- ------------------------------------------------------------
 -- 15. post_images 表（1 个索引）
@@ -197,11 +174,11 @@ END $$;
 
 -- ------------------------------------------------------------
 -- 3.3.2 posts 推荐排序索引（部分索引）
---   优化场景：首页推荐列表（置顶 + 推荐 + 创建时间）
+--   优化场景：首页推荐列表（推荐 + 创建时间）
 --   预期收益：避免对 posts 全表排序（200ms → 5ms）
 -- ------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_post_recommend
-    ON posts (is_top DESC, is_recommend DESC, created_at DESC)
+    ON posts (is_recommend DESC, created_at DESC)
     WHERE is_deleted = FALSE AND status = 'published';
 
 -- ------------------------------------------------------------

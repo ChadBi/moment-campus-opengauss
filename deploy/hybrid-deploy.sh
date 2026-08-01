@@ -85,6 +85,10 @@ PrivateTmp=true
 WantedBy=multi-user.target
 EOF
 
+cp "$PROJECT_DIR/deploy/bare-metal/moment-expire-posts.service" /etc/systemd/system/
+cp "$PROJECT_DIR/deploy/bare-metal/moment-expire-posts.timer" /etc/systemd/system/
+sed -i "s|User=.*|User=${SERVICE_USER}|g; s|Group=.*|Group=${SERVICE_USER}|g; s|/opt/moment-campus|${PROJECT_DIR}|g" /etc/systemd/system/moment-expire-posts.service
+
 if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" ]; then
 cat > /etc/nginx/sites-available/moment <<EOF
 server {
@@ -259,6 +263,7 @@ rm -f /etc/nginx/sites-enabled/default
 chown -R "$SERVICE_USER:$SERVICE_USER" "$PROJECT_DIR"
 systemctl daemon-reload
 systemctl enable moment-backend
+systemctl enable --now moment-expire-posts.timer
 systemctl restart moment-backend
 nginx -t
 systemctl restart nginx

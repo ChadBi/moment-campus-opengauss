@@ -13,7 +13,7 @@ from sqlalchemy import select, func
 from app.database import async_session_maker
 from app.models import (
     User, School, Post, Category, PostImage,
-    Location, Comment, Like, Favorite, ValidationRecord, Report, Notification,
+    Location, Comment, Like, ValidationRecord, Report, Notification,
     TopicCollection, TopicCollectionPost, Draft, BrowseHistory, SearchHistory,
     AdminOperationLog
 )

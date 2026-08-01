@@ -46,7 +46,7 @@ LEFT JOIN locations l ON l.id = p.location_id
 WHERE p.is_deleted = FALSE
   AND p.status = 'published'
   AND p.school_id = 1
-ORDER BY p.is_top DESC, p.is_recommend DESC, p.created_at DESC
+ORDER BY p.is_recommend DESC, p.created_at DESC
 LIMIT 20;
 
 -- ============================================================
@@ -59,10 +59,9 @@ LIMIT 20;
 EXPLAIN ANALYZE
 SELECT
     p.id, p.title, p.content, p.user_id, p.status,
-    p.view_count, p.like_count, p.comment_count, p.favorite_count,
+    p.view_count, p.like_count, p.comment_count,
     p.credibility_score, p.created_at,
-    mv.confirm_cnt, mv.refute_cnt, mv.update_cnt,
-    mv.expire_cnt, mv.conflict_cnt, mv.total_cnt,
+    mv.confirm_cnt, mv.refute_cnt, mv.total_cnt,
     u.nickname AS author_name,
     u.reputation_score AS author_reputation
 FROM posts p
@@ -99,8 +98,8 @@ EXPLAIN ANALYZE
 SELECT
     total_users, active_users, admin_users, normal_users,
     total_posts, published_posts, pending_posts, draft_posts,
-    rejected_posts, expired_posts, conflict_posts,
-    total_comments, total_likes, total_favorites,
+    archived_posts, expired_posts, conflict_posts,
+    total_comments, total_likes,
     total_validations, pending_reports, resolved_reports,
     total_notifications, unread_notifications, total_admin_logs,
     avg_reputation, max_reputation, avg_credibility,

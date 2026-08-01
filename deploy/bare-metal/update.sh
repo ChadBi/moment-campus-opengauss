@@ -45,6 +45,11 @@ echo ""
 
 echo "🔄 步骤5：重启服务..."
 chown -R moment:moment $PROJECT_DIR
+cp $PROJECT_DIR/deploy/bare-metal/moment-expire-posts.service /etc/systemd/system/
+cp $PROJECT_DIR/deploy/bare-metal/moment-expire-posts.timer /etc/systemd/system/
+sed -i "s|/opt/moment-campus|$PROJECT_DIR|g" /etc/systemd/system/moment-expire-posts.service
+systemctl daemon-reload
+systemctl enable --now moment-expire-posts.timer
 systemctl restart moment-backend
 systemctl restart nginx
 sleep 2
@@ -61,6 +66,12 @@ if systemctl is-active --quiet nginx; then
     echo "✅ Nginx运行正常"
 else
     echo "❌ Nginx异常，请检查配置：nginx -t"
+fi
+
+if systemctl is-active --quiet moment-expire-posts.timer; then
+    echo "✅ 自动过期定时器运行正常"
+else
+    echo "❌ 自动过期定时器异常，请检查：systemctl status moment-expire-posts.timer"
 fi
 echo ""
 

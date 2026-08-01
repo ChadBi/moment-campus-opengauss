@@ -1,5 +1,6 @@
 import os
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,9 +24,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # openGauss 兼容 PostgreSQL 协议，SQLAlchemy 连接串使用 postgresql+asyncpg scheme，
+    # 但实际连接的是 openGauss 数据库。这里基于 APP_ENV 显示真实数据库类型。
+    if settings.APP_ENV == "opengauss":
+        db_display = "openGauss (asyncpg)"
+    else:
+        db_display = settings.DATABASE_URL.split("://")[0]
+    logger.info(f"启动 {settings.APP_NAME} | 环境: {settings.APP_ENV} | DB: {db_display}")
+    yield
+
+
 app = FastAPI(
     title=settings.APP_NAME,
-    openapi_url=f"{settings.API_V1_PREFIX}/openapi.json"
+    openapi_url=f"{settings.API_V1_PREFIX}/openapi.json",
+    lifespan=lifespan,
 )
 
 # ============================================================
@@ -125,17 +140,6 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 _upload_dir = os.path.abspath(settings.UPLOAD_DIR)
 os.makedirs(_upload_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=_upload_dir), name="uploads")
-
-
-@app.on_event("startup")
-async def startup_event():
-    # openGauss 兼容 PostgreSQL 协议，SQLAlchemy 连接串使用 postgresql+asyncpg scheme，
-    # 但实际连接的是 openGauss 数据库。这里基于 APP_ENV 显示真实数据库类型。
-    if settings.APP_ENV == "opengauss":
-        db_display = "openGauss (asyncpg)"
-    else:
-        db_display = settings.DATABASE_URL.split("://")[0]
-    logger.info(f"启动 {settings.APP_NAME} | 环境: {settings.APP_ENV} | DB: {db_display}")
 
 
 @app.get("/")

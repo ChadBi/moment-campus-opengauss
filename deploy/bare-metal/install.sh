@@ -124,11 +124,15 @@ echo ""
 
 echo "⚙️  步骤8：配置 systemd 服务..."
 cp $PROJECT_DIR/deploy/bare-metal/moment-backend.service /etc/systemd/system/
+cp $PROJECT_DIR/deploy/bare-metal/moment-expire-posts.service /etc/systemd/system/
+cp $PROJECT_DIR/deploy/bare-metal/moment-expire-posts.timer /etc/systemd/system/
 sed -i "s|WorkingDirectory=.*|WorkingDirectory=$PROJECT_DIR/backend|g" /etc/systemd/system/moment-backend.service
 sed -i "s|Environment=\"PATH=.*|Environment=\"PATH=$PROJECT_DIR/backend/.venv/bin:/usr/local/bin:/usr/bin:/bin\"|g" /etc/systemd/system/moment-backend.service
 sed -i "s|ExecStart=.*|ExecStart=$PROJECT_DIR/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4|g" /etc/systemd/system/moment-backend.service
+sed -i "s|User=.*|User=$SERVICE_USER|g; s|Group=.*|Group=$SERVICE_USER|g; s|/opt/moment-campus|$PROJECT_DIR|g" /etc/systemd/system/moment-expire-posts.service
 systemctl daemon-reload
 systemctl enable moment-backend
+systemctl enable --now moment-expire-posts.timer
 echo "✅ systemd 服务配置完成"
 echo ""
 
@@ -191,6 +195,8 @@ echo "   密码: pass123"
 echo ""
 echo "📝 常用运维命令："
 echo "   查看后端日志: journalctl -u moment-backend -f"
+echo "   查看过期任务日志: journalctl -u moment-expire-posts -f"
+echo "   查看过期任务定时器: systemctl status moment-expire-posts.timer"
 echo "   重启后端: systemctl restart moment-backend"
 echo "   重启Nginx: systemctl restart nginx"
 echo "   查看服务状态: systemctl status moment-backend nginx"

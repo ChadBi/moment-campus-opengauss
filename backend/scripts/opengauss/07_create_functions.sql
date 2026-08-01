@@ -18,7 +18,7 @@
 -- 调用方：触发器 trg_validation_after_insert/delete、SP08
 -- 公式：
 --   基础分 = 作者信誉 * 0.3 + 50 * 0.7
---   证实 +5/条，证伪 -8/条，更新 +2/条，过期报告 -10/条，冲突报告 -15/条
+--   证实 +5/条，证伪 -8/条
 --   限制范围 [0, 100]
 -- ============================================================
 CREATE OR REPLACE FUNCTION sp_recalc_credibility(p_post_id BIGINT)
@@ -26,20 +26,14 @@ RETURNS NUMERIC(5,2) AS $$
 DECLARE
     v_confirm_cnt   INTEGER;
     v_refute_cnt    INTEGER;
-    v_update_cnt    INTEGER;
-    v_expire_cnt    INTEGER;
-    v_conflict_cnt  INTEGER;
     v_credibility   NUMERIC(5,2);
     v_author_rep    NUMERIC(5,2);
 BEGIN
-    -- 统计 5 类验证记录
+    -- 统计两类互斥验证记录
     SELECT
         COUNT(*) FILTER (WHERE validation_type = 'confirmation'),
-        COUNT(*) FILTER (WHERE validation_type = 'refutation'),
-        COUNT(*) FILTER (WHERE validation_type = 'update'),
-        COUNT(*) FILTER (WHERE validation_type = 'expiration_report'),
-        COUNT(*) FILTER (WHERE validation_type = 'conflict_report')
-    INTO v_confirm_cnt, v_refute_cnt, v_update_cnt, v_expire_cnt, v_conflict_cnt
+        COUNT(*) FILTER (WHERE validation_type = 'refutation')
+    INTO v_confirm_cnt, v_refute_cnt
     FROM validation_records
     WHERE post_id = p_post_id AND is_deleted = FALSE;
 
@@ -52,10 +46,7 @@ BEGIN
     -- 可信度计算公式（详见 doc 27 第 4.3.1 节）
     v_credibility := v_author_rep * 0.3 + 50.0 * 0.7
                    + v_confirm_cnt * 5.0
-                   - v_refute_cnt * 8.0
-                   + v_update_cnt * 2.0
-                   - v_expire_cnt * 10.0
-                   - v_conflict_cnt * 15.0;
+                   - v_refute_cnt * 8.0;
 
     -- 限制在 [0, 100]
     v_credibility := GREATEST(0.0, LEAST(100.0, v_credibility));
@@ -325,7 +316,7 @@ COMMENT ON FUNCTION sp_cleanup_soft_deleted() IS 'SP06 清理 30 天前软删除
 --   p_is_anonymous  - 是否匿名
 --   p_expire_at     - 信息截止时间（可空）
 --   p_contact_info  - 联系方式（可空）
---   p_status        - 初始状态（默认 pending_review）
+--   p_status        - 初始状态（默认 pending）
 -- 返回：新信息ID
 -- ============================================================
 CREATE OR REPLACE FUNCTION sp_publish_post(
@@ -338,7 +329,7 @@ CREATE OR REPLACE FUNCTION sp_publish_post(
     p_is_anonymous      BOOLEAN DEFAULT FALSE,
     p_expire_at         TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     p_contact_info      VARCHAR(255) DEFAULT NULL,
-    p_status            VARCHAR(20) DEFAULT 'pending_review'
+    p_status            VARCHAR(20) DEFAULT 'pending'
 )
 RETURNS BIGINT AS $$
 DECLARE
@@ -374,18 +365,18 @@ BEGIN
     INSERT INTO posts (
         user_id, school_id, category_id, location_id,
         title, content, is_anonymous, status,
-        view_count, like_count, comment_count, favorite_count,
+        view_count, like_count, comment_count,
         valid_count, invalid_count, credibility_score,
         expire_at,
-        contact_info, is_top, is_recommend,
+        contact_info, is_recommend,
         created_at, updated_at, is_deleted
     ) VALUES (
         p_user_id, p_school_id, p_category_id, p_location_id,
         p_title, p_content, p_is_anonymous, p_status,
-        0, 0, 0, 0,
+        0, 0, 0,
         0, 0, v_credibility,
         p_expire_at,
-        p_contact_info, FALSE, FALSE,
+        p_contact_info, FALSE,
         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE
     )
     RETURNING id INTO v_post_id;
@@ -411,11 +402,11 @@ COMMENT ON FUNCTION sp_publish_post(BIGINT, BIGINT, BIGINT, BIGINT, VARCHAR, TEX
 -- ============================================================
 -- SP08 sp_submit_validation（提交协同验证）
 -- 调用方：应用层
--- 功能：原子化提交验证记录 + 重算可信度 + 冲突检测 + 信誉分更新
+-- 功能：原子化提交两类互斥验证记录 + 重算可信度 + 信誉分更新
 -- 参数：
 --   p_user_id         - 验证者ID
 --   p_post_id         - 信息ID
---   p_validation_type - 验证类型（confirmation/refutation/update/expiration_report/conflict_report）
+--   p_validation_type - 验证类型（confirmation/refutation）
 --   p_content         - 验证内容/评论
 --   p_evidence_urls   - 证据图片URL数组（可空）
 -- 返回：新验证记录ID
@@ -455,8 +446,7 @@ BEGIN
     END IF;
 
     -- 校验：验证类型合法
-    IF p_validation_type NOT IN ('confirmation', 'refutation', 'update',
-                                  'expiration_report', 'conflict_report') THEN
+    IF p_validation_type NOT IN ('confirmation', 'refutation') THEN
         RAISE EXCEPTION '无效的验证类型：%', p_validation_type;
     END IF;
 
@@ -469,11 +459,6 @@ BEGIN
 
     -- 重算信息可信度
     PERFORM sp_recalc_credibility(p_post_id);
-
-    -- 若为冲突报告，触发冲突检测
-    IF p_validation_type = 'conflict_report' THEN
-        PERFORM sp_detect_conflict(p_post_id);
-    END IF;
 
     -- 更新验证者信誉分（参与验证 +0.1，由公式自动计算）
     PERFORM sp_update_reputation(p_user_id);

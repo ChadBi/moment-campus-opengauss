@@ -181,6 +181,8 @@ async def upload_image(
         reencoded_content = _reencode_image(image, fmt, ext)
     except Exception:
         raise BadRequestException(detail="图片重新编码失败，请检查文件是否损坏")
+    finally:
+        image.close()
 
     # 5. FND-03.4: 生成安全文件名（uuid + 真实扩展名），杜绝路径穿越
     safe_filename = f"{uuid.uuid4().hex}.{ext}"
@@ -203,17 +205,25 @@ async def upload_image(
         thumb_path = os.path.join(upload_dir, thumb_filename)
 
         # 重新打开原图用于缩略图（前面 image 已被 save 消耗）
-        thumb_image = Image.open(BytesIO(reencoded_content))
-        thumb_image.thumbnail(THUMBNAIL_SIZE, Image.Resampling.LANCZOS)
+        with Image.open(BytesIO(reencoded_content)) as thumb_image:
+            thumb_image.thumbnail(THUMBNAIL_SIZE, Image.Resampling.LANCZOS)
 
-        if fmt == "GIF":
-            thumb_image.save(thumb_path, format="GIF", save_all=True)
-        elif fmt == "PNG":
-            save_thumb = thumb_image if thumb_image.mode in ("RGB", "RGBA") else thumb_image.convert("RGBA")
-            save_thumb.save(thumb_path, format="PNG")
-        else:
-            save_thumb = thumb_image if thumb_image.mode == "RGB" else thumb_image.convert("RGB")
-            save_thumb.save(thumb_path, format="JPEG", quality=85)
+            if fmt == "GIF":
+                thumb_image.save(thumb_path, format="GIF", save_all=True)
+            elif fmt == "PNG":
+                save_thumb = thumb_image if thumb_image.mode in ("RGB", "RGBA") else thumb_image.convert("RGBA")
+                try:
+                    save_thumb.save(thumb_path, format="PNG")
+                finally:
+                    if save_thumb is not thumb_image:
+                        save_thumb.close()
+            else:
+                save_thumb = thumb_image if thumb_image.mode == "RGB" else thumb_image.convert("RGB")
+                try:
+                    save_thumb.save(thumb_path, format="JPEG", quality=85)
+                finally:
+                    if save_thumb is not thumb_image:
+                        save_thumb.close()
 
         thumbnail_url = f"/uploads/{thumb_filename}"
     except Exception:
