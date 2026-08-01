@@ -262,13 +262,6 @@ class TestSearchFilters:
         assert search_setup["posts"]["p4"].id not in post_ids  # loc_b
 
     @pytest.mark.asyncio
-    async def test_search_filter_by_post_type(
-        self, client: AsyncClient, search_setup: dict
-    ):
-        """按帖子类型筛选"""
-        pytest.skip("Task 1.2: PostType 已删除")
-
-    @pytest.mark.asyncio
     async def test_search_filter_by_status_published(
         self, client: AsyncClient, search_setup: dict
     ):
@@ -737,7 +730,7 @@ class TestMapNoNPlusOne:
                 headers=_school(search_setup["school"]["code"]),
             )
             assert resp.status_code == 200
-            markers_count = len(resp.json())
+            markers_count = len(resp.json()["markers"])
         finally:
             sqla_event.remove(sync_engine, "before_cursor_execute", before_cursor_execute)
 

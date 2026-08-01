@@ -1,5 +1,26 @@
 import pytest
 from httpx import AsyncClient
+import warnings
+
+from app.schemas.post import PostListResponse, UserBrief
+
+
+def test_post_list_author_assignment_is_validated_before_serialization():
+    """字典作者赋值后应转为 UserBrief，序列化不得产生类型不匹配警告。"""
+    post = PostListResponse(
+        id=1,
+        user_id=2,
+        title="序列化测试帖子",
+        content="这是用于验证作者序列化的测试内容",
+        created_at="2026-08-01T00:00:00",
+    )
+
+    post.author = {"id": 2, "nickname": "测试用户", "avatar_url": None}
+
+    assert isinstance(post.author, UserBrief)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert post.model_dump()["author"]["nickname"] == "测试用户"
 
 
 @pytest.mark.asyncio
@@ -182,28 +203,6 @@ async def test_create_post_unauthenticated(client: AsyncClient, test_category: d
         },
     )
     assert response.status_code == 401
-
-
-@pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，PostCreate/PostResponse 不再有 tags 字段")
-@pytest.mark.asyncio
-async def test_create_post_with_tags(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict):
-    """Test creating a post with tags."""
-    response = await client.post(
-        "/api/v1/posts",
-        json={
-            "title": "带标签的帖子",
-            "content": "这是带标签帖子的内容，至少十个字符",
-            "category_id": test_category["id"],
-            "tags": ["测试", "标签"],
-        },
-        headers=auth_headers,
-    )
-    assert response.status_code == 201
-    data = response.json()
-    assert data["tags"] is not None
-    tag_names = [t["name"] for t in data["tags"]]
-    assert "测试" in tag_names
-    assert "标签" in tag_names
 
 
 @pytest.mark.asyncio

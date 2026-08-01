@@ -1,9 +1,8 @@
-"""PUB-01: 统一发布表单 + 动态分类/地点/类型 + 图片/标签/时间 测试
+"""PUB-01: 统一发布表单 + 动态分类/地点 + 图片/有效期测试
 
 覆盖 PUB-01.1 / PUB-01.2 / PUB-01.3 三个子任务的后端契约：
 
 1. **动态数据来源**：
-   - GET /post-types 返回全局共享信息类型列表
    - GET /categories 按当前学校过滤
    - GET /locations 按当前学校过滤，返回 is_verified 字段
 
@@ -11,8 +10,6 @@
    - POST /posts 接受 image_urls（最多 9 张）/ expire_at /
      contact_info / lost_type / is_anonymous
    - 创建时只允许 status=draft 或 pending，其余 4 态由状态机管理（FND-01.2）
-   - Task 1.3 调整：tags 字段已随 Tag 模型删除移除
-   - Task 1.4 调整：activity_start_at / activity_end_at 字段已随活动时间字段移除
 
 3. **地点选择 + 新增地点队列**：
    - 已存在 location_id：直接关联
@@ -197,24 +194,10 @@ async def three_schools_for_publish(db_session: AsyncSession) -> dict:
 
 
 # ============================================================
-# PUB-01.1: 动态数据来源（categories / locations / post-types）
+# PUB-01.1: 动态数据来源（categories / locations）
 # ============================================================
 class TestPublishFormDataSources:
     """发布表单动态数据来源测试"""
-
-    @pytest.mark.asyncio
-    async def test_get_post_types_returns_global_list(
-        self, client: AsyncClient, db_session: AsyncSession, test_school: dict
-    ):
-        """GET /post-types 返回全局共享信息类型列表"""
-        pytest.skip("Task 1.2: PostType 已删除")
-
-    @pytest.mark.asyncio
-    async def test_get_post_types_inactive_excluded(
-        self, client: AsyncClient, db_session: AsyncSession, test_school: dict
-    ):
-        """停用的信息类型不出现在列表中"""
-        pytest.skip("Task 1.2: PostType 已删除")
 
     @pytest.mark.asyncio
     async def test_get_locations_returns_is_verified_field(
@@ -335,24 +318,6 @@ class TestPublishFormFields:
         assert images[0].sort_order == 0
         assert images[1].image_url == "/uploads/test2.jpg"
         assert images[1].sort_order == 1
-
-    @pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，tags 字段不再校验上限")
-    @pytest.mark.asyncio
-    async def test_create_post_with_tags_limit(
-        self, client: AsyncClient, auth_headers: dict, test_category: dict,
-    ):
-        """标签数量上限 5 个，超出应被拒绝（422）"""
-        resp = await client.post(
-            "/api/v1/posts",
-            json={
-                "title": "标签上限测试标题",
-                "content": "测试标签数量上限，至少十个字符",
-                "category_id": test_category["id"],
-                "tags": ["t1", "t2", "t3", "t4", "t5", "t6"],  # 6 个，超过上限
-            },
-            headers=auth_headers,
-        )
-        assert resp.status_code == 422
 
     @pytest.mark.asyncio
     async def test_create_post_with_image_urls_limit(
@@ -770,7 +735,7 @@ class TestThreeSchoolPublish:
             )
             assert resp.status_code == 201, f"{school_key} 校发布失败: {resp.text}"
 
-        # 三校各自的 categories / locations / post-types 都能拉到
+        # 三校各自的 categories / locations 都能拉到
         for school_key in ("a", "b", "c"):
             school_code = three_schools_for_publish["schools"][school_key]["code"]
             expected_cat_id = three_schools_for_publish["categories"][school_key]["id"]
@@ -790,6 +755,3 @@ class TestThreeSchoolPublish:
                 assert other_cat_id not in cat_ids, (
                     f"{school_key} 校看到了 {other_key} 校的分类"
                 )
-
-            # Task 1.2 调整：/api/v1/post-types 端点已随 PostType 删除移除，
-            # 三校共用信息类型由 5 类 Category（按学校隔离）承载，已在上方 categories 校验覆盖。

@@ -7,6 +7,15 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.0.6] - 2026-08-01
+
+### 后端 pytest 警告治理与测试清理
+
+- 全量消除 `-W error` 下的 DeprecationWarning 等告警：`datetime.utcnow` 弃用、pytest-asyncio 等，新增 `test_deprecation_cleanup` 契约防回潮
+- 移除已废弃的 `tests/integration/` 集成测试目录（tablespaces/indexes/materialized_views/partitions/stored_procedures/triggers 共 6 个测试 + conftest），高级 SQL 对象改由 SQL 契约测试覆盖
+- 修复 / 同步 12 个既有测试文件（ai_publish、ai_search、config、posts、publish_flow、rel02、schemas、search、tenant_isolation、upload_security、post_detail、post_transition）
+- 后端 `pytest tests -q -W error`：987 passed / 0 failed / 0 warnings
+
 ## [2.0.5] - 2026-08-01
 
 ### 前端统一状态组件与分类视觉

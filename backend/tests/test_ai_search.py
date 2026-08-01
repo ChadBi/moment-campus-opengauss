@@ -196,7 +196,6 @@ async def ai_search_setup(db_session: AsyncSession) -> dict:
 
     cat_lost = await _create_category(db_session, school.id, "失物招领", "lost-found")
     cat_event = await _create_category(db_session, school.id, "活动", "event")
-    # Task 1.2 调整：PostType 已删除，统一使用 category
     loc_a = await _create_location(db_session, school.id, "图书馆", 31.0, 120.0)
     loc_b = await _create_location(db_session, school.id, "食堂", 31.001, 120.001)
 
@@ -673,7 +672,6 @@ class TestAISearchTenantIsolation:
             u = await _create_user(db_session, f"{code}@example.com", name, s.id)
             await _create_membership(db_session, u.id, s.id)
             cat = await _create_category(db_session, s.id, f"{code}-cat", f"{code}-code")
-            # Task 1.2 调整：PostType 已删除
             loc = await _create_location(db_session, s.id, f"{code}-loc", 31.0, 120.0)
             p1 = await _create_post(
                 db_session, u.id, s.id, cat.id,

@@ -267,33 +267,6 @@ class TestTenantContextResolution:
     """TenantContext 从 header / query / 默认学校解析"""
 
     @pytest.mark.asyncio
-    async def test_diag_conftest_school_visible_via_api(
-        self, client: AsyncClient, test_school: dict, db_session: AsyncSession
-    ):
-        """诊断：验证 conftest 的 test_school fixture 创建的学校能被 API 看到"""
-        # 1. 验证学校在 db_session 中可见
-        from sqlalchemy import select as _sel, text as _text
-        db_school = (await db_session.execute(
-            _sel(School).where(School.code == test_school["code"])
-        )).scalar_one_or_none()
-        assert db_school is not None, f"DB session 看不到学校 {test_school['code']}"
-
-        # 2. 验证学校在全新 session 中可见
-        from tests.conftest import test_session_maker
-        async with test_session_maker() as fresh_session:
-            fresh_school = (await fresh_session.execute(
-                _sel(School).where(School.code == test_school["code"])
-            )).scalar_one_or_none()
-            assert fresh_school is not None, f"全新 session 看不到学校 {test_school['code']}"
-
-        # 3. 验证 API 能看到学校
-        resp = await client.get(
-            "/api/v1/categories",
-            headers={"X-School-Code": test_school["code"]},
-        )
-        assert resp.status_code == 200, f"expected 200, got {resp.status_code}: {resp.text}"
-
-    @pytest.mark.asyncio
     async def test_guest_uses_header_school_code(
         self, client: AsyncClient, three_schools: dict
     ):
@@ -542,7 +515,7 @@ class TestQueryIsolation:
             headers=_school_headers("school-a"),
         )
         assert resp.status_code == 200
-        markers = resp.json()
+        markers = resp.json()["markers"]
         post_ids = {m["post_id"] for m in markers}
         assert three_schools["posts"]["a_pub"]["id"] in post_ids
         assert three_schools["posts"]["b_pub"]["id"] not in post_ids

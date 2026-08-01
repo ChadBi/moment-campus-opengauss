@@ -312,7 +312,8 @@ async def test_validation_stats_empty(
 
 @pytest.mark.asyncio
 async def test_validation_stats_with_two_types(
-    client: AsyncClient, auth_headers: dict, second_auth_headers: dict, test_post: dict
+    client: AsyncClient, auth_headers: dict, second_auth_headers: dict,
+    admin_headers: dict, test_post: dict,
 ):
     """T-B-04: 提交 2 类验证后统计正确
 
@@ -322,19 +323,19 @@ async def test_validation_stats_with_two_types(
     """
     post_id = test_post["id"]
 
-    # 用户 1 提交 confirmation
+    # 非作者用户 1 提交 confirmation
     r1 = await client.post(
         f"/api/v1/posts/{post_id}/validate",
         json={"validation_type": "confirmation"},
-        headers=auth_headers,
+        headers=second_auth_headers,
     )
     assert r1.status_code == 200
 
-    # 用户 2 提交 refutation
+    # 非作者用户 2 提交 refutation
     r2 = await client.post(
         f"/api/v1/posts/{post_id}/validate",
         json={"validation_type": "refutation"},
-        headers=second_auth_headers,
+        headers=admin_headers,
     )
     assert r2.status_code == 200
 
@@ -559,49 +560,6 @@ async def test_non_substantial_is_anonymous_change_stays_published(
     response = await client.put(
         f"/api/v1/posts/{post_id}",
         json={"is_anonymous": True},
-        headers=auth_headers,
-    )
-    assert response.status_code == 200
-    assert response.json()["status"] == "published"
-
-
-@pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，tags 字段不再支持修改")
-@pytest.mark.asyncio
-async def test_non_substantial_tags_change_stays_published(
-    client: AsyncClient, auth_headers: dict, admin_headers: dict, test_post: dict
-):
-    """FND-03.2: 已发布帖子修改 tags（非实质附属数据）→ 保持 published
-
-    Task 1.3 调整：Tag 模型已删除，tags 字段不再支持。本测试已跳过。
-    非实质字段修改的覆盖由 test_non_substantial_image_urls_change_stays_published 等保留。
-    """
-    post_id = test_post["id"]
-    await _publish_post(client, admin_headers, post_id)
-
-    response = await client.put(
-        f"/api/v1/posts/{post_id}",
-        json={"tags": ["新标签1", "新标签2"]},
-        headers=auth_headers,
-    )
-    assert response.status_code == 200
-    assert response.json()["status"] == "published"
-
-
-@pytest.mark.asyncio
-async def test_non_substantial_activity_time_change_stays_published(
-    client: AsyncClient, auth_headers: dict, admin_headers: dict, test_post: dict
-):
-    """FND-03.2: 已发布帖子修改 activity_start_at/end_at（非实质字段）→ 保持 published"""
-    pytest.skip("Task 1.4: 活动时间字段已移除")
-    post_id = test_post["id"]
-    await _publish_post(client, admin_headers, post_id)
-
-    from datetime import datetime, timedelta
-    new_start = (datetime.now() + timedelta(days=5)).isoformat()
-    new_end = (datetime.now() + timedelta(days=6)).isoformat()
-    response = await client.put(
-        f"/api/v1/posts/{post_id}",
-        json={"activity_start_at": new_start, "activity_end_at": new_end},
         headers=auth_headers,
     )
     assert response.status_code == 200

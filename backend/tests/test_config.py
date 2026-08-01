@@ -8,6 +8,12 @@ import pytest
 from app.config import Settings, settings
 
 
+def test_settings_uses_pydantic_v2_model_config():
+    """Settings 不再保留 Pydantic v1 的内部 Config 类。"""
+    assert "Config" not in Settings.__dict__
+    assert Settings.model_config["extra"] == "ignore"
+
+
 class TestSettingsDefaults:
     """Settings 默认值"""
 

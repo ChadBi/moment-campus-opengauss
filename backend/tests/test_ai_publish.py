@@ -180,7 +180,6 @@ async def ai_publish_setup(db_session: AsyncSession) -> dict:
     cat_event = await _create_category(
         db_session, school.id, "活动", "event", default_validity_days=7,
     )
-    # Task 1.2 调整：PostType 已删除，统一使用 category
     loc_library = await _create_location(db_session, school.id, "图书馆", 31.0, 120.0)
 
     await db_session.commit()
@@ -210,7 +209,6 @@ async def two_schools_publish_setup(db_session: AsyncSession) -> dict:
         cat = await _create_category(
             db_session, s.id, f"{code}-分类", f"{code}-code", default_validity_days=10,
         )
-        # Task 1.2 调整：PostType 已删除
         loc = await _create_location(db_session, s.id, f"{code}-loc", 31.0, 120.0)
         await db_session.flush()
         schools[code] = {
@@ -661,38 +659,6 @@ class TestAIPublishWhitelist:
         # Task 1.3 调整：Tag 模型已删除，tags 始终为空列表
         assert data["suggestions"]["tags"] == []
 
-    @pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，标签白名单校验已删除")
-    @pytest.mark.asyncio
-    async def test_invalid_tags_dropped(
-        self, client: AsyncClient, ai_publish_setup: dict, monkeypatch,
-    ):
-        """AI 返回不存在标签 → 非法标签丢弃（白名单内的保留）"""
-        provider = _make_provider()
-        provider.set_response(_suggestion_json(
-            summary="ok", tags=["校园卡", "不存在的标签", "招领"],
-        ))
-        _patch_provider(monkeypatch, provider)
-
-        resp = await client.post(
-            "/api/v1/posts/ai-suggest",
-            json={
-                "title": "测试标题足够长",
-                "content": "测试正文内容足够长，方便 AI 给出建议",
-                "category_id": ai_publish_setup["categories"]["lost"].id,
-            },
-            headers={
-                **_school(ai_publish_setup["school"]["code"]),
-                **_auth(ai_publish_setup["user"]["token"]),
-            },
-        )
-        assert resp.status_code == 200
-        tags = resp.json()["suggestions"]["tags"]
-        # 白名单内的保留
-        assert "校园卡" in tags
-        assert "招领" in tags
-        # 非法标签丢弃
-        assert "不存在的标签" not in tags
-
     @pytest.mark.asyncio
     async def test_validity_days_out_of_range_falls_back(
         self, client: AsyncClient, ai_publish_setup: dict, monkeypatch,
@@ -788,39 +754,6 @@ class TestAIPublishTenantIsolation:
         # B 校分类不在 A 校白名单 → 丢弃
         assert data["suggestions"]["category"] is None
         assert data["suggestions"]["category_id"] is None
-
-    @pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，跨校标签隔离测试不再适用")
-    @pytest.mark.asyncio
-    async def test_b_school_tag_dropped_in_a_school(
-        self, client: AsyncClient, two_schools_publish_setup: dict, monkeypatch,
-    ):
-        """A 校调用，模型返回 B 校标签 → 该标签丢弃
-
-        Task 1.3 调整：Tag 模型已删除，本测试已跳过。
-        """
-        provider = _make_provider()
-        a_setup = two_schools_publish_setup["pub-a"]
-        # 让模型"误报" B 校标签（注：fixture 已不再创建 tag_name 字段）
-        provider.set_response(_suggestion_json(summary="ok", tags=["pub-b-标签"]))
-        _patch_provider(monkeypatch, provider)
-
-        resp = await client.post(
-            "/api/v1/posts/ai-suggest",
-            json={
-                "title": "测试标题足够长",
-                "content": "测试正文内容足够长，方便 AI 给出建议",
-                "category_id": a_setup["category_id"],
-            },
-            headers={
-                **_school(a_setup["code"]),
-                **_auth(a_setup["user_token"]),
-            },
-        )
-        assert resp.status_code == 200
-        tags = resp.json()["suggestions"]["tags"]
-        # B 校标签不在 A 校白名单 → 丢弃
-        assert "pub-b-标签" not in tags
-
 
 # ============================================================
 # 6. 鉴权与输入校验

@@ -225,7 +225,7 @@ async def test_guest_governance_user_validation_type_is_none(
 
     # 第二用户投票（confirmation），游客不应继承其投票类型
     vote_resp = await client.post(
-        f"/api/v1/posts/{post.id}/validations",
+        f"/api/v1/posts/{post.id}/validate",
         json={"validation_type": "confirmation"},
         headers=second_auth_headers,
     )
@@ -262,7 +262,7 @@ async def test_logged_in_user_governance_user_validation_type_reflects_vote(
 
     # 第二用户投 confirmation
     await client.post(
-        f"/api/v1/posts/{post.id}/validations",
+        f"/api/v1/posts/{post.id}/validate",
         json={"validation_type": "confirmation"},
         headers=second_auth_headers,
     )
@@ -278,7 +278,7 @@ async def test_logged_in_user_governance_user_validation_type_reflects_vote(
 
     # 切换为 refutation
     await client.post(
-        f"/api/v1/posts/{post.id}/validations",
+        f"/api/v1/posts/{post.id}/validate",
         json={"validation_type": "refutation"},
         headers=second_auth_headers,
     )
@@ -562,8 +562,6 @@ async def test_detail_governance_has_all_required_fields(
     assert resp.status_code == 200
     gov = resp.json()["governance"]
     # 契约字段全部存在
-    # Task 1.2 调整：change_reports_total/open/recent_change_reports
-    # 已随 PostChangeReport 删除移除，governance 仅保留 2 类投票聚合
     for field in (
         "confirmation_count",
         "refutation_count",
@@ -578,55 +576,6 @@ async def test_detail_governance_has_all_required_fields(
     assert gov["total_validation_count"] == 0
     assert gov["validity_status"] in ("valid", "invalid", "uncertain")
     assert gov["user_validation_type"] is None  # 未投票
-
-
-@pytest.mark.asyncio
-async def test_detail_change_reports_aggregated_in_governance(
-    client: AsyncClient, db_session: AsyncSession, test_user: dict,
-    second_auth_headers: dict, test_school: dict, test_category: dict,
-):
-    """DSC-02.1: 详情 governance 聚合 3 类问题报告（update/expiration_report/conflict_report）
-
-    Task 1.2 调整：PostChangeReport 模型与 /posts/{id}/change-reports 端点已删除，
-    3 类问题报告功能整体移除（与评论/举报功能冲突）。帖子过期/冲突状态由管理员
-    通过举报队列处理。
-    """
-    pytest.skip("Task 1.2: PostChangeReport 已删除，3 类问题报告功能移除")
-    from app.core.security import decode_token
-    user_id = int(decode_token(test_user["access_token"])["sub"])
-
-    post = await _create_published_post(
-        db_session, user_id, test_school["id"],
-        test_category["id"],
-        contact_info="x",
-    )
-
-    # 第二用户提交 3 类问题报告
-    for rtype, desc in [
-        ("update", "建议更新内容"),
-        ("expiration_report", "信息已过期"),
-        ("conflict_report", "与其他信息冲突"),
-    ]:
-        r = await client.post(
-            f"/api/v1/posts/{post.id}/change-reports",
-            json={"report_type": rtype, "description": desc},
-            headers=second_auth_headers,
-        )
-        assert r.status_code == 201
-
-    # 查询详情
-    resp = await client.get(
-        f"/api/v1/posts/{post.id}",
-        headers={"Authorization": f"Bearer {test_user['access_token']}"},
-    )
-    assert resp.status_code == 200
-    gov = resp.json()["governance"]
-    assert gov["change_reports_total"] == 3
-    assert gov["change_reports_open"] == 3
-    assert len(gov["recent_change_reports"]) == 3
-    # 报告类型集合正确
-    report_types = {r["report_type"] for r in gov["recent_change_reports"]}
-    assert report_types == {"update", "expiration_report", "conflict_report"}
 
 
 # ============================================================

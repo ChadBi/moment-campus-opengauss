@@ -36,9 +36,6 @@ from app.models.school_subscription import SchoolSubscription
 from app.core.post_status import PostStatus
 
 
-pytestmark = pytest.mark.asyncio
-
-
 # ============================================================
 # 辅助
 # ============================================================
@@ -103,6 +100,7 @@ def _auth(token: str) -> dict:
 # ============================================================
 # SQL 注入测试
 # ============================================================
+@pytest.mark.asyncio
 class TestSQLInjection:
     """搜索关键词 / 帖子字段使用 SQLAlchemy 参数化查询，注入 payload 应被当作字面字符串。"""
 
@@ -226,6 +224,7 @@ class TestSQLInjection:
 # ============================================================
 # XSS 测试
 # ============================================================
+@pytest.mark.asyncio
 class TestXSSProtection:
     """XSS payload 在 JSON API 响应中天然不执行（前端负责渲染转义）"""
 
@@ -322,6 +321,7 @@ class TestXSSProtection:
 # ============================================================
 # CSRF / 鉴权测试
 # ============================================================
+@pytest.mark.asyncio
 class TestCSRFAndAuth:
     """API 使用 Bearer Token（非 Cookie），CSRF 攻击向量不适用；
     但需验证受保护端点强制鉴权。"""

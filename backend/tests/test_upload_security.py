@@ -206,19 +206,19 @@ class TestReencodeImage:
         """JPEG 重编码后 EXIF 数据被去除"""
         content_with_exif = _make_jpeg_bytes(with_exif=True)
         # 验证原始图片确实有 EXIF
-        original_image = Image.open(io.BytesIO(content_with_exif))
-        assert original_image._getexif() is not None
+        with Image.open(io.BytesIO(content_with_exif)) as original_image:
+            assert original_image._getexif() is not None
 
         # 重新打开用于校验（_validate_image_content 会消耗 image）
         image, fmt, ext = _validate_image_content(content_with_exif)
         reencoded = _reencode_image(image, fmt, ext)
 
         # 验证重编码后无 EXIF
-        reencoded_image = Image.open(io.BytesIO(reencoded))
-        assert reencoded_image.format == "JPEG"
-        # _getexif() 返回 None 或空 dict 表示无 EXIF
-        exif = reencoded_image._getexif()
-        assert not exif  # None 或空
+        with Image.open(io.BytesIO(reencoded)) as reencoded_image:
+            assert reencoded_image.format == "JPEG"
+            exif = reencoded_image._getexif()
+            assert not exif
+        image.close()
 
     def test_png_reencode_preserves_alpha(self):
         """PNG 重编码后保留透明通道（RGBA）"""
@@ -226,9 +226,10 @@ class TestReencodeImage:
         image, fmt, ext = _validate_image_content(content)
         reencoded = _reencode_image(image, fmt, ext)
 
-        reencoded_image = Image.open(io.BytesIO(reencoded))
-        assert reencoded_image.format == "PNG"
-        assert reencoded_image.mode == "RGBA"
+        with Image.open(io.BytesIO(reencoded)) as reencoded_image:
+            assert reencoded_image.format == "PNG"
+            assert reencoded_image.mode == "RGBA"
+        image.close()
 
     def test_jpeg_reencode_produces_valid_image(self):
         """JPEG 重编码后仍为有效图片"""
@@ -237,9 +238,10 @@ class TestReencodeImage:
         reencoded = _reencode_image(image, fmt, ext)
 
         # 重编码后的字节可被 PIL 正常打开
-        reencoded_image = Image.open(io.BytesIO(reencoded))
-        reencoded_image.verify()
-        assert reencoded_image.format == "JPEG"
+        with Image.open(io.BytesIO(reencoded)) as reencoded_image:
+            reencoded_image.verify()
+            assert reencoded_image.format == "JPEG"
+        image.close()
 
     def test_gif_reencode_preserves_format(self):
         """GIF 重编码后仍为 GIF 格式"""
@@ -247,8 +249,9 @@ class TestReencodeImage:
         image, fmt, ext = _validate_image_content(content)
         reencoded = _reencode_image(image, fmt, ext)
 
-        reencoded_image = Image.open(io.BytesIO(reencoded))
-        assert reencoded_image.format == "GIF"
+        with Image.open(io.BytesIO(reencoded)) as reencoded_image:
+            assert reencoded_image.format == "GIF"
+        image.close()
 
 
 # ============================================================
@@ -516,10 +519,10 @@ async def test_upload_exif_removed(
     file_path = os.path.join(settings.UPLOAD_DIR, filename)
     assert os.path.exists(file_path), "上传文件应已保存到磁盘"
 
-    saved_image = Image.open(file_path)
-    assert saved_image.format == "JPEG"
-    exif = saved_image._getexif()
-    assert not exif, "重编码后的图片不应包含 EXIF 数据"
+    with Image.open(file_path) as saved_image:
+        assert saved_image.format == "JPEG"
+        exif = saved_image._getexif()
+        assert not exif, "重编码后的图片不应包含 EXIF 数据"
 
 
 @pytest.mark.asyncio

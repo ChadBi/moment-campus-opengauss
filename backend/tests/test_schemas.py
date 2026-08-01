@@ -61,18 +61,6 @@ class TestPostCreate:
         with pytest.raises(ValidationError):
             PostCreate(title="测试标题五字以上", content="短", category_id=1)
 
-    @pytest.mark.skip(reason="Task 1.3: Tag 功能已移除，PostCreate 不再有 tags 字段")
-    def test_tags_max_five(self):
-        """标签最多 5 个"""
-        with pytest.raises(ValidationError):
-            PostCreate(
-                title="测试标题五字以上",
-                content="内容至少要十个字符哦",
-                category_id=1,
-                tags=["a", "b", "c", "d", "e", "f"],  # 6 个
-            )
-
-
 class TestPostTransitionCreate:
     """PostTransitionCreate Schema"""
 
@@ -110,12 +98,7 @@ class TestPostTransitionCreate:
 
 
 class TestValidationCreate:
-    """ValidationCreate Schema（5 类正式 + 2 别名 + uncertain）
-
-    FND-01.1: schema 层定义完整 5 类供 GOV-01 post_change_reports 使用；
-    validation_records 表只处理 confirmation/refutation（2 类互斥投票）的限制
-    由 API 层强制，schema 层不限制。
-    """
+    """ValidationCreate Schema。"""
 
     def test_valid_two_types(self):
         """2 类正式类型"""
@@ -123,25 +106,13 @@ class TestValidationCreate:
             v = ValidationCreate(validation_type=vtype)
             assert v.validation_type == vtype
 
-    def test_valid_two_aliases(self):
-        """2 类旧别名（valid→confirmation / invalid→refutation 由 API 归一化）"""
-        for vtype in ["valid", "invalid"]:
-            v = ValidationCreate(validation_type=vtype)
-            assert v.validation_type == vtype
-
-    def test_all_five_types_accepted_by_schema(self):
-        """schema 层接受全部 5 类 + 别名 + uncertain（FND-01.1 契约）
-
-        FND-01 阶段 schema 层定义完整 5 类供 GOV-01 post_change_reports 使用；
-        validation_records 表只处理 confirmation/refutation 的限制由 API 层强制。
-        """
-        for vtype in [
-            "confirmation", "refutation",
-            "update", "expiration_report", "conflict_report",
-            "valid", "invalid", "uncertain",
-        ]:
-            v = ValidationCreate(validation_type=vtype)
-            assert v.validation_type == vtype
+    @pytest.mark.parametrize(
+        "vtype",
+        ["update", "expiration_report", "conflict_report", "valid", "invalid", "uncertain"],
+    )
+    def test_non_canonical_type_rejected(self, vtype):
+        with pytest.raises(ValidationError):
+            ValidationCreate(validation_type=vtype)
 
     def test_invalid_type_rejected(self):
         """非法类型被拒绝"""
