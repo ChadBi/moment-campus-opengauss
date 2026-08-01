@@ -35,10 +35,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setUnreadCount(0);
-      return;
-    }
+    if (!isAuthenticated) return;
     let cancelled = false;
     void (async () => {
       try {
@@ -71,7 +68,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         <Header
           onMenuClick={() => setSidebarOpen(true)}
           user={user}
-          notificationCount={unreadCount}
+          notificationCount={isAuthenticated ? unreadCount : 0}
         />
 
         <main

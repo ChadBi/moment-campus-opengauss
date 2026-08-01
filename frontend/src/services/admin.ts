@@ -72,14 +72,11 @@ export interface TodoItem {
   queue_url: string;
 }
 
-/** 校级后台首页待办统计（7 类 + REL-02.3 AI 降级率采样） */
+/** 校级后台首页待办统计（4 类 + REL-02.3 AI 降级率采样） */
 export interface TodoStats {
   pending_posts: number;
   pending_reports: number;
   unverified_locations: number;
-  expiration_reports: number;
-  conflict_reports: number;
-  update_suggestions: number;
   failed_jobs: number;
   total: number;
   items: TodoItem[];
@@ -144,33 +141,6 @@ export interface ReasonTemplate {
 export interface ReasonTemplateResponse {
   approve: ReasonTemplate[];
   reject: ReasonTemplate[];
-}
-
-// ============ ADM-01.5: 治理工作台 ============
-
-/** 治理报告队列项 */
-export interface GovernanceReportBrief {
-  id: number;
-  post_id: number;
-  post_title: string | null;
-  post_status: string | null;
-  reporter_id: number;
-  reporter_name: string | null;
-  report_type: string;
-  description: string | null;
-  evidence_url: string | null;
-  status: string;
-  handler_id: number | null;
-  handler_name: string | null;
-  handler_note: string | null;
-  handled_at: string | null;
-  created_at: string;
-}
-
-/** 处理治理报告请求 */
-export interface GovernanceHandleRequest {
-  action: 'resolve' | 'dismiss' | 'mark_expired' | 'mark_conflict';
-  reason: string;
 }
 
 // ============ ADM-01.6: 地点核验 ============
@@ -296,7 +266,6 @@ export interface PlatformOverview {
   active_members: number;
   pending_posts: number;
   pending_reports: number;
-  open_change_reports: number;
   governance_total: number;
   ai_stats: SchoolAIStat[];
   ai_calls_total: number;
@@ -547,25 +516,6 @@ export const adminApi = {
   // -------- ADM-01.3: 审核原因模板 --------
   getReviewTemplates: async (): Promise<ReasonTemplateResponse> => {
     const response = await api.get<ReasonTemplateResponse>('/admin/review/templates');
-    return response.data;
-  },
-
-  // -------- ADM-01.5: 治理工作台 --------
-  getGovernanceReports: async (params?: {
-    page?: number;
-    page_size?: number;
-    report_type?: string;
-    status?: string;
-  }): Promise<PaginatedResponse<GovernanceReportBrief>> => {
-    const response = await api.get('/admin/reports', { params });
-    return response.data;
-  },
-
-  handleGovernanceReport: async (
-    id: number,
-    data: GovernanceHandleRequest,
-  ): Promise<GovernanceReportBrief> => {
-    const response = await api.put(`/admin/reports/${id}/handle`, data);
     return response.data;
   },
 

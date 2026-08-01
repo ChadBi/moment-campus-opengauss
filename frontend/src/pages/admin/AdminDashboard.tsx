@@ -22,7 +22,6 @@ import {
   School,
   Upload,
   TrendingUp,
-  ShieldCheck,
   MapPin,
   Wrench,
   Globe,
@@ -49,7 +48,6 @@ interface MenuItem {
 const MENU_ITEMS: MenuItem[] = [
   { path: '/admin', label: '仪表盘', icon: LayoutDashboard, crumb: '仪表盘' },
   { path: '/admin/review', label: '内容审核', icon: FileText, crumb: '内容审核' },
-  { path: '/admin/governance', label: '协同治理', icon: ShieldCheck, crumb: '协同治理' },
   { path: '/admin/users', label: '用户管理', icon: Users, crumb: '用户管理' },
   { path: '/admin/reports', label: '举报管理', icon: Flag, crumb: '举报管理' },
   { path: '/admin/locations', label: '地点核验', icon: MapPin, crumb: '地点核验' },

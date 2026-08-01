@@ -12,7 +12,7 @@ interface BadgeProps {
 const variantStyles: Record<BadgeVariant, string> = {
   default: 'bg-paper-hover text-ink-sub',
   success: 'bg-grass/12 text-grass',
-  warning: 'bg-sun/16 text-[#b89230]',
+  warning: 'bg-sun/16 text-sun',
   danger: 'bg-danger/10 text-danger',
   info: 'bg-info/10 text-info',
 };

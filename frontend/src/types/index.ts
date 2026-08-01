@@ -234,30 +234,6 @@ export interface ValidationStats {
   records?: ValidationRecord[];
 }
 
-// ===== GOV-01 协同治理类型 =====
-
-/** 投票记录响应（后端 ValidationVoteResponse） */
-export interface ValidationVote {
-  id: number;
-  post_id: number;
-  user_id: number;
-  validation_type: ValidationType;
-  comment?: string;
-  created_at: string;
-  user?: Author;
-}
-
-/** 聚合投票统计（后端 ValidationAggregation，GET /posts/{id}/validations） */
-export interface ValidationAggregation {
-  post_id: number;
-  confirmation_count: number;
-  refutation_count: number;
-  total_count: number;
-  validity_status: 'valid' | 'invalid' | 'uncertain';
-  user_validation_type: ValidationType | null;
-  recent_records: ValidationVote[];
-}
-
 /** 帖子详情治理聚合（后端 GovernanceSummary，嵌入 PostResponse.governance） */
 export interface GovernanceSummary {
   confirmation_count: number;

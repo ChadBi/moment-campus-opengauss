@@ -19,9 +19,7 @@ import {
   CheckCircle2,
   FolderTree,
   MapPin,
-  Clock,
   AlertTriangle,
-  Lightbulb,
   Wrench,
   ArrowRight,
   Activity,
@@ -54,9 +52,6 @@ const TODO_META: Record<string, { icon: React.ComponentType<{ size?: number; cla
   pending_posts: { icon: FileText, color: 'text-sun', bgColor: 'bg-sun/15' },
   pending_reports: { icon: Flag, color: 'text-danger', bgColor: 'bg-danger/10' },
   unverified_locations: { icon: MapPin, color: 'text-lake', bgColor: 'bg-lake/10' },
-  expiration_reports: { icon: Clock, color: 'text-lamp', bgColor: 'bg-lamp/10' },
-  conflict_reports: { icon: AlertTriangle, color: 'text-danger', bgColor: 'bg-danger/10' },
-  update_suggestions: { icon: Lightbulb, color: 'text-info', bgColor: 'bg-info/10' },
   failed_jobs: { icon: Wrench, color: 'text-ink-sub', bgColor: 'bg-mist' },
 };
 
@@ -143,7 +138,7 @@ const AdminHomePage: React.FC = () => {
         <p className="text-ink-sub text-sm mt-1">系统概览与快速操作</p>
       </div>
 
-      {/* ADM-01.1: 待办事项（7 类，点击卡片进入对应筛选队列） */}
+      {/* ADM-01.1: 待办事项（4 类，点击卡片进入对应筛选队列） */}
       {todos && (
         <Card variant="outlined" padding="md">
           <div className="flex items-center justify-between mb-4">
@@ -158,7 +153,7 @@ const AdminHomePage: React.FC = () => {
               <span className="text-xs text-ink-muted">全部处理完毕</span>
             )}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {todos.items.map((item) => {
               const meta = TODO_META[item.key] || TODO_META.pending_posts;
               const Icon = meta.icon;
@@ -169,7 +164,7 @@ const AdminHomePage: React.FC = () => {
                   className={`group text-left p-3 rounded-md border transition-all ${
                     item.count > 0
                       ? 'border-line bg-paper hover:border-lake hover:shadow-sm'
-                      : 'border-line/50 bg-mist/40 opacity-70 hover:opacity-100'
+                      : 'border-line/50 bg-mist/40'
                   }`}
                 >
                   <div className="flex items-center justify-between">

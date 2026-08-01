@@ -60,7 +60,7 @@ const AdminSettingsPage: React.FC = () => {
   }, [showToast]);
 
   useEffect(() => {
-    void loadSettings();
+    void Promise.resolve().then(loadSettings);
   }, [loadSettings]);
 
   /** 校验数值范围（与后端 Pydantic 约束一致） */

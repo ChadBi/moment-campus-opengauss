@@ -111,7 +111,7 @@ const PlatformOverviewPage: React.FC = () => {
     {
       title: '内容治理量',
       value: data.governance_total,
-      sub: `待审 ${data.pending_posts} · 举报 ${data.pending_reports} · 问题报告 ${data.open_change_reports}`,
+      sub: `待审 ${data.pending_posts} · 举报 ${data.pending_reports}`,
       icon: ShieldCheck,
       color: 'text-lamp',
       bgColor: 'bg-lamp/10',

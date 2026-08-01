@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../store/useAuthStore';
@@ -300,21 +300,22 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+  const loadProfileOverview = useEffectEvent(() => {
     void loadUserInfo();
-    void loadStats();
     void loadAuditNotices();
     void loadViewHistory(1);
-    // REC-01.2: 加载推荐隐私偏好（跨校共用同一份开关，但仍随登录态加载）
     void loadRecPref();
+  });
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void Promise.resolve().then(loadProfileOverview);
   }, [isAuthenticated, currentSchoolId]);
 
   // PRF-01.2: 切换学校时重新拉取统计（统计按学校过滤）
   useEffect(() => {
     if (!isAuthenticated) return;
-    void loadStats();
+    void Promise.resolve().then(loadStats);
   }, [isAuthenticated, currentSchoolId]);
 
   // PUB-02: 状态/页码变化时重新拉取列表

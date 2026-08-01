@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useEffectEvent } from 'react';
 import {
   adminApi,
   type TopicAdmin,
@@ -97,9 +97,11 @@ const AdminTopicsPage: React.FC = () => {
     }
   }, []);
 
+  const loadCurrentTopics = useEffectEvent(() => loadTopics(page, statusFilter, keyword));
+
   useEffect(() => {
-    void loadTopics(page, statusFilter, keyword);
-  }, [page, statusFilter, schoolKey, loadTopics]);
+    void Promise.resolve().then(loadCurrentTopics);
+  }, [page, statusFilter, schoolKey]);
 
   /** 搜索框回车触发 */
   const handleKeywordSearch = () => {

@@ -44,11 +44,6 @@ import { formatRelativeTime as formatDate } from '../utils/date';
  *  - 普通筛选与 AI 搜索同一结果模型（已有 PostListItem）
  */
 
-// P2-003: HOT_TAGS 改为多租户动态化（优先使用当前学校分类名，fallback 到通用列表）
-// 切换学校后由 useMemo 重新计算 hotTags，使搜索页推荐内容跟随学校变化
-// FALLBACK 与新 5 类分类对齐：分享吐槽/组队交友/二手交易/失物招领/其他 + 高频场景词
-const FALLBACK_HOT_TAGS = ['分享吐槽', '组队交友', '二手交易', '失物招领', '食堂', '图书馆', '自习室', '快递点'];
-
 // UX-01.1: AI 模式高频快捷问题（通用自然语言示例，适用于任意校园场景）
 const QUICK_QUESTIONS = [
   '最近有什么值得吐槽的事？',
@@ -164,7 +159,16 @@ const SearchPage: React.FC = () => {
   const currentSchoolCode = useCampusStore((s) => s.currentSchoolCode);
 
   // ===== UX-01.1: 最近搜索（按学校 code 分键） =====
-  const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>([]);
+  const [recentState, setRecentState] = useState(() => ({
+    schoolCode: currentSchoolCode,
+    entries: loadRecent(currentSchoolCode),
+  }));
+  const recentSearches = recentState.schoolCode === currentSchoolCode
+    ? recentState.entries
+    : loadRecent(currentSchoolCode);
+  const setRecentSearches = useCallback((entries: RecentSearchEntry[]) => {
+    setRecentState({ schoolCode: currentSchoolCode, entries });
+  }, [currentSchoolCode]);
 
   // ===== 模式切换状态（普通搜索 / AI 搜索）=====
   // 从 URL 读取初始模式：?mode=ai 切换到 AI 模式
@@ -175,12 +179,22 @@ const SearchPage: React.FC = () => {
   // ===== 筛选状态（普通搜索使用）=====
   // UX-01.1: 提前声明，便于下方 useCallback 引用（避免 TDZ）
   const [keyword, setKeyword] = useState(searchParams.get('keyword') ?? '');
-  const [categoryId, setCategoryId] = useState<number | null>(
-    searchParams.get('category_id') ? Number(searchParams.get('category_id')) : null
-  );
-  const [locationId, setLocationId] = useState<number | null>(
-    searchParams.get('location_id') ? Number(searchParams.get('location_id')) : null
-  );
+  const [categorySelection, setCategorySelection] = useState<{ schoolId: number | null; id: number } | null>(() => {
+    const id = searchParams.get('category_id');
+    return id ? { schoolId: currentSchoolId, id: Number(id) } : null;
+  });
+  const [locationSelection, setLocationSelection] = useState<{ schoolId: number | null; id: number } | null>(() => {
+    const id = searchParams.get('location_id');
+    return id ? { schoolId: currentSchoolId, id: Number(id) } : null;
+  });
+  const categoryId = categorySelection?.schoolId === currentSchoolId ? categorySelection.id : null;
+  const locationId = locationSelection?.schoolId === currentSchoolId ? locationSelection.id : null;
+  const setCategoryId = (id: number | null) => {
+    setCategorySelection(id === null ? null : { schoolId: currentSchoolId, id });
+  };
+  const setLocationId = (id: number | null) => {
+    setLocationSelection(id === null ? null : { schoolId: currentSchoolId, id });
+  };
   const [status, setStatus] = useState<SearchStatusFilter>(
     (searchParams.get('status') as SearchStatusFilter) || 'valid'
   );
@@ -209,11 +223,6 @@ const SearchPage: React.FC = () => {
   // 展开匹配理由的 post_id 集合
   const [expandedReasons, setExpandedReasons] = useState<Set<number>>(new Set());
 
-  // ===== UX-01.1: 学校切换时重新加载最近搜索 =====
-  useEffect(() => {
-    setRecentSearches(loadRecent(currentSchoolCode));
-  }, [currentSchoolCode]);
-
   // ===== UX-01.1: 记录最近搜索（在每次成功搜索后调用） =====
   const recordRecentSearch = useCallback(
     (kw: string, searchMode: SearchMode) => {
@@ -227,7 +236,7 @@ const SearchPage: React.FC = () => {
       saveRecent(currentSchoolCode, entry);
       setRecentSearches(loadRecent(currentSchoolCode));
     },
-    [currentSchoolCode]
+    [currentSchoolCode, setRecentSearches]
   );
 
   // ===== UX-01.1: 移除单条最近搜索 =====
@@ -236,14 +245,14 @@ const SearchPage: React.FC = () => {
       removeRecent(currentSchoolCode, keyword, searchMode);
       setRecentSearches(loadRecent(currentSchoolCode));
     },
-    [currentSchoolCode]
+    [currentSchoolCode, setRecentSearches]
   );
 
   // ===== UX-01.1: 清空全部最近搜索 =====
   const handleClearAllRecent = useCallback(() => {
     clearRecent(currentSchoolCode);
     setRecentSearches([]);
-  }, [currentSchoolCode]);
+  }, [currentSchoolCode, setRecentSearches]);
 
   // ===== UX-01.1: 点击最近搜索条目 → 立即搜索（依赖下方 doNormalSearchWithTag/doAiSearchWithTag，故用普通函数） =====
   const handleRecentClick = (entry: RecentSearchEntry) => {
@@ -278,24 +287,69 @@ const SearchPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
 
   // ===== 筛选下拉数据（按当前学校过滤） =====
-  const [categories, setCategories] = useState<CategoryListItem[]>([]);
-  const [locations, setLocations] = useState<LocationListItem[]>([]);
+  const [categoryState, setCategoryState] = useState<{
+    schoolId: number | null;
+    items: CategoryListItem[];
+    loading: boolean;
+    error: boolean;
+  }>({ schoolId: null, items: [], loading: true, error: false });
+  const [locationState, setLocationState] = useState<{
+    schoolId: number | null;
+    items: LocationListItem[];
+    loading: boolean;
+    error: boolean;
+  }>({ schoolId: null, items: [], loading: true, error: false });
+  const [categoriesRetry, setCategoriesRetry] = useState(0);
+  const [locationsRetry, setLocationsRetry] = useState(0);
+  const categories = useMemo(
+    () => categoryState.schoolId === currentSchoolId ? categoryState.items : [],
+    [categoryState, currentSchoolId]
+  );
+  const locations = useMemo(
+    () => locationState.schoolId === currentSchoolId ? locationState.items : [],
+    [locationState, currentSchoolId]
+  );
+  const categoriesLoading = categoryState.schoolId !== currentSchoolId || categoryState.loading;
+  const locationsLoading = locationState.schoolId !== currentSchoolId || locationState.loading;
+  const categoriesError = categoryState.schoolId === currentSchoolId && categoryState.error;
+  const locationsError = locationState.schoolId === currentSchoolId && locationState.error;
 
   // ===== 拉取筛选下拉数据 =====
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      categoriesApi.listCategories().catch(() => []),
-      categoriesApi.listLocations().catch(() => []),
-    ]).then(([cats, locs]) => {
-      if (cancelled) return;
-      setCategories(cats as CategoryListItem[]);
-      setLocations(locs as LocationListItem[]);
-    });
+    categoriesApi.listCategories()
+      .then((items) => {
+        if (!cancelled) {
+          setCategoryState({ schoolId: currentSchoolId, items, loading: false, error: false });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCategoryState({ schoolId: currentSchoolId, items: [], loading: false, error: true });
+        }
+      });
     return () => {
       cancelled = true;
     };
-  }, [currentSchoolId]);
+  }, [currentSchoolId, categoriesRetry]);
+
+  useEffect(() => {
+    let cancelled = false;
+    categoriesApi.listLocations()
+      .then((items) => {
+        if (!cancelled) {
+          setLocationState({ schoolId: currentSchoolId, items, loading: false, error: false });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLocationState({ schoolId: currentSchoolId, items: [], loading: false, error: true });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentSchoolId, locationsRetry]);
 
   // ===== 构造普通搜索请求参数 =====
   const buildParams = useCallback(
@@ -718,17 +772,13 @@ const SearchPage: React.FC = () => {
     return n;
   }, [categoryId, locationId, status, dateFrom, dateTo, sort]);
 
-  // P2-003: 多租户热门标签 —— 优先取当前学校分类名（top 8 by sort_order）
-  // 当 categories 未加载或为空时，回退到 FALLBACK_HOT_TAGS
-  // 依赖 currentSchoolId 确保切换学校时重新计算（categories 也会随学校变化重新拉取）
   const hotTags = useMemo(() => {
-    if (categories.length === 0) return FALLBACK_HOT_TAGS;
     return categories
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
       .slice(0, 8)
       .map((c) => c.name);
-  }, [categories, currentSchoolId]);
+  }, [categories]);
 
   // ===== 格式化有效性（expire_at） =====
   const formatValidity = (expireAt?: string) => {
@@ -893,9 +943,10 @@ const SearchPage: React.FC = () => {
                 <select
                   value={categoryId ?? ''}
                   onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
+                  disabled={categoriesLoading || categoriesError}
                   className="w-full appearance-none px-3 py-2 pr-8 bg-white/78 border border-line rounded-md text-sm text-ink focus:outline-none focus:border-lake transition-all"
                 >
-                  <option value="">全部分类</option>
+                  <option value="">{categoriesLoading ? '分类加载中...' : categoriesError ? '分类加载失败' : '全部分类'}</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.icon} {c.name}
@@ -904,6 +955,15 @@ const SearchPage: React.FC = () => {
                 </select>
                 <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" />
               </div>
+              {categoriesError && (
+                <button type="button" onClick={() => {
+                  setCategoryState({ schoolId: currentSchoolId, items: [], loading: true, error: false });
+                  setCategoriesRetry((value) => value + 1);
+                }} className="mt-1 inline-flex items-center gap-1 text-xs text-danger">
+                  <RefreshCw size={11} />
+                  重试分类
+                </button>
+              )}
             </div>
 
             {/* 地点 */}
@@ -913,9 +973,10 @@ const SearchPage: React.FC = () => {
                 <select
                   value={locationId ?? ''}
                   onChange={(e) => setLocationId(e.target.value ? Number(e.target.value) : null)}
+                  disabled={locationsLoading || locationsError}
                   className="w-full appearance-none px-3 py-2 pr-8 bg-white/78 border border-line rounded-md text-sm text-ink focus:outline-none focus:border-lake transition-all"
                 >
-                  <option value="">全部地点</option>
+                  <option value="">{locationsLoading ? '地点加载中...' : locationsError ? '地点加载失败' : '全部地点'}</option>
                   {locations.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name}{l.is_verified ? '' : '（未核验）'}
@@ -924,6 +985,15 @@ const SearchPage: React.FC = () => {
                 </select>
                 <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" />
               </div>
+              {locationsError && (
+                <button type="button" onClick={() => {
+                  setLocationState({ schoolId: currentSchoolId, items: [], loading: true, error: false });
+                  setLocationsRetry((value) => value + 1);
+                }} className="mt-1 inline-flex items-center gap-1 text-xs text-danger">
+                  <RefreshCw size={11} />
+                  重试地点
+                </button>
+              )}
             </div>
 
             {/* 状态 */}
@@ -1071,6 +1141,7 @@ const SearchPage: React.FC = () => {
                 <select
                   value={aiActiveFilters.category_id}
                   onChange={(e) => updateAiOverride({ category_id: e.target.value ? Number(e.target.value) : undefined })}
+                  disabled={categoriesLoading || categoriesError}
                   className="appearance-none pl-2.5 pr-6 py-1 rounded-full bg-lake/10 text-lake text-xs font-medium border-none outline-none cursor-pointer"
                 >
                   {categories.map((c) => (
@@ -1251,25 +1322,38 @@ const SearchPage: React.FC = () => {
             </div>
           )}
 
-          {/* 热门搜索 */}
-          <div className="bg-paper rounded-[16px] border border-line/60 p-5 shadow-sm mb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles size={16} className="text-lamp" />
-              <span className="text-sm font-semibold text-ink">热门搜索</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {hotTags.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => handleTagClick(tag)}
-                  className="inline-flex items-center px-2.5 py-1 rounded-[6px] text-xs font-medium bg-mist text-ink-sub hover:bg-lake/10 hover:text-lake transition-colors"
-                >
-                  {tag}
+          {(hotTags.length > 0 || categoriesLoading || categoriesError) && (
+            <div className="bg-paper rounded-[16px] border border-line/60 p-5 shadow-sm mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles size={16} className="text-lamp" />
+                <span className="text-sm font-semibold text-ink">热门搜索</span>
+              </div>
+              {categoriesLoading ? (
+                <Loading size="sm" text="分类加载中..." />
+              ) : categoriesError ? (
+                <button type="button" onClick={() => {
+                  setCategoryState({ schoolId: currentSchoolId, items: [], loading: true, error: false });
+                  setCategoriesRetry((value) => value + 1);
+                }} className="inline-flex items-center gap-1.5 text-sm text-danger">
+                  <RefreshCw size={13} />
+                  分类加载失败，点击重试
                 </button>
-              ))}
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {hotTags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => handleTagClick(tag)}
+                      className="inline-flex items-center px-2.5 py-1 rounded-[6px] text-xs font-medium bg-mist text-ink-sub hover:bg-lake/10 hover:text-lake transition-colors"
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </>
       )}
 

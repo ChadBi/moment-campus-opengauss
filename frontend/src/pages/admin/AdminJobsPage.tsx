@@ -51,8 +51,10 @@ const AdminJobsPage: React.FC = () => {
   }, [status, showToast]);
 
   useEffect(() => {
-    setLoading(true);
-    void loadRecords(page);
+    void Promise.resolve().then(() => {
+      setLoading(true);
+      return loadRecords(page);
+    });
   }, [page, loadRecords]);
 
   const updateFilter = (value: string) => {

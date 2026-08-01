@@ -71,7 +71,7 @@ export const SubscriptionsCard: React.FC = () => {
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    void loadSubscriptions();
+    void Promise.resolve().then(loadSubscriptions);
   }, [isAuthenticated, currentSchoolId, loadSubscriptions]);
 
   const handleFilterChange = (next: SubscriptionTargetType | 'all') => {

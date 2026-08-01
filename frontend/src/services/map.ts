@@ -7,6 +7,8 @@ export interface MapMarker {
   longitude: number;
   location_name: string;
   category_id: number;
+  category_name?: string;
+  category_code?: string;
   cover_image?: string;
 }
 
@@ -21,6 +23,6 @@ interface MapMarkersParams {
 export const mapApi = {
   getMapMarkers: async (params: MapMarkersParams): Promise<MapMarker[]> => {
     const response = await api.get('/map/markers', { params });
-    return response.data;
+    return response.data.markers;
   },
 };

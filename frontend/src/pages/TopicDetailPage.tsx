@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { topicsApi, type TopicDetail as TopicDetailData } from '../services/topics';
-import { Loading } from '../components/ui/Loading';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { EmptyState, ErrorState, LoadingState } from '../components/state';
 import { SubscribeButton } from '../components/SubscribeButton';
 import { ArrowLeft, Eye, Heart, MessageCircle, FileText } from 'lucide-react';
 import { logger } from '../utils/logger';
@@ -16,7 +16,7 @@ const TopicDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadTopic = useCallback(async () => {
     const topicId = Number(id);
     if (!topicId || isNaN(topicId)) {
       setError('专题 ID 无效');
@@ -24,27 +24,27 @@ const TopicDetailPage: React.FC = () => {
       return;
     }
 
-    const loadTopic = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await topicsApi.getTopic(topicId);
-        setTopic(data);
-      } catch (err: unknown) {
-        logger.error('加载专题详情失败:', err);
-        const e = err as { response?: { status?: number; data?: { detail?: string } } };
-        if (e?.response?.status === 404) {
-          setError('专题不存在或已下线');
-        } else {
-          setError(e?.response?.data?.detail || '加载专题详情失败');
-        }
-      } finally {
-        setLoading(false);
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await topicsApi.getTopic(topicId);
+      setTopic(data);
+    } catch (err: unknown) {
+      logger.error('加载专题详情失败:', err);
+      const e = err as { response?: { status?: number; data?: { detail?: string } } };
+      if (e?.response?.status === 404) {
+        setError('专题不存在或已下线');
+      } else {
+        setError(e?.response?.data?.detail || '加载专题详情失败');
       }
-    };
-
-    void loadTopic();
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadTopic);
+  }, [loadTopic]);
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return '';
@@ -59,7 +59,9 @@ const TopicDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto py-8">
-        <Loading fullScreen />
+        <div className="bg-paper border border-line/60 rounded-[16px]">
+          <LoadingState title="正在展开专题" />
+        </div>
       </div>
     );
   }
@@ -67,17 +69,25 @@ const TopicDetailPage: React.FC = () => {
   if (error) {
     return (
       <div className="max-w-2xl mx-auto py-8">
-        <div className="bg-danger/10 border border-danger/30 rounded-lg p-6 text-center">
-          <p className="text-ink text-sm mb-4">{error}</p>
-          <Button size="sm" variant="primary" onClick={() => navigate('/topics')}>
-            返回专题列表
-          </Button>
+        <div className="bg-paper border border-line/60 rounded-[16px]">
+          <ErrorState description={error} onRetry={() => void loadTopic()} />
+          <div className="flex justify-center pb-8 -mt-6">
+            <Button size="sm" variant="text" onClick={() => navigate('/topics')}>
+              返回专题列表
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (!topic) return null;
+  if (!topic) {
+    return (
+      <div className="max-w-2xl mx-auto py-8">
+        <EmptyState title="专题不存在" description="它可能已经下线或被移除。" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto py-4">
@@ -138,9 +148,12 @@ const TopicDetailPage: React.FC = () => {
         </h2>
 
         {topic.posts.length === 0 ? (
-          <div className="text-center py-12 bg-paper border border-line/60 rounded-[16px]">
-            <FileText size={40} className="mx-auto text-ink-disabled mb-3" />
-            <p className="text-ink-sub text-sm">暂无内容</p>
+          <div className="bg-paper border border-line/60 rounded-[16px]">
+            <EmptyState
+              title="专题下暂无内容"
+              description="相关校园信息整理完成后会出现在这里。"
+              icon={<FileText size={24} />}
+            />
           </div>
         ) : (
           <div className="space-y-3">

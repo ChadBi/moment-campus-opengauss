@@ -1,6 +1,7 @@
 import type { Feature, FeatureCollection, Point } from 'geojson';
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import type { MapMarker } from '../services/map';
+import { getCategoryVisual } from './categoryVisual';
 
 export const MAP_MARKER_SOURCE_ID = 'campus-post-markers';
 export const MAP_MARKER_LAYER_ID = 'campus-post-marker-symbols';
@@ -98,7 +99,6 @@ export const installMapMarkerLayer = (map: MapLibreMap) => {
 export const setMapMarkerLayerData = (
   map: MapLibreMap,
   markers: MapMarker[],
-  categoryColors: Record<number, string>,
 ): MapMarkerLayerData => {
   const groups = new Map<string, MapMarkerGroup>();
   const posts = new Map<number, { marker: MapMarker; groupKey: string }>();
@@ -123,7 +123,7 @@ export const setMapMarkerLayerData = (
     const first = group.markers[0];
     const count = group.markers.length;
     const size = count > 1 ? 36 : 28;
-    const color = categoryColors[first.category_id] || '#95A5A6';
+    const color = getCategoryVisual(first.category_code).marker;
     const imageId = markerImageId(color, count, size);
     if (!map.hasImage(imageId)) {
       map.addImage(imageId, createMarkerImage(color, count, size), { pixelRatio: 2 });

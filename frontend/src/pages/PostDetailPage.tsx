@@ -13,8 +13,8 @@ import type {
 import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Loading } from '../components/ui/Loading';
 import { Toast } from '../components/ui/Toast';
+import { EmptyState, ErrorState, LoadingState } from '../components/state';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCampusStore } from '../store/useCampusStore';
 import {
@@ -114,6 +114,9 @@ const PostDetailPage: React.FC = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [postError, setPostError] = useState<string | null>(null);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
@@ -129,17 +132,21 @@ const PostDetailPage: React.FC = () => {
   // UX-01.2 / UX-01.3: 复制成功反馈态
   const [copiedField, setCopiedField] = useState<'address' | 'link' | null>(null);
   // UX-01.3: 是否支持原生分享
-  const [canNativeShare, setCanNativeShare] = useState(false);
+  const canNativeShare = typeof navigator !== 'undefined'
+    && typeof (navigator as Navigator & { canShare?: (data?: ShareData) => boolean }).canShare === 'function';
   // 当前学校 code（用于构造分享 URL 含 school_code）
   const currentSchoolCode = useCampusStore((s) => s.currentSchoolCode);
 
   const loadPost = async (skipViewCount = false) => {
     try {
+      setLoading(true);
+      setPostError(null);
       const response = await postsApi.getPost(Number(id), !skipViewCount);
       setPost(response as Post);
-    } catch (error) {
-      logger.error('加载帖子失败:', error);
-      setToast({ message: '加载帖子失败', type: 'error' });
+    } catch (err: unknown) {
+      logger.error('加载帖子失败:', err);
+      const e = err as { response?: { data?: { detail?: string } } };
+      setPostError(e?.response?.data?.detail || '加载帖子失败');
     } finally {
       setLoading(false);
     }
@@ -147,10 +154,16 @@ const PostDetailPage: React.FC = () => {
 
   const loadComments = async () => {
     try {
+      setCommentsLoading(true);
+      setCommentsError(null);
       const response = await commentsApi.getComments(Number(id));
       setComments(response.items || []);
-    } catch (error) {
-      logger.error('加载评论失败:', error);
+    } catch (err: unknown) {
+      logger.error('加载评论失败:', err);
+      const e = err as { response?: { data?: { detail?: string } } };
+      setCommentsError(e?.response?.data?.detail || '加载评论失败');
+    } finally {
+      setCommentsLoading(false);
     }
   };
 
@@ -297,15 +310,6 @@ const PostDetailPage: React.FC = () => {
 
   // ============ UX-01.2 / UX-01.3: 复制地址 / 深链接 / 原生分享 ============
 
-  // UX-01.3: 挂载时检测 navigator.canShare() 与 navigator.share 是否可用
-  useEffect(() => {
-    if (typeof navigator !== 'undefined' && typeof (navigator as Navigator & { canShare?: (data?: ShareData) => boolean }).canShare === 'function') {
-      setCanNativeShare(true);
-    } else {
-      setCanNativeShare(false);
-    }
-  }, []);
-
   // UX-01.2: 复制地点名称（带建筑物/楼层信息）到剪贴板
   const handleCopyAddress = async () => {
     if (!post?.location) {
@@ -383,17 +387,30 @@ const PostDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto py-16">
-        <Loading text="加载中..." />
+        <div className="bg-paper border border-line/60 rounded-[16px]">
+          <LoadingState title="正在加载校园信息" />
+        </div>
+      </div>
+    );
+  }
+
+  if (postError) {
+    return (
+      <div className="max-w-2xl mx-auto py-16">
+        <div className="bg-paper border border-line/60 rounded-[16px]">
+          <ErrorState description={postError} onRetry={() => void loadPost()} />
+        </div>
       </div>
     );
   }
 
   if (!post) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center">
-        <div className="text-5xl mb-4">⌖</div>
-        <p className="font-medium text-ink mb-1.5">这条信息不存在或已失效</p>
-        <p className="text-sm text-ink-muted">可能已被发布者删除，或链接有误。</p>
+      <div className="max-w-2xl mx-auto py-16">
+        <EmptyState
+          title="这条信息不存在或已失效"
+          description="可能已被发布者删除，或链接有误。"
+        />
       </div>
     );
   }
@@ -796,11 +813,22 @@ const PostDetailPage: React.FC = () => {
         </div>
 
         <div className="border-t border-ink-divider">
-          {comments.length === 0 ? (
-            <div className="text-center py-10">
-              <div className="text-3xl mb-2">✎</div>
-              <p className="text-ink-muted text-sm">暂无评论，快来抢沙发吧！</p>
-            </div>
+          {commentsLoading ? (
+            <LoadingState title="正在加载评论" compact />
+          ) : commentsError ? (
+            <ErrorState
+              title="评论暂时无法加载"
+              description={commentsError}
+              onRetry={() => void loadComments()}
+              compact
+            />
+          ) : comments.length === 0 ? (
+            <EmptyState
+              title="还没有评论"
+              description="留下第一条回应，补充这条校园信息。"
+              icon={<MessageCircle size={20} />}
+              compact
+            />
           ) : (
             <div>
               {comments.map((comment, idx) => (

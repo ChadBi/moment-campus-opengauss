@@ -20,38 +20,7 @@ import {
   type MapMarkerGroup,
 } from '../utils/mapMarker';
 import { wgs84ToGcj02 } from '../utils/coordinates';
-
-// PUB-01.1: 分类列表改为从 API 动态拉取（按当前学校过滤），不再硬编码
-// 分类颜色映射保留作为地图标记视觉差异化用，未命中的分类回退灰色
-const CATEGORY_COLORS: Record<number, string> = {
-  1: '#FF6B35',  // 美食
-  2: '#4ECDC4',  // 打印
-  3: '#FFD93D',  // 校园猫
-  4: '#6C5CE7',  // 活动
-  5: '#A8E6CF',  // 学习
-  6: '#FF8A5C',  // 失物
-  7: '#3D5A80',  // 设施
-  8: '#E07A5F',  // 二手
-  9: '#81B29A',  // 求助
-  10: '#F2CC8F', // 兼职
-  11: '#7B68EE', // 社团
-  12: '#FF69B4', // 其他
-};
-
-const CATEGORY_NAMES: Record<number, string> = {
-  1: '美食',
-  2: '打印',
-  3: '校园猫',
-  4: '活动',
-  5: '学习',
-  6: '失物',
-  7: '设施',
-  8: '二手',
-  9: '求助',
-  10: '兼职',
-  11: '社团',
-  12: '其他',
-};
+import { getCategoryVisual } from '../utils/categoryVisual';
 
 // 侧滑面板模式：null=关闭 / view=查看 marker / create=发帖
 type PanelMode = null | { type: 'view'; marker: MapMarker } | { type: 'create'; lngLat: { lng: number; lat: number } };
@@ -102,40 +71,54 @@ const MapPage: React.FC = () => {
     activeZoomRef.current = activeZoom;
   }, [activeCenter, activeZoom]);
 
-  // P1-002: 动态拉取当前学校的分类列表（依赖 currentSchoolId，切换学校时重新拉取）
-  // CATEGORY_COLORS / CATEGORY_NAMES 保留作为 API 未返回或延迟时的 fallback
   const currentSchoolId = useCampusStore((s) => s.currentSchoolId);
-  const [categories, setCategories] = useState<CategoryListItem[]>([]);
+  const [categoryState, setCategoryState] = useState<{
+    schoolId: number | null;
+    items: CategoryListItem[];
+    loading: boolean;
+    error: boolean;
+  }>({ schoolId: null, items: [], loading: true, error: false });
+  const [categoriesRetry, setCategoriesRetry] = useState(0);
+  const categories = useMemo(
+    () => categoryState.schoolId === currentSchoolId ? categoryState.items : [],
+    [categoryState, currentSchoolId]
+  );
+  const categoriesLoading = categoryState.schoolId !== currentSchoolId || categoryState.loading;
+  const categoriesError = categoryState.schoolId === currentSchoolId && categoryState.error;
   useEffect(() => {
     let cancelled = false;
     categoriesApi
       .listCategories()
       .then((data) => {
-        if (!cancelled) setCategories(data);
+        if (!cancelled) {
+          setCategoryState({ schoolId: currentSchoolId, items: data, loading: false, error: false });
+        }
       })
       .catch(() => {
-        // 拉取失败保留空数组，UI 会回退到 CATEGORY_NAMES 硬编码兜底
+        if (!cancelled) {
+          setCategoryState({ schoolId: currentSchoolId, items: [], loading: false, error: true });
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, [currentSchoolId]);
+  }, [currentSchoolId, categoriesRetry]);
 
-  // 优先从动态 categories 查找分类名，fallback 到硬编码 CATEGORY_NAMES
-  const getCategoryName = useCallback(
-    (categoryId: number): string => {
-      const dyn = categories.find((c) => c.id === categoryId)?.name;
-      if (dyn) return dyn;
-      return CATEGORY_NAMES[categoryId] || '未知';
-    },
+  const categoriesById = useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
     [categories]
   );
 
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [categorySelection, setCategorySelection] = useState<{ schoolId: number | null; id: number } | null>(null);
+  const selectedCategory = categorySelection?.schoolId === currentSchoolId ? categorySelection.id : null;
+  const setSelectedCategory = (id: number | null) => {
+    setCategorySelection(id === null ? null : { schoolId: currentSchoolId, id });
+  };
   const [mapReady, setMapReady] = useState(false);
   // DSC-01.3: 地图加载失败标志，true 时切换到列表视图降级展示
   const [mapFailed, setMapFailed] = useState(false);
+  const [markersError, setMarkersError] = useState(false);
   // DSC-01.3: 列表视图降级所需的所有 markers（与 map 渲染共用同一份）
   const [allMarkers, setAllMarkers] = useState<MapMarker[]>([]);
   // 侧滑面板模式
@@ -145,6 +128,7 @@ const MapPage: React.FC = () => {
   const fetchMarkers = useCallback(async (bounds: maplibregl.LngLatBounds, categoryId?: number) => {
     const requestId = ++markerRequestRef.current;
     setLoading(true);
+    setMarkersError(false);
     try {
       const params = {
         north: bounds.getNorth(),
@@ -159,15 +143,20 @@ const MapPage: React.FC = () => {
 
       // DSC-01.3: 保存所有 markers 到 state，用于地图失败时的列表降级视图
       setAllMarkers(data);
-      const layerData = setMapMarkerLayerData(map.current, data, CATEGORY_COLORS);
+      const layerData = setMapMarkerLayerData(map.current, data);
       markerGroupsRef.current = layerData.groups;
       markersByIdRef.current = layerData.posts;
     } catch {
-      // 静默处理错误，保留现有标记
+      if (requestId === markerRequestRef.current) setMarkersError(true);
     } finally {
       if (requestId === markerRequestRef.current) setLoading(false);
     }
   }, []);
+
+  const handleRetryMarkers = useCallback(() => {
+    if (!map.current) return;
+    void fetchMarkers(map.current.getBounds(), selectedCategory ?? undefined);
+  }, [fetchMarkers, selectedCategory]);
 
   // 初始化地图
   useEffect(() => {
@@ -297,9 +286,16 @@ const MapPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // P1-002: 监听学校切换，地图 flyTo 到新中心点并重新拉取 markers
   useEffect(() => {
     if (!map.current || !mapReady) return;
+    markerRequestRef.current += 1;
+    clearMapMarkerLayer(map.current);
+    markerGroupsRef.current.clear();
+    markersByIdRef.current.clear();
+    setAllMarkers([]);
+    setGroupedMarkers(null);
+    setPanel(null);
+    setMarkersError(false);
     map.current.flyTo({
       center: activeCenter,
       zoom: activeZoom,
@@ -314,7 +310,7 @@ const MapPage: React.FC = () => {
     }, 850);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSchoolCenter, currentSchoolZoom]);
+  }, [currentSchoolId, currentSchoolCenter, currentSchoolZoom]);
 
   // 分类变化时重新获取标记
   useEffect(() => {
@@ -442,12 +438,9 @@ const MapPage: React.FC = () => {
           >
             全部
           </button>
-          {(categories.length > 0
-            ? categories.map((c) => ({ id: c.id, name: c.name }))
-            : Object.entries(CATEGORY_NAMES).map(([id, name]) => ({ id: Number(id), name }))
-          ).map((item) => {
+          {categories.map((item) => {
             const numId = item.id;
-            const color = CATEGORY_COLORS[numId] || '#95A5A6';
+            const visual = getCategoryVisual(item.code);
             const isActive = selectedCategory === numId;
             return (
               <button
@@ -456,12 +449,26 @@ const MapPage: React.FC = () => {
                 className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                   isActive ? 'text-white shadow-sm' : 'text-ink-sub hover:bg-line'
                 }`}
-                style={isActive ? { backgroundColor: color } : { backgroundColor: `${color}18` }}
+                style={isActive ? { backgroundColor: visual.marker } : { backgroundColor: visual.background, color: visual.text }}
               >
                 {item.name}
               </button>
             );
           })}
+          {categoriesLoading && <span className="text-xs text-ink-muted">分类加载中...</span>}
+          {categoriesError && (
+            <button
+              type="button"
+              onClick={() => {
+                setCategoryState({ schoolId: currentSchoolId, items: [], loading: true, error: false });
+                setCategoriesRetry((value) => value + 1);
+              }}
+              className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium bg-danger/10 text-danger hover:bg-danger/15"
+            >
+              <RefreshCw size={12} />
+              重试分类
+            </button>
+          )}
         </div>
       </div>
 
@@ -499,8 +506,9 @@ const MapPage: React.FC = () => {
             ) : (
               <div className="divide-y divide-line/60">
                 {allMarkers.map((marker) => {
-                  const color = CATEGORY_COLORS[marker.category_id] || '#95A5A6';
-                  const catName = getCategoryName(marker.category_id);
+                  const category = categoriesById.get(marker.category_id);
+                  const visual = getCategoryVisual(marker.category_code ?? category?.code);
+                  const catName = marker.category_name ?? category?.name ?? '未分类';
                   return (
                     <div
                       key={marker.post_id}
@@ -509,15 +517,15 @@ const MapPage: React.FC = () => {
                     >
                       <div
                         className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: `${color}20` }}
+                        style={{ backgroundColor: visual.background }}
                       >
-                        <MapPin size={16} style={{ color }} />
+                        <MapPin size={16} style={{ color: visual.marker }} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span
                             className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold flex-shrink-0"
-                            style={{ backgroundColor: `${color}20`, color }}
+                            style={{ backgroundColor: visual.background, color: visual.text }}
                           >
                             {catName}
                           </span>
@@ -574,6 +582,17 @@ const MapPage: React.FC = () => {
           </div>
         )}
 
+        {markersError && !loading && !mapFailed && (
+          <div className="absolute top-3 left-3 z-10 bg-paper border border-danger/30 rounded-md px-3 py-2 shadow-md flex items-center gap-2">
+            <AlertCircle size={14} className="text-danger" />
+            <span className="text-xs text-ink-sub">地图信息加载失败</span>
+            <button type="button" onClick={handleRetryMarkers} className="text-xs font-medium text-danger inline-flex items-center gap-1">
+              <RefreshCw size={12} />
+              重试
+            </button>
+          </div>
+        )}
+
         {/* 右侧侧滑面板：view（查看 marker）/ create（发帖） */}
         {panel && (
           <>
@@ -625,7 +644,8 @@ const MapPage: React.FC = () => {
                     </div>
                     <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
                       {posts.map((gm) => {
-                        const color = CATEGORY_COLORS[gm.category_id] || '#95A5A6';
+                        const category = categoriesById.get(gm.category_id);
+                        const visual = getCategoryVisual(gm.category_code ?? category?.code);
                         return (
                           <button
                             key={gm.post_id}
@@ -635,12 +655,12 @@ const MapPage: React.FC = () => {
                             <div className="flex items-start gap-2">
                               <span
                                 className="mt-1 w-2 h-2 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: color }}
+                                style={{ backgroundColor: visual.marker }}
                               />
                               <div className="min-w-0 flex-1">
                                 <div className="font-medium text-ink text-sm line-clamp-2">{gm.title}</div>
                                 <div className="flex items-center gap-2 mt-1 text-[11px] text-ink-muted">
-                                  <span style={{ color }}>{getCategoryName(gm.category_id)}</span>
+                                  <span style={{ color: visual.text }}>{gm.category_name ?? category?.name ?? '未分类'}</span>
                                   <span>·</span>
                                   <span>{gm.location_name || ''}</span>
                                 </div>

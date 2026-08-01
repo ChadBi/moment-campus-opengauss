@@ -8,7 +8,7 @@ export const colors = {
   // 五级墨
   ink: '#152629',
   inkSub: '#3d5458',
-  muted: '#6a7d81',
+  muted: '#566a6e',
   inkDisabled: '#9aabae',
   inkDivider: '#e8eded',
 
@@ -24,23 +24,23 @@ export const colors = {
   lakeDark: '#0f3a47',
 
   // 强调色 - 朱砂/灯笼橙
-  lamp: '#e67340',
+  lamp: '#a9471d',
   lampLight: '#f08a5a',
-  lampDark: '#cc5f30',
+  lampDark: '#8f3815',
 
   // 辅助色（略降饱和度，与水墨协调）
-  grass: '#73a068',
-  sun: '#dbb352',
+  grass: '#47754e',
+  sun: '#765c12',
 
   // 线条 - 墨线层次
   line: '#d8e1e3',
   lineStrong: '#c4d0d3',
 
   // 功能色
-  danger: '#cd5852',
-  warning: '#dbb352',
+  danger: '#a33e39',
+  warning: '#765c12',
   info: '#5878a6',
-  success: '#73a068',
+  success: '#47754e',
 
   // 分类色板
   category: {

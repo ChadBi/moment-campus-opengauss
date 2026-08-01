@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { useServiceWorker } from '../hooks/useServiceWorker';
 
@@ -17,14 +17,18 @@ import { useServiceWorker } from '../hooks/useServiceWorker';
  */
 export const UpdatePrompt: React.FC = () => {
   const { needRefresh, updateServiceWorker } = useServiceWorker();
+
+  if (!needRefresh) return null;
+
+  return <DismissibleUpdatePrompt updateServiceWorker={updateServiceWorker} />;
+};
+
+const DismissibleUpdatePrompt: React.FC<{
+  updateServiceWorker: () => Promise<void>;
+}> = ({ updateServiceWorker }) => {
   const [dismissed, setDismissed] = React.useState(false);
 
-  // 每次新版本到来时重置 dismissed
-  useEffect(() => {
-    if (needRefresh) setDismissed(false);
-  }, [needRefresh]);
-
-  if (!needRefresh || dismissed) return null;
+  if (dismissed) return null;
 
   return (
     <div

@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { notificationsApi } from '../services/notifications';
 import type { Notification } from '../types';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { Loading } from '../components/ui/Loading';
+import { EmptyState, ErrorState, LoadingState } from '../components/state';
 import { Toast } from '../components/ui/Toast';
 import { Bell, Check, CheckCheck, LogIn } from 'lucide-react';
 import { logger } from '../utils/logger';
@@ -16,26 +16,30 @@ const NotificationsPage: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
 
   // FND-01.4: 函数声明移到 useEffect 之前，避免 access-before-declaration
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await notificationsApi.getNotifications();
       setNotifications(response.items as Notification[]);
-    } catch (error) {
-      logger.error('加载通知失败:', error);
-      setToast({ message: '加载通知失败', type: 'error' });
+    } catch (err: unknown) {
+      logger.error('加载通知失败:', err);
+      const e = err as { response?: { data?: { detail?: string } } };
+      setError(e?.response?.data?.detail || '加载通知失败');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadNotifications();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadNotifications]);
 
   if (!isAuthenticated) {
     return (
@@ -142,14 +146,20 @@ const NotificationsPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="py-12">
-          <Loading text="加载中..." />
+        <div className="bg-paper rounded-[16px] border border-line/60">
+          <LoadingState title="正在加载通知" />
+        </div>
+      ) : error ? (
+        <div className="bg-paper rounded-[16px] border border-line/60">
+          <ErrorState description={error} onRetry={() => void loadNotifications()} />
         </div>
       ) : notifications.length === 0 ? (
-        <div className="bg-paper rounded-[16px] border border-line/60 p-10 text-center shadow-sm">
-          <div className="text-[48px] leading-none mb-4">🔔</div>
-          <h3 className="text-lg font-display font-bold text-ink mb-2">暂无通知</h3>
-          <p className="text-ink-sub text-sm">新的消息会在这里出现</p>
+        <div className="bg-paper rounded-[16px] border border-line/60 shadow-sm">
+          <EmptyState
+            title="暂无通知"
+            description="新的评论、点赞与系统消息会在这里出现。"
+            icon={<Bell size={24} />}
+          />
         </div>
       ) : (
         <div className="bg-paper rounded-[16px] border border-line/60 shadow-sm overflow-hidden">

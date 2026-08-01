@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { topicsApi, type TopicListItem } from '../services/topics';
-import { Loading } from '../components/ui/Loading';
+import { EmptyState, ErrorState, LoadingState } from '../components/state';
 import { useSchoolQueryKey } from '../hooks/useSchoolQueryKey';
 import { BookOpen, Eye, FileText } from 'lucide-react';
 import { logger } from '../utils/logger';
@@ -39,20 +39,12 @@ const TopicListPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    void loadTopics(page);
+    void Promise.resolve().then(() => loadTopics(page));
   }, [page, loadTopics, schoolKey]);
 
   const handleTopicClick = (id: number) => {
     navigate(`/topics/${id}`);
   };
-
-  if (loading && topics.length === 0) {
-    return (
-      <div className="max-w-2xl mx-auto py-8">
-        <Loading fullScreen />
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-2xl mx-auto py-4">
@@ -67,18 +59,25 @@ const TopicListPage: React.FC = () => {
         <p className="text-ink-muted text-sm">精选校园里的故事与线索</p>
       </header>
 
-      {/* 错误提示 */}
-      {error && (
-        <div className="bg-sun/10 border border-sun/30 rounded-lg p-4 mb-4 text-center">
-          <p className="text-ink text-sm">{error}</p>
+      {loading && topics.length === 0 && (
+        <div className="bg-paper border border-line/60 rounded-[16px]">
+          <LoadingState title="正在加载校园专题" />
         </div>
       )}
 
-      {/* 空状态 */}
+      {!loading && error && (
+        <div className="bg-paper border border-line/60 rounded-[16px]">
+          <ErrorState description={error} onRetry={() => void loadTopics(page)} />
+        </div>
+      )}
+
       {!loading && !error && topics.length === 0 && (
-        <div className="text-center py-16">
-          <BookOpen size={48} className="mx-auto text-ink-disabled mb-4" />
-          <p className="text-ink-sub text-sm">暂无专题内容</p>
+        <div className="bg-paper border border-line/60 rounded-[16px]">
+          <EmptyState
+            title="暂无专题内容"
+            description="学校正在整理值得长期留存的校园线索。"
+            icon={<BookOpen size={24} />}
+          />
         </div>
       )}
 

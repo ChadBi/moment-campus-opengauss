@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   MapPin,
   X,
@@ -26,6 +26,7 @@ import { useUIStore } from '../store/useUIStore';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Loading } from './ui/Loading';
+import { ErrorState, LoadingState } from './state';
 import { Modal } from './ui/Modal';
 import MapLocationPicker from './MapLocationPicker';
 import type { AIPublishSuggestionResponse } from '../types';
@@ -333,41 +334,31 @@ const PostForm: React.FC<PostFormProps> = ({
     draftKeyRef.current = draftStorageKey;
   }, [draftStorageKey]);
 
-  // 切换学校时重新拉取分类 / 地点 / 公共模板
-  // Task 3.1 调整：移除 listPostTypes 调用（PostType 已删除）
+  const loadMetadata = useCallback(async () => {
+    setMetaLoading(true);
+    setMetaError(null);
+    try {
+      const [cats, locs] = await Promise.all([
+        categoriesApi.listCategories(),
+        categoriesApi.listLocations(),
+      ]);
+      setCategories(cats);
+      setLocations(locs);
+      setFormData((prev) => ({
+        ...prev,
+        category_id: prev.category_id ?? cats[0]?.id ?? null,
+      }));
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      setMetaError(e?.response?.data?.detail || '加载分类 / 地点失败，请重试');
+    } finally {
+      setMetaLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    let cancelled = false;
-    void Promise.resolve().then(() => {
-      if (cancelled) return;
-      setMetaLoading(true);
-      setMetaError(null);
-    });
-    Promise.all([
-      categoriesApi.listCategories(),
-      categoriesApi.listLocations(),
-    ])
-      .then(([cats, locs]) => {
-        if (cancelled) return;
-        setCategories(cats);
-        setLocations(locs);
-        // 默认选中第一个分类，减少用户操作
-        setFormData((prev) => ({
-          ...prev,
-          category_id: prev.category_id ?? cats[0]?.id ?? null,
-        }));
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        const e = err as { response?: { data?: { detail?: string } } };
-        setMetaError(e?.response?.data?.detail || '加载分类 / 地点失败，请刷新重试');
-      })
-      .finally(() => {
-        if (!cancelled) setMetaLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [currentSchoolId]);
+    void Promise.resolve().then(loadMetadata);
+  }, [currentSchoolId, loadMetadata]);
 
   // 切换学校时清空已选地点（避免跨校残留），但保留地图点选坐标
   useEffect(() => {
@@ -805,7 +796,7 @@ const PostForm: React.FC<PostFormProps> = ({
   if (metaLoading || editLoading) {
     return (
       <div className={variant === 'page' ? 'py-16' : 'py-8'}>
-        <Loading text={editLoading ? '加载草稿...' : '加载发布表单...'} />
+        <LoadingState title={editLoading ? '正在加载草稿' : '正在加载发布元数据'} compact={variant === 'panel'} />
       </div>
     );
   }
@@ -829,13 +820,12 @@ const PostForm: React.FC<PostFormProps> = ({
   if (metaError) {
     return (
       <div className={variant === 'page' ? 'py-4' : 'py-4 px-4'}>
-        <div className="text-center py-10">
-          <AlertTriangle size={28} className="text-danger mx-auto mb-3" />
-          <p className="text-ink-sub text-sm mb-4">{metaError}</p>
-          <Button variant="secondary" size="sm" onClick={() => window.location.reload()}>
-            刷新重试
-          </Button>
-        </div>
+        <ErrorState
+          title="发布选项暂时无法加载"
+          description={metaError}
+          onRetry={() => void loadMetadata()}
+          compact={variant === 'panel'}
+        />
       </div>
     );
   }
@@ -1370,7 +1360,7 @@ const PostForm: React.FC<PostFormProps> = ({
         <div className="bg-grass/8 text-[#476a51] rounded-[10px] px-4 py-3 text-xs leading-relaxed border border-grass/20">
           信息会过期，也能被更新。每条信息都有"最后确认时间"，路过时点一下仍然有效，就能帮后来的人少走弯路。
           <br />
-          <span className="text-[#5a8266]">提示：</span>可先"存为草稿"稍后再"提交审核"，审核通过后才会公开展示。
+          <span className="text-grass">提示：</span>可先"存为草稿"稍后再"提交审核"，审核通过后才会公开展示。
         </div>
 
         {/* 操作按钮 */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCampusStore } from '../store/useCampusStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -6,6 +6,7 @@ import { categoriesApi } from '../services/categories';
 import { usersApi } from '../services/users';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
+import { EmptyState, ErrorState, LoadingState } from './state';
 import { School as SchoolIcon, Search, Check, Tag, MapPin, ArrowRight, X } from 'lucide-react';
 import type { CategoryListItem, LocationListItem } from '../services/categories';
 
@@ -25,7 +26,6 @@ import type { CategoryListItem, LocationListItem } from '../services/categories'
  * 可跳过：任意步骤都可跳过
  * 可重开：通过 props 或 localStorage 清除可重新触发
  */
-const GUIDE_STORAGE_KEY = 'first_use_guide_completed';
 const FOLLOWED_CATEGORIES_KEY = 'followed_categories';
 const FOLLOWED_LOCATIONS_KEY = 'followed_locations';
 
@@ -59,6 +59,8 @@ export const FirstUseGuide: React.FC = () => {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [categories, setCategories] = useState<CategoryListItem[]>([]);
   const [locations, setLocations] = useState<LocationListItem[]>([]);
+  const [metadataLoading, setMetadataLoading] = useState(false);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
   // ACC-01.4: 关注的分类/地点初始化自 localStorage（保留用户历史选择）
   const [followedCategories, setFollowedCategories] = useState<Set<number>>(() =>
     readFollowedIds(FOLLOWED_CATEGORIES_KEY)
@@ -80,16 +82,28 @@ export const FirstUseGuide: React.FC = () => {
     }
   }, [user]);
 
-  // Step 2: 加载分类与地点（按当前学校过滤，由 Axios 拦截器注入 X-School-Code）
+  const loadMetadata = useCallback(async () => {
+    setMetadataLoading(true);
+    setMetadataError(null);
+    try {
+      const [cats, locs] = await Promise.all([
+        categoriesApi.listCategories(),
+        categoriesApi.listLocations(),
+      ]);
+      setCategories(cats);
+      setLocations(locs);
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      setMetadataError(e?.response?.data?.detail || '加载关注选项失败');
+    } finally {
+      setMetadataLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    if (step !== 2) return;
-    if (categories.length === 0) {
-      categoriesApi.listCategories().then(setCategories).catch(() => {});
-    }
-    if (locations.length === 0) {
-      categoriesApi.listLocations().then(setLocations).catch(() => {});
-    }
-  }, [step, categories.length, locations.length]);
+    if (step !== 2 || metadataLoading || metadataError || categories.length > 0 || locations.length > 0) return;
+    void Promise.resolve().then(loadMetadata);
+  }, [step, metadataLoading, metadataError, categories.length, locations.length, loadMetadata]);
 
   // 切换学校时重新加载分类与地点（避免显示旧学校数据）
   useEffect(() => {
@@ -98,6 +112,7 @@ export const FirstUseGuide: React.FC = () => {
     void Promise.resolve().then(() => {
       setCategories([]);
       setLocations([]);
+      setMetadataError(null);
     });
   }, [currentSchoolId, open]);
 
@@ -210,7 +225,17 @@ export const FirstUseGuide: React.FC = () => {
               <p className="text-sm text-ink-muted">点击关注，随时获取最新信息</p>
             </div>
 
-            {/* 分类区域 */}
+            {metadataLoading ? (
+              <LoadingState title="正在加载关注选项" compact />
+            ) : metadataError ? (
+              <ErrorState
+                title="关注选项暂时无法加载"
+                description={metadataError}
+                onRetry={() => void loadMetadata()}
+                compact
+              />
+            ) : (
+              <>
             <div className="mb-3">
               <div className="flex items-center gap-1.5 text-xs text-ink-muted mb-2 px-1">
                 <Tag size={12} />
@@ -218,7 +243,7 @@ export const FirstUseGuide: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2 justify-center max-h-[160px] overflow-y-auto">
                 {categories.length === 0 && (
-                  <span className="text-sm text-ink-muted">加载分类中...</span>
+                  <EmptyState title="暂无可关注分类" compact />
                 )}
                 {categories.map((cat) => (
                   <button
@@ -247,7 +272,7 @@ export const FirstUseGuide: React.FC = () => {
               </div>
               <div className="flex flex-wrap gap-2 justify-center max-h-[160px] overflow-y-auto">
                 {locations.length === 0 && (
-                  <span className="text-sm text-ink-muted">加载地点中...</span>
+                  <EmptyState title="暂无可关注地点" compact />
                 )}
                 {locations.map((loc) => (
                   <button
@@ -267,6 +292,8 @@ export const FirstUseGuide: React.FC = () => {
                 ))}
               </div>
             </div>
+              </>
+            )}
           </div>
         )}
 
@@ -316,11 +343,4 @@ export const FirstUseGuide: React.FC = () => {
       </div>
     </Modal>
   );
-};
-
-/**
- * 重新打开首用引导（供个人中心等入口调用）
- */
-export const reopenFirstUseGuide = () => {
-  localStorage.removeItem(GUIDE_STORAGE_KEY);
 };

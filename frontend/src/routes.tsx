@@ -47,7 +47,6 @@ const TopicDetailPage = lazy(loadTopicDetailPage);
 const loadAdminDashboard = () => import('./pages/admin/AdminDashboard');
 const loadAdminHomePage = () => import('./pages/admin/AdminHomePage');
 const loadAdminReviewPage = () => import('./pages/admin/AdminReviewPage');
-const loadAdminGovernancePage = () => import('./pages/admin/AdminGovernancePage');
 const loadAdminReportsPage = () => import('./pages/admin/AdminReportsPage');
 const loadAdminUsersPage = () => import('./pages/admin/AdminUsersPage');
 const loadAdminCategoriesPage = () => import('./pages/admin/AdminCategoriesPage');
@@ -68,7 +67,6 @@ const loadActivationFunnelPage = () => import('./pages/admin/ActivationFunnelPag
 const AdminDashboard = lazy(loadAdminDashboard);
 const AdminHomePage = lazy(loadAdminHomePage);
 const AdminReviewPage = lazy(loadAdminReviewPage);
-const AdminGovernancePage = lazy(loadAdminGovernancePage);
 const AdminReportsPage = lazy(loadAdminReportsPage);
 const AdminUsersPage = lazy(loadAdminUsersPage);
 const AdminCategoriesPage = lazy(loadAdminCategoriesPage);
@@ -98,7 +96,6 @@ const adminRouteLoaders = [
   loadAdminDashboard,
   loadAdminHomePage,
   loadAdminReviewPage,
-  loadAdminGovernancePage,
   loadAdminReportsPage,
   loadAdminUsersPage,
   loadAdminCategoriesPage,
@@ -254,7 +251,7 @@ const AnimatedRoutes: React.FC = () => {
         >
           <Route index element={<AdminHomePage />} />
           <Route path="review" element={<AdminReviewPage />} />
-          <Route path="governance" element={<AdminGovernancePage />} />
+          <Route path="governance" element={<Navigate to="/admin/reports" replace />} />
           <Route path="reports" element={<AdminReportsPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="categories" element={<AdminCategoriesPage />} />

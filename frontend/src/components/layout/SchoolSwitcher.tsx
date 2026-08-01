@@ -53,29 +53,29 @@ export const SchoolSwitcher: React.FC = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  // UX-01.7: 打开时聚焦当前学校选项；关闭时焦点回到触发按钮
   useEffect(() => {
     if (open) {
-      // 找到当前学校索引作为初始聚焦项
       const idx = schools.findIndex((s) => s.id === currentSchoolId);
-      setActiveIndex(idx >= 0 ? idx : 0);
-      // 异步聚焦（等下拉渲染完成）
       requestAnimationFrame(() => {
         if (idx >= 0 && optionRefs.current[idx]) {
           optionRefs.current[idx]?.focus();
         }
       });
-    } else {
-      setActiveIndex(-1);
     }
   }, [open, schools, currentSchoolId]);
+
+  const openDropdown = () => {
+    const idx = schools.findIndex((s) => s.id === currentSchoolId);
+    setActiveIndex(idx >= 0 ? idx : 0);
+    setOpen(true);
+  };
 
   // UX-01.7: 键盘导航
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!open) {
       if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        setOpen(true);
+        openDropdown();
       }
       return;
     }
@@ -155,7 +155,7 @@ export const SchoolSwitcher: React.FC = () => {
       <button
         type="button"
         disabled
-        className="h-10 px-3 rounded-[10px] bg-paper border border-line/80 inline-flex items-center gap-1.5 text-ink-muted text-sm opacity-60"
+        className="h-11 min-w-11 px-3 rounded-[10px] bg-paper border border-line/80 inline-flex items-center gap-1.5 text-ink-muted text-sm opacity-60"
         aria-label="尚未选择学校"
       >
         <SchoolIcon size={14} aria-hidden="true" />
@@ -173,9 +173,16 @@ export const SchoolSwitcher: React.FC = () => {
         ref={triggerRef}
         id={triggerId}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (open) {
+            setOpen(false);
+            setActiveIndex(-1);
+          } else {
+            openDropdown();
+          }
+        }}
         onKeyDown={handleKeyDown}
-        className="h-10 px-3 rounded-[10px] bg-paper border border-line/80 inline-flex items-center gap-1.5 hover:bg-paper-hover transition-colors max-w-[180px] md:max-w-[240px] focus:outline-none focus-visible:ring-2 focus-visible:ring-lake focus-visible:ring-offset-2"
+        className="h-11 min-w-11 px-3 rounded-[10px] bg-paper border border-line/80 inline-flex items-center gap-1.5 hover:bg-paper-hover transition-colors max-w-[180px] md:max-w-[240px] focus:outline-none focus-visible:ring-2 focus-visible:ring-lake focus-visible:ring-offset-2"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listboxId : undefined}
@@ -220,7 +227,7 @@ export const SchoolSwitcher: React.FC = () => {
                     tabIndex={idx === activeIndex ? 0 : -1}
                     onClick={() => handleSelect(s.code)}
                     onKeyDown={handleKeyDown}
-                    className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-paper-hover focus:bg-paper-hover focus:outline-none transition-colors ${
+                    className={`w-full min-h-11 text-left px-3 py-2 flex items-center gap-2 hover:bg-paper-hover focus:bg-paper-hover focus:outline-none transition-colors ${
                       isCurrent ? 'bg-lake/5' : ''
                     }`}
                   >

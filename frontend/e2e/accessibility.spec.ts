@@ -19,12 +19,12 @@ import { getAxeResults, injectAxe } from 'axe-playwright';
  *   - 触控目标：按钮 ≥44×44 px
  *   - 屏幕阅读器：关键 landmark（main/nav/header）存在
  *
- * 注：axe 扫描结果会输出到控制台，违规项以 soft-expect 形式记录，
- *     关键流程的严重违规（critical/serious）将作为任务报告的输入。
+ * 注：axe 扫描结果会输出到控制台，critical / serious 违规直接阻断测试。
  */
 
 const VIOLATION_TAGS = ['critical', 'serious', 'moderate'];
 const runAxe = async (page: Parameters<typeof getAxeResults>[0]) => {
+  await page.waitForTimeout(1000);
   await injectAxe(page);
   return getAxeResults(page, undefined, {
     runOnly: {
@@ -57,6 +57,16 @@ function analyzeAxeResults(violations: any[], pageName: string) {
   }
 
   return relevant;
+}
+
+function expectNoBlockingViolations(violations: any[], pageName: string) {
+  const blocking = violations.filter((v) =>
+    v.impact === 'critical' || v.impact === 'serious'
+  );
+  const details = blocking.flatMap((v) =>
+    v.nodes?.map((node: any) => `${v.id}: ${node.target?.join(' > ') ?? node.html}`) ?? []
+  );
+  expect(details, `${pageName} 存在无障碍硬门禁违规：\n${details.join('\n')}`).toEqual([]);
 }
 
 test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
@@ -97,9 +107,7 @@ test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
     const results = await runAxe(page);
 
     const relevant = analyzeAxeResults(results.violations, '登录页');
-    // 软断言：登录页不应有 critical 违规（serious/moderate 记录到报告）
-    const critical = relevant.filter((v) => v.impact === 'critical');
-    expect(critical.length, `登录页有 ${critical.length} 个 critical 违规`).toBe(0);
+    expectNoBlockingViolations(relevant, '登录页');
   });
 
   test('2. 搜索页 - 焦点管理 + 屏幕阅读器 landmark', async ({ page }) => {
@@ -122,8 +130,7 @@ test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
     const results = await runAxe(page);
 
     const relevant = analyzeAxeResults(results.violations, '搜索页');
-    const critical = relevant.filter((v) => v.impact === 'critical');
-    expect(critical.length, `搜索页有 ${critical.length} 个 critical 违规`).toBe(0);
+    expectNoBlockingViolations(relevant, '搜索页');
   });
 
   test('3. 学校切换 - 首页 landmark + 切换器可达', async ({ page }) => {
@@ -143,10 +150,8 @@ test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
       // 触控目标检查：切换器尺寸 ≥ 44×44
       const box = await switcher.boundingBox();
       if (box) {
-        // 软断言：触控目标尺寸（允许部分元素小于 44，但记录到报告）
-        if (box.width < 44 || box.height < 44) {
-          console.log(`[axe] 学校切换器触控目标偏小: ${box.width}x${box.height}`);
-        }
+        expect(box.width, `学校切换器宽度应 ≥44px，实际 ${box.width}px`).toBeGreaterThanOrEqual(44);
+        expect(box.height, `学校切换器高度应 ≥44px，实际 ${box.height}px`).toBeGreaterThanOrEqual(44);
       }
       // 切换器应可通过键盘获焦
       await switcher.focus();
@@ -156,8 +161,7 @@ test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
     const results = await runAxe(page);
 
     const relevant = analyzeAxeResults(results.violations, '首页（学校切换）');
-    const critical = relevant.filter((v) => v.impact === 'critical');
-    expect(critical.length, `首页有 ${critical.length} 个 critical 违规`).toBe(0);
+    expectNoBlockingViolations(relevant, '首页（学校切换）');
   });
 
   test('4. 发布页 - 表单标签关联 + 错误提示', async ({ page }) => {
@@ -194,8 +198,7 @@ test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
     const results = await runAxe(page);
 
     const relevant = analyzeAxeResults(results.violations, '发布页');
-    const critical = relevant.filter((v) => v.impact === 'critical');
-    expect(critical.length, `发布页有 ${critical.length} 个 critical 违规`).toBe(0);
+    expectNoBlockingViolations(relevant, '发布页');
   });
 
   test('5. 后台 - 管理页面 landmark + 键盘可达', async ({ page }) => {
@@ -226,7 +229,6 @@ test.describe('REL-01.4 无障碍：五条关键流程 axe 扫描', () => {
     const results = await runAxe(page);
 
     const relevant = analyzeAxeResults(results.violations, '后台');
-    const critical = relevant.filter((v) => v.impact === 'critical');
-    expect(critical.length, `后台有 ${critical.length} 个 critical 违规`).toBe(0);
+    expectNoBlockingViolations(relevant, '后台');
   });
 });

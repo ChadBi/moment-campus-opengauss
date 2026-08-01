@@ -100,22 +100,17 @@ test.describe('商业/便利：发布与审核', () => {
     // 验证页面有审核相关内容（待审核/通过/拒绝按钮或列表）
     await expect(page.locator('body')).toContainText(/审核|待审|review|pending|通过|拒绝|approve|reject/i, { timeout: 10000 });
   });
+
+  test('11. 旧协同治理入口重定向到正式举报管理', async ({ page }) => {
+    await login(page, DEMO_ACCOUNTS.admin);
+    await page.goto('/admin/governance');
+    await expect(page).toHaveURL(/\/admin\/reports$/);
+    await expect(page.getByRole('heading', { name: '举报管理' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '协同治理' })).toHaveCount(0);
+  });
 });
 
-test.describe('商业/便利：官方主体与订阅', () => {
-  test.skip('11. 官方发布主体认证 - 用户可浏览发布主体列表', async ({ page }) => {
-    // publisher_profiles / publisher_memberships 已按产品决策下线，保留用例编号追踪历史能力。
-    // 发布主体页是公开的
-    await page.goto('/publishers');
-    await page.waitForLoadState('networkidle');
-
-    // 验证页面加载
-    await expect(page.locator('body')).not.toContainText(/404|Not Found|页面不存在/i);
-
-    // 验证有发布主体相关内容
-    await expect(page.locator('body')).toContainText(/发布主体|官方|publisher|认证|主体/i, { timeout: 10000 });
-  });
-
+test.describe('商业/便利：订阅与分享', () => {
   test('12. 订阅推荐 - 登录用户可访问订阅入口', async ({ page }) => {
     await login(page, DEMO_ACCOUNTS.user1);
 

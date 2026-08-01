@@ -45,20 +45,23 @@ export const SubscribeButton: React.FC<SubscribeButtonProps> = ({
   onChange,
 }) => {
   const { isAuthenticated } = useAuthStore();
-  const [subscribed, setSubscribed] = useState<boolean>(initialSubscribed ?? false);
-  const [subscriptionId, setSubscriptionId] = useState<number | null>(
-    initialSubscriptionId ?? null
-  );
+  const [localState, setLocalState] = useState(() => ({
+    targetType: target_type,
+    targetId: target_id,
+    sourceSubscribed: initialSubscribed,
+    sourceSubscriptionId: initialSubscriptionId,
+    subscribed: initialSubscribed ?? false,
+    subscriptionId: initialSubscriptionId ?? null,
+  }));
+  const targetMatches = localState.targetType === target_type && localState.targetId === target_id;
+  const propsMatch = localState.sourceSubscribed === initialSubscribed
+    && localState.sourceSubscriptionId === initialSubscriptionId;
+  const subscribed = targetMatches && propsMatch ? localState.subscribed : initialSubscribed ?? false;
+  const subscriptionId = targetMatches && propsMatch
+    ? localState.subscriptionId
+    : initialSubscriptionId ?? null;
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
-
-  // 外部预订阅状态变化时同步（如父组件批量查询后传入）
-  useEffect(() => {
-    if (initialSubscribed !== undefined) {
-      setSubscribed(initialSubscribed);
-      setSubscriptionId(initialSubscriptionId ?? null);
-    }
-  }, [initialSubscribed, initialSubscriptionId]);
 
   // 外部未传初始状态时，登录后自查询一次
   useEffect(() => {
@@ -66,15 +69,21 @@ export const SubscribeButton: React.FC<SubscribeButtonProps> = ({
       void subscriptionsApi
         .checkSubscription(target_type, target_id)
         .then((resp) => {
-          setSubscribed(resp.subscribed);
-          setSubscriptionId(resp.subscription_id ?? null);
+          setLocalState({
+            targetType: target_type,
+            targetId: target_id,
+            sourceSubscribed: initialSubscribed,
+            sourceSubscriptionId: initialSubscriptionId,
+            subscribed: resp.subscribed,
+            subscriptionId: resp.subscription_id ?? null,
+          });
         })
         .catch((err) => {
           // 静默失败：单点状态查询失败不阻塞页面渲染
           logger.warn('订阅状态查询失败:', err);
         });
     }
-  }, [initialSubscribed, isAuthenticated, target_type, target_id]);
+  }, [initialSubscribed, initialSubscriptionId, isAuthenticated, target_type, target_id]);
 
   const handleToggle = async () => {
     if (!isAuthenticated) {
@@ -86,14 +95,26 @@ export const SubscribeButton: React.FC<SubscribeButtonProps> = ({
     try {
       if (subscribed && subscriptionId) {
         await subscriptionsApi.deleteSubscription(subscriptionId);
-        setSubscribed(false);
-        setSubscriptionId(null);
+        setLocalState({
+          targetType: target_type,
+          targetId: target_id,
+          sourceSubscribed: initialSubscribed,
+          sourceSubscriptionId: initialSubscriptionId,
+          subscribed: false,
+          subscriptionId: null,
+        });
         setToast({ message: '已取消订阅', type: 'success' });
         onChange?.(false, null);
       } else {
         const sub = await subscriptionsApi.createSubscription({ target_type, target_id });
-        setSubscribed(true);
-        setSubscriptionId(sub.id);
+        setLocalState({
+          targetType: target_type,
+          targetId: target_id,
+          sourceSubscribed: initialSubscribed,
+          sourceSubscriptionId: initialSubscriptionId,
+          subscribed: true,
+          subscriptionId: sub.id,
+        });
         setToast({ message: '订阅成功，有新内容时会通知你', type: 'success' });
         onChange?.(true, sub.id);
       }
@@ -101,7 +122,14 @@ export const SubscribeButton: React.FC<SubscribeButtonProps> = ({
       const e = error as { response?: { status?: number; data?: { detail?: string } } };
       // 409 冲突：已被订阅（可能并发提交），重新查询状态修正
       if (e?.response?.status === 409) {
-        setSubscribed(true);
+        setLocalState((current) => ({
+          ...current,
+          targetType: target_type,
+          targetId: target_id,
+          sourceSubscribed: initialSubscribed,
+          sourceSubscriptionId: initialSubscriptionId,
+          subscribed: true,
+        }));
         setToast({ message: '该目标已订阅', type: 'info' });
       } else {
         setToast({

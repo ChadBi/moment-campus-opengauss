@@ -6,19 +6,19 @@
   /* 水墨风配色 - 宣纸质感 */
   --ink: #152629;
   --ink-2: #3d5458;
-  --muted: #6a7d81;
+  --muted: #566a6e;
   --paper: #fafcfb;
   --mist: #f4f7f6;
   --paper-alt: #f6f3ed;
   --lake: #174d5e;
   --lake-2: #2d6270;
-  --lamp: #e67340;
+  --lamp: #a9471d;
   --lamp-light: #f08a5a;
-  --grass: #73a068;
-  --sun: #dbb352;
+  --grass: #47754e;
+  --sun: #765c12;
   --line: #d8e1e3;
   --line-divider: #e8eded;
-  --danger: #cd5852;
+  --danger: #a33e39;
 
   /* 阴影 */
   --shadow-sm: 0 2px 8px rgba(21, 38, 41, 0.06);

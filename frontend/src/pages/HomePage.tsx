@@ -6,25 +6,12 @@ import { recommendationsApi } from '../services/recommendations';
 import type { Post, RecommendationItem } from '../types';
 import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
-import { Loading } from '../components/ui/Loading';
 import { Button } from '../components/ui/Button';
-import { Heart, MessageCircle, Eye, MapPin, Clock, Sparkles } from 'lucide-react';
-import { colors as categoryColors } from '../styles/tokens';
+import { EmptyState, ErrorState, LoadingState } from '../components/state';
+import { Heart, MessageCircle, Eye, MapPin, Clock, Sparkles, FilePlus2 } from 'lucide-react';
 import { useSchoolQueryKey } from '../hooks/useSchoolQueryKey';
 import { formatRelativeTime as formatDate } from '../utils/date';
-
-const CATEGORY_COLOR_MAP: Record<string, keyof typeof categoryColors.category> = {
-  '美食': 'food', '食物': 'food', '餐饮': 'food',
-  '活动': 'event', '事件': 'event',
-  '服务': 'service',
-  '学习': 'study', '学术': 'study',
-  '失物招领': 'lostFound', '失物': 'lostFound',
-  '社团': 'club',
-};
-const getCategoryColor = (name?: string) => {
-  const key = name ? CATEGORY_COLOR_MAP[name] : undefined;
-  return categoryColors.category[key ?? 'default'];
-};
+import { getCategoryVisual } from '../utils/categoryVisual';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +22,8 @@ const HomePage: React.FC = () => {
   const {
     data: recData,
     isLoading: recLoading,
+    isError: recError,
+    refetch: refetchRecommendations,
   } = useQuery({
     queryKey: [...schoolKey, 'recommendations', 'home'],
     queryFn: () => recommendationsApi.getRecommendations(1, 5),
@@ -45,6 +34,7 @@ const HomePage: React.FC = () => {
     data,
     isLoading,
     isError,
+    refetch,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -59,8 +49,6 @@ const HomePage: React.FC = () => {
   const posts = (data?.pages.flatMap(p => p.items) ?? []) as Post[];
   const recItems: RecommendationItem[] = recData?.items ?? [];
   const recMode = recData?.mode;
-  const loading = isLoading || isFetchingNextPage;
-
   const handleLoadMore = () => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -102,8 +90,17 @@ const HomePage: React.FC = () => {
 
       {/* REC-01.1: 为你推荐区块 */}
       {recLoading ? (
-        <div className="mb-6 py-4">
-          <Loading text="正在为你推荐..." />
+        <div className="mb-6 bg-paper border border-line/60 rounded-[16px]">
+          <LoadingState title="正在为你推荐" compact />
+        </div>
+      ) : recError ? (
+        <div className="mb-6 bg-paper border border-line/60 rounded-[16px]">
+          <ErrorState
+            title="推荐暂时走丢了"
+            description="普通信息流仍可继续浏览。"
+            onRetry={() => void refetchRecommendations()}
+            compact
+          />
         </div>
       ) : recItems.length > 0 ? (
         <section className="mb-6 bg-paper border border-lake/30 rounded-[18px] shadow-sm overflow-hidden">
@@ -140,8 +137,8 @@ const HomePage: React.FC = () => {
                   </span>
                   <Badge
                     style={{
-                      backgroundColor: getCategoryColor(item.category?.name).light,
-                      color: getCategoryColor(item.category?.name).main,
+                      backgroundColor: getCategoryVisual(item.category?.code).background,
+                      color: getCategoryVisual(item.category?.code).text,
                     }}
                   >
                     {item.category?.name || '未分类'}
@@ -201,7 +198,7 @@ const HomePage: React.FC = () => {
                   {post.author?.nickname || '匿名用户'}
                 </span>
                 <Badge
-                  style={{ backgroundColor: getCategoryColor(post.category?.name).light, color: getCategoryColor(post.category?.name).main }}
+                  style={{ backgroundColor: getCategoryVisual(post.category?.code).background, color: getCategoryVisual(post.category?.code).text }}
                 >
                   {post.category?.name || '未分类'}
                 </Badge>
@@ -243,21 +240,33 @@ const HomePage: React.FC = () => {
         ))}
       </div>
 
-      {loading && posts.length === 0 && (
-        <div className="py-16">
-          <Loading text="加载中..." />
+      {isLoading && posts.length === 0 && (
+        <div className="bg-paper border border-line/60 rounded-[16px]">
+          <LoadingState
+            title="正在加载校园此刻"
+            description="正在翻阅这所学校刚刚发生的事。"
+          />
         </div>
       )}
 
-      {isError && (
-        <div className="text-center py-16 text-danger">加载失败，请稍后重试</div>
+      {isError && posts.length === 0 && (
+        <div className="bg-paper border border-line/60 rounded-[16px]">
+          <ErrorState
+            title="校园信息暂时无法加载"
+            onRetry={() => void refetch()}
+          />
+        </div>
       )}
 
-      {!loading && posts.length === 0 && recItems.length === 0 && (
-        <div className="text-center py-16">
-          <div className="text-5xl mb-4">⌖</div>
-          <p className="font-medium text-ink mb-1.5">这里还没有校园经验</p>
-          <p className="text-sm text-ink-muted">发布第一条，把会消失的校园经验留下来。</p>
+      {!isLoading && !isError && posts.length === 0 && recItems.length === 0 && (
+        <div className="bg-paper border border-line/60 rounded-[16px]">
+          <EmptyState
+            title="这里还没有校园经验"
+            description="发布第一条，把会消失的校园经验留下来。"
+            icon={<FilePlus2 size={24} />}
+            actionLabel="发布第一条"
+            onAction={() => navigate('/publish')}
+          />
         </div>
       )}
 

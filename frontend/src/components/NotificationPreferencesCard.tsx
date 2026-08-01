@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Bell, ShieldAlert, RefreshCw, CheckCircle } from 'lucide-react';
 import {
   notificationsApi,
@@ -84,7 +84,7 @@ export const NotificationPreferencesCard: React.FC<
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
-  const loadPreferences = async () => {
+  const loadPreferences = useCallback(async () => {
     setLoading(true);
     try {
       const data = await notificationsApi.getPreferences();
@@ -96,12 +96,11 @@ export const NotificationPreferencesCard: React.FC<
     } finally {
       setLoading(false);
     }
-  };
+  }, [onPreferencesChange]);
 
   useEffect(() => {
-    void loadPreferences();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void Promise.resolve().then(loadPreferences);
+  }, [loadPreferences]);
 
   // 自动消失 toast
   useEffect(() => {

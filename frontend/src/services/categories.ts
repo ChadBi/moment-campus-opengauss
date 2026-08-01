@@ -11,7 +11,7 @@ import { api } from './api';
  * 所有 GET 接口依赖 Axios 拦截器注入的 X-School-Code 头实现租户隔离。
  *
  * Task 1.2 调整：移除 GET /post-types 与 PostTypeListItem（PostType 模型已删除，
- * 分类与类型合并为统一「信息分类」5 类：share/teamup/trade/lost_found/other）
+ * 分类与类型合并为由后端动态提供的统一「信息分类」）
  */
 
 /** 分类列表项（后端 CategoryResponse） */

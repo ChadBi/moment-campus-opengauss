@@ -17,12 +17,20 @@ export const interactionsApi = {
     return response.data;
   },
 
-  // FND-01.1: 协同验证（5 类类型，当前 UI 仅展示 confirmation/refutation）
+  // 两类互斥验证：首次创建、异类切换、同类再次点击取消
   validatePost: async (
     postId: number,
     validationType: ValidationType,
     comment?: string
-  ): Promise<{ id: number; validation_type: string; comment?: string }> => {
+  ): Promise<{
+    id: number | null;
+    validation_type: ValidationType | null;
+    comment?: string;
+    action: 'created' | 'switched' | 'removed';
+    current_validation_type: ValidationType | null;
+    confirmation_count: number;
+    refutation_count: number;
+  }> => {
     const response = await api.post(`/posts/${postId}/validate`, {
       validation_type: validationType,
       comment,

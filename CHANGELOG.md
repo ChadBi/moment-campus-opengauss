@@ -7,6 +7,15 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.0.5] - 2026-08-01
+
+### 前端统一状态组件与分类视觉
+
+- 新增 `components/state/`（EmptyState / ErrorState / LoadingState / StateLayout）统一异常态与加载态，替换各页面手写占位
+- 新增 `GlobalToast` 全局提示与 `utils/categoryVisual.ts`（`category.code` 稳定配色），切换学校时清理旧校分类、筛选值与地图标记
+- 全量前端 lint 治理：0 error / 0 warning；`npm run build` 通过
+- 新增 Playwright E2E：`state-components`、`admin-category-live-sync`、`validation-and-categories`；同步修复既有 `accessibility` / `business` 用例
+
 ## [2.0.4] - 2026-08-01
 
 ### T7 向量检索 384→512 维度改造
