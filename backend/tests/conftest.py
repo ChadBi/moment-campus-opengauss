@@ -58,6 +58,26 @@ test_session_maker = async_sessionmaker(
 )
 
 
+@pytest.fixture(autouse=True)
+def _no_external_embedding_calls(monkeypatch):
+    """测试隔离：禁用真实外部 Embedding 调用。
+
+    单元/接口测试不应发起真实外部 API 请求（避免走系统代理、产生未关闭连接与额外费用）。
+    默认降级为 None（与未配置 Embedding 时的行为一致）；需要向量时由具体测试自行 mock。
+    """
+    async def _noop_embedding(*args, **kwargs):
+        return None
+
+    monkeypatch.setattr("app.services.ai_search.generate_embedding", _noop_embedding)
+    monkeypatch.setattr("app.api.posts.generate_post_embedding", _noop_embedding)
+
+
+@pytest.fixture(scope="session")
+def opengauss_test_engine():
+    """向需要验证真实 SQL 事务的测试显式暴露独立测试库引擎。"""
+    return test_engine
+
+
 @pytest.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for the test session.
@@ -473,10 +493,7 @@ async def auth_headers(test_user: dict) -> dict:
 
 @pytest_asyncio.fixture
 async def test_post(client: AsyncClient, auth_headers: dict, test_school: dict, test_category: dict) -> dict:
-    """Create a test post and return its data.
-
-    Task 1.2 调整：移除 test_post_type fixture 依赖（PostType 已删除）
-    """
+    """Create a test post and return its data."""
     response = await client.post(
         "/api/v1/posts",
         json={

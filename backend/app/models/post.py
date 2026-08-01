@@ -4,6 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from app.database import Base
+from app.db_types import Vector
 
 
 class Post(Base):
@@ -17,6 +18,7 @@ class Post(Base):
     # ORG-01: publisher_id 字段已随发布主体功能移除（migration a6b7c8d9e0f1 drop）
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(512), nullable=True)
     is_anonymous: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     status: Mapped[str] = mapped_column(
         String(20),

@@ -1,5 +1,5 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
 # backend/ 目录（config.py 位于 backend/app/config.py）
@@ -11,6 +11,8 @@ _env_file = os.path.join(_BASE_DIR, ".env.opengauss")
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=_env_file, extra="ignore")
+
     # 应用
     APP_NAME: str = "此刻校园"
     APP_ENV: str = "opengauss"
@@ -74,6 +76,14 @@ class Settings(BaseSettings):
     # 熔断恢复时间（秒）
     AI_CIRCUIT_RESET_SECONDS: int = 60
 
+    # T7: Embedding 独立 OpenAI 兼容配置（不得复用聊天模型密钥/地址）
+    EMBEDDING_PROVIDER: str = "disabled"  # disabled / openai
+    EMBEDDING_API_KEY: str = ""
+    EMBEDDING_API_BASE: str = ""
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    EMBEDDING_DIMENSIONS: int = 512
+    EMBEDDING_TIMEOUT: float = 15.0
+
     # ============================================================
     # 微信小程序配置
     # AppID 和 AppSecret 用于 code2Session 换取 openid/session_key
@@ -83,10 +93,5 @@ class Settings(BaseSettings):
     WECHAT_APPSECRET: str = ""
     # binding_ticket 有效期（秒），默认 300 秒 = 5 分钟
     BINDING_TICKET_EXPIRE_SECONDS: int = 300
-
-    class Config:
-        env_file = _env_file
-        extra = "ignore"
-
 
 settings = Settings()

@@ -24,7 +24,7 @@ from app.schemas.post import (
     PostTransitionCreate, PostTransitionResponse,
 )
 from app.schemas.ai import AIPublishSuggestRequest, AIPublishSuggestionResponse
-from app.schemas.governance import GovernanceSummary
+from app.schemas.post import GovernanceSummary
 from app.schemas.common import PaginatedResponse
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 from app.core.post_status import (
@@ -34,6 +34,7 @@ from app.core.post_status import (
 from app.core.permissions import is_admin
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.services.ai_publish import execute_publish_suggestion
+from app.services.embedding_service import generate_post_embedding
 
 router = APIRouter(prefix="/posts", tags=["信息"])
 
@@ -314,8 +315,7 @@ async def get_post(
     else:
         response.images = []
 
-    # GOV-01.4: 协同治理聚合（验证数量/时间/说明/处理状态）
-    # 聚合 validation_records（2 类投票）+ post_change_reports（3 类问题报告）
+    # 协同验证聚合（两类互斥投票）
     # DSC-02.1: 登录用户额外返回 user_validation_type，游客恒为 None
     response.governance = await _build_governance_summary(db, post_id, current_user)
 
@@ -344,8 +344,8 @@ async def _build_governance_summary(
         .group_by(ValidationRecord.validation_type)
     )
     val_counts = {row[0]: row[1] for row in val_result.all()}
-    confirmation_count = val_counts.get("confirmation", 0) + val_counts.get("valid", 0)
-    refutation_count = val_counts.get("refutation", 0) + val_counts.get("invalid", 0)
+    confirmation_count = val_counts.get("confirmation", 0)
+    refutation_count = val_counts.get("refutation", 0)
     total_validation_count = confirmation_count + refutation_count
     if confirmation_count > refutation_count:
         validity_status = "valid"
@@ -368,7 +368,6 @@ async def _build_governance_summary(
         )
         row = uvr.scalar_one_or_none()
         if row:
-            # 归一化旧别名（valid→confirmation / invalid→refutation）
             from app.core.validation_type import normalize_validation_type
             user_validation_type = normalize_validation_type(row)
 
@@ -455,6 +454,7 @@ async def create_post(
         expire_at=post_data.expire_at,
         lost_type=post_data.lost_type,
         contact_info=post_data.contact_info,
+        embedding=await generate_post_embedding(post_data.title, post_data.content),
     )
 
     # 如果没有设置信息截止时间，使用分类的默认信息截止天数
@@ -652,6 +652,12 @@ async def update_post(
         # 与状态变更同事务提交；幂等保证同一订阅者对同一帖子只收到首条更新通知
         from app.services.subscription_notifier import notify_post_updated
         await notify_post_updated(db, post, actor_id=current_user.id)
+
+    # T7: 仅正文语义变化时刷新向量；外部服务失败返回 None，不阻断更新。
+    if {"title", "content"} & changed_substantial_fields:
+        refreshed_embedding = await generate_post_embedding(post.title, post.content)
+        if refreshed_embedding is not None:
+            post.embedding = refreshed_embedding
 
     await db.commit()
 

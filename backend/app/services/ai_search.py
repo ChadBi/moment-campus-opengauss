@@ -4,7 +4,7 @@
 1. 输入校验：长度（schema 已强制）+ 频率（中间件限流）+ 敏感词检查
 2. 意图解析：调用 invoke_ai（SEARCH_INTENT_SCHEMA 约束）→ 白名单校验分类/排序/时间/地图范围
 3. 数据检索：openGauss 查询当前学校 published 且未过期未删除的帖子
-4. 确定性排序：时间新鲜度（40%）+ 验证数（30%）+ 相关度（30%）
+4. 混合排序：语义（35%）+ 新鲜度（25%）+ 验证数（20%）+ 关键词（20%）
 5. 理由生成：模板生成简短理由（不每次调模型）
 6. 日志记录：通过 invoke_ai 自动记录 ai_invocation_logs + 补充 result_count
 7. 降级：任一步失败 → fallback=true，返回普通搜索结果
@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
-from sqlalchemy import select, func, or_, and_
+from sqlalchemy import Float, cast, select, func, or_, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 
@@ -44,6 +44,7 @@ from app.schemas.search import (
     AISearchRequest,
     AISearchResponse,
 )
+from app.services.embedding_service import generate_embedding
 
 logger = logging.getLogger(__name__)
 
@@ -70,10 +71,11 @@ _SENSITIVE_PATTERNS = [
 # 单次 AI 搜索允许的最大候选数（在内存中打分排序前先 SQL 限制）
 _MAX_CANDIDATES = 200
 
-# 确定性分数权重
-_SCORE_WEIGHT_FRESHNESS = 0.4
-_SCORE_WEIGHT_VALIDATION = 0.3
-_SCORE_WEIGHT_RELEVANCE = 0.3
+# T7 混合分数权重
+_SCORE_WEIGHT_SEMANTIC = 0.35
+_SCORE_WEIGHT_FRESHNESS = 0.25
+_SCORE_WEIGHT_VALIDATION = 0.20
+_SCORE_WEIGHT_RELEVANCE = 0.20
 
 # 时间新鲜度衰减周期（天）：超过此天数后 freshness=0
 _FRESHNESS_DECAY_DAYS = 30
@@ -388,11 +390,19 @@ def _validate_intent(
 # ============================================================
 # 3. 数据检索
 # ============================================================
+def _apply_vector_candidate_order(query, query_embedding: list[float]):
+    """让 HNSW 在候选截断前按原生 L2 距离完成近邻召回。"""
+    distance = Post.embedding.op("<=>")(query_embedding)
+    # NULL 默认排在升序末尾，可保留生成失败/尚未回填帖子作为尾部候选。
+    return query.order_by(distance)
+
+
 async def _query_posts(
     db: AsyncSession,
     tenant: TenantContext,
     intent: AISearchIntent,
     overrides: Optional[AISearchOverrides],
+    query_embedding: Optional[list[float]] = None,
 ) -> list[Post]:
     """根据意图查询当前学校 published 且未过期未删除的帖子。
 
@@ -413,9 +423,9 @@ async def _query_posts(
         or_(Post.expire_at.is_(None), Post.expire_at > now),
     )
 
-    # 关键词模糊匹配
+    # 有向量时语义召回不应被关键词 LIKE 提前裁掉；无向量时保留原关键词召回。
     keyword = filters.keyword
-    if keyword:
+    if keyword and query_embedding is None:
         keyword_pattern = f"%{keyword}%"
         query = query.where(
             or_(
@@ -455,6 +465,9 @@ async def _query_posts(
         )
         query = query.where(Post.location_id.in_(loc_subq))
 
+    if query_embedding is not None:
+        query = _apply_vector_candidate_order(query, query_embedding)
+
     # 限制候选数（避免大结果集在内存中打分过慢）
     query = query.limit(_MAX_CANDIDATES)
 
@@ -470,6 +483,28 @@ async def _query_posts(
     return list(result.unique().scalars().all())
 
 
+async def _load_semantic_scores(
+    db: AsyncSession,
+    posts: list[Post],
+    query_embedding: Optional[list[float]],
+) -> dict[int, float]:
+    """用 openGauss ``<=>`` 计算候选帖相似度，距离归一化至 [0, 1]。"""
+    if query_embedding is None or not posts:
+        return {}
+    post_ids = [post.id for post in posts if post.embedding is not None]
+    if not post_ids:
+        return {}
+    distance = cast(Post.embedding.op("<=>")(query_embedding), Float)
+    rows = (await db.execute(
+        select(Post.id, distance.label("distance")).where(Post.id.in_(post_ids))
+    )).all()
+    return {
+        int(post_id): round(1.0 / (1.0 + max(0.0, float(value))), 6)
+        for post_id, value in rows
+        if value is not None
+    }
+
+
 # ============================================================
 # 4. 确定性打分
 # ============================================================
@@ -477,16 +512,21 @@ def _compute_score(
     post: Post,
     keyword: Optional[str],
     now: datetime,
+    semantic_similarity: Optional[float] = None,
 ) -> tuple[float, list[str]]:
     """计算确定性分数 + 生成单条匹配理由。
 
-    分数 = 0.4 * 时间新鲜度 + 0.3 * 验证数 + 0.3 * 相关度
+    分数 = 0.35 * 语义相似度 + 0.25 * 新鲜度 + 0.20 * 验证数 + 0.20 * 关键词相关度
     取值范围 [0, 1]，确定性（同输入同输出）。
 
     Returns:
         (score, match_reasons)
     """
     reasons: list[str] = []
+
+    semantic = max(0.0, min(1.0, semantic_similarity or 0.0))
+    if semantic_similarity is not None:
+        reasons.append(f"语义相似度 {semantic:.0%}")
 
     # ---- 时间新鲜度 ----
     days_old = max(0.0, (now - post.created_at).total_seconds() / 86400.0)
@@ -533,11 +573,13 @@ def _compute_score(
         reasons.append(f"地点：{post.location.name}")
     if post.category is not None and post.category.name:
         reasons.append(f"分类：{post.category.name}")
-    if post.like_count > 0:
-        reasons.append(f"{post.like_count} 人点赞")
+    like_count = post.like_count or 0
+    if like_count > 0:
+        reasons.append(f"{like_count} 人点赞")
 
     score = (
-        _SCORE_WEIGHT_FRESHNESS * freshness
+        _SCORE_WEIGHT_SEMANTIC * semantic
+        + _SCORE_WEIGHT_FRESHNESS * freshness
         + _SCORE_WEIGHT_VALIDATION * validation_score
         + _SCORE_WEIGHT_RELEVANCE * relevance
     )
@@ -551,6 +593,7 @@ def _sort_posts(
     keyword: Optional[str],
     sort: str,
     now: datetime,
+    semantic_scores: Optional[dict[int, float]] = None,
 ) -> list[_ScoredPost]:
     """对候选帖子打分并排序。
 
@@ -562,7 +605,8 @@ def _sort_posts(
     """
     scored: list[_ScoredPost] = []
     for p in posts:
-        score, reasons = _compute_score(p, keyword, now)
+        semantic = semantic_scores.get(p.id) if semantic_scores is not None else None
+        score, reasons = _compute_score(p, keyword, now, semantic)
         scored.append(_ScoredPost(post=p, score=score, match_reasons=reasons))
 
     if sort == "relevance":
@@ -825,22 +869,29 @@ async def execute_ai_search(
 
     assert intent is not None  # 上面两个分支必赋值
 
-    # ---- 5. 查询 ----
+    # ---- 5. 生成查询向量并检索；不可用时自动保留关键词检索 ----
+    query_embedding = await generate_embedding(query)
     try:
-        posts = await _query_posts(db, tenant, intent, overrides)
+        posts = await _query_posts(db, tenant, intent, overrides, query_embedding)
+        semantic_scores = await _load_semantic_scores(db, posts, query_embedding)
     except Exception as exc:  # noqa: BLE001  查询失败降级
-        logger.warning("ai_search_query_failed school_id=%s err=%s", tenant.school_id, exc)
-        return await _fallback_search(
-            db, tenant, query, overrides, page, page_size,
-            fallback_reason="AI 检索失败，已降级普通搜索",
-            ai_log_id=ai_log_id,
-        )
+        logger.warning("ai_search_vector_query_failed school_id=%s error_type=%s", tenant.school_id, type(exc).__name__)
+        try:
+            query_embedding = None
+            semantic_scores = {}
+            posts = await _query_posts(db, tenant, intent, overrides, None)
+        except Exception:
+            return await _fallback_search(
+                db, tenant, query, overrides, page, page_size,
+                fallback_reason="AI 检索失败，已降级普通搜索",
+                ai_log_id=ai_log_id,
+            )
 
     # ---- 6. 打分 + 排序 ----
     try:
         now = datetime.now()
         sort = intent.filters.sort
-        scored_posts = _sort_posts(posts, intent.filters.keyword, sort, now)
+        scored_posts = _sort_posts(posts, intent.filters.keyword, sort, now, semantic_scores)
     except Exception as exc:  # noqa: BLE001  打分失败降级
         logger.warning("ai_search_score_failed school_id=%s err=%s", tenant.school_id, exc)
         return await _fallback_search(

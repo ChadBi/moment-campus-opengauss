@@ -27,7 +27,7 @@ async def test():
     # Test 3: Create test table with vector column
     try:
         await conn.execute('DROP TABLE IF EXISTS _vec_test')
-        await conn.execute('CREATE TABLE _vec_test (id SERIAL, data vector(384))')
+        await conn.execute('CREATE TABLE _vec_test (id SERIAL, data vector(512))')
         print('4. CREATE TABLE with vector OK')
     except Exception as e:
         print(f'4. CREATE TABLE FAILED: {e}')
@@ -36,7 +36,7 @@ async def test():
     try:
         await conn.execute(
             "INSERT INTO _vec_test (data) VALUES "
-            "(array_fill(0.1, ARRAY[384])::vector(384))"
+            "(array_fill(0.1, ARRAY[512])::vector(512))"
         )
         print('5. INSERT vector OK')
     except Exception as e:
@@ -46,7 +46,7 @@ async def test():
     try:
         rows = await conn.fetch(
             "SELECT id FROM _vec_test "
-            "ORDER BY data <=> array_fill(0.2, ARRAY[384])::vector(384) "
+            "ORDER BY data <=> array_fill(0.2, ARRAY[512])::vector(512) "
             "LIMIT 1"
         )
         print(f'6. Vector similarity search OK: found {len(rows)} rows')

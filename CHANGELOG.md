@@ -7,6 +7,15 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.0.4] - 2026-08-01
+
+### T7 向量检索 384→512 维度改造
+
+- Embedding 独立 OpenAI 兼容配置（阿里云百炼 DashScope `compatible-mode/v1`，模型 `qwen3.7-text-embedding`），`EMBEDDING_*` 配置项入 `.env.opengauss.example`；真实密钥仅存本地 `.env.opengauss`（不入库）
+- `Post.embedding` 列 `vector(384)` → `vector(512)`：迁移 `b6c7d8e9f0a1`（ALTER 列类型 + 重建 HNSW 索引），配合 `a1b2c3d4e5f6` 历史迁移
+- 新增 `app/services/embedding_service.py`（生成/构建 512 维向量文本、超时降级）与 `app/db_types.py` Vector 类型；`scripts/generate_embeddings.py` 回填脚本实测 90 条帖子全部回填成功
+- 真实链路验证：同义查询（"打印店在哪里" vs "附近哪里有打印服务"）正确召回同一组打印店帖子；测试环境通过 conftest autouse fixture 完全隔离外部 Embedding 调用（消除代理连接泄漏 ResourceWarning）
+
 ## [2.0.3] - 2026-08-01
 
 ### 自动过期定时器 30 分钟周期统一
