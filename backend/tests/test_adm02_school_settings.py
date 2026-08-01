@@ -1,14 +1,11 @@
-"""ADM-02: 学校设置、品牌、地点核验队列与标签管理路由验收测试
+"""ADM-02: 学校设置、品牌与地点核验队列验收测试
 
 覆盖：
 - ADM-02.1 GET /admin/settings：默认值自动补建；仅 admin 可访问
 - ADM-02.1 PUT /admin/settings：部分更新；审计日志记录 old/new/operator
 - ADM-02.1 跨校隔离：B 校 admin 修改不会影响 A 校；TEN-02.3 强制 tenant
 - ADM-02.1 /schools/current 公开返回品牌字段（site_name/description/brand_color）
-- ADM-02.2 标签管理路由冒烟验收（list/update/delete 均真实可用，未死代码）
 - ADM-02.2 地点核验队列：is_verified=false 列表 + 核验通过 + 跨校 404
-
-Task 1.3 调整：Tag 模型已删除，ADM-02.2 标签管理路由测试已跳过
 """
 import json
 from datetime import datetime
@@ -435,90 +432,3 @@ async def test_location_verify_cross_school_404(
         headers=admin_headers,
     )
     assert resp.status_code == 404
-
-
-# ============================================================
-# ADM-02.2: 标签管理路由验收（确认真实可用，非死代码）
-# ============================================================
-# Task 1.3: Tag 模型已删除，标签管理 4 个路由（list/update/delete/merge）同步移除
-@pytest.mark.skip(reason="Task 1.3: Tag 功能已移除")
-@pytest.mark.asyncio
-async def test_tag_management_routes_smoke(
-    client: AsyncClient, admin_headers: dict, test_school: dict, db_session: AsyncSession
-):
-    """标签管理 4 个路由（list/update/delete/merge）真实可用"""
-    # 准备 2 个标签（school_id 强制为本校）
-    tag_a = Tag(
-        school_id=test_school["id"], name="学习", slug="study",
-        usage_count=3, is_official=True, is_deleted=False,
-    )
-    tag_b = Tag(
-        school_id=test_school["id"], name="学习资料", slug="study-material",
-        usage_count=1, is_official=False, is_deleted=False,
-    )
-    db_session.add_all([tag_a, tag_b])
-    await db_session.commit()
-
-    # 1. GET /admin/tags 列表
-    lst = await client.get("/api/v1/admin/tags", headers=admin_headers)
-    assert lst.status_code == 200
-    assert lst.json()["total"] >= 2
-
-    # 2. PUT /admin/tags/{id} 更新
-    upd = await client.put(
-        f"/api/v1/admin/tags/{tag_b.id}",
-        json={"is_official": True},
-        headers=admin_headers,
-    )
-    assert upd.status_code == 200
-    assert upd.json()["is_official"] is True
-
-    # 3. DELETE /admin/tags/{id} 软删除
-    dele = await client.delete(
-        f"/api/v1/admin/tags/{tag_b.id}", headers=admin_headers
-    )
-    assert dele.status_code == 200
-    assert "已删除" in dele.json()["message"]
-
-    # 4. POST /admin/tags/merge 合并（tag_b 已删除，先建一个新源标签）
-    tag_c = Tag(
-        school_id=test_school["id"], name="二手书", slug="second-hand-book",
-        usage_count=0, is_official=False, is_deleted=False,
-    )
-    db_session.add(tag_c)
-    await db_session.commit()
-    merge = await client.post(
-        "/api/v1/admin/tags/merge",
-        json={"source_tag_ids": [tag_c.id], "target_tag_id": tag_a.id},
-        headers=admin_headers,
-    )
-    assert merge.status_code == 200
-    assert merge.json()["success"] == 1
-
-
-@pytest.mark.skip(reason="Task 1.3: Tag 功能已移除")
-@pytest.mark.asyncio
-async def test_tag_management_cross_school_404(
-    client: AsyncClient, admin_headers: dict, other_school_with_admin: dict,
-    db_session: AsyncSession,
-):
-    """A 校 admin 修改 B 校标签返回 404"""
-    tag_b = Tag(
-        school_id=other_school_with_admin["school_id"],
-        name="B 校标签", slug="b-school-tag",
-        usage_count=0, is_official=False, is_deleted=False,
-    )
-    db_session.add(tag_b)
-    await db_session.commit()
-
-    upd = await client.put(
-        f"/api/v1/admin/tags/{tag_b.id}",
-        json={"is_official": True},
-        headers=admin_headers,
-    )
-    assert upd.status_code == 404
-
-    dele = await client.delete(
-        f"/api/v1/admin/tags/{tag_b.id}", headers=admin_headers
-    )
-    assert dele.status_code == 404

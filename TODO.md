@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-07-29（v2.0.0 华为云部署完成：openGauss 重置+迁移+种子数据+AI Key 更新+全链路验证通过）
+> 最后更新：2026-08-01（v2.0.1~v2.1.0 分批归档：T7 向量检索 512 维改造、治理/Analytics 清理、自动过期定时器、前端状态组件、小程序 AI-Skills、pytest 警告治理、docs 校对）
 
 ## 状态总览
 
@@ -39,6 +39,18 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### T7 向量检索 384→512 维度改造（2026-08-01 完成）
+
+- [x] Embedding 独立 OpenAI 兼容配置：阿里云百炼 DashScope（`EMBEDDING_PROVIDER=openai` / `EMBEDDING_API_BASE=https://dashscope.aliyuncs.com/compatible-mode/v1` / `EMBEDDING_MODEL=qwen3.7-text-embedding` / `EMBEDDING_DIMENSIONS=512`），`.env.opengauss` 本地生效（不入库不提交）
+- [x] 维度决策：实测发现 `qwen3.7-text-embedding` 不支持 384 维（仅 [256,512,768,1024,1536,2048,2560]），经用户确认改用 512 维
+- [x] 全链路 384→512：`Post.embedding` 列 `vector(512)`、`config.EMBEDDING_DIMENSIONS=512`、`.env.opengauss.example`、迁移 `b6c7d8e9f0a1`（ALTER 列 + 重建 HNSW 索引）已执行，head 升级成功
+- [x] 新增 `app/services/embedding_service.py`（`generate_embedding` / `generate_post_embedding` / `build_post_embedding_text`，512 维校验 + 非有限值防护 + 超时降级）
+- [x] 新增 `app/db_types.py` Vector 类型支持；`scripts/generate_embeddings.py` 回填脚本实测全量 90 条帖子回填成功
+- [x] 真实链路验证：同义召回正确（"打印店在哪里"与"附近哪里有打印服务"均召回打印店帖子），语义检索链路完整可用
+- [x] 测试隔离：`tests/conftest.py` 新增 autouse fixture `_no_external_embedding_calls`，全局 mock 外部 Embedding 调用，避免走系统代理产生未关闭连接（ResourceWarning）与额外费用
+- [x] 同步 384→512：8 个测试文件 + 6 份文档（README、Demo 作品帖、docs/00、docs/11、docs/31、docs/32）
+- [x] 任务报告：[AIwork/T7原生向量检索完整实现任务报告.md](AIwork/T7原生向量检索完整实现任务报告.md)、[AIwork/TDD增强T7向量响应与回填脚本任务报告.md](AIwork/TDD增强T7向量响应与回填脚本任务报告.md)
 
 ### 多轮测试问题修复（2026-07-29 完成）
 

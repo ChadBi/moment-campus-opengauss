@@ -7,7 +7,7 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
-## [Unreleased]
+## [2.0.1] - 2026-08-01
 
 ### 变更
 
@@ -22,7 +22,15 @@
 - `miniprogram/` 修复 TypeScript ES2020 语法兼容性：将 `?.` 可选链替换为 `obj && obj.prop`、`??` 空值合并替换为三元表达式（home.ts、profile.ts、post-detail.ts、school-select.ts、search.ts、services/request.ts）
 - `miniprogram/` 修复 7 个页面 WXML 模板结构（profile、school-select、search、subscriptions、topics、notifications、post-detail），全部通过 `compile_wxml` 验证
 
-## [2.0.0] - 2026-07-29
+### 治理模块清理与协同验证收敛（本批归档）
+
+- 移除治理模块遗留代码：`app/api/governance.py`、`app/schemas/governance.py`、`frontend/src/pages/admin/AdminGovernancePage.tsx`、`frontend/src/services/governance.ts`、`tests/test_governance.py` 及 `router.py` 注册引用
+- 协同验证收敛为 2 类（confirmation/refutation）：删除 legacy 别名兼容逻辑（valid/invalid），统计口径只计 confirmation + refutation
+- 不允许用户为自己的帖子投票（新增 `ForbiddenException` 校验）
+- 验证接口响应新增 `action`（created/removed/switched）、`current_validation_type`、`confirmation_count`/`refutation_count` 字段，切换类型改为原地更新而非删除重建
+- 同步更新 enums、post schema、interactions 及 6 个相关测试文件
+
+## \[2.0.0] - 2026-07-29
 
 ### 多轮测试问题修复
 

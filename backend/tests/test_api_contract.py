@@ -3,7 +3,7 @@
 覆盖契约表中的关键枚举与字段：
 - 举报类型（ReportType: spam/abuse/harassment/false_info/other）
 - 帖子状态（PostStatusEnum: 6 态 draft/pending/published/expired/conflict/archived）
-- 协同验证类型（ValidationTypeEnum: 5 类 confirmation/refutation/update/expiration_report/conflict_report）
+- 协同验证类型（ValidationTypeEnum: 2 类 confirmation/refutation）
 - 分页（PaginatedResponse: total/total_pages/has_more 统一）
 - PostUpdate 移除 status/is_recommend
 - PostCreate.status 仅接受 draft/pending
@@ -69,16 +69,13 @@ class TestPostStatusEnum:
 
 
 class TestValidationTypeEnum:
-    """协同验证类型枚举（5 类）"""
+    """协同验证类型枚举（2 类）"""
 
-    EXPECTED_VALUES = {
-        "confirmation", "refutation",
-        "update", "expiration_report", "conflict_report",
-    }
+    EXPECTED_VALUES = {"confirmation", "refutation"}
 
     def test_enum_member_count(self):
-        """验证类型恰好 5 类"""
-        assert len(ValidationTypeEnum) == 5
+        """验证类型恰好 2 类"""
+        assert len(ValidationTypeEnum) == 2
 
     def test_enum_values_match_contract(self):
         """验证类型值与契约表一致"""
@@ -89,16 +86,6 @@ class TestValidationTypeEnum:
         """2 类互斥投票：confirmation / refutation"""
         voting = {ValidationTypeEnum.CONFIRMATION.value, ValidationTypeEnum.REFUTATION.value}
         assert voting == {"confirmation", "refutation"}
-
-    def test_three_report_types(self):
-        """3 类问题报告：update / expiration_report / conflict_report"""
-        reports = {
-            ValidationTypeEnum.UPDATE.value,
-            ValidationTypeEnum.EXPIRATION_REPORT.value,
-            ValidationTypeEnum.CONFLICT_REPORT.value,
-        }
-        assert reports == {"update", "expiration_report", "conflict_report"}
-
 
 # ============================================================
 # 二、分页模型契约
@@ -277,18 +264,19 @@ class TestReportCreateContract:
 class TestValidationCreateContract:
     """协同验证创建 Schema 契约"""
 
-    def test_accepts_five_types(self):
-        """接受全部 5 类验证类型"""
-        for vtype in ["confirmation", "refutation", "update", "expiration_report", "conflict_report"]:
+    def test_accepts_two_types(self):
+        """仅接受两类正式验证类型"""
+        for vtype in ["confirmation", "refutation"]:
             v = ValidationCreate(validation_type=vtype)
-            assert v.validation_type == vtype
+            assert v.validation_type.value == vtype
 
-    def test_accepts_legacy_aliases(self):
-        """接受旧别名 valid / invalid"""
-        v1 = ValidationCreate(validation_type="valid")
-        assert v1.validation_type == "valid"
-        v2 = ValidationCreate(validation_type="invalid")
-        assert v2.validation_type == "invalid"
+    @pytest.mark.parametrize(
+        "vtype",
+        ["update", "expiration_report", "conflict_report", "valid", "invalid", "uncertain"],
+    )
+    def test_rejects_non_canonical_types(self, vtype):
+        with pytest.raises(ValidationError):
+            ValidationCreate(validation_type=vtype)
 
     def test_rejects_invalid_type(self):
         """拒绝非法验证类型"""
@@ -315,6 +303,13 @@ class TestOpenAPIContract:
         assert schema is not None
         assert "openapi" in schema
         assert "components" in schema
+
+    def test_validation_uses_only_singular_endpoint(self):
+        from app.main import app
+
+        paths = app.openapi()["paths"]
+        assert "/api/v1/posts/{post_id}/validate" in paths
+        assert "/api/v1/posts/{post_id}/validations" not in paths
 
     def test_report_type_enum_in_openapi(self):
         """OpenAPI schema 中 ReportType 枚举值为 5 类"""

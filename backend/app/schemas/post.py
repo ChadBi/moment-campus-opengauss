@@ -14,6 +14,18 @@ class UserBrief(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class GovernanceSummary(BaseModel):
+    """帖子详情中的两类验证聚合。"""
+    confirmation_count: int = 0
+    refutation_count: int = 0
+    total_validation_count: int = 0
+    validity_status: str = "valid"
+    user_validation_type: Optional[str] = Field(
+        default=None,
+        description="当前用户的验证类型；游客或未验证时为 null",
+    )
+
+
 class CategoryBrief(BaseModel):
     id: int
     name: str
@@ -133,7 +145,7 @@ class PostResponse(BaseModel):
         default=None, description="协同治理聚合（仅详情端点返回）"
     )
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, validate_assignment=True)
 
 
 # 信息列表响应（简化版，用于列表展示）
@@ -158,7 +170,7 @@ class PostListResponse(BaseModel):
     created_at: datetime
     expire_at: Optional[datetime] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, validate_assignment=True)
 
 
 # T-B-04: 状态流转请求
@@ -182,13 +194,6 @@ class PostTransitionResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-
-# ============================================================
-# GOV-01.4: 循环依赖处理——底部延迟导入 GovernanceSummary 并重建
-# PostResponse.governance 使用前向引用 "GovernanceSummary"；
-# schemas.governance 在其底部延迟导入 UserBrief，任一模块先导入均可成立。
-# ============================================================
-from app.schemas.governance import GovernanceSummary  # noqa: E402
 
 PostResponse.model_rebuild()
 

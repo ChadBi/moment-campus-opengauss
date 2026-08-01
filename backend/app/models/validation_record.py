@@ -14,7 +14,7 @@ class ValidationRecord(Base):
     validation_type: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
-        comment="协同验证类型：confirmation/refutation/update/expiration_report/conflict_report（5 类，详见 app.core.validation_type）",
+        comment="互斥协同验证类型：confirmation/refutation（详见 app.core.validation_type）",
     )
     comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)

@@ -81,10 +81,7 @@ async def _create_membership(
 async def other_school_post(
     db_session: AsyncSession, test_category: dict
 ) -> dict:
-    """另一所学校 + 该校作者 + 一条待审核帖子（用于跨校 404 测试）。
-
-    Task 1.2 调整：移除 test_post_type fixture 依赖（PostType 已删除）
-    """
+    """另一所学校 + 该校作者 + 一条待审核帖子（用于跨校 404 测试）。"""
     school_b = await _create_school(db_session, "B 校", "school-b-adm01")
     author_b = await _create_user(db_session, "b-author@example.com", "B 校作者", school_b.id)
     await _create_membership(db_session, author_b.id, school_b.id, "member")
@@ -141,11 +138,7 @@ async def test_admin_todos_returns_four_cards_with_counts(
     db_session: AsyncSession,
     test_school: dict,
 ):
-    """ADM-01.1: 待办统计返回 4 类卡片，计数正确且每项含跳转队列路径
-
-    Task 1.1 调整：移除 3 类问题报告（PostChangeReport 已删除），原 7 卡片 → 4 卡片
-    Task 1.2 调整：移除 test_post_type fixture 依赖（PostType 已删除）
-    """
+    """ADM-01.1: 待办统计返回 4 类卡片，计数正确且每项含跳转队列路径。"""
     # 制造待办数据：1 待审核帖（fixture）+ 1 待处理举报 + 1 未核验地点 + 1 失败任务
     post_id = test_post["id"]
     # second_user 举报该帖（待处理）
@@ -234,7 +227,6 @@ async def test_admin_post_detail_visible_for_pending_with_author_history(
     # 作者历史统计
     assert data["author_history"]["total_posts"] >= 1
     # 治理概况字段存在
-    # Task 1.2 调整：open_change_reports 已随 PostChangeReport 删除移除
     assert "pending_user_reports" in data
 
 
@@ -426,7 +418,6 @@ async def test_approve_post_transaction_creates_status_log_and_notification(
 # ============================================================
 # ADM-01.5: 治理工作台
 # ----------------------------------------------------------
-# Task 1.1 调整：3 类问题报告（update/expiration_report/conflict_report）已移除，
 # 帖子过期/冲突状态由管理员通过举报队列处理。
 # 原 published_post_with_reports fixture 与下列 4 个测试用例已删除：
 # - test_governance_reports_queue_filtered_by_type_and_status

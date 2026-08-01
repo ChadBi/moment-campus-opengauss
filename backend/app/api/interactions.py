@@ -20,7 +20,7 @@ from app.schemas.interaction import (
     ReportCreate,
 )
 from app.schemas.common import MessageResponse
-from app.core.exceptions import NotFoundException, BadRequestException
+from app.core.exceptions import NotFoundException, BadRequestException, ForbiddenException
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.core.validation_type import (
     normalize_validation_type,
@@ -114,8 +114,6 @@ async def create_validation(
     - 已有同类型记录 → 删除（取消）
     - 已有不同类型记录 → 删除原记录，新建新类型（切换）
 
-    向后兼容旧值：valid→confirmation / invalid→refutation
-
     TEN-02.3：跨校帖子统一返回 404。
     """
     # 查询帖子
@@ -127,8 +125,10 @@ async def create_validation(
     # TEN-02.3: 资源级租户校验——跨校对象统一 404
     check_resource_in_tenant(post.school_id, tenant)
 
-    # 归一化验证类型（别名 → 正式名）
-    canonical_type = normalize_validation_type(data.validation_type)
+    if post.user_id == current_user.id:
+        raise ForbiddenException(detail="不能为自己的帖子投票")
+
+    canonical_type = normalize_validation_type(data.validation_type.value)
 
     # 查询当前用户对此帖的已有验证记录（任意类型）
     result = await db.execute(
@@ -143,33 +143,48 @@ async def create_validation(
         if existing.validation_type == canonical_type:
             # 同类型 → 取消（删除记录）
             await db.delete(existing)
-            # 更新 Post 旧统计字段
-            if canonical_type in ValidationType.LEGACY_POSITIVE_COUNT_TYPES:
+            if canonical_type == ValidationType.CONFIRMATION:
                 post.valid_count = max(0, post.valid_count - 1)
-            elif canonical_type in ValidationType.LEGACY_NEGATIVE_COUNT_TYPES:
+            else:
                 post.invalid_count = max(0, post.invalid_count - 1)
             try:
                 await db.commit()
             except IntegrityError:
                 await db.rollback()
                 raise BadRequestException(detail="操作失败，请重试")
-            # 返回被取消的记录信息（id=0 表示已删除）
             return ValidationResponse(
-                id=0,
                 post_id=post_id,
                 user_id=current_user.id,
-                validation_type=canonical_type,
-                comment=None,
-                created_at=existing.created_at,
+                action="removed",
+                current_validation_type=None,
+                confirmation_count=post.valid_count,
+                refutation_count=post.invalid_count,
             )
         else:
-            # 不同类型 → 切换（删除原记录，新建新记录）
-            # 先回滚原记录对 Post 统计字段的影响
-            if existing.validation_type in ValidationType.LEGACY_POSITIVE_COUNT_TYPES:
+            if existing.validation_type == ValidationType.CONFIRMATION:
                 post.valid_count = max(0, post.valid_count - 1)
-            elif existing.validation_type in ValidationType.LEGACY_NEGATIVE_COUNT_TYPES:
+            else:
                 post.invalid_count = max(0, post.invalid_count - 1)
-            await db.delete(existing)
+            existing.validation_type = canonical_type
+            existing.comment = data.comment
+            if canonical_type == ValidationType.CONFIRMATION:
+                post.valid_count += 1
+            else:
+                post.invalid_count += 1
+            await db.commit()
+            await db.refresh(existing)
+            return ValidationResponse(
+                id=existing.id,
+                post_id=existing.post_id,
+                user_id=existing.user_id,
+                validation_type=existing.validation_type,
+                comment=existing.comment,
+                created_at=existing.created_at,
+                action="switched",
+                current_validation_type=existing.validation_type,
+                confirmation_count=post.valid_count,
+                refutation_count=post.invalid_count,
+            )
 
     # 新建记录（首次验证 或 切换后新建）
     validation = ValidationRecord(
@@ -181,9 +196,9 @@ async def create_validation(
     db.add(validation)
 
     # 更新 Post 旧统计字段
-    if canonical_type in ValidationType.LEGACY_POSITIVE_COUNT_TYPES:
+    if canonical_type == ValidationType.CONFIRMATION:
         post.valid_count += 1
-    elif canonical_type in ValidationType.LEGACY_NEGATIVE_COUNT_TYPES:
+    else:
         post.invalid_count += 1
 
     try:
@@ -201,6 +216,10 @@ async def create_validation(
         validation_type=validation.validation_type,
         comment=validation.comment,
         created_at=validation.created_at,
+        action="created",
+        current_validation_type=validation.validation_type,
+        confirmation_count=post.valid_count,
+        refutation_count=post.invalid_count,
     )
 
 
@@ -310,14 +329,8 @@ async def get_validation_stats(
     confirmation_count = counts_by_type.get("confirmation", 0)
     refutation_count = counts_by_type.get("refutation", 0)
 
-    # 旧别名兼容（valid→confirmation, invalid→refutation）
-    legacy_valid = counts_by_type.get("valid", 0)
-    legacy_invalid = counts_by_type.get("invalid", 0)
-
-    valid_count = confirmation_count + legacy_valid
-    invalid_count = refutation_count + legacy_invalid
-
-    # 仅计入 confirmation + refutation + 旧别名（历史废弃类型不计入 total）
+    valid_count = confirmation_count
+    invalid_count = refutation_count
     total = valid_count + invalid_count
 
     # 综合有效性状态：以 confirmation vs refutation 比例判定
