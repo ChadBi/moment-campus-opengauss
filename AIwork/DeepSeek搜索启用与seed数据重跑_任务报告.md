@@ -15,7 +15,7 @@
 
 | 文件 | 用途 | 变更 |
 |------|------|------|
-| `backend/.env.opengauss` | 本地开发实际加载 | 写入 9 项 `AI_*`（`AI_PROVIDER=openai` / `AI_API_KEY=sk-9d9b8b...1311` / `AI_API_BASE=https://api.deepseek.com` / `AI_MODEL=deepseek-v4-flash` / `AI_TIMEOUT=15.0` / `AI_MAX_TOKENS=1024` / `AI_MAX_RETRIES=3` / `AI_CIRCUIT_FAILURE_THRESHOLD=5` / `AI_CIRCUIT_RESET_SECONDS=60`）；同步 `CORS_ORIGINS` 加 `http://localhost:5174` |
+| `backend/.env.opengauss` | 本地开发实际加载 | 写入 9 项 `AI_*`（`AI_PROVIDER=openai` / `AI_API_KEY=<已轮换>` / `AI_API_BASE=https://api.deepseek.com` / `AI_MODEL=deepseek-v4-flash` / `AI_TIMEOUT=15.0` / `AI_MAX_TOKENS=1024` / `AI_MAX_RETRIES=3` / `AI_CIRCUIT_FAILURE_THRESHOLD=5` / `AI_CIRCUIT_RESET_SECONDS=60`）；同步 `CORS_ORIGINS` 加 `http://localhost:5174` |
 | `backend/.env.production` | 生产模板（被 .gitignore 排除） | 追加 9 项 `AI_*` 同款配置 |
 | `backend/.env.opengauss.example` | 模板（被 git 跟踪） | 注释新增 DeepSeek 兼容方案示例；保持 `AI_PROVIDER=mock` / `AI_API_KEY=` 占位 |
 | `deploy/.env.prod.example` | 部署模板（被 git 跟踪） | 注释新增 DeepSeek 兼容方案示例；保持 `AI_PROVIDER=mock` / `AI_API_KEY=` 占位 |
@@ -224,7 +224,7 @@ cp /opt/moment-campus/backend/.env.opengauss /opt/moment-campus/backend/.env.ope
 vim /opt/moment-campus/backend/.env.opengauss
 # 在文件末尾追加：
 # AI_PROVIDER=openai
-# AI_API_KEY=sk-9d9b8b09ee4d41299d5bbbdb0d501311
+# AI_API_KEY=<已轮换，勿在文档中记录真实密钥>
 # AI_API_BASE=https://api.deepseek.com
 # AI_MODEL=deepseek-v4-flash
 # AI_TIMEOUT=15.0
