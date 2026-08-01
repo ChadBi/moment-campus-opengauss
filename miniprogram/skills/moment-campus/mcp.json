@@ -1,0 +1,330 @@
+{
+  "name": "moment-campus",
+  "description": "此刻校园 - 校园生活此刻分享与发现",
+  "version": "1.0.0",
+  "apis": [
+    {
+      "name": "listPosts",
+      "description": "获取此刻列表。支持推荐流或按分类筛选。返回帖子列表，包含标题、内容、图片、作者、互动数据等。适用于'看看此刻有什么'、'浏览校园动态'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "category_id": { "type": "number", "description": "分类ID，0或不传为推荐流" },
+          "page": { "type": "number", "description": "页码，默认1" },
+          "page_size": { "type": "number", "description": "每页数量，默认20" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "description": "帖子列表" },
+          "total": { "type": "number", "description": "总数" },
+          "has_more": { "type": "boolean", "description": "是否有更多" },
+          "page": { "type": "number", "description": "当前页码" }
+        }
+      },
+      "_meta": {
+        "ui": { "pagePath": "/pages/home/home" }
+      }
+    },
+    {
+      "name": "getPostDetail",
+      "description": "获取此刻详情。返回帖子完整信息，包括作者、图片、位置、互动状态、验证统计、评论列表等。适用于'查看详情'、'看看这篇帖子'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "帖子ID" }
+        },
+        "required": ["id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "post": { "type": "object", "description": "帖子详情" },
+          "interactions": { "type": "object", "description": "互动状态" },
+          "validation_stats": { "type": "object", "description": "验证统计" },
+          "comments": { "type": "array", "description": "评论列表" },
+          "is_liked": { "type": "boolean", "description": "是否已点赞" },
+          "likes_count": { "type": "number", "description": "点赞数" },
+          "comments_count": { "type": "number", "description": "评论数" }
+        }
+      },
+      "_meta": {
+        "ui": { "pagePath": "/pages/post-detail/post-detail" }
+      }
+    },
+    {
+      "name": "createPost",
+      "description": "发布新此刻。创建一条校园动态，可包含分类、标题、内容、图片、位置、有效期等。适用于'发布一条此刻'、'分享校园见闻'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "description": "此刻标题" },
+          "content": { "type": "string", "description": "此刻内容" },
+          "category_id": { "type": "number", "description": "分类ID" },
+          "location_name": { "type": "string", "description": "位置名称" },
+          "images": { "type": "array", "description": "图片URL列表" },
+          "expires_at": { "type": "string", "description": "过期时间ISO格式" }
+        },
+        "required": ["title", "content", "category_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "新帖子ID" },
+          "title": { "type": "string", "description": "标题" },
+          "status": { "type": "string", "description": "状态" }
+        }
+      },
+      "_meta": {
+        "ui": { "pagePath": "/pages/post-detail/post-detail" }
+      }
+    },
+    {
+      "name": "searchPosts",
+      "description": "关键词搜索此刻。根据关键词搜索匹配的帖子，支持分页。适用于'搜索'、'找一下关于...的此刻'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "keyword": { "type": "string", "description": "搜索关键词" },
+          "page": { "type": "number", "description": "页码" },
+          "page_size": { "type": "number", "description": "每页数量" }
+        },
+        "required": ["keyword"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "description": "搜索结果列表" },
+          "total": { "type": "number", "description": "匹配总数" },
+          "has_more": { "type": "boolean", "description": "是否有更多" }
+        }
+      },
+      "_meta": {
+        "ui": { "pagePath": "/pages/search/search" }
+      }
+    },
+    {
+      "name": "aiSearch",
+      "description": "AI语义搜索此刻。使用自然语言描述进行智能搜索，AI会理解意图并返回匹配结果和匹配理由。适用于'帮我找...'、'有没有关于...的信息'等自然语言搜索场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": { "type": "string", "description": "自然语言查询" },
+          "page": { "type": "number", "description": "页码" },
+          "page_size": { "type": "number", "description": "每页数量" }
+        },
+        "required": ["query"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "description": "搜索结果列表" },
+          "total": { "type": "number", "description": "匹配总数" },
+          "intent": { "type": "object", "description": "AI分析的意图" },
+          "match_reasons": { "type": "object", "description": "各结果的匹配理由" },
+          "intent_reasons": { "type": "array", "description": "意图识别理由列表" },
+          "has_more": { "type": "boolean", "description": "是否有更多结果" }
+        }
+      },
+      "_meta": {
+        "ui": { "pagePath": "/pages/search/search" }
+      }
+    },
+    {
+      "name": "likePost",
+      "description": "点赞或取消点赞此刻。返回操作后的点赞状态和计数。适用于'点赞'、'取消点赞'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "post_id": { "type": "number", "description": "帖子ID" }
+        },
+        "required": ["post_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "liked": { "type": "boolean", "description": "是否已点赞" },
+          "likes_count": { "type": "number", "description": "点赞总数" }
+        }
+      }
+    },
+    {
+      "name": "createComment",
+      "description": "对此刻发表评论。支持回复评论（指定parent_id）。适用于'评论'、'回复'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "post_id": { "type": "number", "description": "帖子ID" },
+          "content": { "type": "string", "description": "评论内容" },
+          "parent_id": { "type": "number", "description": "父评论ID（回复时）" }
+        },
+        "required": ["post_id", "content"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "评论ID" },
+          "content": { "type": "string", "description": "评论内容" },
+          "created_at": { "type": "string", "description": "创建时间" }
+        }
+      }
+    },
+    {
+      "name": "validatePost",
+      "description": "对此刻进行协同验证（证实或证伪）。适用于'证实这条信息'、'证伪这条信息'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "post_id": { "type": "number", "description": "帖子ID" },
+          "validation_type": { "type": "string", "description": "验证类型：confirmation(证实) 或 refutation(证伪)" }
+        },
+        "required": ["post_id", "validation_type"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "验证ID" },
+          "validation_type": { "type": "string", "description": "验证类型" }
+        }
+      }
+    },
+    {
+      "name": "listTopics",
+      "description": "获取话题/专题列表。返回所有话题及其帖子数量。适用于'看看有什么话题'、'浏览专题'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "number", "description": "页码" },
+          "page_size": { "type": "number", "description": "每页数量" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "topics": { "type": "array", "description": "话题列表" },
+          "total": { "type": "number", "description": "总数" }
+        }
+      },
+      "_meta": {
+        "ui": { "pagePath": "/pages/topics/topics" }
+      }
+    },
+    {
+      "name": "getTopicDetail",
+      "description": "获取话题详情及关联的此刻列表。适用于'查看话题详情'、'看看这个话题下的帖子'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number", "description": "话题ID" }
+        },
+        "required": ["id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "topic": { "type": "object", "description": "话题信息" },
+          "posts": { "type": "array", "description": "关联帖子列表" },
+          "id": { "type": "number", "description": "话题ID" },
+          "title": { "type": "string", "description": "话题标题" },
+          "description": { "type": "string", "description": "话题描述" },
+          "cover_image": { "type": "string", "description": "话题封面图" },
+          "post_count": { "type": "number", "description": "话题帖子数" }
+        }
+      },
+      "_meta": {
+        "ui": { "pagePath": "/pages/topic-detail/topic-detail" }
+      }
+    },
+    {
+      "name": "getMapMarkers",
+      "description": "获取地图上的此刻标记点。返回所有带位置的帖子标记，用于地图展示。适用于'看看附近有什么'、'地图上的此刻'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "school_id": { "type": "number", "description": "学校ID" },
+          "category_id": { "type": "number", "description": "分类ID" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "markers": { "type": "array", "description": "标记点列表" }
+        }
+      },
+      "_meta": {
+        "ui": { "pagePath": "/pages/map/map" }
+      }
+    },
+    {
+      "name": "listCategories",
+      "description": "获取此刻分类列表。返回所有可用分类。适用于'有什么分类'、'选择分类'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "categories": { "type": "array", "description": "分类列表" }
+        }
+      }
+    },
+    {
+      "name": "getHotTags",
+      "description": "获取热门搜索标签。适用于'热搜'、'热门话题'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "tags": { "type": "array", "description": "热门标签列表" }
+        }
+      }
+    },
+    {
+      "name": "getNotifications",
+      "description": "获取通知列表。支持按类型筛选。适用于'查看通知'、'看看有什么消息'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "description": "通知类型：comment/like/validation/system" },
+          "page": { "type": "number", "description": "页码" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "description": "通知列表" },
+          "unread_count": { "type": "number", "description": "未读数" }
+        }
+      },
+      "_meta": {
+        "ui": { "pagePath": "/pages/notifications/notifications" }
+      }
+    },
+    {
+      "name": "getMyPosts",
+      "description": "获取我发布的此刻列表。支持按状态筛选。适用于'我的帖子'、'我发布的此刻'等场景。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "description": "状态筛选：draft/pending/published/expired/conflict" },
+          "page": { "type": "number", "description": "页码" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "items": { "type": "array", "description": "帖子列表" },
+          "total": { "type": "number", "description": "总数" }
+        }
+      },
+      "_meta": {
+        "ui": { "pagePath": "/pages/profile/profile" }
+      }
+    }
+  ]
+}

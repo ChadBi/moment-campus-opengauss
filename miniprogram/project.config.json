@@ -31,7 +31,10 @@
     "condition": false,
     "swc": false,
     "disableSWC": true,
-    "disableUseStrict": false
+    "disableUseStrict": false,
+    "urlCheck": false,
+    "checkInvalidKey": true,
+    "checkSiteMap": true
   },
   "simulatorType": "wechat",
   "simulatorPluginLibVersion": {},
@@ -49,7 +52,12 @@
         "type": "folder"
       }
     ],
-    "include": []
+    "include": [
+      {
+        "type": "folder",
+        "value": "skills"
+      }
+    ]
   },
   "appid": "wx1486f14480b4dc74",
   "isGameTourist": false,

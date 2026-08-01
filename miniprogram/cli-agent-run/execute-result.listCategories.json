@@ -1,0 +1,11 @@
+{
+  "status": "error",
+  "error": {
+    "message": "CLI 输出非 JSON（code=1）\nstdout: \nstderr: "
+  },
+  "consoleMessages": [],
+  "_meta": {
+    "project": "e:\\Project\\moment-campus\\miniprogram",
+    "cliExitCode": 1
+  }
+}

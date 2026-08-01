@@ -7,6 +7,14 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.0.7] - 2026-08-01
+
+### 小程序 AI-Skills 校验与配置
+
+- 新增 `miniprogram/skills/moment-campus`：14 个原子接口（listPosts/createPost/aiSearch/searchPosts/validatePost 等）+ request 工具 + mcp.json + SKILL.md，符合 `wx.modelContext` 规范
+- `project.config.json` 开启 urlCheck=false、packOptions 纳入 skills 目录；`project.private.config.json` 关闭 urlCheck
+- 归档小程序 AI 校验产物：`.ai-mode-skills/`（鉴权规范与探测）与 `cli-agent-run/`（运行报告与验证结果）
+
 ## [2.0.6] - 2026-08-01
 
 ### 后端 pytest 警告治理与测试清理

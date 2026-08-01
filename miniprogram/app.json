@@ -33,5 +33,22 @@
   ],
   "style": "v2",
   "componentFramework": "glass-easel",
-  "lazyCodeLoading": "requiredComponents"
+  "lazyCodeLoading": "requiredComponents",
+  "agent": {
+    "skills": [
+      {
+        "name": "moment-campus",
+        "description": "此刻校园 - 校园生活此刻分享与发现",
+        "path": "skills/moment-campus"
+      }
+    ]
+  },
+  "subPackages": [
+    {
+      "root": "skills",
+      "name": "skills",
+      "independent": true,
+      "pages": []
+    }
+  ]
 }

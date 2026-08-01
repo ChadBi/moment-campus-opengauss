@@ -1,0 +1,193 @@
+{
+  "timestamp": "2026-07-31T03:52:53.297Z",
+  "projectPath": "e:\\Project\\moment-campus\\miniprogram",
+  "skillDirs": [
+    "skills\\moment-campus"
+  ],
+  "ignoreSync": {
+    "changed": false,
+    "added": []
+  },
+  "summary": {
+    "total": 127,
+    "passed": 127,
+    "failed": 0,
+    "errors": 0,
+    "warnings": 0,
+    "buildStatus": "fail"
+  },
+  "rules": {
+    "V001": {
+      "stage": "registration",
+      "level": "error",
+      "name": "禁止依赖主包"
+    },
+    "V003": {
+      "stage": "component",
+      "level": "error",
+      "name": "WXML 组件白名单"
+    },
+    "V005": {
+      "stage": "component",
+      "level": "error",
+      "name": "CSS 禁止属性"
+    },
+    "V006": {
+      "stage": "component",
+      "level": "error",
+      "name": "CSS 禁止选择器"
+    },
+    "V002": {
+      "stage": "registration",
+      "level": "error",
+      "name": "已注册接口必须为 async function"
+    },
+    "V007": {
+      "stage": "registration",
+      "level": "error",
+      "name": "定义-注册一致性"
+    },
+    "V008": {
+      "stage": "registration",
+      "level": "error",
+      "name": "注册-实现一致性"
+    },
+    "V009": {
+      "stage": "output",
+      "level": "error",
+      "name": "接口返回值-outputSchema一致性"
+    },
+    "V010": {
+      "stage": "component",
+      "level": "error",
+      "name": "组件取值-接口返回一致性"
+    },
+    "V011": {
+      "stage": "component",
+      "level": "error",
+      "name": "setData-WXML绑定一致性"
+    },
+    "V012": {
+      "stage": "component",
+      "level": "error",
+      "name": "原子接口若关联原子组件则需文件齐全"
+    },
+    "V013": {
+      "stage": "registration",
+      "level": "error",
+      "name": "mcp.json 体积限制"
+    },
+    "V014": {
+      "stage": "registration",
+      "level": "error",
+      "name": "SKILL.md 必须存在且文件名严格大写"
+    },
+    "V016": {
+      "stage": "registration",
+      "level": "error",
+      "name": "app.json 的 agent.skills[].description 必须存在且非空"
+    },
+    "V017": {
+      "stage": "registration",
+      "level": "error",
+      "name": "handoff 接力页 pagePath 校验"
+    },
+    "V018": {
+      "stage": "registration",
+      "level": "error",
+      "name": "handoff query 参数名与接力页 onLoad 一致性"
+    },
+    "V019": {
+      "stage": "registration",
+      "level": "error",
+      "name": "敏感接口初筛待模型判断"
+    }
+  },
+  "results": [],
+  "passedSummary": [
+    {
+      "id": "V001",
+      "name": "禁止依赖主包",
+      "count": 54
+    },
+    {
+      "id": "V002",
+      "name": "已注册接口必须为 async function",
+      "count": 15
+    },
+    {
+      "id": "V003",
+      "name": "WXML 组件白名单",
+      "count": 1
+    },
+    {
+      "id": "V005",
+      "name": "CSS 禁止属性",
+      "count": 1
+    },
+    {
+      "id": "V006",
+      "name": "CSS 禁止选择器",
+      "count": 1
+    },
+    {
+      "id": "V007",
+      "name": "定义-注册一致性",
+      "count": 1
+    },
+    {
+      "id": "V008",
+      "name": "注册-实现一致性",
+      "count": 1
+    },
+    {
+      "id": "V009",
+      "name": "接口返回值-outputSchema一致性",
+      "count": 15
+    },
+    {
+      "id": "V012",
+      "name": "原子接口若关联原子组件则需文件齐全",
+      "count": 15
+    },
+    {
+      "id": "V013",
+      "name": "mcp.json 体积限制",
+      "count": 1
+    },
+    {
+      "id": "V014",
+      "name": "SKILL.md 必须存在且文件名严格大写",
+      "count": 1
+    },
+    {
+      "id": "V016",
+      "name": "app.json 的 agent.skills[].description 必须存在且非空",
+      "count": 1
+    },
+    {
+      "id": "V017",
+      "name": "handoff 接力页 pagePath 校验",
+      "count": 10
+    },
+    {
+      "id": "V018",
+      "name": "handoff query 参数名与接力页 onLoad 一致性",
+      "count": 9
+    },
+    {
+      "id": "V019",
+      "name": "敏感接口初筛待模型判断",
+      "count": 1
+    }
+  ],
+  "build": {
+    "ran": true,
+    "success": false,
+    "stage": "unknown",
+    "durationMs": 3,
+    "message": "CLI 启动失败: 启动 CLI 失败: spawn /bin/sh ENOENT（cliPath=E:\\Program Files (x86)\\Tencent\\微信web开发者工具\\cli.bat）",
+    "logTail": "",
+    "exitCode": -1
+  }
+}
