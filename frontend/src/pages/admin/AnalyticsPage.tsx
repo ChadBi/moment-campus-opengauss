@@ -95,8 +95,10 @@ const AnalyticsPage: React.FC = () => {
   }, [showToast, windowDays]);
 
   useEffect(() => {
-    setLoading(true);
-    void loadData();
+    void Promise.resolve().then(() => {
+      setLoading(true);
+      return loadData();
+    });
   }, [loadData]);
 
   const handleRefresh = () => {
@@ -501,7 +503,7 @@ const AnalyticsPage: React.FC = () => {
           <Clock size={18} className="text-lamp" />
           审核治理 SLA
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
           <div className="bg-mist/60 rounded-md p-3">
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs text-ink-muted">平均审核时长</p>
@@ -521,16 +523,6 @@ const AnalyticsPage: React.FC = () => {
               {formatSeconds(metrics.governance_sla.avg_report_handle_seconds)}
             </p>
             <p className="text-[11px] text-ink-muted mt-1">举报创建 → 处理完成</p>
-          </div>
-          <div className="bg-mist/60 rounded-md p-3">
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs text-ink-muted">平均问题报告处理时长</p>
-              <Badge variant="warning">{metrics.governance_sla.change_reports_handled_count} 次</Badge>
-            </div>
-            <p className="text-xl font-bold text-ink">
-              {formatSeconds(metrics.governance_sla.avg_change_report_handle_seconds)}
-            </p>
-            <p className="text-[11px] text-ink-muted mt-1">问题报告 → 解决/驳回</p>
           </div>
         </div>
         <MetaBadge meta={metrics.governance_sla.meta} label="治理 SLA 元数据" />

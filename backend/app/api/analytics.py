@@ -190,7 +190,7 @@ async def get_school_analytics(
     db: AsyncSession = Depends(get_db),
 ):
     """ANA-02.2 校级分析指标：从 product_events / posts / ai_invocation_logs /
-    reports / post_change_reports 等业务表实时复算。
+    reports 等业务表实时复算。
 
     覆盖指标：
     - 漏斗（学校查看 → 搜索 → 发布 → 审核 → 公开）
@@ -198,7 +198,7 @@ async def get_school_analytics(
     - 搜索成功率 / 零结果率
     - 分享订阅转化
     - 内容有效率（published 且未过期 / 总内容）
-    - 审核治理 SLA（平均审核/举报/问题报告处理时长）
+    - 审核治理 SLA（平均审核/举报处理时长）
     - AI 每次成功检索用量 + 降级率
 
     每个指标附带元数据：time_window / sample_size / last_updated_at / empty_state。

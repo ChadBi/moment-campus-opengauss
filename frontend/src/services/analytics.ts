@@ -107,11 +107,8 @@ export interface GovernanceSlaMetric {
   avg_review_seconds: number;
   /** 平均举报处理时长（秒） */
   avg_report_handle_seconds: number;
-  /** 平均问题报告处理时长（秒） */
-  avg_change_report_handle_seconds: number;
   reviewed_count: number;
   reports_handled_count: number;
-  change_reports_handled_count: number;
   meta: MetricMeta;
 }
 

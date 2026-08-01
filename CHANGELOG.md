@@ -7,6 +7,14 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.0.2] - 2026-08-01
+
+### Analytics 运行时废弃清理
+
+- 移除 Analytics 服务与接口中对已删除业务表（post_change_reports 等）的残留引用与文档说明
+- 前端 AnalyticsPage / analytics.ts 同步移除废弃指标展示
+- 新增契约测试 `test_analytics_removed_metrics_contract.py`，防止废弃指标回潮
+
 ## [2.0.1] - 2026-08-01
 
 ### 变更

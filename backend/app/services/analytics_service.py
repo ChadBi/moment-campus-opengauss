@@ -434,7 +434,6 @@ class SchoolAnalyticsService:
         - 平均审核时长：AdminOperationLog 中 action in (approve_post, reject_post)
           的 created_at 与对应 Post.created_at 的差值平均（秒）
         - 平均举报处理时长：Report.handled_at - Report.created_at 的平均（秒）
-        （原"问题报告处理时长"已随 PostChangeReport 移除）
         """
         # 平均审核时长（秒）
         review_rows = (await self.db.execute(
