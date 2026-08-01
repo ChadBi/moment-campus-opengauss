@@ -1,9 +1,9 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Literal
 from datetime import datetime
 
 from app.schemas.post import UserBrief
-from app.schemas.enums import ReportType
+from app.schemas.enums import ReportType, ValidationTypeEnum
 
 
 # 点赞响应
@@ -13,18 +13,8 @@ class LikeResponse(BaseModel):
     is_liked: bool = Field(default=True, description="是否已点赞")
 
 
-# 有效性确认创建
-# FND-01.1: schema 层定义完整 5 类验证类型枚举，供 GOV-01 使用。
-# 当前 validation_record 表逻辑仍只处理 confirmation/refutation（2 类互斥投票），
-# update/expiration_report/conflict_report 将由 GOV-01 的 post_change_reports 表承载。
 class ValidationCreate(BaseModel):
-    validation_type: str = Field(
-        ...,
-        pattern="^(confirmation|refutation|update|expiration_report|conflict_report|valid|invalid|uncertain)$",
-        description="协同验证类型（5 类）：confirmation（证实）/ refutation（证伪）/ "
-                    "update（更新建议）/ expiration_report（过期报告）/ conflict_report（冲突报告）。"
-                    "向后兼容旧值：valid→confirmation / invalid→refutation / uncertain→原样保留"
-    )
+    validation_type: ValidationTypeEnum = Field(..., description="验证类型：confirmation 或 refutation")
     comment: Optional[str] = Field(None, max_length=500, description="备注说明，最多500字符")
 
 
@@ -40,12 +30,16 @@ class ReportCreate(BaseModel):
 
 # 有效性确认响应
 class ValidationResponse(BaseModel):
-    id: int
+    id: Optional[int] = None
     post_id: int
     user_id: int
-    validation_type: str
+    validation_type: Optional[ValidationTypeEnum] = None
     comment: Optional[str] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
+    action: Literal["created", "switched", "removed"]
+    current_validation_type: Optional[ValidationTypeEnum] = None
+    confirmation_count: int = 0
+    refutation_count: int = 0
 
     # 关联数据
     user: Optional[UserBrief] = Field(None, description="确认者信息")

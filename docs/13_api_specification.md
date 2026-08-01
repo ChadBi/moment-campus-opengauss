@@ -2,13 +2,15 @@
 
 > 此刻校园 · Moment Campus
 > 版本：2.0（已更新）
-> 最后更新：2026-07-29
+> 最后更新：2026-07-31
 
 ---
 
-## ⚠️ 文档说明（2026-07-29 修订）
+## ⚠️ 文档说明（2026-07-31 修订）
 
 > **本文档部分内容已过时，请以 OpenAPI 文档为权威来源。**
+>
+> **现行能力边界**：收藏功能已删除，不存在收藏路由、收藏列表、`favorites` 表或 `favorite_count` 字段。历史资料中的 `/favorite` 仅代表已废弃设计，不属于当前 API 契约。
 
 ### 推荐参考资料
 
@@ -21,7 +23,7 @@
 
 ### 当前 API 模块概览
 
-后端共注册 **19 个路由模块**，按功能分类如下：
+后端路由以 `backend/app/api/router.py` 的实时注册结果为准。历史独立 governance 模块已经删除，协同验证归入 interactions/posts 契约。
 
 | 模块 | 路由前缀 | 说明 | 代码位置 |
 |------|----------|------|----------|
@@ -41,7 +43,6 @@
 | **platform** | `/api/platform` | 平台管理（超级管理员） | `backend/app/api/platform.py` |
 | **schools** | `/api/schools` | 学校目录/加入/切换 | `backend/app/api/schools.py` |
 | **analytics** | `/api/analytics` | 数据分析 | `backend/app/api/analytics.py` |
-| **governance** | `/api/governance` | 协同治理（5类验证） | `backend/app/api/governance.py` |
 | **recommendations** | `/api/recommendations` | 内容推荐 | `backend/app/api/recommendations.py` |
 | **subscriptions** | `/api/subscriptions` | 内容订阅 | `backend/app/api/subscriptions.py` |
 
@@ -1644,90 +1645,85 @@ app.include_router(api_router, prefix="/api")
 
 ---
 
-## 16. 有效性验证模块
+## 16. 协同验证模块
 
-### 16.1 提交有效性确认
+### 16.1 创建、切换或取消验证
 
-**接口说明**：确认信息是否仍然有效
+**接口说明**：提交 `confirmation` 或 `refutation`。首次提交创建记录；提交另一类型切换；再次提交同类型取消。作者不能验证自己的帖子。
 
 | 项目 | 说明 |
 |------|------|
 | 请求方法 | POST |
-| 请求路径 | /posts/{post_id}/validity |
+| 请求路径 | /api/v1/posts/{post_id}/validate |
 | 需要登录 | 是 |
 
 **路径参数**：
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| post_id | uuid | 信息ID |
+| post_id | integer | 帖子ID |
 
 **请求体**：
 
 ```json
 {
-  "status": "valid"
+  "validation_type": "confirmation",
+  "comment": "现场确认信息仍然有效"
 }
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| status | string | 是 | 确认状态：valid/expired/uncertain |
+| validation_type | string | 是 | 正式值仅 `confirmation` / `refutation` |
+| comment | string | 否 | 可选说明 |
 
 **成功响应**：
 
 ```json
 {
-  "code": 0,
-  "message": "success",
-  "data": {
-    "valid_count": 0,
-    "expired_count": 0,
-    "validity_status": "valid"
-  }
+  "post_id": 123,
+  "user_id": 7,
+  "action": "created",
+  "current_validation_type": "confirmation",
+  "confirmation_count": 4,
+  "refutation_count": 1
 }
 ```
 
 ---
 
-### 16.2 获取有效性统计
+`action` 取值为 `created`、`switched` 或 `removed`。旧值 `valid`、`invalid`、`uncertain` 及 `update`、`expiration_report`、`conflict_report` 均不再接受。
 
-**接口说明**：获取信息的有效性统计
+### 16.2 获取当前用户的帖子验证统计
+
+**接口说明**：登录用户获取两类验证计数和本人当前选择。该接口与单数写端点 `/validate` 共同组成现行验证契约。
 
 | 项目 | 说明 |
 |------|------|
 | 请求方法 | GET |
-| 请求路径 | /posts/{post_id}/validity |
-| 需要登录 | 否 |
+| 请求路径 | /api/v1/posts/{post_id}/validation-stats |
+| 需要登录 | 是 |
 
 **路径参数**：
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| post_id | uuid | 信息ID |
+| post_id | integer | 帖子ID |
 
 **成功响应**：
 
 ```json
 {
-  "code": 0,
-  "message": "success",
-  "data": {
-    "valid_count": 0,
-    "expired_count": 0,
-    "uncertain_count": 0,
-    "validity_status": "valid",
-    "records": [
-      {
-        "user_id": "uuid",
-        "nickname": "string",
-        "status": "valid",
-        "created_at": "datetime"
-      }
-    ]
-  }
+  "post_id": 123,
+  "confirmation_count": 4,
+  "refutation_count": 1,
+  "total_count": 5,
+  "validity_status": "valid",
+  "user_validation_type": "confirmation"
 }
 ```
+
+帖子详情响应仍通过 `governance` 字段提供公开聚合。历史复数 `/posts/{post_id}/validations` 和 `/validity` 路由不再提供。
 
 ---
 

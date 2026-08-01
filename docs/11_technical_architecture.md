@@ -1,6 +1,7 @@
 # 技术架构
 
 > 此刻校园 · Moment Campus  
+> 现行口径同步：2026-07-31
 > 版本：1.0  
 > 最后更新：2026-06-18
 
@@ -42,7 +43,7 @@
 | **FastAPI** | 0.100+ | 高性能异步框架（基于 Starlette），性能接近 Node.js；自动生成 OpenAPI 文档；原生支持 Pydantic 数据验证和类型提示 |
 | **SQLAlchemy** | 2.0+ | Python 最成熟的 ORM，支持异步（2.0+）；类型安全、灵活的查询构建器；支持复杂的表关系映射 |
 | **Pydantic** | 2.0+ | 基于类型提示的数据验证和序列化库；与 FastAPI 深度集成，自动验证请求参数和生成 JSON Schema |
-| **openGauss** | 7.0 | 华为开源关系型数据库，兼容 PostgreSQL 协议；支持 JSON、全文搜索、地理空间数据；使用 asyncpg 异步驱动 |
+| **openGauss** | 7.0.0-RC3 | 唯一数据库；使用 asyncpg 异步驱动，原生 DataVec 提供 `vector(512)`、HNSW 和距离运算 |
 | **JWT** | - | 无状态认证方案，适合前后端分离架构；Token 可自包含用户信息，减少数据库查询 |
 | **Alembic** | - | SQLAlchemy 官方迁移工具，自动生成迁移脚本；支持版本化管理数据库 Schema 变更 |
 
@@ -95,7 +96,7 @@ graph TD
 
     subgraph 外部服务["外部服务 (后续)"]
         OSS["对象存储<br/>阿里云 OSS"]
-        AI["AI 服务<br/>语义搜索"]
+        AI["AI 服务<br/>意图解析与 Embedding"]
         CDN["CDN<br/>静态资源加速"]
     end
 
@@ -119,7 +120,7 @@ graph TD
     Services2 --> Cache
 
     FS -.->|后续迁移| OSS
-    Services2 -.->|后续集成| AI
+    Services2 -->|已集成，可降级| AI
     UI -.->|静态资源| CDN
 ```
 
@@ -145,7 +146,7 @@ graph TD
 | **信息浏览** | 首页、信息流、地图、搜索、详情 | 信息查询、排序、分页、搜索 |
 | **内容创作** | 发布表单、图片上传 | 信息创建、图片处理、验证 |
 | **内容管理** | 我的发布、编辑/删除 | 信息更新、软删除 |
-| **社区互动** | 点赞、收藏、评论 | 互动逻辑、计数更新 |
+| **社区互动** | 点赞、评论 | 互动逻辑、计数更新 |
 | **社区治理** | 有效性确认、举报 | 验证统计、举报处理 |
 | **用户中心** | 个人中心、通知 | 用户信息管理、通知生成 |
 | **后台管理** | 管理后台页面 | 审核逻辑、权限控制 |
@@ -272,7 +273,7 @@ frontend/
     │   ├── useAuth.ts            # 认证相关
     │   ├── useInfos.ts           # 信息 CRUD
     │   ├── useComments.ts        # 评论
-    │   ├── useInteractions.ts    # 点赞/收藏
+    │   ├── useInteractions.ts    # 点赞
     │   ├── useNotifications.ts   # 通知
     │   ├── useMap.ts             # 地图
     │   ├── useSearch.ts          # 搜索
@@ -338,7 +339,6 @@ const routes = [
   { path: '/info/:id/edit',     element: <EditInfo /> },
   { path: '/profile',           element: <Profile /> },
   { path: '/profile/posts',     element: <MyPosts /> },
-  { path: '/profile/favorites', element: <MyFavorites /> },
   { path: '/notifications',     element: <Notifications /> },
 
   // 认证页面
@@ -416,118 +416,27 @@ const routes = [
 
 ## 4. 后端架构
 
-### 4.1 后端目录规划
+### 4.1 后端关键目录
 
 ```
 backend/
-├── main.py                       # 应用入口
 ├── requirements.txt              # Python 依赖
 ├── alembic.ini                   # Alembic 配置
-├── .env                          # 环境变量
-├── .env.development              # 开发环境变量
-├── .env.production               # 生产环境变量
-│
 ├── alembic/                      # 数据库迁移
-│   ├── env.py
-│   ├── script.py.mako
-│   └── versions/                 # 迁移脚本
-│       ├── 001_initial.py
-│       └── ...
-│
+│   └── versions/
 ├── app/
-│   ├── __init__.py
+│   ├── main.py                   # FastAPI 应用入口
 │   ├── config.py                 # 配置管理
 │   ├── database.py               # 数据库连接
 │   ├── dependencies.py           # 依赖注入
-│   │
-│   ├── models/                   # 数据模型（SQLAlchemy）
-│   │   ├── __init__.py
-│   │   ├── user.py               # 用户模型
-│   │   ├── info.py               # 信息模型
-│   │   ├── comment.py            # 评论模型
-│   │   ├── category.py           # 分类模型
-│   │   ├── location.py           # 地点模型
-│   │   ├── notification.py       # 通知模型
-│   │   ├── campus.py             # 校园模型
-│   │   ├── interaction.py        # 互动模型（点赞/收藏）
-│   │   ├── validity.py           # 有效性确认模型
-│   │   ├── report.py             # 举报模型
-│   │   └── upload.py             # 上传文件模型
-│   │
-│   ├── schemas/                  # 数据验证（Pydantic）
-│   │   ├── __init__.py
-│   │   ├── user.py
-│   │   ├── info.py
-│   │   ├── comment.py
-│   │   ├── category.py
-│   │   ├── location.py
-│   │   ├── notification.py
-│   │   ├── campus.py
-│   │   ├── interaction.py
-│   │   ├── validity.py
-│   │   ├── report.py
-│   │   ├── upload.py
-│   │   ├── auth.py               # 认证相关 Schema
-│   │   └── common.py             # 通用 Schema（分页等）
-│   │
-│   ├── api/                      # 路由层
-│   │   ├── __init__.py
-│   │   ├── router.py             # 路由汇总
-│   │   ├── auth.py               # 认证路由
-│   │   ├── users.py              # 用户路由
-│   │   ├── infos.py              # 信息路由
-│   │   ├── comments.py           # 评论路由
-│   │   ├── categories.py         # 分类路由
-│   │   ├── locations.py          # 地点路由
-│   │   ├── interactions.py       # 互动路由
-│   │   ├── notifications.py      # 通知路由
-│   │   ├── search.py             # 搜索路由
-│   │   ├── upload.py             # 上传路由
-│   │   ├── validity.py           # 有效性确认路由
-│   │   ├── reports.py            # 举报路由
-│   │   ├── campus.py             # 校园路由
-│   │   └── admin.py              # 管理路由
-│   │
-│   ├── services/                 # 服务层（业务逻辑）
-│   │   ├── __init__.py
-│   │   ├── auth_service.py
-│   │   ├── user_service.py
-│   │   ├── info_service.py
-│   │   ├── comment_service.py
-│   │   ├── category_service.py
-│   │   ├── location_service.py
-│   │   ├── interaction_service.py
-│   │   ├── notification_service.py
-│   │   ├── search_service.py
-│   │   ├── upload_service.py
-│   │   ├── validity_service.py
-│   │   ├── report_service.py
-│   │   ├── campus_service.py
-│   │   └── admin_service.py
-│   │
-│   ├── core/                     # 核心模块
-│   │   ├── __init__.py
-│   │   ├── security.py           # 安全工具（密码哈希、JWT）
-│   │   ├── exceptions.py         # 自定义异常
-│   │   ├── middleware.py         # 中间件
-│   │   └── permissions.py        # 权限控制
-│   │
-│   └── utils/                    # 工具模块
-│       ├── __init__.py
-│       ├── pagination.py         # 分页工具
-│       ├── file_handler.py       # 文件处理
-│       └── image_processor.py    # 图片处理
-│
-├── tests/                        # 测试目录
-│   ├── __init__.py
-│   ├── conftest.py               # 测试配置和 fixtures
-│   ├── test_auth.py
-│   ├── test_infos.py
-│   ├── test_comments.py
-│   └── ...
-│
-└── uploads/                      # 本地文件上传目录（开发环境）
-    └── images/
+│   ├── api/                      # 路由层，互动写端点位于 interactions.py
+│   ├── core/                     # 权限、租户、状态与验证契约
+│   ├── jobs/                     # 自动过期等独立任务逻辑
+│   ├── models/                   # SQLAlchemy 模型
+│   ├── schemas/                  # Pydantic Schema
+│   └── services/                 # AI 搜索、Embedding 等服务
+├── scripts/                      # worker、回填和运维脚本
+└── tests/                        # pytest 测试与独立测试库夹具
 ```
 
 ### 4.2 分层架构
@@ -644,9 +553,12 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
         "location": { "id": 10, "name": "三食堂二楼" },
         "summary": "味道不错，分量足，价格15元左右",
         "images": ["https://.../image1.jpg"],
-        "validity_status": "valid",
-        "validity_count": { "valid": 12, "expired": 1, "uncertain": 0 },
-        "stats": { "likes": 25, "comments": 8, "favorites": 5 },
+        "governance": {
+          "confirmation_count": 12,
+          "refutation_count": 1,
+          "validity_status": "valid"
+        },
+        "stats": { "likes": 25, "comments": 8 },
         "author": { "id": 1, "nickname": "小明", "avatar": "https://..." },
         "is_anonymous": false,
         "created_at": "2026-06-15T10:30:00Z",
@@ -676,7 +588,6 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 | `INFO_ALREADY_DELETED` | 409 | 信息已被删除 |
 | `COMMENT_TOO_LONG` | 400 | 评论超过长度限制 |
 | `DUPLICATE_LIKE` | 409 | 重复点赞 |
-| `DUPLICATE_FAVORITE` | 409 | 重复收藏 |
 | `DUPLICATE_REPORT` | 409 | 重复举报 |
 | `UPLOAD_FILE_TOO_LARGE` | 400 | 上传文件过大 |
 | `UPLOAD_INVALID_FORMAT` | 400 | 不支持的文件格式 |
@@ -852,8 +763,8 @@ DATABASE_URL: str = "postgresql+asyncpg://gaussdb:Gaussdb%40123@localhost:5432/m
 **注意事项：**
 
 - 密码中 `@` 需转义为 `%40`
-- 使用 `BigInteger().with_variant(Integer, "sqlite")` 兼容写法
-- 测试环境使用内存 SQLite 保持快速测试
+- 主键与外键类型按 openGauss 方言保持一致，不再保留 SQLite 运行分支
+- 测试只连接 `TEST_DATABASE_URL` 指向的独立 openGauss 测试库，并强制校验库名包含 `_test` 且不等于开发库地址
 
 ### 8.2 数据库迁移方案（Alembic）
 
@@ -938,7 +849,7 @@ POST /api/v1/auth/refresh
 | 角色 | 权限 |
 |------|------|
 | **游客** | 浏览公开信息、搜索、查看详情 |
-| **用户** | 游客权限 + 发布、编辑、删除自己的信息、点赞、收藏、评论、有效性确认、举报 |
+| **用户** | 游客权限 + 发布、编辑、删除自己的信息、点赞、评论、有效性确认、举报 |
 | **管理员** | 用户权限 + 审核内容、处理举报、管理分类和校园 |
 
 **实现方式：**
@@ -1154,9 +1065,18 @@ describe('InfoCard', () => {
 
 **测试策略：**
 
-- 使用独立的测试数据库（SQLite 内存数据库）
-- 每个测试用例独立的事务，测试后回滚
-- 使用 `conftest.py` 管理测试 fixtures
+- 使用独立 openGauss 测试库，只从 `TEST_DATABASE_URL` 读取连接串
+- 数据库名必须包含 `_test`，且不得与开发库连接相同；任一条件不满足时在清理数据前直接停止
+- 测试会话创建 ORM 表结构，用按外键逆序的 `DELETE` 清理数据并重置序列
+- 使用 `conftest.py` 管理测试 fixtures，Python 命令必须通过 `backend/.venv` 执行
+
+### 12.3 现行后台任务与混合检索
+
+- 自动过期由独立 `moment-expire-posts.timer` 在系统启动后 5 分钟首次触发 oneshot worker，此后每 30 分钟触发一次，避免 4 个 Uvicorn worker 重复调度
+- 任务使用数据库 advisory lock、60 分钟脏任务租约、运行记录和幂等通知；手动接口仅 `super_admin` 可调用
+- AI 搜索先限定当前租户、公开状态和有效期，再使用 DataVec 语义候选与结构化条件检索
+- 排序权重为语义 35%、新鲜度 25%、验证数 20%、关键词 20%；Embedding 或向量查询失败时回退关键词检索
+- 分类由当前学校 API 动态提供，前端通过 `category.code` 稳定计算视觉，不使用固定 ID/名称映射
 
 **示例：**
 
@@ -1189,14 +1109,14 @@ async def test_create_info_unauthorized(client: AsyncClient):
     assert response.status_code == 401
 ```
 
-### 12.3 E2E 测试（Playwright）
+### 12.4 E2E 测试（Playwright）
 
 | 测试场景 | 说明 |
 |----------|------|
 | **用户注册登录** | 注册 → 登录 → 选择校园 → 进入首页 |
 | **发布信息** | 选择分类 → 选择地点 → 填写内容 → 上传图片 → 发布 |
 | **浏览搜索** | 首页浏览 → 分类筛选 → 搜索 → 查看详情 |
-| **互动操作** | 点赞 → 收藏 → 评论 → 有效性确认 |
+| **互动操作** | 点赞 → 评论 → 有效性确认 |
 | **管理审核** | 登录管理员 → 查看待审核 → 通过/拒绝 |
 
 **示例：**

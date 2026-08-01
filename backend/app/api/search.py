@@ -22,6 +22,24 @@ from app.services.ai_search import execute_ai_search
 
 router = APIRouter(tags=["搜索"])
 
+HOT_TAGS = [
+    "新生入学", "宿舍用品", "期末复习", "考研",
+    "实习", "兼职", "社团招新", "运动会",
+    "奖学金", "助学贷款", "食堂推荐", "校园地图",
+    "图书馆", "自习室", "实验室", "选课",
+    "交换生", "留学申请", "就业招聘", "创业",
+    "校园交友", "二手交易", "失物招领", "组队",
+]
+
+
+@router.get("/search/hot-tags", response_model=dict, summary="获取热门搜索标签")
+async def get_hot_tags(
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """获取热门搜索标签列表"""
+    return {"tags": HOT_TAGS}
+
 
 @router.get("/search", response_model=PaginatedResponse[PostListResponse])
 async def search_posts(

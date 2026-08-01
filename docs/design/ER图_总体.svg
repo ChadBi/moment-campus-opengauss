@@ -1,43 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="670" viewBox="0 0 1280 670">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="570" viewBox="0 0 1280 570">
 <style>text{font-family:"微软雅黑";}</style>
-<rect width="1280" height="670" fill="#FAFAFA"/>
+<rect width="1280" height="570" fill="#FAFAFA"/>
   <text x="640" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#2F5496">此刻校园 - 总体 E-R 图（21 实体 + 35 联系）</text>
   <text x="640" y="50" text-anchor="middle" font-size="12" fill="#595959">数据库：openGauss 7.0.0-RC3 | 模拟核心：江南大学蠡湖校区</text>
   <line x1="130" y1="78" x2="370" y2="78" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="130" y1="78" x2="370" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="130" y1="78" x2="130" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="130" y1="78" x2="130" y2="378" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="130" y1="78" x2="1090" y2="78" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="130" y1="78" x2="850" y2="78" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="130" y1="78" x2="370" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="370" y1="78" x2="1090" y2="78" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="610" y1="78" x2="1090" y2="78" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="850" y1="78" x2="1090" y2="78" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="1090" y1="78" x2="130" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="1090" y1="78" x2="370" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="1090" y1="78" x2="610" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="1090" y1="78" x2="850" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="1090" y1="78" x2="1090" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="1090" y1="78" x2="1090" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="1090" y1="78" x2="370" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
   <line x1="370" y1="78" x2="370" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="610" y1="78" x2="370" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="850" y1="78" x2="370" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="130" y1="178" x2="370" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="178" x2="850" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="178" x2="1090" y2="78" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="178" x2="1090" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="178" x2="130" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="178" x2="370" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="178" x2="610" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="178" x2="850" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="178" x2="850" y2="378" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="178" x2="130" y2="378" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="370" y1="78" x2="610" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="370" y1="78" x2="850" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="370" y1="78" x2="1090" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
   <line x1="370" y1="78" x2="1090" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
   <line x1="370" y1="78" x2="130" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="78" x2="370" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="78" x2="610" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="78" x2="850" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="370" y1="78" x2="130" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
   <line x1="370" y1="78" x2="850" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
   <line x1="370" y1="78" x2="1090" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="78" x2="1090" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="78" x2="610" y2="378" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="78" x2="850" y2="378" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="78" x2="1090" y2="378" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="370" y1="78" x2="130" y2="478" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
   <line x1="370" y1="78" x2="130" y2="378" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="1090" y1="178" x2="1090" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="1090" y1="178" x2="850" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="610" y1="78" x2="610" y2="378" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="850" y1="78" x2="610" y2="378" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
-  <line x1="130" y1="178" x2="610" y2="378" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="370" y1="78" x2="370" y2="378" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="370" y1="78" x2="370" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="370" y1="178" x2="370" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="370" y1="178" x2="1090" y2="178" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="610" y1="78" x2="850" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
+  <line x1="850" y1="78" x2="850" y2="278" stroke="#BFBFBF" stroke-width="1" opacity="0.6"/>
   <rect x="40" y="60" width="180" height="36" rx="6" ry="6" fill="#E2EFDA" stroke="#70AD47" stroke-width="2"/>
   <text x="130" y="77" text-anchor="middle" font-size="13" font-weight="bold" fill="#70AD47">schools</text>
   <text x="130" y="90" text-anchor="middle" font-size="10" fill="#595959">学校表</text>
@@ -48,69 +43,57 @@
   <text x="610" y="77" text-anchor="middle" font-size="13" font-weight="bold" fill="#70AD47">categories</text>
   <text x="610" y="90" text-anchor="middle" font-size="10" fill="#595959">分类表</text>
   <rect x="760" y="60" width="180" height="36" rx="6" ry="6" fill="#E2EFDA" stroke="#70AD47" stroke-width="2"/>
-  <text x="850" y="77" text-anchor="middle" font-size="13" font-weight="bold" fill="#70AD47">post_types</text>
-  <text x="850" y="90" text-anchor="middle" font-size="10" fill="#595959">信息类型表</text>
-  <rect x="1000" y="60" width="180" height="36" rx="6" ry="6" fill="#E2EFDA" stroke="#70AD47" stroke-width="2"/>
-  <text x="1090" y="77" text-anchor="middle" font-size="13" font-weight="bold" fill="#70AD47">tags</text>
-  <text x="1090" y="90" text-anchor="middle" font-size="10" fill="#595959">标签表</text>
-  <rect x="40" y="160" width="180" height="36" rx="6" ry="6" fill="#E2EFDA" stroke="#70AD47" stroke-width="2"/>
-  <text x="130" y="177" text-anchor="middle" font-size="13" font-weight="bold" fill="#70AD47">locations</text>
-  <text x="130" y="190" text-anchor="middle" font-size="10" fill="#595959">地点表</text>
-  <rect x="280" y="160" width="180" height="36" rx="6" ry="6" fill="#DEEBF7" stroke="#4472C4" stroke-width="2"/>
-  <text x="370" y="177" text-anchor="middle" font-size="13" font-weight="bold" fill="#4472C4">posts</text>
-  <text x="370" y="190" text-anchor="middle" font-size="10" fill="#595959">信息表</text>
-  <rect x="520" y="160" width="180" height="36" rx="6" ry="6" fill="#FCE4D6" stroke="#ED7D31" stroke-width="2"/>
-  <text x="610" y="177" text-anchor="middle" font-size="13" font-weight="bold" fill="#ED7D31">post_tags</text>
-  <text x="610" y="190" text-anchor="middle" font-size="10" fill="#595959">信息标签关联表</text>
-  <rect x="760" y="160" width="180" height="36" rx="6" ry="6" fill="#FCE4D6" stroke="#ED7D31" stroke-width="2"/>
-  <text x="850" y="177" text-anchor="middle" font-size="13" font-weight="bold" fill="#ED7D31">post_images</text>
-  <text x="850" y="190" text-anchor="middle" font-size="10" fill="#595959">信息图片表</text>
-  <rect x="1000" y="160" width="180" height="36" rx="6" ry="6" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
-  <text x="1090" y="177" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFC000">comments</text>
-  <text x="1090" y="190" text-anchor="middle" font-size="10" fill="#595959">评论表</text>
-  <rect x="40" y="260" width="180" height="36" rx="6" ry="6" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
-  <text x="130" y="277" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFC000">likes</text>
-  <text x="130" y="290" text-anchor="middle" font-size="10" fill="#595959">点赞表</text>
-  <rect x="280" y="260" width="180" height="36" rx="6" ry="6" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
-  <text x="370" y="277" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFC000">favorites</text>
-  <text x="370" y="290" text-anchor="middle" font-size="10" fill="#595959">收藏表</text>
-  <rect x="520" y="260" width="180" height="36" rx="6" ry="6" fill="#FBE4E4" stroke="#C00000" stroke-width="2"/>
-  <text x="610" y="277" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">validation_records</text>
-  <text x="610" y="290" text-anchor="middle" font-size="10" fill="#595959">协同验证记录表</text>
-  <rect x="760" y="260" width="180" height="36" rx="6" ry="6" fill="#FBE4E4" stroke="#C00000" stroke-width="2"/>
-  <text x="850" y="277" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">reports</text>
-  <text x="850" y="290" text-anchor="middle" font-size="10" fill="#595959">举报表</text>
-  <rect x="1000" y="260" width="180" height="36" rx="6" ry="6" fill="#FBE4E4" stroke="#C00000" stroke-width="2"/>
-  <text x="1090" y="277" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">notifications</text>
-  <text x="1090" y="290" text-anchor="middle" font-size="10" fill="#595959">通知表</text>
-  <rect x="40" y="360" width="180" height="36" rx="6" ry="6" fill="#DEEBF7" stroke="#4472C4" stroke-width="2"/>
-  <text x="130" y="377" text-anchor="middle" font-size="13" font-weight="bold" fill="#4472C4">topic_collections</text>
-  <text x="130" y="390" text-anchor="middle" font-size="10" fill="#595959">专题合集表</text>
-  <rect x="280" y="360" width="180" height="36" rx="6" ry="6" fill="#FCE4D6" stroke="#ED7D31" stroke-width="2"/>
-  <text x="370" y="377" text-anchor="middle" font-size="13" font-weight="bold" fill="#ED7D31">topic_collection_posts</text>
-  <text x="370" y="390" text-anchor="middle" font-size="10" fill="#595959">专题信息关联表</text>
-  <rect x="520" y="360" width="180" height="36" rx="6" ry="6" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
-  <text x="610" y="377" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFC000">drafts</text>
-  <text x="610" y="390" text-anchor="middle" font-size="10" fill="#595959">草稿表</text>
-  <rect x="760" y="360" width="180" height="36" rx="6" ry="6" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
-  <text x="850" y="377" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFC000">browse_histories</text>
-  <text x="850" y="390" text-anchor="middle" font-size="10" fill="#595959">浏览历史表</text>
-  <rect x="1000" y="360" width="180" height="36" rx="6" ry="6" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
-  <text x="1090" y="377" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFC000">search_histories</text>
-  <text x="1090" y="390" text-anchor="middle" font-size="10" fill="#595959">搜索历史表</text>
-  <rect x="40" y="460" width="180" height="36" rx="6" ry="6" fill="#E4DFF0" stroke="#7030A0" stroke-width="2"/>
-  <text x="130" y="477" text-anchor="middle" font-size="13" font-weight="bold" fill="#7030A0">admin_operation_logs</text>
-  <text x="130" y="490" text-anchor="middle" font-size="10" fill="#595959">管理员操作日志表</text>
-  <rect x="40" y="635" width="14" height="14" rx="2" ry="2" fill="#DEEBF7" stroke="#4472C4" stroke-width="1.5"/>
-  <text x="60" y="647" font-size="11" fill="#333333">核心实体</text>
-  <rect x="150" y="635" width="14" height="14" rx="2" ry="2" fill="#E2EFDA" stroke="#70AD47" stroke-width="1.5"/>
-  <text x="170" y="647" font-size="11" fill="#333333">配置实体</text>
-  <rect x="260" y="635" width="14" height="14" rx="2" ry="2" fill="#FCE4D6" stroke="#ED7D31" stroke-width="1.5"/>
-  <text x="280" y="647" font-size="11" fill="#333333">关联实体</text>
-  <rect x="370" y="635" width="14" height="14" rx="2" ry="2" fill="#FFF2CC" stroke="#FFC000" stroke-width="1.5"/>
-  <text x="390" y="647" font-size="11" fill="#333333">互动实体</text>
-  <rect x="480" y="635" width="14" height="14" rx="2" ry="2" fill="#FBE4E4" stroke="#C00000" stroke-width="1.5"/>
-  <text x="500" y="647" font-size="11" fill="#333333">治理实体</text>
-  <rect x="590" y="635" width="14" height="14" rx="2" ry="2" fill="#E4DFF0" stroke="#7030A0" stroke-width="1.5"/>
-  <text x="610" y="647" font-size="11" fill="#333333">系统实体</text>
+  <text x="850" y="77" text-anchor="middle" font-size="13" font-weight="bold" fill="#70AD47">locations</text>
+  <text x="850" y="90" text-anchor="middle" font-size="10" fill="#595959">地点表</text>
+  <rect x="1000" y="60" width="180" height="36" rx="6" ry="6" fill="#DEEBF7" stroke="#4472C4" stroke-width="2"/>
+  <text x="1090" y="77" text-anchor="middle" font-size="13" font-weight="bold" fill="#4472C4">posts</text>
+  <text x="1090" y="90" text-anchor="middle" font-size="10" fill="#595959">信息表</text>
+  <rect x="40" y="160" width="180" height="36" rx="6" ry="6" fill="#FCE4D6" stroke="#ED7D31" stroke-width="2"/>
+  <text x="130" y="177" text-anchor="middle" font-size="13" font-weight="bold" fill="#ED7D31">post_images</text>
+  <text x="130" y="190" text-anchor="middle" font-size="10" fill="#595959">信息图片表</text>
+  <rect x="280" y="160" width="180" height="36" rx="6" ry="6" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
+  <text x="370" y="177" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFC000">comments</text>
+  <text x="370" y="190" text-anchor="middle" font-size="10" fill="#595959">评论表</text>
+  <rect x="520" y="160" width="180" height="36" rx="6" ry="6" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
+  <text x="610" y="177" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFC000">likes</text>
+  <text x="610" y="190" text-anchor="middle" font-size="10" fill="#595959">点赞表</text>
+  <rect x="760" y="160" width="180" height="36" rx="6" ry="6" fill="#FBE4E4" stroke="#C00000" stroke-width="2"/>
+  <text x="850" y="177" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">validation_records</text>
+  <text x="850" y="190" text-anchor="middle" font-size="10" fill="#595959">协同验证记录表</text>
+  <rect x="1000" y="160" width="180" height="36" rx="6" ry="6" fill="#FBE4E4" stroke="#C00000" stroke-width="2"/>
+  <text x="1090" y="177" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">reports</text>
+  <text x="1090" y="190" text-anchor="middle" font-size="10" fill="#595959">举报表</text>
+  <rect x="40" y="260" width="180" height="36" rx="6" ry="6" fill="#FBE4E4" stroke="#C00000" stroke-width="2"/>
+  <text x="130" y="277" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">notifications</text>
+  <text x="130" y="290" text-anchor="middle" font-size="10" fill="#595959">通知表</text>
+  <rect x="280" y="260" width="180" height="36" rx="6" ry="6" fill="#DEEBF7" stroke="#4472C4" stroke-width="2"/>
+  <text x="370" y="277" text-anchor="middle" font-size="13" font-weight="bold" fill="#4472C4">topic_collections</text>
+  <text x="370" y="290" text-anchor="middle" font-size="10" fill="#595959">专题合集表</text>
+  <rect x="520" y="260" width="180" height="36" rx="6" ry="6" fill="#FCE4D6" stroke="#ED7D31" stroke-width="2"/>
+  <text x="610" y="277" text-anchor="middle" font-size="13" font-weight="bold" fill="#ED7D31">topic_collection_posts</text>
+  <text x="610" y="290" text-anchor="middle" font-size="10" fill="#595959">专题信息关联表</text>
+  <rect x="760" y="260" width="180" height="36" rx="6" ry="6" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
+  <text x="850" y="277" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFC000">drafts</text>
+  <text x="850" y="290" text-anchor="middle" font-size="10" fill="#595959">草稿表</text>
+  <rect x="1000" y="260" width="180" height="36" rx="6" ry="6" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
+  <text x="1090" y="277" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFC000">browse_histories</text>
+  <text x="1090" y="290" text-anchor="middle" font-size="10" fill="#595959">浏览历史表</text>
+  <rect x="40" y="360" width="180" height="36" rx="6" ry="6" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
+  <text x="130" y="377" text-anchor="middle" font-size="13" font-weight="bold" fill="#FFC000">search_histories</text>
+  <text x="130" y="390" text-anchor="middle" font-size="10" fill="#595959">搜索历史表</text>
+  <rect x="280" y="360" width="180" height="36" rx="6" ry="6" fill="#E4DFF0" stroke="#7030A0" stroke-width="2"/>
+  <text x="370" y="377" text-anchor="middle" font-size="13" font-weight="bold" fill="#7030A0">admin_operation_logs</text>
+  <text x="370" y="390" text-anchor="middle" font-size="10" fill="#595959">管理员操作日志表</text>
+  <rect x="40" y="535" width="14" height="14" rx="2" ry="2" fill="#DEEBF7" stroke="#4472C4" stroke-width="1.5"/>
+  <text x="60" y="547" font-size="11" fill="#333333">核心实体</text>
+  <rect x="150" y="535" width="14" height="14" rx="2" ry="2" fill="#E2EFDA" stroke="#70AD47" stroke-width="1.5"/>
+  <text x="170" y="547" font-size="11" fill="#333333">配置实体</text>
+  <rect x="260" y="535" width="14" height="14" rx="2" ry="2" fill="#FCE4D6" stroke="#ED7D31" stroke-width="1.5"/>
+  <text x="280" y="547" font-size="11" fill="#333333">关联实体</text>
+  <rect x="370" y="535" width="14" height="14" rx="2" ry="2" fill="#FFF2CC" stroke="#FFC000" stroke-width="1.5"/>
+  <text x="390" y="547" font-size="11" fill="#333333">互动实体</text>
+  <rect x="480" y="535" width="14" height="14" rx="2" ry="2" fill="#FBE4E4" stroke="#C00000" stroke-width="1.5"/>
+  <text x="500" y="547" font-size="11" fill="#333333">治理实体</text>
+  <rect x="590" y="535" width="14" height="14" rx="2" ry="2" fill="#E4DFF0" stroke="#7030A0" stroke-width="1.5"/>
+  <text x="610" y="547" font-size="11" fill="#333333">系统实体</text>
 </svg>

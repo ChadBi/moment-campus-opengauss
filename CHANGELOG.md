@@ -7,6 +7,17 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.1.0] - 2026-08-01
+
+### 最终归档（v2.1.0）
+
+- 遗留后端配套补齐：`GET /api/v1/search/hot-tags` 热门标签接口、`permissions.py` 协同验证端点注释对齐、`interaction.py` ValidationCreate/ValidationResponse 收敛为 2 类枚举（含 action/counts 字段）
+- 新增微信身份体系迁移 `0898a6eeb570`：`user_auth_identities` / `auth_sessions` / `binding_tickets` 三表，支持小程序登录与邮箱密码多身份绑定
+- `README.md`、`Demo 作品帖`、`AGENTS.md` 全量校对：协同验证收敛 2 类、自动过期定时器、DataVec 512 维混合检索、测试覆盖 987 后端 / 38 前端 E2E
+- `docs/` 与 `docs/design/` 系统校对：34 份文档 + 7 份 ER 图 + 数据库表结构 xlsx 与现行契约对齐（6 态状态机、2 类验证、openGauss 7.0、三校多租户）
+- `AIwork/` 归档 20+ 份任务报告与校验脚本（复赛冲刺 Web 完善、T7 向量检索、自动过期、Analytics 清理、pytest 治理、小程序 AI-Skills 等）
+- 至此完成 v2.0.1 → v2.1.0 共 9 批次归档提交
+
 ## [2.0.8] - 2026-08-01
 
 ### 运维 SQL 与部署脚本收敛

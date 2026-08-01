@@ -32,7 +32,7 @@
     - PUT  /posts/{id}                     修改自己的信息
     - DELETE /posts/{id}                   删除自己的信息
     - POST /posts/{id}/transition          仅 draft→pending / draft→archived
-    - POST /posts/{id}/validations         提交协同验证
+    - POST /posts/{id}/validate            提交、切换或取消协同验证
     - POST /posts/{id}/likes               点赞 / 收藏 / 评论等互动
 
 公开接口（无需认证）：

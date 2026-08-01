@@ -355,6 +355,8 @@ describe('ResponsiveLayout', () => {
 
 ## 3. 后端测试
 
+后端测试只允许使用 `TEST_DATABASE_URL` 指向的独立 openGauss 测试库。未设置该变量、数据库名不含 `_test`，或测试地址与开发库相同时，测试必须在任何 schema 重建或数据清理前停止。项目不再提供 SQLite 测试模式。
+
 ### 3.1 API接口测试
 
 **测试范围：**
@@ -368,108 +370,11 @@ describe('ResponsiveLayout', () => {
 
 **测试要点：**
 
-```python
-# 示例：信息列表API测试
-import pytest
-from httpx import AsyncClient
-from app.main import app
-
-@pytest.mark.asyncio
-async def test_get_posts_success():
-    """测试获取信息列表成功"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.get("/api/posts?page=1&size=20")
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert "items" in data
-        assert "total" in data
-        assert len(data["items"]) <= 20
-
-@pytest.mark.asyncio
-async def test_get_posts_with_filters():
-    """测试带筛选条件的信息列表"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.get(
-            "/api/posts?category_id=1&validity_status=valid&page=1"
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        # 验证返回的数据符合筛选条件
-        for item in data["items"]:
-            assert item["category_id"] == 1
-            assert item["validity_status"] == "valid"
-
-@pytest.mark.asyncio
-async def test_get_posts_invalid_page():
-    """测试无效页码参数"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.get("/api/posts?page=0")
-        
-        assert response.status_code == 422
-        data = response.json()
-        assert "detail" in data
-
-# 示例：创建信息API测试
-@pytest.mark.asyncio
-async def test_create_post_authenticated():
-    """测试认证用户创建信息"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        # 登录获取token
-        login_response = await client.post(
-            "/api/auth/login",
-            json={"username": "testuser", "password": "Test1234"}
-        )
-        token = login_response.json()["access_token"]
-        
-        # 创建信息
-        post_data = {
-            "title": "测试标题",
-            "description": "测试描述内容超过十个字符",
-            "category_id": 1,
-            "location_id": 1
-        }
-        response = await client.post(
-            "/api/posts",
-            json=post_data,
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        
-        assert response.status_code == 201
-        data = response.json()
-        assert data["title"] == post_data["title"]
-        assert data["author_id"] is not None
-
-@pytest.mark.asyncio
-async def test_create_post_unauthenticated():
-    """测试未认证用户创建信息"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        post_data = {
-            "title": "测试标题",
-            "description": "测试描述内容超过十个字符",
-            "category_id": 1,
-            "location_id": 1
-        }
-        response = await client.post("/api/posts", json=post_data)
-        
-        assert response.status_code == 401
-
-@pytest.mark.asyncio
-async def test_create_post_invalid_data():
-    """测试创建信息时数据验证"""
-    async with AsyncClient(app=app, base_url="http://test") as client:
-        # 标题过短
-        post_data = {
-            "title": "测试",  # 少于5个字符
-            "description": "测试描述",
-            "category_id": 1,
-            "location_id": 1
-        }
-        response = await client.post("/api/posts", json=post_data)
-        
-        assert response.status_code == 422
-```
+- 通过 `/api/v1` 路由验证帖子列表、详情、创建、更新和状态流转
+- 分类参数使用当前学校分类 API 返回的真实 ID，不在测试中假设固定分类编号
+- 两类验证写操作仅调用 `POST /api/v1/posts/{post_id}/validate`，覆盖 created、switched、removed
+- 登录态验证统计调用 `GET /api/v1/posts/{post_id}/validation-stats`
+- 所有数据库用例通过项目 fixture 运行，禁止自行创建绕过 `TEST_DATABASE_URL` 门禁的引擎
 
 **API测试检查项：**
 
@@ -487,73 +392,20 @@ async def test_create_post_invalid_data():
 
 - 用户注册和登录逻辑
 - 信息发布和编辑逻辑
-- 有效性确认逻辑
+- 两类协同验证创建、切换、取消与统计逻辑
 - 权限控制逻辑
 - 排序算法
 - 通知生成逻辑
 
 **测试要点：**
 
+- `ValidationType` 和 Schema 只接受 `confirmation/refutation`
+- 同一用户每帖最多一条记录，重复同类取消、提交异类原地切换
+- 作者自验、跨校验证和废弃类型必须被拒绝
+- 自动过期任务仅处理到期的 `published` 帖子，重复执行保持幂等
+- DataVec 混合排序核对语义 35%、新鲜度 25%、验证数 20%、关键词 20%，并覆盖关键词降级
+
 ```python
-# 示例：有效性确认逻辑测试
-import pytest
-from app.services.validity_service import ValidityService
-from app.models import Post, ValidityConfirmation
-
-@pytest.mark.asyncio
-async def test_update_validity_status():
-    """测试更新信息有效性状态"""
-    # 准备测试数据
-    post = Post(id=1, validity_status="uncertain")
-    
-    # 模拟确认数据
-    confirmations = [
-        ValidityConfirmation(post_id=1, status="valid"),
-        ValidityConfirmation(post_id=1, status="valid"),
-        ValidityConfirmation(post_id=1, status="expired"),
-    ]
-    
-    # 调用服务
-    new_status = ValidityService.calculate_status(confirmations)
-    
-    # 验证结果（2个有效，1个过期，应为有效）
-    assert new_status == "valid"
-
-@pytest.mark.asyncio
-async def test_validity_status_possibly_expired():
-    """测试信息可能过期状态"""
-    confirmations = [
-        ValidityConfirmation(post_id=1, status="valid"),
-        ValidityConfirmation(post_id=1, status="uncertain"),
-        ValidityConfirmation(post_id=1, status="uncertain"),
-    ]
-    
-    new_status = ValidityService.calculate_status(confirmations)
-    assert new_status == "possibly_expired"
-
-# 示例：排序算法测试
-def test_recommendation_scoring():
-    """测试推荐排序算法"""
-    from app.services.ranking_service import calculate_score
-    
-    post = Post(
-        validity_status="valid",
-        created_at=datetime.now() - timedelta(hours=2),
-        like_count=10,
-        comment_count=5,
-        view_count=100
-    )
-    
-    score = calculate_score(post)
-    
-    # 验证分数计算正确
-    assert score > 0
-    # 有效性得分权重0.3
-    # 时间得分权重0.25
-    # 互动得分权重0.15
-    # 等等...
-
-# 示例：权限控制测试
 @pytest.mark.asyncio
 async def test_user_can_only_edit_own_post():
     """测试用户只能编辑自己的信息"""
@@ -917,7 +769,7 @@ async def test_password_strength_validation():
 | TC005 | 校园选择 | 1. 首次登录后<br>2. 从列表选择校园<br>3. 确认选择 | 保存校园选择，跳转到首页 | P0 |
 | TC006 | 浏览推荐信息流 | 1. 进入首页<br>2. 查看推荐信息 | 显示按综合排序的信息列表 | P0 |
 | TC007 | 浏览最新信息流 | 1. 切换到"最新"标签<br>2. 查看信息列表 | 显示按时间倒序的信息列表 | P0 |
-| TC008 | 分类筛选 | 1. 点击分类入口<br>2. 选择"校园美食"<br>3. 查看信息列表 | 只显示美食分类的信息 | P0 |
+| TC008 | 动态分类筛选 | 1. 进入当前学校<br>2. 从 API 返回的分类中选择一项<br>3. 查看信息列表<br>4. 切换学校 | 只显示所选分类的信息；切校后分类、筛选值和地图标记同步刷新 | P0 |
 | TC009 | 关键词搜索 | 1. 点击搜索框<br>2. 输入"食堂"<br>3. 提交搜索 | 显示包含"食堂"的信息列表 | P0 |
 | TC010 | 查看信息详情 | 1. 在列表中点击一条信息<br>2. 进入详情页 | 显示完整信息内容、图片、位置、有效性状态 | P0 |
 | TC011 | 地图浏览 | 1. 进入地图页<br>2. 查看地图标记 | 显示信息标记，可缩放和拖动地图 | P0 |
@@ -932,8 +784,8 @@ async def test_password_strength_validation():
 | TC020 | 发表评论 | 1. 在信息详情页<br>2. 输入评论内容<br>3. 提交评论 | 评论显示在评论区，评论数+1 | P0 |
 | TC021 | 回复评论 | 1. 点击评论的回复按钮<br>2. 输入回复内容<br>3. 提交回复 | 回复显示在原评论下方 | P0 |
 | TC022 | 删除自己的评论 | 1. 找到自己的评论<br>2. 点击删除<br>3. 确认删除 | 评论被删除，评论数-1 | P0 |
-| TC023 | 确认信息有效性 | 1. 在信息详情页<br>2. 点击"仍然有效"<br>3. 确认 | 有效性统计更新，确认数+1 | P0 |
-| TC024 | 标记信息失效 | 1. 在信息详情页<br>2. 点击"已经失效"<br>3. 确认 | 有效性统计更新，失效数+1 | P0 |
+| TC023 | 两类协同验证 | 1. 非作者在详情页点击“证实”<br>2. 切换为“证伪”<br>3. 再次点击“证伪” | 单数 `/validate` 端点依次返回 created、switched、removed，且两类计数正确 | P0 |
+| TC024 | 自动过期任务 | 1. 准备已到期 published 帖子<br>2. 触发独立 oneshot worker<br>3. 重复执行 | 状态转为 expired，重复执行不重复通知；Web worker 不启动调度器 | P0 |
 | TC025 | 查看个人中心 | 1. 进入个人中心页 | 显示用户信息、统计数据、快捷入口 | P0 |
 | TC026 | 编辑个人资料 | 1. 进入个人中心<br>2. 点击编辑资料<br>3. 修改昵称<br>4. 保存 | 资料更新成功 | P0 |
 | TC027 | 查看我的发布 | 1. 进入个人中心<br>2. 点击"我的发布" | 显示用户发布的所有信息列表 | P0 |
@@ -947,6 +799,8 @@ async def test_password_strength_validation():
 | TC035 | 越权访问防护 | 1. 用户A登录<br>2. 尝试编辑用户B的信息 | 返回403错误，提示无权限 | P0 |
 | TC036 | 图片上传 | 1. 在发布页<br>2. 选择图片文件<br>3. 等待上传完成 | 图片显示预览，上传成功 | P0 |
 | TC037 | 图片上传限制 | 1. 上传超过5MB的图片<br>2. 上传非图片格式文件 | 提示文件大小或格式错误 | P0 |
+| TC038 | DataVec 混合检索 | 1. 提交自然语言查询<br>2. 检查语义候选与结构化过滤<br>3. 核对排序 | 仅返回当前租户公开有效帖子，按语义35%/新鲜度25%/验证20%/关键词20%排序 | P0 |
+| TC039 | AI 搜索降级 | 1. 模拟 Embedding 或向量查询失败<br>2. 重复相同搜索 | 自动返回关键词检索结果并标识降级，核心搜索不阻断 | P0 |
 
 ### 4.2 测试场景优先级说明
 
@@ -979,15 +833,15 @@ async def test_password_strength_validation():
 | 信息浏览 | 游客和登录用户可浏览公开信息 | 手动测试 |
 | 信息流 | 首页显示推荐和最新信息，分页正常 | 手动测试+自动化测试 |
 | 地图功能 | 地图正确显示标记，可缩放拖动 | 手动测试 |
-| 分类筛选 | 12个分类筛选功能正常 | 手动测试 |
-| 搜索功能 | 关键词搜索返回正确结果 | 手动测试+自动化测试 |
+| 分类筛选 | 分类由当前学校 API 动态加载，切校后无旧校分类或固定 ID 残留 | 手动测试+E2E |
+| 搜索功能 | DataVec 混合检索返回正确结果，Embedding 或向量查询失败时自动降级关键词检索 | 手动测试+自动化测试 |
 | 信息详情 | 显示完整信息内容和元数据 | 手动测试 |
 | 信息发布 | 用户可成功发布信息，表单验证正确 | 手动测试+自动化测试 |
 | 信息编辑 | 用户可编辑自己的信息 | 手动测试 |
 | 信息删除 | 用户可删除自己的信息，软删除正确 | 手动测试 |
 | 点赞功能 | 点赞和取消点赞功能正常 | 手动测试+自动化测试 |
 | 评论功能 | 发表、回复、删除评论功能正常 | 手动测试+自动化测试 |
-| 有效性确认 | 用户可确认信息有效性，统计正确 | 手动测试 |
+| 协同验证 | 仅接受 confirmation/refutation，支持创建、切换、取消且统计正确 | 手动测试+自动化测试 |
 | 个人中心 | 显示用户信息和统计数据 | 手动测试 |
 | 我的发布 | 显示用户发布的信息列表 | 手动测试 |
 | 消息通知 | 显示通知列表，标记已读正常 | 手动测试 |

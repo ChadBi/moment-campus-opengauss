@@ -1,59 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="802" viewBox="0 0 1024 802">
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="556" viewBox="0 0 1000 556">
 <style>text{font-family:"微软雅黑";}</style>
-<rect width="1024" height="802" fill="#FAFAFA"/>
-  <text x="512" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#2F5496">此刻校园 - 互动子系统 E-R 图</text>
-  <text x="512" y="48" text-anchor="middle" font-size="11" fill="#595959">评论、点赞、收藏、浏览、搜索（7 实体）</text>
-  <line x1="170" y1="123" x2="482" y2="147" stroke="#999999" stroke-width="1.5"/>
-  <text x="194.92636213753954" y="128.91741247211843" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
-  <text x="457.0736378624605" y="149.08258752788157" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
-  <rect x="310" y="126" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
-  <text x="326" y="138" text-anchor="middle" font-size="10" fill="#333333">发布</text>
-  <line x1="482" y1="147" x2="774" y2="139" stroke="#999999" stroke-width="1.5"/>
-  <text x="506.990622655334" y="150.31532540670318" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
-  <text x="749.009377344666" y="143.68467459329682" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
-  <rect x="612" y="134" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
-  <text x="628" y="146" text-anchor="middle" font-size="10" fill="#333333">评论</text>
-  <line x1="482" y1="147" x2="146" y2="337" stroke="#999999" stroke-width="1.5"/>
-  <text x="460.2383419689119" y="163.30569948186528" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
-  <text x="167.76165803108807" y="328.6943005181347" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
-  <rect x="298" y="233" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
-  <text x="314" y="245" text-anchor="middle" font-size="10" fill="#333333">点赞</text>
-  <line x1="482" y1="147" x2="454" y2="337" stroke="#999999" stroke-width="1.5"/>
-  <text x="478.35515526001257" y="175.73287502134326" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
-  <text x="457.64484473998743" y="316.26712497865674" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
-  <rect x="452" y="233" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
-  <text x="468" y="245" text-anchor="middle" font-size="10" fill="#333333">收藏</text>
-  <line x1="482" y1="147" x2="762" y2="337" stroke="#999999" stroke-width="1.5"/>
-  <text x="502.68689435979394" y="165.03753545843162" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
-  <text x="741.313105640206" y="326.9624645415684" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
-  <rect x="600" y="233" width="44" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
-  <text x="622" y="245" text-anchor="middle" font-size="10" fill="#333333">被浏览</text>
-  <line x1="170" y1="123" x2="774" y2="139" stroke="#999999" stroke-width="1.5"/>
-  <text x="194.99123306859468" y="127.66201941903562" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
-  <text x="749.0087669314054" y="142.33798058096437" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
-  <rect x="456" y="122" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
-  <text x="472" y="134" text-anchor="middle" font-size="10" fill="#333333">评论</text>
-  <line x1="170" y1="123" x2="146" y2="337" stroke="#999999" stroke-width="1.5"/>
-  <text x="167.2137291152977" y="151.84424872192878" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
-  <text x="148.7862708847023" y="316.1557512780712" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
-  <rect x="142" y="221" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
-  <text x="158" y="233" text-anchor="middle" font-size="10" fill="#333333">点赞</text>
-  <line x1="170" y1="123" x2="454" y2="337" stroke="#999999" stroke-width="1.5"/>
-  <text x="189.96620369146606" y="142.04495630272442" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
-  <text x="434.03379630853397" y="325.9550436972756" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
-  <rect x="296" y="221" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
-  <text x="312" y="233" text-anchor="middle" font-size="10" fill="#333333">收藏</text>
-  <line x1="170" y1="123" x2="762" y2="337" stroke="#999999" stroke-width="1.5"/>
-  <text x="193.51102686813329" y="135.49891849625087" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
-  <text x="738.4889731318667" y="332.5010815037491" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
-  <rect x="450" y="221" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
-  <text x="466" y="233" text-anchor="middle" font-size="10" fill="#333333">浏览</text>
-  <line x1="170" y1="123" x2="146" y2="551" stroke="#999999" stroke-width="1.5"/>
-  <text x="168.60032966130203" y="151.9607877067806" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
-  <text x="147.39967033869797" y="530.0392122932194" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
-  <rect x="142" y="328" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
-  <text x="158" y="340" text-anchor="middle" font-size="10" fill="#333333">搜索</text>
-  <line x1="774" y1="139" x2="774" y2="139" stroke="#999999" stroke-width="1.5"/>
+<rect width="1000" height="556" fill="#FAFAFA"/>
+  <text x="500" y="28" text-anchor="middle" font-size="18" font-weight="bold" fill="#2F5496">此刻校园 - 互动子系统 E-R 图</text>
+  <text x="500" y="48" text-anchor="middle" font-size="11" fill="#595959">评论、点赞、浏览、搜索（6 实体）</text>
+  <line x1="170" y1="123" x2="466" y2="139" stroke="#999999" stroke-width="1.5"/>
+  <text x="194.9635568319377" y="128.349381450375" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
+  <text x="441.0364431680623" y="141.650618549625" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
+  <rect x="302" y="122" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
+  <text x="318" y="134" text-anchor="middle" font-size="10" fill="#333333">发布</text>
+  <line x1="466" y1="139" x2="758" y2="139" stroke="#999999" stroke-width="1.5"/>
+  <text x="491.0" y="143.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
+  <text x="733.0" y="143.0" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
+  <rect x="596" y="130" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
+  <text x="612" y="142" text-anchor="middle" font-size="10" fill="#333333">评论</text>
+  <line x1="466" y1="139" x2="146" y2="321" stroke="#999999" stroke-width="1.5"/>
+  <text x="444.2688914440412" y="155.35956799120157" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
+  <text x="167.7311085559588" y="312.6404320087984" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
+  <rect x="290" y="221" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
+  <text x="306" y="233" text-anchor="middle" font-size="10" fill="#333333">点赞</text>
+  <line x1="466" y1="139" x2="446" y2="321" stroke="#999999" stroke-width="1.5"/>
+  <text x="463.26918620327865" y="167.85040555016428" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
+  <text x="448.73081379672135" y="300.1495944498357" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
+  <rect x="434" y="221" width="44" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
+  <text x="456" y="233" text-anchor="middle" font-size="10" fill="#333333">被浏览</text>
+  <line x1="170" y1="123" x2="758" y2="139" stroke="#999999" stroke-width="1.5"/>
+  <text x="194.9907497337382" y="127.68002040091804" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
+  <text x="733.0092502662618" y="142.31997959908196" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
+  <rect x="448" y="122" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
+  <text x="464" y="134" text-anchor="middle" font-size="10" fill="#333333">评论</text>
+  <line x1="170" y1="123" x2="146" y2="321" stroke="#999999" stroke-width="1.5"/>
+  <text x="166.99171581201907" y="151.8183445508427" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
+  <text x="149.00828418798093" y="300.1816554491573" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
+  <rect x="142" y="213" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
+  <text x="158" y="225" text-anchor="middle" font-size="10" fill="#333333">点赞</text>
+  <line x1="170" y1="123" x2="446" y2="321" stroke="#999999" stroke-width="1.5"/>
+  <text x="190.31345626574213" y="141.57269688629327" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
+  <text x="425.68654373425784" y="310.4273031137067" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
+  <rect x="292" y="213" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
+  <text x="308" y="225" text-anchor="middle" font-size="10" fill="#333333">浏览</text>
+  <line x1="170" y1="123" x2="746" y2="321" stroke="#999999" stroke-width="1.5"/>
+  <text x="193.64216498262167" y="135.1269942127762" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">1</text>
+  <text x="722.3578350173783" y="316.8730057872238" text-anchor="middle" font-size="13" font-weight="bold" fill="#C00000">N</text>
+  <rect x="442" y="213" width="32" height="16" rx="8" ry="8" fill="white" stroke="#999999" stroke-width="0.5"/>
+  <text x="458" y="225" text-anchor="middle" font-size="10" fill="#333333">搜索</text>
+  <line x1="758" y1="139" x2="758" y2="139" stroke="#999999" stroke-width="1.5"/>
   <rect x="50" y="80" width="240" height="86" rx="4" ry="4" fill="#DEEBF7" stroke="#4472C4" stroke-width="2"/>
   <rect x="50" y="80" width="240" height="28" rx="4" ry="4" fill="#4472C4"/>
   <rect x="50" y="100" width="240" height="8" fill="#4472C4"/>
@@ -70,100 +60,84 @@
   <text x="58" y="170" font-family="Consolas" font-size="11" font-weight="normal" fill="#333333">nickname</text>
   <text x="282" y="170" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">VARCHAR(50)</text>
   <line x1="54" y1="173" x2="286" y2="173" stroke="#D9D9D9" stroke-width="0.5"/>
-  <rect x="358" y="80" width="248" height="134" rx="4" ry="4" fill="#DEEBF7" stroke="#4472C4" stroke-width="2"/>
-  <rect x="358" y="80" width="248" height="28" rx="4" ry="4" fill="#4472C4"/>
-  <rect x="358" y="100" width="248" height="8" fill="#4472C4"/>
-  <text x="482" y="99" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">posts</text>
-  <text x="366" y="122" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
-  <text x="598" y="122" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="362" y1="125" x2="602" y2="125" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="366" y="138" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
-  <text x="598" y="138" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="362" y1="141" x2="602" y2="141" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="366" y="154" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK school_id</text>
-  <text x="598" y="154" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="362" y1="157" x2="602" y2="157" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="366" y="170" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK category_id</text>
-  <text x="598" y="170" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="362" y1="173" x2="602" y2="173" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="366" y="186" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK post_type_id</text>
-  <text x="598" y="186" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="362" y1="189" x2="602" y2="189" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="366" y="202" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK location_id</text>
-  <text x="598" y="202" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="362" y1="205" x2="602" y2="205" stroke="#D9D9D9" stroke-width="0.5"/>
-  <rect x="666" y="80" width="216" height="118" rx="4" ry="4" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
-  <rect x="666" y="80" width="216" height="28" rx="4" ry="4" fill="#FFC000"/>
-  <rect x="666" y="100" width="216" height="8" fill="#FFC000"/>
-  <text x="774" y="99" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">comments</text>
-  <text x="674" y="122" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
-  <text x="874" y="122" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="670" y1="125" x2="878" y2="125" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="674" y="138" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK post_id</text>
-  <text x="874" y="138" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="670" y1="141" x2="878" y2="141" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="674" y="154" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
-  <text x="874" y="154" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="670" y1="157" x2="878" y2="157" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="674" y="170" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK parent_id</text>
-  <text x="874" y="170" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="670" y1="173" x2="878" y2="173" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="674" y="186" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK reply_to_user_id</text>
-  <text x="874" y="186" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="670" y1="189" x2="878" y2="189" stroke="#D9D9D9" stroke-width="0.5"/>
-  <rect x="50" y="294" width="192" height="86" rx="4" ry="4" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
-  <rect x="50" y="294" width="192" height="28" rx="4" ry="4" fill="#FFC000"/>
-  <rect x="50" y="314" width="192" height="8" fill="#FFC000"/>
-  <text x="146" y="313" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">likes</text>
-  <text x="58" y="336" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
+  <rect x="350" y="80" width="232" height="118" rx="4" ry="4" fill="#DEEBF7" stroke="#4472C4" stroke-width="2"/>
+  <rect x="350" y="80" width="232" height="28" rx="4" ry="4" fill="#4472C4"/>
+  <rect x="350" y="100" width="232" height="8" fill="#4472C4"/>
+  <text x="466" y="99" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">posts</text>
+  <text x="358" y="122" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
+  <text x="574" y="122" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="354" y1="125" x2="578" y2="125" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="358" y="138" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
+  <text x="574" y="138" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="354" y1="141" x2="578" y2="141" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="358" y="154" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK school_id</text>
+  <text x="574" y="154" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="354" y1="157" x2="578" y2="157" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="358" y="170" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK category_id</text>
+  <text x="574" y="170" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="354" y1="173" x2="578" y2="173" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="358" y="186" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK location_id</text>
+  <text x="574" y="186" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="354" y1="189" x2="578" y2="189" stroke="#D9D9D9" stroke-width="0.5"/>
+  <rect x="650" y="80" width="216" height="118" rx="4" ry="4" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
+  <rect x="650" y="80" width="216" height="28" rx="4" ry="4" fill="#FFC000"/>
+  <rect x="650" y="100" width="216" height="8" fill="#FFC000"/>
+  <text x="758" y="99" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">comments</text>
+  <text x="658" y="122" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
+  <text x="858" y="122" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="654" y1="125" x2="862" y2="125" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="658" y="138" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK post_id</text>
+  <text x="858" y="138" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="654" y1="141" x2="862" y2="141" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="658" y="154" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
+  <text x="858" y="154" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="654" y1="157" x2="862" y2="157" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="658" y="170" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK parent_id</text>
+  <text x="858" y="170" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="654" y1="173" x2="862" y2="173" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="658" y="186" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK reply_to_user_id</text>
+  <text x="858" y="186" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="654" y1="189" x2="862" y2="189" stroke="#D9D9D9" stroke-width="0.5"/>
+  <rect x="50" y="278" width="192" height="86" rx="4" ry="4" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
+  <rect x="50" y="278" width="192" height="28" rx="4" ry="4" fill="#FFC000"/>
+  <rect x="50" y="298" width="192" height="8" fill="#FFC000"/>
+  <text x="146" y="297" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">likes</text>
+  <text x="58" y="320" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
+  <text x="234" y="320" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="54" y1="323" x2="238" y2="323" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="58" y="336" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK post_id</text>
   <text x="234" y="336" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
   <line x1="54" y1="339" x2="238" y2="339" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="58" y="352" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK post_id</text>
+  <text x="58" y="352" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
   <text x="234" y="352" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
   <line x1="54" y1="355" x2="238" y2="355" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="58" y="368" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
-  <text x="234" y="368" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="54" y1="371" x2="238" y2="371" stroke="#D9D9D9" stroke-width="0.5"/>
-  <rect x="358" y="294" width="192" height="86" rx="4" ry="4" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
-  <rect x="358" y="294" width="192" height="28" rx="4" ry="4" fill="#FFC000"/>
-  <rect x="358" y="314" width="192" height="8" fill="#FFC000"/>
-  <text x="454" y="313" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">favorites</text>
-  <text x="366" y="336" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
-  <text x="542" y="336" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="362" y1="339" x2="546" y2="339" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="366" y="352" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK post_id</text>
-  <text x="542" y="352" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="362" y1="355" x2="546" y2="355" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="366" y="368" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
-  <text x="542" y="368" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="362" y1="371" x2="546" y2="371" stroke="#D9D9D9" stroke-width="0.5"/>
-  <rect x="666" y="294" width="192" height="86" rx="4" ry="4" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
-  <rect x="666" y="294" width="192" height="28" rx="4" ry="4" fill="#FFC000"/>
-  <rect x="666" y="314" width="192" height="8" fill="#FFC000"/>
-  <text x="762" y="313" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">browse_histories</text>
-  <text x="674" y="336" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
-  <text x="850" y="336" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="670" y1="339" x2="854" y2="339" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="674" y="352" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
-  <text x="850" y="352" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="670" y1="355" x2="854" y2="355" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="674" y="368" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK post_id</text>
-  <text x="850" y="368" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="670" y1="371" x2="854" y2="371" stroke="#D9D9D9" stroke-width="0.5"/>
-  <rect x="50" y="508" width="192" height="86" rx="4" ry="4" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
-  <rect x="50" y="508" width="192" height="28" rx="4" ry="4" fill="#FFC000"/>
-  <rect x="50" y="528" width="192" height="8" fill="#FFC000"/>
-  <text x="146" y="527" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">search_histories</text>
-  <text x="58" y="550" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
-  <text x="234" y="550" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="54" y1="553" x2="238" y2="553" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="58" y="566" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
-  <text x="234" y="566" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
-  <line x1="54" y1="569" x2="238" y2="569" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="58" y="582" font-family="Consolas" font-size="11" font-weight="normal" fill="#333333">keyword</text>
-  <text x="234" y="582" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">VARCHAR(200)</text>
-  <line x1="54" y1="585" x2="238" y2="585" stroke="#D9D9D9" stroke-width="0.5"/>
-  <text x="58" y="598" font-family="Consolas" font-size="11" font-weight="normal" fill="#333333">result_count</text>
-  <text x="234" y="598" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">INTEGER</text>
-  <line x1="54" y1="601" x2="238" y2="601" stroke="#D9D9D9" stroke-width="0.5"/>
+  <rect x="350" y="278" width="192" height="86" rx="4" ry="4" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
+  <rect x="350" y="278" width="192" height="28" rx="4" ry="4" fill="#FFC000"/>
+  <rect x="350" y="298" width="192" height="8" fill="#FFC000"/>
+  <text x="446" y="297" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">browse_histories</text>
+  <text x="358" y="320" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
+  <text x="534" y="320" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="354" y1="323" x2="538" y2="323" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="358" y="336" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
+  <text x="534" y="336" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="354" y1="339" x2="538" y2="339" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="358" y="352" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK post_id</text>
+  <text x="534" y="352" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="354" y1="355" x2="538" y2="355" stroke="#D9D9D9" stroke-width="0.5"/>
+  <rect x="650" y="278" width="192" height="86" rx="4" ry="4" fill="#FFF2CC" stroke="#FFC000" stroke-width="2"/>
+  <rect x="650" y="278" width="192" height="28" rx="4" ry="4" fill="#FFC000"/>
+  <rect x="650" y="298" width="192" height="8" fill="#FFC000"/>
+  <text x="746" y="297" text-anchor="middle" font-family="微软雅黑" font-size="13" font-weight="bold" fill="white">search_histories</text>
+  <text x="658" y="320" font-family="Consolas" font-size="11" font-weight="bold" fill="#C00000">PK id</text>
+  <text x="834" y="320" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="654" y1="323" x2="838" y2="323" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="658" y="336" font-family="Consolas" font-size="11" font-weight="bold" fill="#2F5496">FK user_id</text>
+  <text x="834" y="336" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">BIGINT</text>
+  <line x1="654" y1="339" x2="838" y2="339" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="658" y="352" font-family="Consolas" font-size="11" font-weight="normal" fill="#333333">keyword</text>
+  <text x="834" y="352" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">VARCHAR(200)</text>
+  <line x1="654" y1="355" x2="838" y2="355" stroke="#D9D9D9" stroke-width="0.5"/>
+  <text x="658" y="368" font-family="Consolas" font-size="11" font-weight="normal" fill="#333333">result_count</text>
+  <text x="834" y="368" text-anchor="end" font-family="Consolas" font-size="10" fill="#666666">INTEGER</text>
+  <line x1="654" y1="371" x2="838" y2="371" stroke="#D9D9D9" stroke-width="0.5"/>
 </svg>

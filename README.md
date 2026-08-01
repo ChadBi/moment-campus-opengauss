@@ -49,12 +49,12 @@
 ### 6 态状态机
 `draft` → `pending` → `published` → `expired` / `conflict` → `archived`，共 13 条合法流转规则，普通用户与管理员分级权限控制。
 
-### 5 类协同验证
+### 2 类协同验证
 - **confirmation**（证实）：确认信息仍然有效
-- **refutation**（证伪）：报告信息已失效
-- **update**（补充更新）：提交补充信息
-- **expiration_report**（过期上报）：上报疑似过期信息
-- **conflict_report**（冲突上报）：上报信息冲突
+- **refutation**（证伪）：指出信息不准确或已经失效
+- 每名用户对每条帖子仅保留一条验证记录；可切换类型，再次点击同类验证即取消
+- 单数写端点为 `POST /api/v1/posts/{post_id}/validate`；登录态统计端点为 `GET /api/v1/posts/{post_id}/validation-stats`
+- 历史文档中的 `update`、`expiration_report`、`conflict_report` 是已放弃的五类治理方案，不属于现行验证契约
 
 ### RBAC 权限矩阵
 三级角色层级：`user < admin < super_admin`，统一通过 `require_role()` 依赖工厂进行权限校验。
@@ -68,9 +68,18 @@
 各校数据独立隔离，跨校访问需相应权限。
 
 ### AI 智能能力
-- **AI 搜索**：基于自然语言的语义搜索，支持意图识别与匹配理由展示
+- **AI 搜索**：自然语言意图解析 + openGauss DataVec 语义召回 + 结构化条件过滤 + 匹配理由展示
+- **混合检索**：语义相似度 35% + 新鲜度 25% + 验证数 20% + 关键词相关度 20%
 - **AI 辅助发布**：智能标题建议、分类推荐、有效期建议、敏感信息提醒
-- **降级模式**：API 不可用时自动降级为关键词搜索
+- **降级模式**：Embedding 或向量查询不可用时自动降级为关键词搜索，不阻断核心功能
+
+### 动态分类
+- 分类由当前学校的 `/api/v1/categories` 接口动态加载，不依赖前端固定 ID 或中文名称映射
+- 分类视觉由 `category.code` 稳定计算；切换学校时同步清理旧校分类、筛选值和地图标记
+
+### 自动过期
+- 独立 `moment-expire-posts.timer` 在系统启动后 5 分钟首次触发 oneshot worker，此后每 30 分钟触发一次，不在 4 个 Uvicorn Web worker 中重复调度
+- 任务使用数据库锁、60 分钟运行租约和幂等通知；手动触发及运行记录仅 `super_admin` 可访问
 
 ### 地图集成
 - MapLibre GL JS 原生 symbol layer 实现，WebGL 渲染
@@ -240,6 +249,8 @@ npm run dev
 # 后端测试
 cd backend
 .\.venv\Scripts\Activate.ps1
+$env:APP_ENV = "opengauss"
+$env:TEST_DATABASE_URL = "postgresql+asyncpg://<user>:<password>@127.0.0.1:5432/moment_campus_test"
 pytest tests/ -v
 
 # 前端测试
@@ -248,6 +259,8 @@ npm run build          # 类型检查 + 构建
 npm run lint           # ESLint 检查
 npm run e2e            # Playwright E2E 测试
 ```
+
+后端测试只允许连接独立 openGauss 测试库。`TEST_DATABASE_URL` 缺失、数据库名不含 `_test`，或与开发库地址相同时，测试会在清理数据前直接停止。请使用本地安全凭据，不要把真实密码写入文档或提交记录。
 
 ## 部署说明
 
@@ -261,6 +274,7 @@ npm run e2e            # Playwright E2E 测试
 
 - **数据库**：openGauss 7.0.0-RC3 Docker 容器
 - **后端**：uvicorn × 4 workers，systemd 服务管理
+- **后台任务**：独立 systemd timer + oneshot worker，系统启动后 5 分钟首次处理，此后每 30 分钟处理到期帖子
 - **前端**：Vite 构建后由 Nginx 托管静态文件
 - **反向代理**：Nginx 代理 API 请求至后端
 
@@ -306,8 +320,8 @@ npm run build
 
 ### 测试覆盖率
 
-- **后端**：919+ 测试用例 PASS，79 SKIP，0 FAIL
-- **前端**：Playwright 27 PASS / 1 SKIP / 0 FAIL
+- **后端**：987 PASS / 0 FAIL / 0 WARNING（`pytest tests -q -W error`）
+- **前端**：Playwright 38 PASS / 0 SKIP / 0 FAIL
 - **E2E 全链路**：74 场景覆盖 7 大功能域，通过率 97.3%
 - **MCP 浏览器**：多轮端到端验证通过（注册→发布→审核→协同→跨校切换→地图）
 
@@ -318,12 +332,15 @@ npm run build
 - ✅ 校园信息发布、浏览、搜索
 - ✅ 地图与信息流结合（MapLibre GL JS）
 - ✅ 分类筛选与 AI 智能搜索
-- ✅ 6 态状态机 + 5 类协同验证
+- ✅ 6 态状态机 + 2 类协同验证（证实/证伪）
 - ✅ 评论、点赞、协同治理
 - ✅ 举报与管理员后台
 - ✅ 多学校切换（多租户架构）
 - ✅ 主题订阅与推荐
 - ✅ AI 辅助发布与敏感信息提醒
+- ✅ DataVec 512 维混合检索链路与关键词降级
+- ✅ 动态分类与 `category.code` 稳定视觉
+- ✅ 独立 systemd timer 自动过期任务
 - ✅ 移动端适配（响应式布局）
 - ✅ 三校演示数据（江南/复旦/浙大）
 - ✅ 华为云线上部署
@@ -335,6 +352,7 @@ npm run build
 - ❌ 校园实名认证
 - ❌ 复杂多级组织权限
 - ❌ 公开发布主体功能（已移除）
+- ❌ 更新建议/过期报告/冲突报告三类治理队列（历史五类方案已放弃）
 
 ## 文档目录
 
