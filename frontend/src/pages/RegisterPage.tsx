@@ -12,9 +12,9 @@ import { Mail, Lock, User, School as SchoolIcon, ChevronDown } from 'lucide-reac
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { setAuth } = useAuthStore();
-  const { schools, setSchools } = useCampusStore();
+  const { schools, setSchools, setCurrentSchool } = useCampusStore();
   const [formData, setFormData] = useState({
     email: '',
     nickname: '',
@@ -92,8 +92,34 @@ const RegisterPage: React.FC = () => {
       });
       setAuth(response.user, response.access_token, response.refresh_token);
       setToast({ message: '注册成功', type: 'success' });
-      // ACC-01.1: 注册后回跳到原目标页
-      setTimeout(() => navigate(redirectTo), 1000);
+
+      // 2026-08-02：注册成功后同步当前学校为注册选择的学校，
+      // 避免 store 持久化/URL 残留其他学校（游客态浏览过的）触发
+      // "您没有该学校的访问权限，已切换回 xxx" 回退提示
+      const targetSchool = schools.find((s) => s.id === formData.schoolId);
+      if (targetSchool) {
+        setCurrentSchool(targetSchool);
+        // 立即同步改写 URL 中的 school 参数（与 store 同一批次）。
+        // 若延迟到跳转时才改写，useSchoolSync 的 URL 监听器会先读到
+        // 残留的旧学校值（如 ?school=fudan），反向覆盖刚设置的当前学校，
+        // 最终由 ensureValidSchool 回退并弹出"无访问权限"提示。
+        const next = new URLSearchParams(searchParams);
+        next.set('school', targetSchool.code);
+        setSearchParams(next, { replace: true });
+      }
+
+      // ACC-01.1: 注册后回跳到原目标页；重写 URL 中的 school 参数为注册学校，
+      // 保证跳转后学校上下文与 membership 一致（无权限回退不再触发）
+      const [path, queryStr = ''] = redirectTo.split('?');
+      const params = new URLSearchParams(queryStr);
+      if (targetSchool) {
+        params.set('school', targetSchool.code);
+      } else {
+        params.delete('school');
+      }
+      const qs = params.toString();
+      const targetUrl = qs ? `${path}?${qs}` : path;
+      setTimeout(() => navigate(targetUrl), 1000);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
       const message = e?.response?.data?.detail || '注册失败，请稍后重试';

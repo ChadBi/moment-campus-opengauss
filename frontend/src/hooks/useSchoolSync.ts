@@ -224,7 +224,10 @@ export function useSchoolSync(): void {
     const isSuperAdmin = user?.role === 'super_admin';
     if (isSuperAdmin) return;
 
-    const prevCode = currentSchoolCode;
+    // prevCode 用实时 store 值（而非 effect 闭包捕获值）：
+    // 注册/登录瞬间 setCurrentSchool 与本次 effect 可能在同一次渲染竞态，
+    // 闭包旧值会导致"未真正回退"也误判并弹出无权限提示
+    const prevCode = useCampusStore.getState().currentSchoolCode;
     ensureValidSchool();
     // ensureValidSchool 可能将无权限学校回退到默认学校，
     // 需同步 URL 避免第 4 步 URL 监听器把学校切回无权限值
