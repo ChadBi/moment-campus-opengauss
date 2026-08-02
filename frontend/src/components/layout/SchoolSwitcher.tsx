@@ -28,6 +28,7 @@ export const SchoolSwitcher: React.FC = () => {
     currentSchoolId,
     currentSchoolName,
     loadingSchools,
+    setMemberships,
   } = useCampusStore();
   const { isAuthenticated } = useAuthStore();
   const switchSchool = useSwitchSchool();
@@ -142,6 +143,10 @@ export const SchoolSwitcher: React.FC = () => {
           // joinSchool 在 axios 拦截器里会注入当前 X-School-Code 头，
           // 后端 join 接口以 URL {code} 为准（不受 header 影响）
           await schoolsApi.joinSchool(code);
+          // join 成功后刷新 memberships，确保 useSwitchSchool 的权限校验
+          // 基于最新数据（否则会误判"无该学校访问权限"）
+          const list = await schoolsApi.listMyMemberships();
+          setMemberships(list);
         } catch {
           // 加入失败：仍然切换查看公开内容
         }
