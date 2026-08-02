@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-02（仓库全面整理与优化——移除小程序工具链产物、解除误提交配置跟踪、补充 .gitignore）
+> 最后更新：2026-08-02（修复新建帖子选择信息截止时间报错）
 
 ## 状态总览
 
@@ -39,6 +39,12 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### Bug 修复：新建帖子选择信息截止时间报错（2026-08-02）
+
+- [x] 根因：前端 `toISOString()` 生成 UTC 时区 ISO 字符串，Pydantic 解析为带时区 datetime，asyncpg 无法插入 `TIMESTAMP WITHOUT TIME ZONE` 列
+- [x] 修复：`PostCreate` 和 `PostUpdate` schema 的 `expire_at` 字段添加 `field_validator`，统一转为北京时间（UTC+8）后去掉时区信息
+- [x] 验证：接口测试 3 种场景（Z 后缀/无时区/不传 expire_at）全部 201；schema 测试 28 passed；发布流程测试 18 passed
 
 ### v2.1.4 华为云全量部署（2026-08-02 完成）
 

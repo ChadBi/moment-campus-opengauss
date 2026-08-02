@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from app.schemas.enums import PostStatusEnum
 
@@ -92,6 +92,19 @@ class PostCreate(BaseModel):
             )
         return v
 
+    @field_validator("expire_at")
+    @classmethod
+    def strip_expire_at_timezone(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """数据库使用 TIMESTAMP WITHOUT TIME ZONE，移除时区信息。
+
+        前端 toISOString() 生成的字符串（如 "2026-08-10T14:30:00.000Z"）
+        会被 Pydantic 解析为带时区的 datetime，导致 asyncpg 插入时报错。
+        统一转为北京时间（UTC+8）后去掉时区信息。
+        """
+        if v is not None and v.tzinfo is not None:
+            return v.astimezone(timezone(timedelta(hours=8))).replace(tzinfo=None)
+        return v
+
 
 # 更新信息
 # FND-01.2: 移除 status / is_recommend 字段——状态变化只走状态机服务（FND-03），
@@ -106,6 +119,14 @@ class PostUpdate(BaseModel):
     expire_at: Optional[datetime] = Field(None, description="信息截止时间")
     lost_type: Optional[str] = Field(None, max_length=10, description="丢失类型")
     contact_info: Optional[str] = Field(None, max_length=255, description="联系方式")
+
+    @field_validator("expire_at")
+    @classmethod
+    def strip_expire_at_timezone(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """数据库使用 TIMESTAMP WITHOUT TIME ZONE，移除时区信息。"""
+        if v is not None and v.tzinfo is not None:
+            return v.astimezone(timezone(timedelta(hours=8))).replace(tzinfo=None)
+        return v
 
 
 # 信息响应（包含关联数据）
