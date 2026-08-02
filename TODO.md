@@ -40,6 +40,16 @@
 
 ## 已完成
 
+### v2.1.4 华为云全量部署（2026-08-02 完成）
+
+- [x] 按 deploy-huawei skill 全量部署 v2.1.4 到华为云（`huawei`，`campus.chaina1.com`）：先 `systemctl stop moment-backend` 关停 → 上传后端代码（app/scripts/alembic/requirements）+ 前端 dist → 重置测试库（DROP/CREATE `moment_campus`）→ `alembic upgrade head`（head=`d5e6f7a8b9c1`）→ 大数据集填充
+- [x] 数据填充：`generate_bulk_data.py`（三校各 505 帖 / 50 用户，共 1515 帖）+ `generate_embeddings.py --batch-size 50`（1515/1515 回填 512 维，0 失败）
+- [x] 环境配置：`deploy/.env.prod` 更新（AI_* 9 项 + 新增 EMBEDDING_* 5 项）；AI/Embedding Key 通过服务器端 `sed` 内存注入，不落任何文档
+- [x] 修复部署阻断 Bug：`alembic/versions/d5e6f7a8b9c1_remove_invitation_codes.py` 缺少 `from typing import Union` 导入导致 `alembic upgrade head` 加载版本文件 NameError；已修复（本地 + 服务器同步）
+- [x] 服务与 Nginx：`chown -R moment:moment` + 启动 `moment-backend`（active，4 workers）+ `nginx -t` 通过并 reload
+- [x] 验证：`/health`=ok；admin 登录返回 token；HTTPS 首页与 API 正常；三校各 505 帖 / 50 用户、1515 帖含 embedding；MCP 浏览器端到端 7 项全 PASS（标题/首页帖子/导航/管理员登录/AI 智能搜索，无控制台报错）
+- [x] 任务报告：[AIwork/华为云v2.1.4全量部署任务报告.md](AIwork/华为云v2.1.4全量部署任务报告.md)
+
 ### 仓库全面整理与优化（2026-08-02 完成）
 
 - [x] 全量梳理仓库文件：确认无未跟踪垃圾文件；历史残留（E2E 截图、delete/ 旧迁移、旧 .env.development）经用户确认**不重写历史**，仅清理当前版本

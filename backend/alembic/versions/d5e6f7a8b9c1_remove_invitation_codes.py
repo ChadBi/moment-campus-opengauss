@@ -9,6 +9,7 @@ Create Date: 2026-08-01
 """
 from alembic import op
 import sqlalchemy as sa
+from typing import Union
 
 # revision identifiers, used by Alembic.
 revision: str = "d5e6f7a8b9c1"

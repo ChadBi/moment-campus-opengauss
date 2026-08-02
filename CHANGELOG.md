@@ -27,6 +27,13 @@
 - 已回填 1515 条帖子 embedding（512 维，0 失败）；后端关键测试 55 passed
 - 生成方式：`$env:APP_ENV="opengauss"; python scripts/generate_bulk_data.py`（含清库），随后 `python scripts/generate_embeddings.py --batch-size 50`
 
+### 华为云 v2.1.4 全量部署
+
+- 全量部署 v2.1.4 到华为云 `campus.chaina1.com`：关停 `moment-backend` → 上传后端代码与前端 dist → 重置测试库（DROP/CREATE `moment_campus`）→ `alembic upgrade head`（head=`d5e6f7a8b9c1`）→ 大数据集填充（三校各 505 帖 / 50 用户，1515 帖 embedding 全部回填）
+- 修复部署阻断 Bug：`alembic/versions/d5e6f7a8b9c1_remove_invitation_codes.py` 缺少 `from typing import Union` 导入导致 alembic 加载版本文件失败
+- 服务器 `deploy/.env.prod` 与 `backend/.env.prod`/`.env.opengauss` 更新（新增 `EMBEDDING_*` 配置）；AI/Embedding Key 仅经服务器端内存注入，未落文档
+- 验证：`/health`=ok、admin 登录、HTTPS 首页与 API、MCP 浏览器端到端 7 项全部 PASS
+
 ## [2.1.3] - 2026-08-02
 
 ### 修复：注册完成后进入系统误报"无该学校访问权限，已切换回 xxx"
