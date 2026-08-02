@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-02（v2.1.4：测试数据规模扩充——每校 500 帖 + 50 用户程序化生成）
+> 最后更新：2026-08-02（仓库全面整理与优化——移除小程序工具链产物、解除误提交配置跟踪、补充 .gitignore）
 
 ## 状态总览
 
@@ -39,6 +39,16 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### 仓库全面整理与优化（2026-08-02 完成）
+
+- [x] 全量梳理仓库文件：确认无未跟踪垃圾文件；历史残留（E2E 截图、delete/ 旧迁移、旧 .env.development）经用户确认**不重写历史**，仅清理当前版本
+- [x] 移除误提交的垃圾文件：`miniprogram/.ai-mode-skills/`（4 文件）、`miniprogram/cli-agent-run/`（4 文件）、`miniprogram/components/icon/._gen.cjs`、`AIwork/全链路API校验脚本.ps1`（含硬编码 JWT 测试令牌）
+- [x] 解除跟踪但保留本地：`miniprogram/project.private.config.json`（微信开发者工具私有配置）、`frontend/.env.development`
+- [x] `.gitignore` 追加规则：`miniprogram/project.private.config.json`、`miniprogram/.ai-mode-skills/`、`miniprogram/cli-agent-run/`、`miniprogram/components/icon/._gen.cjs`、`AIwork/*.ps1`
+- [x] 保留项：根 `logo.png`（用户决定保留）、docs 交付物（xlsx/ER 图）、根 `scripts/*.py` 文档流水线工具
+- [x] 验证：`git ls-files` 无残留、`git check-ignore` 规则全部生效、前端 `npm run build` 通过、后端 pytest 回归通过
+- [x] 任务报告：[AIwork/仓库全面整理与优化任务报告.md](AIwork/仓库全面整理与优化任务报告.md)
 
 ### 测试数据规模扩充：每校 500 帖 + 50 用户程序化生成（2026-08-02 完成）
 

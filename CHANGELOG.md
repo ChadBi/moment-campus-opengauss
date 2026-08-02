@@ -9,6 +9,14 @@
 
 ## [2.1.4] - 2026-08-02
 
+### 仓库全面整理与优化
+
+- 全量梳理仓库文件：移除误提交的小程序 AI 工具链产物（`miniprogram/.ai-mode-skills/`、`miniprogram/cli-agent-run/`）、一次性图标生成脚本 `miniprogram/components/icon/._gen.cjs`、含硬编码 JWT 的调试脚本 `AIwork/全链路API校验脚本.ps1`
+- 解除跟踪（文件保留本地）：`miniprogram/project.private.config.json`（微信开发者工具私有配置）、`frontend/.env.development`
+- `.gitignore` 新增规则：微信开发者工具私有配置、小程序 AI 工具链产物目录、`AIwork/*.ps1`，防止同类文件再次误提交
+- 决策：**不重写 Git 历史**（历史上已删除的 E2E 截图等旧文件保留，总量约 1.15MB）
+- 验证：前端 `npm run build` 通过；后端全量 `pytest` 983 passed（openGauss 环境，14min24s）
+
 ### 测试数据规模扩充：每校 500 帖 + 50 用户程序化生成
 
 - 新增 `backend/scripts/generate_bulk_data.py`：程序化生成全新演示数据（清空现有数据后填充），复用 seed_data.py 的清库/学校/分类/地点/套餐基础设施

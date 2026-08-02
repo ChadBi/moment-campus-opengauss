@@ -119,3 +119,14 @@ deploy/_*.sql
 deploy/_env_prod_new
 
 导师锐评/
+
+# 微信开发者工具私有配置（不纳入版本控制）
+miniprogram/project.private.config.json
+
+# 小程序 AI 工具链产物（一次性生成/校验元数据）
+miniprogram/.ai-mode-skills/
+miniprogram/cli-agent-run/
+miniprogram/components/icon/._gen.cjs
+
+# AIwork 调试脚本（一次性验证脚本不入库）
+AIwork/*.ps1
