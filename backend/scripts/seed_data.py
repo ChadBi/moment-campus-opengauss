@@ -1383,7 +1383,6 @@ async def init_db():
         "categories",
         # 多租户
         "school_subscriptions",
-        "school_invitations",
         "school_memberships",
         "school_domains",
         "school_settings",

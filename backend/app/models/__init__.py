@@ -18,7 +18,6 @@ from .browse_history import BrowseHistory
 from .search_history import SearchHistory
 from .admin_operation_log import AdminOperationLog
 from .school_membership import SchoolMembership
-from .school_invitation import SchoolInvitation
 from .school_settings import SchoolSettings
 from .school_domain import SchoolDomain
 from .product_plan import ProductPlan
@@ -56,7 +55,6 @@ __all__ = [
     "SearchHistory",
     "AdminOperationLog",
     "SchoolMembership",
-    "SchoolInvitation",
     "SchoolSettings",
     "SchoolDomain",
     "ProductPlan",

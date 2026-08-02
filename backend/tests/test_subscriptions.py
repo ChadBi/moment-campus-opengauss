@@ -285,7 +285,7 @@ async def _create_user_with_token(
     db.add(user)
     await db.flush()  # 获取 user.id
 
-    # 创建 membership（注册接口无 invite_code 时不创建 membership，此处补充）
+    # 创建 membership（注册接口会创建首校 membership，此处测试直接补充构造）
     if membership_role is None:
         membership_role = "admin" if role == "admin" else "member"
     m = SchoolMembership(

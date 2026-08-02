@@ -4,8 +4,7 @@
 1. 创建 School 行（含地图中心/Logo/主题色/简介）
 2. 从江南大学（code='jiangnan'）复制默认分类到新校
 3. 创建 SchoolSettings 默认行
-4. 创建首位管理员邀请（SchoolInvitation，role='admin'）
-5. 分配默认套餐（trial 或指定 plan_code）→ SchoolSubscription
+4. 分配默认套餐（trial 或指定 plan_code）→ SchoolSubscription
 
 并提供：
 - 开通清单（provisioning checklist）：品牌已设 / 管理员已接受 / 地点已导入(≥1) /
@@ -19,7 +18,6 @@ tenant.py 的 get_tenant_context 在解析阶段完成（inactive → 404）；
 from __future__ import annotations
 
 import json
-import secrets
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from typing import Optional
@@ -34,7 +32,6 @@ from app.models.location import Location
 from app.models.post import Post
 from app.models.product_plan import ProductPlan
 from app.models.school import School
-from app.models.school_invitation import SchoolInvitation
 from app.models.school_membership import SchoolMembership
 from app.models.school_settings import SchoolSettings
 from app.models.school_subscription import SchoolSubscription
@@ -59,7 +56,6 @@ class SchoolProvisionRequest:
     logo_url: Optional[str] = None
     brand_color: Optional[str] = None
     description: Optional[str] = None
-    admin_email: Optional[str] = None  # 首位管理员邀请邮箱
     plan_code: Optional[str] = None  # 默认 trial
     province: Optional[str] = None
     city: Optional[str] = None
@@ -102,9 +98,9 @@ class SchoolProvisioningService:
         req: SchoolProvisionRequest,
         operator_id: Optional[int] = None,
     ) -> dict:
-        """创建学校并完成完整初始化（分类/设置/邀请/订阅）。
+        """创建学校并完成完整初始化（分类/设置/订阅）。
 
-        返回 dict：{school, settings, invitation, subscription, categories_copied}
+        返回 dict：{school, settings, subscription, categories_copied}
         """
         # 1. 校验 code 唯一
         existing = (await self.db.execute(
@@ -147,21 +143,7 @@ class SchoolProvisioningService:
         )
         self.db.add(settings)
 
-        # 5. 创建首位管理员邀请（若提供 admin_email）
-        invitation = None
-        if req.admin_email:
-            invitation = SchoolInvitation(
-                school_id=school.id,
-                email=req.admin_email,
-                role="admin",
-                invitation_code=secrets.token_urlsafe(24),
-                invited_by=operator_id,
-                status="expires",
-                created_at=now,
-            )
-            self.db.add(invitation)
-
-        # 6. 分配默认套餐
+        # 5. 分配默认套餐
         plan_code = req.plan_code or DEFAULT_PLAN_CODE
         subscription = await self._assign_plan(school.id, plan_code, operator_id, now)
 
@@ -169,7 +151,6 @@ class SchoolProvisioningService:
         return {
             "school": school,
             "settings": settings,
-            "invitation": invitation,
             "subscription": subscription,
             "categories_copied": categories_copied,
         }

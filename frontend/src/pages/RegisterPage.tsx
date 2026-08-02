@@ -2,24 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCampusStore } from '../store/useCampusStore';
-import { authApi, setInviteContext, getInviteContext, clearInviteContext } from '../services/auth';
+import { authApi } from '../services/auth';
+import { schoolsApi } from '../services/schools';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Toast } from '../components/ui/Toast';
-import { Mail, Lock, User, School as SchoolIcon, Ticket } from 'lucide-react';
+import { Mail, Lock, User, School as SchoolIcon, ChevronDown } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setAuth } = useAuthStore();
-  const { currentSchoolName, currentSchoolCode } = useCampusStore();
+  const { schools, setSchools } = useCampusStore();
   const [formData, setFormData] = useState({
     email: '',
     nickname: '',
     password: '',
     confirmPassword: '',
-    inviteCode: '',
+    schoolId: '' as number | '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,30 +29,31 @@ const RegisterPage: React.FC = () => {
   // ACC-01.1: 读取注册后回跳目标
   const redirectTo = searchParams.get('redirect') || '/';
 
-  // ACC-01.2: URL 参数 ?invite=xxx 自动填入邀请码并写入短期上下文
+  // 2026-08-01：注册时自由选择初始加入的学校（从公开目录拉取，供下拉选择）
   useEffect(() => {
-    const urlInvite = searchParams.get('invite');
-    if (urlInvite) {
-      setInviteContext(urlInvite);
-      // 用 microtask 延迟同步 setState，避免 react-hooks/set-state-in-effect 规则告警
-      void Promise.resolve().then(() => {
-        setFormData((prev) => (prev.inviteCode ? prev : { ...prev, inviteCode: urlInvite }));
-      });
-      return;
-    }
-    // URL 无 invite 参数时，回填短期上下文中的邀请码（跨页跳转保留）
-    const ctxInvite = getInviteContext();
-    if (ctxInvite) {
-      // 用 microtask 延迟同步 setState，避免 react-hooks/set-state-in-effect 规则告警
-      void Promise.resolve().then(() => {
-        setFormData((prev) => (prev.inviteCode ? prev : { ...prev, inviteCode: ctxInvite }));
-      });
-    }
-  }, [searchParams]);
+    if (schools.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await schoolsApi.listSchools();
+        if (!cancelled) setSchools(list);
+      } catch {
+        // 拉取失败不阻塞注册流程（用户仍可进入，仅无学校可选）
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [schools.length, setSchools]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const selectedSchool = schools.find((s) => s.id === formData.schoolId) ?? null;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === 'schoolId' ? (value ? Number(value) : '') : value,
+    }));
     setError(null);
   };
 
@@ -74,31 +76,21 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
-    // ACC-01.2: 不再固定 school_id=1，由 Axios 拦截器注入 X-School-Code 头
-    // 后端 register 端点优先使用 X-School-Code 头解析 school_id
-    if (!currentSchoolCode) {
-      setError('无法确定注册学校，请先选择学校');
+    // 2026-08-01：注册时用户显式选择初始加入的学校（不再默认绑定某所学校）
+    if (typeof formData.schoolId !== 'number') {
+      setError('请选择要加入的学校');
       return;
     }
 
     setLoading(true);
     try {
-      // ACC-01.2: 若用户填了邀请码，同步写入短期上下文（确保跨刷新保留），
-      // 同时作为请求参数传给后端 register 端点进行校验与消费
-      const trimmedInvite = formData.inviteCode.trim();
-      if (trimmedInvite) {
-        setInviteContext(trimmedInvite);
-      }
       const response = await authApi.register({
         email: formData.email,
         nickname: formData.nickname,
         password: formData.password,
-        // ACC-01.2: 不传 school_id，由 X-School-Code 头注入（Axios 拦截器自动处理）
-        invite_code: trimmedInvite || undefined,
+        school_id: formData.schoolId,
       });
       setAuth(response.user, response.access_token, response.refresh_token);
-      // ACC-01.2: 注册成功后清除邀请码短期上下文（已被后端消费）
-      clearInviteContext();
       setToast({ message: '注册成功', type: 'success' });
       // ACC-01.1: 注册后回跳到原目标页
       setTimeout(() => navigate(redirectTo), 1000);
@@ -124,12 +116,12 @@ const RegisterPage: React.FC = () => {
         </div>
 
         <Card variant="elevated" padding="lg">
-          {/* ACC-01.2: 显示当前选择的学校 */}
-          {currentSchoolName && (
+          {/* 2026-08-01：显示用户选择的初始加入学校 */}
+          {selectedSchool && (
             <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-[10px] bg-lake/5 border border-lake/20">
               <SchoolIcon size={14} className="text-lake flex-shrink-0" />
               <span className="text-sm text-ink">
-                将加入：<span className="font-medium">{currentSchoolName}</span>
+                将加入：<span className="font-medium">{selectedSchool.name}</span>
               </span>
             </div>
           )}
@@ -179,16 +171,43 @@ const RegisterPage: React.FC = () => {
               required
             />
 
-            {/* ACC-01.2: 邀请码输入框（可选）；URL ?invite=xxx 自动填入 */}
-            <Input
-              label="邀请码（可选）"
-              name="inviteCode"
-              type="text"
-              value={formData.inviteCode}
-              onChange={handleChange}
-              placeholder="如有邀请码请填写，可加入对应学校"
-              icon={<Ticket size={16} />}
-            />
+            {/* 2026-08-01：注册时选择初始加入的学校（公开目录下拉） */}
+            <div className="w-full">
+              <label
+                htmlFor="register-school"
+                className="block text-sm font-medium text-ink mb-1.5 font-sans"
+              >
+                选择加入的学校
+                <span className="text-danger ml-1" aria-hidden="true">*</span>
+              </label>
+              <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" aria-hidden="true">
+                  <SchoolIcon size={16} />
+                </div>
+                <select
+                  id="register-school"
+                  name="schoolId"
+                  value={formData.schoolId}
+                  onChange={handleChange}
+                  required
+                  className={`w-full h-10 pl-10 pr-9 bg-paper border rounded-[10px] text-[14px] text-ink appearance-none transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus:outline-none focus:border-lake ${
+                    error ? 'border-danger focus:border-danger' : 'border-line'
+                  } ${formData.schoolId === '' ? 'text-ink-muted/60' : ''}`}
+                >
+                  <option value="" disabled>
+                    {schools.length > 0 ? '请选择学校' : '暂无可选学校'}
+                  </option>
+                  {schools.map((s) => (
+                    <option key={s.id} value={s.id} className="text-ink">
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" aria-hidden="true">
+                  <ChevronDown size={16} />
+                </div>
+              </div>
+            </div>
 
             {error && (
               <div className="text-danger text-sm text-center bg-danger/8 rounded-[10px] py-2 px-3">

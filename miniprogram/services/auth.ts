@@ -41,7 +41,6 @@ export async function emailRegister(params: {
   nickname: string
   password: string
   school_id: number
-  invite_code?: string
 }): Promise<LoginResponse> {
   return http.post<LoginResponse>('/auth/register', params)
 }

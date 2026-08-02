@@ -14,7 +14,6 @@
 - join 幂等：已是 active 成员返回 already_member=true
 - join invited/suspended 成员：升级为 active
 - 设置默认学校时取消其它默认，并同步 user.school_id
-- 邀请码流程：错误邀请码 400、邮箱不匹配 400、已使用 409
 - 公开目录只返回 is_active=true 的学校
 """
 import pytest
@@ -25,7 +24,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_access_token, get_password_hash
 from app.models.school import School
-from app.models.school_invitation import SchoolInvitation
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 
@@ -397,92 +395,6 @@ class TestJoinSchool:
             headers=headers,
         )
         assert resp.status_code == 404
-
-    @pytest.mark.asyncio
-    async def test_join_with_invalid_invitation_code_returns_400(
-        self, client: AsyncClient, schools_fixture: dict
-    ):
-        """提供无效邀请码 → 400"""
-        headers = _auth_headers(schools_fixture["users"]["u1"]["token"])
-        resp = await client.post(
-            "/api/v1/schools/school-a/join",
-            json={"invitation_code": "INVALID-CODE"},
-            headers=headers,
-        )
-        assert resp.status_code == 400
-
-    @pytest.mark.asyncio
-    async def test_join_with_valid_invitation_code_for_new_school(
-        self,
-        client: AsyncClient,
-        schools_fixture: dict,
-        db_session: AsyncSession,
-    ):
-        """u2 用 A 校邀请码加入 A 校 → 成功，邀请码标记为 accepted"""
-        invitation = SchoolInvitation(
-            school_id=schools_fixture["schools"]["a"]["id"],
-            email="u2@example.com",
-            role="member",
-            invitation_code="VALID-CODE-U2",
-            status="expires",
-        )
-        db_session.add(invitation)
-        await db_session.commit()
-
-        headers = _auth_headers(schools_fixture["users"]["u2"]["token"])
-        # u2 已是 A 校成员，幂等返回 already_member=true（不消费邀请码）
-        # 所以这里先删除 u2 的 A 校 membership 来测试新加入路径
-        existing = (
-            await db_session.execute(
-                select(SchoolMembership).where(
-                    SchoolMembership.user_id == schools_fixture["users"]["u2"]["id"],
-                    SchoolMembership.school_id == schools_fixture["schools"]["a"]["id"],
-                )
-            )
-        ).scalar_one()
-        await db_session.delete(existing)
-        await db_session.commit()
-
-        resp = await client.post(
-            "/api/v1/schools/school-a/join",
-            json={"invitation_code": "VALID-CODE-U2"},
-            headers=headers,
-        )
-        assert resp.status_code == 200, resp.text
-        data = resp.json()
-        assert data["already_member"] is False
-        assert data["membership"]["status"] == "active"
-
-        # 邀请码已 accepted
-        await db_session.refresh(invitation, attribute_names=["status"])
-        assert invitation.status == "accepted"
-
-    @pytest.mark.asyncio
-    async def test_join_with_email_mismatch_invitation_returns_400(
-        self,
-        client: AsyncClient,
-        schools_fixture: dict,
-        db_session: AsyncSession,
-    ):
-        """邀请码邮箱与当前用户不匹配 → 400"""
-        invitation = SchoolInvitation(
-            school_id=schools_fixture["schools"]["b"]["id"],
-            email="someone-else@example.com",
-            role="member",
-            invitation_code="MISMATCH-CODE",
-            status="expires",
-        )
-        db_session.add(invitation)
-        await db_session.commit()
-
-        # u2 未加入 B 校，邀请码邮箱不匹配 → 400
-        headers_u2 = _auth_headers(schools_fixture["users"]["u2"]["token"])
-        resp = await client.post(
-            "/api/v1/schools/school-b/join",
-            json={"invitation_code": "MISMATCH-CODE"},
-            headers=headers_u2,
-        )
-        assert resp.status_code == 400
 
 
 # ============================================================

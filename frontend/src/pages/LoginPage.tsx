@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { authApi, getInviteContext, clearInviteContext } from '../services/auth';
-import { schoolsApi } from '../services/schools';
-import { useCampusStore } from '../store/useCampusStore';
+import { authApi } from '../services/auth';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -14,7 +12,6 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setAuth } = useAuthStore();
-  const { currentSchoolCode, setMemberships } = useCampusStore();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -32,32 +29,7 @@ const LoginPage: React.FC = () => {
     setError(null);
   };
 
-  // ACC-01.2: 登录成功后若短期上下文有 invite_code，自动调用 join API 消费邀请码
-  // 邀请码与当前学校 code 绑定（后端 /schools/{code}/join 会校验 school_id 匹配）
-  const consumeInviteAfterLogin = async (): Promise<void> => {
-    const inviteCode = getInviteContext();
-    if (!inviteCode) return;
-    if (!currentSchoolCode) {
-      // 无学校上下文无法 join，保留 invite 上下文等待下次时机
-      return;
-    }
-    try {
-      await schoolsApi.joinSchool(currentSchoolCode, inviteCode);
-      // 消费成功后刷新 memberships 列表（确保首页切换器看到新学校）
-      try {
-        const memberships = await schoolsApi.listMyMemberships();
-        setMemberships(memberships);
-      } catch {
-        // 刷新 memberships 失败不阻塞登录主流程
-      }
-    } catch {
-      // 消费失败不阻塞登录（邀请码可能已过期/已使用/不匹配当前学校）
-      // 保留 invite 上下文让用户在注册流程或个人中心手动处理
-      return;
-    }
-    clearInviteContext();
-  };
-
+  // 2026-08-01：邀请码功能已移除，登录后无需消费邀请码
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -71,8 +43,6 @@ const LoginPage: React.FC = () => {
     try {
       const response = await authApi.login({ email: formData.email, password: formData.password });
       setAuth(response.user, response.access_token, response.refresh_token);
-      // ACC-01.2: 登录后自动消费短期上下文中的邀请码（失败不阻塞登录主流程）
-      await consumeInviteAfterLogin();
       setToast({ message: '登录成功', type: 'success' });
       // ACC-01.1: 优先回跳到原目标页；admin 角色且无明确回跳目标时进后台
       const role = response.user?.role;

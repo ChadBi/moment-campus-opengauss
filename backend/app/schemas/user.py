@@ -25,17 +25,10 @@ class UserRegister(BaseModel):
     email: EmailStr
     nickname: str = Field(..., min_length=2, max_length=50)
     password: str = Field(..., min_length=6, max_length=50)
-    # ACC-01.2: school_id 改为可选，优先从 X-School-Code 头解析（TEN-02 写请求忽略 body）
-    # 未提供 X-School-Code 且 school_id 为 None 时，register 端点返回 400
+    # 2026-08-01 起：注册时用户自由选择初始加入的学校，通过 school_id 显式指定；
+    # 未提供时回退到 X-School-Code 头解析（兼容既有调用方），两者皆无则 400。
+    # 注册成功后为该用户创建所选学校的 active membership（is_default=True）。
     school_id: Optional[int] = None
-    # ACC-01.2: 邀请码可选字段；前端通过 URL ?invite=xxx 写入短期上下文后回传
-    # 提供时将校验有效性（存在/未过期/未使用/邮箱匹配/学校匹配）并消费，
-    # 同时为注册用户在该学校创建 active membership
-    invite_code: Optional[str] = Field(
-        None,
-        max_length=64,
-        description="邀请码（可选）；提供时将校验并消费，同时创建 membership",
-    )
 
 
 class UserLogin(BaseModel):

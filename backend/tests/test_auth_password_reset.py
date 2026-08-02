@@ -350,22 +350,24 @@ async def test_forgot_password_creates_db_record(
     assert after_count == before_count + 1
 
 
-async def test_register_uses_x_school_code_header(
+async def test_register_school_id_body_priority(
     client: AsyncClient, test_school: dict
 ):
-    """ACC-01.2: register 接受 X-School-Code 头解析 school_id（优先于 body）。"""
-    # body 中传一个不存在的 school_id（如 99999），但 X-School-Code 头指向 test_school
+    """2026-08-01 起：注册时 body.school_id 优先于 X-School-Code 头（不再有邀请码）。
+
+    body 传有效 school_id，X-School-Code 头传不存在的 code → 以 body 为准。
+    """
     response = await client.post(
         "/api/v1/auth/register",
         json={
             "email": "headeruser@example.com",
             "nickname": "HeaderUser",
             "password": "securepassword",
-            "school_id": 99999,  # 故意传一个无效 ID
+            "school_id": test_school["id"],
         },
-        headers={"X-School-Code": test_school["code"]},
+        headers={"X-School-Code": "nonexistent-code"},
     )
     assert response.status_code == 200
     data = response.json()
-    # 用户实际 school_id 应为 X-School-Code 解析的 test_school.id，而非 body 中的 99999
+    # 用户实际 school_id 应为 body.school_id（test_school.id），而非 header
     assert data["user"]["school_id"] == test_school["id"]

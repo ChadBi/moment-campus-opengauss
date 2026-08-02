@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-01（v2.0.1~v2.1.0 分批归档：T7 向量检索 512 维改造、治理/Analytics 清理、自动过期定时器、前端状态组件、小程序 AI-Skills、pytest 警告治理、docs 校对）
+> 最后更新：2026-08-02（v2.1.1：删除邀请码功能，注册时自由选择初始加入学校）
 
 ## 状态总览
 
@@ -39,6 +39,19 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### 删除邀请码 + 注册时自由选择学校（2026-08-02 完成）
+
+- [x] 用户决策（2026-08-01）：注册无需邀请码，初始加入的学校改为注册时下拉选择（不再默认绑定江南大学）
+- [x] 后端：删除 `SchoolInvitation` 模型/关系/import，新增迁移 `d5e6f7a8b9c1` drop `school_invitations` 表并已执行（head=b6c7d8e9f0a1 → d5e6f7a8b9c1）
+- [x] 后端 `register` 端点：`body.school_id` 优先 → `X-School-Code` 头回退 → 均缺失 400；注册成功自动创建所选学校 active membership（is_default=true）；移除全部邀请码校验
+- [x] 后端 `join` 端点：移除邀请码参数与校验，直接加入（幂等已保留）；平台 `create_school` 移除 `admin_email`/邀请生成，响应不再含 `invitation` 字段
+- [x] 清理：`seed_data.py` 清表列表移除 `school_invitations`；`schools.py` 修复 join 尾部重复 commit
+- [x] 测试：删除 9 个邀请码用例（register 5 + join 3 + platform 相关断言），新增注册无学校 400 / X-School-Code 回退 / body 优先用例；后端全量 `pytest` 983 passed
+- [x] 前端：注册页移除邀请码输入框 + 新增"选择加入的学校"下拉（公开目录，默认选中提示"请选择学校"）；登录页移除邀请码消费；`auth.ts`/`schools.ts` 移除邀请码字段；`npm run build` 通过
+- [x] 小程序：`emailRegister` 移除 `invite_code` 参数
+- [x] 端到端验证：浏览器实测选择复旦大学注册 → 自动登录 → 首页学校上下文为复旦大学（API 与 UI 全链路通过，无邀请码元素）
+- [x] 版本：CHANGELOG v2.1.1；任务报告：[AIwork/删除邀请码并支持注册自由选择学校任务报告.md](AIwork/删除邀请码并支持注册自由选择学校任务报告.md)
 
 ### T7 向量检索 384→512 维度改造（2026-08-01 完成）
 

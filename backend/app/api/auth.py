@@ -32,7 +32,6 @@ from app.schemas.user import (
 from app.schemas.common import MessageResponse
 from app.models.user import User
 from app.models.school import School
-from app.models.school_invitation import SchoolInvitation
 from app.models.school_membership import SchoolMembership
 from app.models.password_reset_token import PasswordResetToken
 from app.models.user_auth_identity import UserAuthIdentity
@@ -86,36 +85,22 @@ async def register(
 ):
     """用户注册。
 
-    ACC-01.2: 取消固定 school_id。
-    - 优先使用 X-School-Code 头解析的 school_id（TEN-02: 写请求忽略 body 里的 school_id）
-    - 未提供 X-School-Code 时回退到 body.school_id（兼容现有测试与未注入拦截器的调用方）
+    注册时用户自由选择初始加入的学校（2026-08-01 起不再需要邀请码）：
+    - 优先使用 body.school_id（前端注册页下拉选择，用户显式指定）
+    - 未提供 school_id 时回退到 X-School-Code 头解析（兼容既有调用方与测试）
     - 两者都未提供时返回 400（防止创建无学校用户）
 
-    ACC-01.2: 邀请码消费闭环
-    - 若 body.invite_code 提供：先校验有效性（存在/未过期/未使用/邮箱匹配/学校匹配），
-      注册成功后标记 invitation.status='accepted' / accepted_at / used_by，
-      并为该用户在该学校创建 active membership（is_default=True，新用户首校默认）。
-    - 若 invite_code 无效：返回 400，不创建用户。
-    - 若 invite_code 缺省：仅创建用户，不创建 membership（保持原行为）。
+    注册成功后：创建 User（school_id=所选学校）+ 创建该校 active membership
+    （is_default=True，新用户首校默认）。
     """
-    # ACC-01.2: 从 X-School-Code 解析 school_id（优先），否则回退到 body
-    school_id = await _resolve_school_id_from_header(db, x_school_code)
+    # 优先使用 body.school_id（用户显式选择），未提供时回退到 X-School-Code 头
+    school_id = data.school_id
     if school_id is None:
-        school_id = data.school_id
+        school_id = await _resolve_school_id_from_header(db, x_school_code)
 
     if school_id is None:
         raise BadRequestException(
-            detail="无法确定注册学校，请通过 X-School-Code 头或 school_id 字段提供"
-        )
-
-    # ACC-01.2: 邀请码预校验（注册前校验，避免无效邀请码导致脏用户）
-    invitation: Optional[SchoolInvitation] = None
-    if data.invite_code:
-        invitation = await _validate_invitation_for_register(
-            db=db,
-            invite_code=data.invite_code,
-            school_id=school_id,
-            email=data.email,
+            detail="无法确定注册学校，请通过 school_id 字段或 X-School-Code 头提供"
         )
 
     # 检查邮箱是否已存在
@@ -145,29 +130,20 @@ async def register(
     )
     db.add(email_identity)
 
-    # ACC-01.2: 消费邀请码 + 创建 active membership
-    if invitation is not None:
-        now = datetime.now()
-        invitation.status = "accepted"
-        invitation.accepted_at = now
-        invitation.used_by = user.id
-
-        # 邀请码指定角色：admin 邀请 → admin 角色；否则 member
-        membership_role = "admin" if invitation.role == "admin" else "member"
-        membership = SchoolMembership(
-            user_id=user.id,
-            school_id=school_id,
-            role=membership_role,
-            status="active",
-            is_default=True,  # 新用户首校默认
-            joined_at=now,
-            invited_by=invitation.invited_by,
-        )
-        db.add(membership)
-        logger.info(
-            "ACC-01.2 register: invite_code consumed user_id=%s school_id=%s role=%s",
-            user.id, school_id, membership_role,
-        )
+    # 为用户创建所选学校的 active membership（新用户首校默认）
+    membership = SchoolMembership(
+        user_id=user.id,
+        school_id=school_id,
+        role="member",
+        status="active",
+        is_default=True,  # 新用户首校默认
+        joined_at=datetime.now(),
+    )
+    db.add(membership)
+    logger.info(
+        "register: user created user_id=%s school_id=%s membership created",
+        user.id, school_id,
+    )
 
     await db.commit()
     await db.refresh(user)
@@ -193,51 +169,6 @@ async def register(
         refresh_token=refresh_token_value,
         user=UserResponse.model_validate(user),
     )
-
-
-async def _validate_invitation_for_register(
-    db: AsyncSession,
-    invite_code: str,
-    school_id: int,
-    email: str,
-) -> SchoolInvitation:
-    """ACC-01.2: 注册时校验邀请码有效性。
-
-    校验项：
-    1. 存在：邀请码必须存在于 school_invitations 表
-    2. 学校匹配：invitation.school_id == 入参 school_id
-    3. 邮箱匹配：invitation.email == 入参 email
-    4. 未过期：invitation.expires_at 为 NULL 或 > now
-    5. 未使用：invitation.status != 'accepted'
-
-    任一项失败均抛 BadRequestException（统一安全失败提示，不区分具体原因）。
-    """
-    result = await db.execute(
-        select(SchoolInvitation).where(
-            SchoolInvitation.invitation_code == invite_code,
-        )
-    )
-    invitation = result.scalar_one_or_none()
-
-    # 统一安全失败提示（不区分 邀请码不存在/学校不匹配/邮箱不匹配/已过期/已使用）
-    invalid_msg = "邀请码无效或已过期"
-
-    if invitation is None:
-        raise BadRequestException(detail=invalid_msg)
-
-    if invitation.school_id != school_id:
-        raise BadRequestException(detail=invalid_msg)
-
-    if invitation.email and invitation.email != email:
-        raise BadRequestException(detail=invalid_msg)
-
-    if invitation.expires_at is not None and datetime.now() > invitation.expires_at:
-        raise BadRequestException(detail=invalid_msg)
-
-    if invitation.status == "accepted":
-        raise BadRequestException(detail=invalid_msg)
-
-    return invitation
 
 
 @router.post("/login", response_model=LoginResponse, summary="用户登录")

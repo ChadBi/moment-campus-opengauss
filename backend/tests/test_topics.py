@@ -136,7 +136,7 @@ async def topic_setup(db_session: AsyncSession) -> dict:
         # 这是 openGauss 跨连接可见性问题的 workaround
         business_tables = [
             "topic_collection_posts", "topic_collections",
-            "school_subscriptions", "school_memberships", "school_invitations",
+            "school_subscriptions", "school_memberships",
             "school_settings", "school_domains",
             "posts", "categories",
             "post_images", "locations", "comments", "likes",

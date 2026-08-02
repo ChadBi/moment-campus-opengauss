@@ -55,14 +55,9 @@ export const schoolsApi = {
     return response.data;
   },
 
-  /** 加入学校（幂等：已是成员返回 already_member=true） */
-  joinSchool: async (
-    code: string,
-    invitationCode?: string
-  ): Promise<JoinSchoolResponse> => {
-    const response = await api.post(`/schools/${code}/join`, {
-      invitation_code: invitationCode ?? null,
-    });
+  /** 加入学校（2026-08-01 起无需邀请码，直接加入；幂等：已是成员返回 already_member=true） */
+  joinSchool: async (code: string): Promise<JoinSchoolResponse> => {
+    const response = await api.post(`/schools/${code}/join`);
     return response.data;
   },
 

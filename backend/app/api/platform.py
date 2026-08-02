@@ -31,7 +31,6 @@ from app.models.plan_entitlement import PlanEntitlement
 from app.models.school_subscription import SchoolSubscription
 from app.models.school import School
 from app.models.school_settings import SchoolSettings
-from app.models.school_invitation import SchoolInvitation
 from app.models.school_membership import SchoolMembership
 from app.models.category import Category
 from app.models.location import Location
@@ -453,7 +452,6 @@ class SchoolCreateRequest(BaseModel):
     logo_url: Optional[str] = Field(None, description="Logo URL")
     brand_color: Optional[str] = Field(None, description="主题色（如 #1890ff）")
     description: Optional[str] = Field(None, description="学校简介")
-    admin_email: Optional[str] = Field(None, description="首位管理员邀请邮箱")
     plan_code: Optional[str] = Field(None, description="默认套餐 code，默认 trial")
     province: Optional[str] = Field(None)
     city: Optional[str] = Field(None)
@@ -503,7 +501,6 @@ class SchoolCreateResponse(BaseModel):
     """创建学校响应。"""
     school: dict
     settings: dict
-    invitation: Optional[dict] = None
     subscription: Optional[dict] = None
     categories_copied: int = 0
     audit_id: Optional[int] = None
@@ -553,9 +550,8 @@ async def create_school(
     1. 创建 School 行
     2. 从江南大学复制默认分类
     3. 创建 SchoolSettings 默认行
-    4. 创建首位管理员邀请（若提供 admin_email）
-    5. 分配默认套餐（trial 或指定 plan_code）
-    6. 写入平台审计日志（action=school.create）
+    4. 分配默认套餐（trial 或指定 plan_code）
+    5. 写入平台审计日志（action=school.create）
     """
     svc = SchoolProvisioningService(db)
     req = SchoolProvisionRequest(
@@ -567,7 +563,6 @@ async def create_school(
         logo_url=body.logo_url,
         brand_color=body.brand_color,
         description=body.description,
-        admin_email=body.admin_email,
         plan_code=body.plan_code,
         province=body.province,
         city=body.city,
@@ -577,7 +572,6 @@ async def create_school(
 
     school = result["school"]
     settings = result["settings"]
-    invitation = result["invitation"]
     subscription = result["subscription"]
     categories_copied = result["categories_copied"]
 
@@ -587,7 +581,6 @@ async def create_school(
         "school_id": school.id, "code": school.code, "name": school.name,
         "plan_code": body.plan_code or "trial",
         "categories_copied": categories_copied,
-        "invitation_created": invitation is not None,
     }
     await write_platform_audit(
         db,
@@ -605,8 +598,6 @@ async def create_school(
     # 重新刷新以拿到 created_at 等字段
     await db.refresh(school)
     await db.refresh(settings)
-    if invitation is not None:
-        await db.refresh(invitation)
     if subscription is not None:
         await db.refresh(subscription, attribute_names=["plan"])
 
@@ -632,15 +623,6 @@ async def create_school(
             "description": settings.description, "brand_color": settings.brand_color,
             "logo_url": settings.logo_url,
         },
-        invitation=(
-            {
-                "id": invitation.id, "school_id": invitation.school_id,
-                "email": invitation.email, "role": invitation.role,
-                "invitation_code": invitation.invitation_code,
-                "status": invitation.status, "created_at": invitation.created_at,
-            }
-            if invitation is not None else None
-        ),
         subscription=(
             {
                 "id": subscription.id, "school_id": subscription.school_id,

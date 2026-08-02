@@ -24,14 +24,11 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.exceptions import (
-    BadRequestException, NotFoundException, ConflictException,
-)
+from app.core.exceptions import NotFoundException
 from app.core.tenant import TenantContext, get_tenant_context
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.school import School
-from app.models.school_invitation import SchoolInvitation
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 
@@ -104,13 +101,6 @@ class MembershipResponse(BaseModel):
     school: MembershipSchoolBrief
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class JoinSchoolRequest(BaseModel):
-    """加入学校请求（可带邀请码）"""
-    invitation_code: Optional[str] = Field(
-        None, description="邀请码（可选，若提供需匹配该校未使用邀请）"
-    )
 
 
 class JoinSchoolResponse(BaseModel):
@@ -246,19 +236,17 @@ async def list_my_memberships(
 )
 async def join_school(
     code: str,
-    body: JoinSchoolRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """加入指定学校。
 
-    业务规则：
+    业务规则（2026-08-01 起不再需要邀请码，直接加入）：
     1. 学校必须存在且 is_active=true，否则 404
     2. 若用户已是该校 active 成员：幂等返回 already_member=true，不修改
     3. 若用户在该校已有 invited/suspended 状态的 membership：升级为 active
-    4. 若提供 invitation_code：必须匹配该校未使用邀请；匹配后标记为 accepted
-    5. 若用户尚无任何默认学校，则将本次加入设为默认
-    6. 若用户已有其它默认学校，则本次加入 is_default=false（不抢占默认）
+    4. 若用户尚无任何默认学校，则将本次加入设为默认
+    5. 若用户已有其它默认学校，则本次加入 is_default=false（不抢占默认）
     """
     # 1. 校验学校存在且启用
     school = (
@@ -267,26 +255,7 @@ async def join_school(
     if school is None or not school.is_active:
         raise NotFoundException(detail="学校不存在或已停用")
 
-    # 2. 校验邀请码（若提供）
-    invitation: Optional[SchoolInvitation] = None
-    if body.invitation_code:
-        invitation = (
-            await db.execute(
-                select(SchoolInvitation).where(
-                    SchoolInvitation.invitation_code == body.invitation_code,
-                    SchoolInvitation.school_id == school.id,
-                )
-            )
-        ).scalar_one_or_none()
-        if invitation is None:
-            raise BadRequestException(detail="邀请码无效")
-        # 邀请码校验邮箱匹配
-        if invitation.email and invitation.email != current_user.email:
-            raise BadRequestException(detail="邀请码不适用于当前账号")
-        if invitation.status == "accepted":
-            raise ConflictException(detail="邀请码已被使用")
-
-    # 3. 查找已有 membership
+    # 2. 查找已有 membership
     existing = (
         await db.execute(
             select(SchoolMembership).where(
@@ -308,11 +277,6 @@ async def join_school(
         existing.status = "active"
         existing.joined_at = datetime.now()
         existing.updated_at = datetime.now()
-        await db.flush()
-        # 标记邀请已接受（若提供）
-        if invitation is not None:
-            invitation.status = "accepted"
-            invitation.accepted_at = datetime.now()
         await db.commit()
         await db.refresh(existing, attribute_names=["school"])
         return JoinSchoolResponse(
@@ -320,7 +284,7 @@ async def join_school(
             already_member=False,
         )
 
-    # 4. 新建 membership
+    # 3. 新建 membership
     # 决定是否设为默认：用户当前无任何默认学校时设为默认
     default_count = (
         await db.execute(
@@ -332,27 +296,15 @@ async def join_school(
     ).first()
     is_default = default_count is None
 
-    # 邀请码指定角色（admin 邀请 → admin 角色）；否则 member
-    role = "member"
-    if invitation is not None and invitation.role == "admin":
-        role = "admin"
-
     membership = SchoolMembership(
         user_id=current_user.id,
         school_id=school.id,
-        role=role,
+        role="member",
         status="active",
         is_default=is_default,
         joined_at=datetime.now(),
-        invited_by=invitation.invited_by if invitation else None,
     )
     db.add(membership)
-    await db.flush()
-
-    if invitation is not None:
-        invitation.status = "accepted"
-        invitation.accepted_at = datetime.now()
-
     await db.commit()
     await db.refresh(membership, attribute_names=["school"])
     return JoinSchoolResponse(

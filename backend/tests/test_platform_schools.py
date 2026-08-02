@@ -1,7 +1,7 @@
 """TEN-04: 平台学校管理 + 开通清单 + 暂停恢复 + 平台审计 测试。
 
 覆盖：
-- TEN-04.1：POST /platform/schools 创建学校（含默认分类复制/设置/邀请/订阅）
+- TEN-04.1：POST /platform/schools 创建学校（含默认分类复制/设置/订阅）
 - TEN-04.1：GET /platform/schools 平台学校列表（含订阅/激活/成员/内容数）
 - TEN-04.1：GET /platform/schools/{id} 学校详情（含开通清单）
 - TEN-04.1：PUT /platform/schools/{id}/status 启用/暂停学校
@@ -21,7 +21,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.category import Category
 from app.models.platform_audit import PlatformAuditLog
 from app.models.school import School
-from app.models.school_invitation import SchoolInvitation
 from app.models.school_settings import SchoolSettings
 from app.models.school_subscription import SchoolSubscription
 
@@ -112,7 +111,7 @@ class TestCreateSchool:
         self, client: AsyncClient, super_admin_headers: dict,
         super_admin_user: dict, jiangnan_template: dict,
     ):
-        """创建学校：自动复制分类/创建设置/邀请/订阅/审计。"""
+        """创建学校：自动复制分类/创建设置/订阅/审计。"""
         r = await client.post(
             "/api/v1/platform/schools",
             headers=super_admin_headers,
@@ -125,7 +124,6 @@ class TestCreateSchool:
                 "logo_url": "https://example.com/logo.png",
                 "brand_color": "#1890ff",
                 "description": "TEN-04 测试学校",
-                "admin_email": "demo-admin@example.com",
                 "plan_code": "trial",
             },
         )
@@ -146,13 +144,8 @@ class TestCreateSchool:
         assert settings["brand_color"] == "#1890ff"
         assert settings["description"] == "TEN-04 测试学校"
 
-        # invitation
-        inv = data["invitation"]
-        assert inv is not None
-        assert inv["email"] == "demo-admin@example.com"
-        assert inv["role"] == "admin"
-        assert inv["status"] == "expires"
-        assert inv["invitation_code"]
+        # 2026-08-01 起不再创建邀请码：响应中不应有 invitation 字段
+        assert "invitation" not in data
 
         # subscription（trial）
         sub = data["subscription"]
@@ -167,11 +160,11 @@ class TestCreateSchool:
         assert data["audit_id"] is not None
 
     @pytest.mark.asyncio
-    async def test_create_school_without_admin_email(
+    async def test_create_school_minimal_fields(
         self, client: AsyncClient, super_admin_headers: dict,
         jiangnan_template: dict,
     ):
-        """不传 admin_email → invitation=None，但仍分配默认 trial 套餐。"""
+        """创建学校：不传额外字段仍分配默认 trial 套餐。"""
         r = await client.post(
             "/api/v1/platform/schools",
             headers=super_admin_headers,
@@ -183,7 +176,6 @@ class TestCreateSchool:
         )
         assert r.status_code == 200, r.text
         data = r.json()
-        assert data["invitation"] is None
         assert data["subscription"]["plan_code"] == "standard"
         # 无江南模板分类也能创建（本用例有 jiangnan_template）
         assert data["categories_copied"] == 2
@@ -464,7 +456,7 @@ class TestPlatformAudit:
         r_create = await client.post(
             "/api/v1/platform/schools",
             headers=super_admin_headers,
-            json={"code": "audit-uni", "name": "审计校", "admin_email": "a@b.com"},
+            json={"code": "audit-uni", "name": "审计校"},
         )
         assert r_create.status_code == 200
         school_id = r_create.json()["school"]["id"]
