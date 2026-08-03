@@ -9,6 +9,11 @@
 两种调用方式：
   方式 A（默认）：DashScope SDK — WebSocket 连接，返回音频字节，输出 MP3
   方式 B（备选）：HTTP REST API — 返回音频 URL，支持 WAV 格式
+
+指令控制：
+  每段旁白附带 instruction 字段，用自然语言描述期望的语速、情绪和风格
+  SDK 参数名：instruction（单数）
+  REST API 参数名：instructions（复数）
 """
 
 import os
@@ -41,46 +46,56 @@ VOICE_PERSONAL = "longanhuan_v3.6"   # 个人介绍视频：同款男声（可�
 REST_API_URL = "https://dashscope.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer"
 
 # ============================================================
-# 旁白文本（从脚本中提取，每段独立生成）
+# 旁白文本 + 指令控制（从脚本中提取，每段独立生成）
+# instruction 字段：用自然语言描述期望的语速、情绪和风格
 # ============================================================
 
 # 作品演示视频旁白（9段）
 DEMO_NARRATIONS = [
     {
         "id": "demo_01_pain_point",
-        "text": "每天，校园里产生大量信息：二手交易、失物招领、活动组队、生活吐槽。但它们散落在几十个微信群、表白墙和公告栏里。你找不到需要的信息，发布的信息也很快沉底、过期、无人知晓。校园信息，缺一个统一的入口。"
+        "text": "每天，校园里产生大量信息：二手交易、失物招领、活动组队、生活吐槽。但它们散落在几十个微信群、表白墙和公告栏里。你找不到需要的信息，发布的信息也很快沉底、过期、无人知晓。校园信息，缺一个统一的入口。",
+        "instruction": "语速稍快，带有紧迫感，描述校园信息散落的问题",
     },
     {
         "id": "demo_02_product",
-        "text": "此刻校园——一张活的校园信息地图。我们把校园里每一条信息，绑定到地图上的一个位置、一个时间、一个分类，让信息不再流浪。"
+        "text": "此刻校园——一张活的校园信息地图。我们把校园里每一条信息，绑定到地图上的一个位置、一个时间、一个分类，让信息不再流浪。",
+        "instruction": "语速适中，沉稳有力，适合产品定位介绍",
     },
     {
         "id": "demo_03_map",
-        "text": "打开地图页，校园信息以点位形式呈现在地图上。每条信息都有精确的地理位置，点击标记即可查看详情。无论是图书馆的空座分享，还是食堂的失物招领，一目了然。"
+        "text": "打开地图页，校园信息以点位形式呈现在地图上。每条信息都有精确的地理位置，点击标记即可查看详情。无论是图书馆的空座分享，还是食堂的失物招领，一目了然。",
+        "instruction": "语速适中，清晰流畅，介绍产品功能操作",
     },
     {
         "id": "demo_04_ai_search",
-        "text": "传统搜索只能匹配关键词。我们接入了AI语义搜索：输入\u201c哪里有流浪猫\u201d，AI首先解析你的意图——识别关键词\u201c流浪猫\u201d，匹配到分享和失物招领分类，再通过openGauss DataVec 512维语义向量进行召回，最后按语义相关性、新鲜度、验证数和关键词匹配度混合排序。每条结果都标注了匹配理由，让你知道\u201c为什么推荐这条\u201d。"
+        "text": "传统搜索只能匹配关键词。我们接入了AI语义搜索：输入\u201c哪里有流浪猫\u201d，AI首先解析你的意图——识别关键词\u201c流浪猫\u201d，匹配到分享和失物招领分类，再通过openGauss DataVec 512维语义向量进行召回，最后按语义相关性、新鲜度、验证数和关键词匹配度混合排序。每条结果都标注了匹配理由，让你知道\u201c为什么推荐这条\u201d。",
+        "instruction": "语速适中，专业清晰，讲解技术原理",
     },
     {
         "id": "demo_05_ai_publish",
-        "text": "发布信息时，不知道选什么分类？不确定有效期设多久？点击\u201cAI辅助建议\u201d，系统自动分析你的内容，推荐最合适的分类、建议合理的有效期，并检测是否包含敏感信息。你可以逐条确认采纳，也可以手动修改。每一条建议都透明可控。"
+        "text": "发布信息时，不知道选什么分类？不确定有效期设多久？点击\u201cAI辅助建议\u201d，系统自动分析你的内容，推荐最合适的分类、建议合理的有效期，并检测是否包含敏感信息。你可以逐条确认采纳，也可以手动修改。每一条建议都透明可控。",
+        "instruction": "语速适中，轻松友好，介绍功能操作",
     },
     {
         "id": "demo_06_verification",
-        "text": "信息发布后，谁来保证它的真实性？我们设计了协同验证机制。每条帖子都可以被其他用户\u201c证实\u201d或\u201c证伪\u201d，两类互斥，可以切换，再次点击同类即可取消。验证结果以百分比直观展示。多人证实的信息可信度高，多人证伪的信息会触发平台关注。这是一种去中心化的信息自治理方式。"
+        "text": "信息发布后，谁来保证它的真实性？我们设计了协同验证机制。每条帖子都可以被其他用户\u201c证实\u201d或\u201c证伪\u201d，两类互斥，可以切换，再次点击同类即可取消。验证结果以百分比直观展示。多人证实的信息可信度高，多人证伪的信息会触发平台关注。这是一种去中心化的信息自治理方式。",
+        "instruction": "语速适中，沉稳有力，介绍核心机制设计",
     },
     {
         "id": "demo_07_social_value",
-        "text": "校园信息不对称是一个真实的社会问题。找不到失物、错过活动、重复消费——此刻校园通过地图定位让信息可发现，通过有效期让信息不过期，通过协同验证让信息可信任。这不是一个论坛，而是一套校园信息基础设施。目前平台已入驻三所高校，累计沉淀超过1500条真实校园信息。"
+        "text": "校园信息不对称是一个真实的社会问题。找不到失物、错过活动、重复消费——此刻校园通过地图定位让信息可发现，通过有效期让信息不过期，通过协同验证让信息可信任。这不是一个论坛，而是一套校园信息基础设施。目前平台已入驻三所高校，累计沉淀超过1500条真实校园信息。",
+        "instruction": "语速稍慢，温暖有力，升华社会价值",
     },
     {
         "id": "demo_08_trae",
-        "text": "从第一行代码到最后一次部署，全程使用TRAE IDE完成。"
+        "text": "从第一行代码到最后一次部署，全程使用TRAE IDE完成。",
+        "instruction": "语速适中，简洁有力，节奏明快",
     },
     {
         "id": "demo_09_outro",
-        "text": "此刻校园支持多学校入驻，切换学校，信息独立。让校园里每一刻都值得被看见。此刻校园，给信息一个坐标，给此刻一个归属。"
+        "text": "此刻校园支持多学校入驻，切换学校，信息独立。让校园里每一刻都值得被看见。此刻校园，给信息一个坐标，给此刻一个归属。",
+        "instruction": "语速适中，坚定有力，适合品牌Slogan收尾",
     },
 ]
 
@@ -88,19 +103,23 @@ DEMO_NARRATIONS = [
 PERSONAL_NARRATIONS = [
     {
         "id": "personal_01_intro",
-        "text": "你好，我是一名校园摄影爱好者。在大学校园里，我最喜欢做的事，就是带着相机满校园找猫拍。"
+        "text": "你好，我是一名校园摄影爱好者。在大学校园里，我最喜欢做的事，就是带着相机满校园找猫拍。",
+        "instruction": "语速适中，轻松自然，适合自我介绍",
     },
     {
         "id": "personal_02_story",
-        "text": "有一次，我听说图书馆后面有一只橘猫，找了整整一下午也没等到。后来才知道，它常出没的时间是清晨，而这条信息，藏在某个微信群的聊天记录里，已经是一周前的消息了。那一刻我突然意识到：校园里的信息一直都在，但它们散落、过期、找不到。猫就在校园里，我却不知道它在哪。"
+        "text": "有一次，我听说图书馆后面有一只橘猫，找了整整一下午也没等到。后来才知道，它常出没的时间是清晨，而这条信息，藏在某个微信群的聊天记录里，已经是一周前的消息了。那一刻我突然意识到：校园里的信息一直都在，但它们散落、过期、找不到。猫就在校园里，我却不知道它在哪。",
+        "instruction": "语速稍慢，温暖感性，讲述个人故事",
     },
     {
         "id": "personal_03_motivation",
-        "text": "于是我做了\u201c此刻校园\u201d。我用TRAE IDE从零开始开发了整个产品——从数据库设计到前端界面，从AI搜索到协同验证，每一行代码都有TRAE的参与。把校园信息和地点、时间绑定，让每一条信息都有坐标、有时效、有人验证。从一个人追着猫跑，到想让整个校园的人都能分享此刻——这就是我做这个项目的初衷。"
+        "text": "于是我做了\u201c此刻校园\u201d。我用TRAE IDE从零开始开发了整个产品——从数据库设计到前端界面，从AI搜索到协同验证，每一行代码都有TRAE的参与。把校园信息和地点、时间绑定，让每一条信息都有坐标、有时效、有人验证。从一个人追着猫跑，到想让整个校园的人都能分享此刻——这就是我做这个项目的初衷。",
+        "instruction": "语速适中，坚定有力，表达参赛动机",
     },
     {
         "id": "personal_04_declaration",
-        "text": "校园信息每天都在产生，也在每天消失。我不想等到毕业才做这件事。让校园里的每一刻，都有坐标。"
+        "text": "校园信息每天都在产生，也在每天消失。我不想等到毕业才做这件事。让校园里的每一刻，都有坐标。",
+        "instruction": "语速稍慢，深情坚定，适合宣言金句",
     },
 ]
 
@@ -109,7 +128,7 @@ PERSONAL_NARRATIONS = [
 # 方式 A：DashScope SDK（WebSocket，输出 MP3）
 # ============================================================
 
-def generate_with_sdk(text: str, voice: str, output_path: Path) -> bool:
+def generate_with_sdk(text: str, voice: str, output_path: Path, instruction: str = None) -> bool:
     """使用 DashScope SDK 生成语音（返回音频字节，输出 MP3）"""
     try:
         import dashscope
@@ -122,7 +141,12 @@ def generate_with_sdk(text: str, voice: str, output_path: Path) -> bool:
     dashscope.base_websocket_api_url = "wss://dashscope.aliyuncs.com/api-ws/v1/inference"
 
     try:
-        synthesizer = SpeechSynthesizer(model=MODEL, voice=voice)
+        # 构建 SpeechSynthesizer 参数
+        synth_kwargs = {"model": MODEL, "voice": voice}
+        if instruction:
+            synth_kwargs["instruction"] = instruction
+
+        synthesizer = SpeechSynthesizer(**synth_kwargs)
         audio_data = synthesizer.call(text)
 
         if not audio_data:
@@ -147,21 +171,26 @@ def generate_with_sdk(text: str, voice: str, output_path: Path) -> bool:
 # 方式 B：HTTP REST API（返回 URL，输出 WAV）
 # ============================================================
 
-def generate_with_rest(text: str, voice: str, output_path: Path) -> bool:
+def generate_with_rest(text: str, voice: str, output_path: Path, instruction: str = None) -> bool:
     """使用 HTTP REST API 生成语音（返回音频 URL，输出 WAV）"""
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
     }
 
+    input_data = {
+        "text": text,
+        "voice": voice,
+        "format": "wav",
+        "sample_rate": 24000,
+    }
+    # REST API 参数名为 instructions（复数）
+    if instruction:
+        input_data["instructions"] = instruction
+
     payload = {
         "model": MODEL,
-        "input": {
-            "text": text,
-            "voice": voice,
-            "format": "wav",
-            "sample_rate": 24000,
-        }
+        "input": input_data,
     }
 
     try:
@@ -207,21 +236,23 @@ def generate_with_rest(text: str, voice: str, output_path: Path) -> bool:
 # 统一生成函数（先试 SDK，失败再试 REST）
 # ============================================================
 
-def generate_tts(text: str, voice: str, item_id: str) -> bool:
+def generate_tts(text: str, voice: str, item_id: str, instruction: str = None) -> bool:
     """生成单段语音：优先 SDK，失败后回退 REST API"""
     output_path = OUTPUT_DIR / item_id
 
     print(f"  正在生成: {item_id}")
     print(f"  文本前30字: {text[:30]}...")
+    if instruction:
+        print(f"  指令控制: {instruction}")
 
     # 方式 A：SDK
-    ok = generate_with_sdk(text, voice, output_path)
+    ok = generate_with_sdk(text, voice, output_path, instruction)
     if ok:
         return True
 
     # 方式 B：REST API
     print("    切换到 REST API 方式...")
-    ok = generate_with_rest(text, voice, output_path)
+    ok = generate_with_rest(text, voice, output_path, instruction)
     return ok
 
 
@@ -231,12 +262,13 @@ def batch_generate(narrations: list, voice: str, prefix: str) -> int:
     print(f"开始生成 {prefix} 旁白（共 {len(narrations)} 段）")
     print(f"模型: {MODEL}")
     print(f"音色: {voice}")
+    print(f"指令控制: 已启用（每段独立设置）")
     print(f"{'=' * 60}")
 
     success_count = 0
     for i, item in enumerate(narrations, 1):
         print(f"\n[{i}/{len(narrations)}] {item['id']}")
-        ok = generate_tts(item["text"], voice, item["id"])
+        ok = generate_tts(item["text"], voice, item["id"], item.get("instruction"))
         if ok:
             success_count += 1
         else:
@@ -279,8 +311,9 @@ if __name__ == "__main__":
 
     print(f"\n作品演示视频旁白: {len(DEMO_NARRATIONS)} 段, {demo_chars} 字")
     print(f"个人介绍视频旁白: {len(PERSONAL_NARRATIONS)} 段, {personal_chars} 字")
-    print(f"总计: {total_chars} 字, 预估费用 ¥{estimated_cost:.2f}")
-    print(f"定价: ¥1.4/万字符")
+    print(f"总计: {total_chars} 字, 预估费用 \u00a5{estimated_cost:.2f}")
+    print(f"定价: \u00a51.4/万字符")
+    print(f"指令控制: 已启用（每段独立情感指令）")
 
     print("\n按回车开始生成（Ctrl+C 取消）...")
     try:

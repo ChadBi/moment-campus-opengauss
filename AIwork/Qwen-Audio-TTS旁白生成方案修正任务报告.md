@@ -17,13 +17,22 @@
 - **语法验证通过**：`ast.parse` 确认无语法错误
 - **启动验证通过**：脚本正确检测到 dashscope SDK 1.26.5，统计字数 1201 字，预估费用 ¥0.17
 
+### 指令控制实现（`docs/video-assets/generate_narration.py`）
+
+- **新增 instruction 字段**：为 13 段旁白逐段配置独立的情感指令
+  - 作品演示视频 9 段：痛点段"语速稍快，带有紧迫感"、产品段"沉稳有力"、社会价值段"温暖有力"等
+  - 个人介绍视频 4 段：自我介绍"轻松自然"、创作故事"温暖感性"、参赛宣言"深情坚定"等
+- **SDK 方式**：通过 `SpeechSynthesizer` 构造参数 `instruction`（单数）传递
+- **REST API 方式**：通过 `input.instructions`（复数）传递
+- **方案文档同步更新**：第八节从"当前脚本未启用指令控制"改为"已启用"，附完整指令对照表
+
 ### 方案文档更新（`docs/video-assets/旁白生成方案.md`）
 
 - **新增模型能力概览**：列出音质、指令控制、声音复刻、多语言、双协议等核心能力
 - **修正调用方式**：从仅描述 REST API 改为同时介绍 SDK（WebSocket）和 REST API 两种方式
 - **新增 SDK 代码示例**：基于模型页面官方代码，使用 `SpeechSynthesizer` 类
 - **修正音色说明**：确认 `longanhuan_v3.6` 为 Qwen-Audio-TTS 系列系统音色
-- **新增指令控制章节**：介绍模型支持的指令控制功能（语速、情绪、风格）
+- **指令控制章节**：已更新为"已启用"状态，附 13 段指令对照表
 - **修正字数和费用估算**：从 720字/¥0.15 更新为 1201字/¥0.17
 - **新增地域限制说明**：Qwen-Audio-TTS 仅在北京地域可用
 - **新增文件清单**：列出方案涉及的所有文件
@@ -57,8 +66,8 @@
 
 ## 5. 修改文件
 
-- `docs/video-assets/generate_narration.py` — 重写 API 调用方式（SDK + REST API 双模式），修复中文引号语法错误，修复版本检查，添加限流逻辑
-- `docs/video-assets/旁白生成方案.md` — 全面更新方案文档，新增模型能力概览、双调用方式说明、SDK 代码示例、指令控制章节，修正字数和费用估算
+- `docs/video-assets/generate_narration.py` — 重写 API 调用方式（SDK + REST API 双模式），修复中文引号语法错误，修复版本检查，添加限流逻辑；新增 13 段旁白独立指令控制
+- `docs/video-assets/旁白生成方案.md` — 全面更新方案文档，新增模型能力概览、双调用方式说明、SDK 代码示例，指令控制章节更新为"已启用"并附完整对照表，修正字数和费用估算
 
 ## 6. 影响范围
 
@@ -95,7 +104,7 @@
 
 1. **获取 API Key**：前往 https://help.aliyun.com/zh/model-studio/get-api-key 获取北京地域的 API Key
 2. **试听音色**：运行方案文档中 Step 3 的测试命令，试听 `longanhuan_v3.6` 音色效果
-3. **批量生成**：确认音色后运行 `python docs\video-assets\generate_narration.py`，13 段音频约 1 分钟完成
+3. **批量生成**：确认音色后运行 `python docs\video-assets\generate_narration.py`，13 段音频约 1 分钟完成（含指令控制）
 4. **音色备选**：如不满意可尝试 `longanyang`（女声）等其他系统音色
 5. **剪映对齐**：将生成的 MP3/WAV 文件导入剪映，按视频脚本时间段对齐画面和旁白
-6. **指令控制**：如需更精细的情感表达，可研究 REST API 的 `instructions` 参数
+6. **指令微调**：如某段旁白情感不理想，可修改脚本中对应段的 `instruction` 字段后单独重试

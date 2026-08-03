@@ -9,6 +9,10 @@
 
 ## [2.1.6] - 2026-08-03
 
+### 新增
+
+- `video` 为 13 段旁白逐段配置独立情感指令（instruction）：痛点段紧迫、产品段沉稳、个人故事温暖感性、参赛宣言深情坚定，SDK 与 REST API 双通道均已接入
+
 ### 变更
 
 - `video` 修正 Qwen-Audio-3.0-TTS-Plus 旁白生成方案：脚本从纯 REST API 改为 DashScope SDK（WebSocket）优先 + REST API 回退双模式；修复中文引号导致 Python 语法错误；更新方案文档补充模型能力、指令控制、地域限制等信息
