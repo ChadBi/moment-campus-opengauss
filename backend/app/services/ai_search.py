@@ -4,7 +4,7 @@
 1. 输入校验：长度（schema 已强制）+ 频率（中间件限流）+ 敏感词检查
 2. 意图解析：调用 invoke_ai（SEARCH_INTENT_SCHEMA 约束）→ 白名单校验分类/排序/时间/地图范围
 3. 数据检索：openGauss 查询当前学校 published 且未过期未删除的帖子
-4. 混合排序：语义（35%）+ 新鲜度（25%）+ 验证数（20%）+ 关键词（20%）
+4. 混合排序：语义（50%）+ 新鲜度（15%）+ 验证数（15%）+ 关键词（20%）
 5. 理由生成：模板生成简短理由（不每次调模型）
 6. 日志记录：通过 invoke_ai 自动记录 ai_invocation_logs + 补充 result_count
 7. 降级：任一步失败 → fallback=true，返回普通搜索结果
@@ -72,9 +72,9 @@ _SENSITIVE_PATTERNS = [
 _MAX_CANDIDATES = 200
 
 # T7 混合分数权重
-_SCORE_WEIGHT_SEMANTIC = 0.35
-_SCORE_WEIGHT_FRESHNESS = 0.25
-_SCORE_WEIGHT_VALIDATION = 0.20
+_SCORE_WEIGHT_SEMANTIC = 0.5
+_SCORE_WEIGHT_FRESHNESS = 0.15
+_SCORE_WEIGHT_VALIDATION = 0.15
 _SCORE_WEIGHT_RELEVANCE = 0.20
 
 # 时间新鲜度衰减周期（天）：超过此天数后 freshness=0
@@ -516,7 +516,7 @@ def _compute_score(
 ) -> tuple[float, list[str]]:
     """计算确定性分数 + 生成单条匹配理由。
 
-    分数 = 0.35 * 语义相似度 + 0.25 * 新鲜度 + 0.20 * 验证数 + 0.20 * 关键词相关度
+    分数 = 0.50 * 语义相似度 + 0.15 * 新鲜度 + 0.15 * 验证数 + 0.20 * 关键词相关度
     取值范围 [0, 1]，确定性（同输入同输出）。
 
     Returns:

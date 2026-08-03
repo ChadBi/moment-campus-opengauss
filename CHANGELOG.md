@@ -12,6 +12,7 @@
 ### 变更
 
 - `post` 修复新建帖子选择信息截止时间报错：前端 UTC 时区 ISO 字符串被 Pydantic 解析为带时区 datetime，asyncpg 无法插入 `TIMESTAMP WITHOUT TIME ZONE` 列；`PostCreate` 和 `PostUpdate` 的 `expire_at` 字段添加 `field_validator` 统一转为北京时间 naive datetime
+- `ai_search` 混合排序权重调整：语义相似度 35% → **50%**，新鲜度 25% → 15%，验证数 20% → 15%，关键词相关度保持 20%（提升语义/向量检索主导地位）
 
 ## [2.1.4] - 2026-08-02
 
