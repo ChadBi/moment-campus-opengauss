@@ -18,6 +18,8 @@
 - `auth` 小程序校园身份认证（B-06）：`pages/profile` 新增认证卡片（学号+校园邮箱发送验证码→确认认证，dev 展示验证码，成功切已认证态）；post-card / post-detail（帖子与评论）/ search / topic-detail 作者昵称旁「已认证」徽标；`services/auth.ts` 封装 send/confirm；is_verified 字段归一化对齐后端嵌套 author
 - `seed` 演示数据 seed 支持校园认证域名（B-01）：为三校写入 `school_domains`（jiangnan.edu.cn / fudan.edu.cn / zju.edu.cn）
 - `seed` 演示数据为部分用户标记校园身份认证（B-07）：`seed_users` 依据用户清单 `campus_verified` 标记，为已认证用户写入 campus_email（学校域名）/student_id/campus_verified_at，使前端与小程序展示「已认证」徽标（江南 8/10、复旦 3/5、浙大 3/5）
+- `miniprogram` 小程序 API 指向公网 HTTPS（C-01）：`services/request.ts` API_HOST 设为 `https://campus.chaina1.com`，`resolveImageUrl` 统一把 `/uploads/` 相对路径解析到生产域名
+- `docs` 新增小程序上线落地指引（C-02）：`docs/36_微信小程序上线落地指引.md` 覆盖合法域名配置、隐私保护指引、体验版发布与体验成员管理流程
 
 ## [2.1.7] - 2026-08-05
 

@@ -1,4 +1,7 @@
-const BASE_URL = 'http://localhost:8000/api/v1'
+// C-01: 小程序 API Base URL 指向公网 HTTPS（生产：campus.chaina1.com）
+// 本地联调可临时改为 'http://localhost:8000'（注意微信开发者工具勾选"不校验合法域名"）
+const API_HOST = 'https://campus.chaina1.com'
+const BASE_URL = `${API_HOST}/api/v1`
 const REQUEST_TIMEOUT = 15000
 
 let isRefreshing = false
@@ -36,7 +39,7 @@ export function resolveImageUrl(url: string | undefined): string {
   if (!url) return ''
   if (url.startsWith('http')) return url
   if (url.startsWith('/uploads/')) {
-    return url.replace('/uploads/', 'http://localhost:8000/uploads/')
+    return url.replace('/uploads/', `${API_HOST}/uploads/`)
   }
   return url
 }
