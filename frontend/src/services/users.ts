@@ -84,4 +84,28 @@ export const usersApi = {
   deleteViewHistoryItem: async (postId: number): Promise<void> => {
     await api.delete(`/users/me/view-history/${postId}`);
   },
+
+  /**
+   * B-01: 发起校园身份认证（提交学号 + 校园邮箱）
+   * 本地开发环境响应中携带 code（无邮件服务），便于演示闭环。
+   */
+  sendCampusVerify: async (data: {
+    student_id: string;
+    campus_email: string;
+  }): Promise<{ message: string; code?: string }> => {
+    const response = await api.post('/users/me/verify-campus/send', data);
+    return response.data;
+  },
+
+  /**
+   * B-01: 确认校园身份认证（提交学号 + 校园邮箱 + 验证码）
+   */
+  confirmCampusVerify: async (data: {
+    student_id: string;
+    campus_email: string;
+    code: string;
+  }): Promise<{ message: string; campus_verified: boolean }> => {
+    const response = await api.post('/users/me/verify-campus/confirm', data);
+    return response.data;
+  },
 };

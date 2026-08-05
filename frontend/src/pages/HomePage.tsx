@@ -9,6 +9,7 @@ import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, LoadingState } from '../components/state';
+import { VerifiedBadge } from '../components/VerifiedBadge';
 import { Heart, MessageCircle, Eye, MapPin, Clock, Sparkles, FilePlus2, Navigation, Star, BadgeCheck, ChevronRight } from 'lucide-react';
 import { useSchoolQueryKey } from '../hooks/useSchoolQueryKey';
 import { useCampusStore } from '../store/useCampusStore';
@@ -181,8 +182,9 @@ const HomePage: React.FC = () => {
                     size="sm"
                     className="flex-shrink-0"
                   />
-                  <span className="font-medium text-ink text-sm">
+                  <span className="font-medium text-ink text-sm flex items-center gap-1">
                     {item.author?.nickname || '匿名用户'}
+                    {item.author?.is_verified && <VerifiedBadge />}
                   </span>
                   <Badge
                     style={{
@@ -319,8 +321,9 @@ const HomePage: React.FC = () => {
                   size="sm"
                   className="flex-shrink-0"
                 />
-                <span className="font-medium text-ink text-sm">
+                <span className="font-medium text-ink text-sm flex items-center gap-1">
                   {post.author?.nickname || '匿名用户'}
+                  {post.author?.is_verified && <VerifiedBadge />}
                 </span>
                 <Badge
                   style={{ backgroundColor: getCategoryVisual(post.category?.code).background, color: getCategoryVisual(post.category?.code).text }}

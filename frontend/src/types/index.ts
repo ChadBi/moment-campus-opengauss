@@ -32,6 +32,8 @@ export interface Author {
   id: number;
   nickname: string;
   avatar_url?: string;
+  /** B-01: 是否已通过校园身份认证 */
+  is_verified?: boolean;
 }
 
 /** 分类简要信息（后端 CategoryBrief） */
@@ -72,6 +74,8 @@ export interface User {
   bio?: string;
   is_active: boolean;
   created_at: string;
+  /** B-01: 是否已完成校园身份认证 */
+  campus_verified?: boolean;
 }
 
 // ===== 帖子类型 =====

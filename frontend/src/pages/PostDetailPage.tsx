@@ -15,6 +15,7 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { Toast } from '../components/ui/Toast';
 import { EmptyState, ErrorState, LoadingState } from '../components/state';
+import { VerifiedBadge } from '../components/VerifiedBadge';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCampusStore } from '../store/useCampusStore';
 import {
@@ -459,8 +460,9 @@ const PostDetailPage: React.FC = () => {
               size="sm"
             />
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-ink">
+              <div className="text-sm font-medium text-ink flex items-center gap-1.5">
                 {post.author?.nickname || '匿名用户'}
+                {post.author?.is_verified && <VerifiedBadge />}
               </div>
               <div className="text-xs text-ink-muted flex items-center gap-1">
                 <MapPin size={11} />
@@ -846,8 +848,9 @@ const PostDetailPage: React.FC = () => {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-ink text-sm">
+                        <span className="font-medium text-ink text-sm flex items-center gap-1">
                           {comment.author?.nickname || '匿名用户'}
+                          {comment.author?.is_verified && <VerifiedBadge />}
                         </span>
                         <span className="text-xs text-ink-muted font-data">
                           {formatDate(comment.created_at)}
@@ -912,8 +915,9 @@ const PostDetailPage: React.FC = () => {
                               />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                                  <span className="font-medium text-ink text-[13px]">
+                                  <span className="font-medium text-ink text-[13px] flex items-center gap-1">
                                     {reply.author?.nickname || '匿名用户'}
+                                    {reply.author?.is_verified && <VerifiedBadge />}
                                   </span>
                                   {reply.reply_to_user && reply.reply_to_user.id !== reply.user_id && (
                                     <span className="text-xs text-ink-muted">

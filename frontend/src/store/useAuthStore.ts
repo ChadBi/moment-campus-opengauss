@@ -11,6 +11,8 @@ interface User {
   bio?: string;
   // ACC-01.4: 首次使用引导标记（后端 User.onboarding_completed）
   onboarding_completed?: boolean;
+  // B-01: 校园身份认证状态（后端 User.campus_verified）
+  campus_verified?: boolean;
 }
 
 interface AuthState {

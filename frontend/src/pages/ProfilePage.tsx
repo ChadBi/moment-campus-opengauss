@@ -19,6 +19,8 @@ import { Loading } from '../components/ui/Loading';
 import { Toast } from '../components/ui/Toast';
 import { NotificationPreferencesCard } from '../components/NotificationPreferencesCard';
 import { SubscriptionsCard } from '../components/SubscriptionsCard';
+import { CampusVerifyCard } from '../components/CampusVerifyCard';
+import { VerifiedBadge } from '../components/VerifiedBadge';
 import { logger } from '../utils/logger';
 import {
   Edit,
@@ -650,7 +652,10 @@ const ProfilePage: React.FC = () => {
                   placeholder="昵称"
                 />
               ) : (
-                <h1 className="text-xl font-display font-bold mt-1 truncate">{userInfo.nickname}</h1>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <h1 className="text-xl font-display font-bold truncate">{userInfo.nickname}</h1>
+                  {userInfo.campus_verified && <VerifiedBadge />}
+                </div>
               )}
               <p className="text-white/75 text-xs mt-0.5 truncate">{userInfo.email}</p>
               {editing ? (
@@ -818,6 +823,9 @@ const ProfilePage: React.FC = () => {
           </p>
         )}
       </div>
+
+      {/* B-01: 校园身份认证 */}
+      <CampusVerifyCard />
 
       {/* UX-01.5: 通知偏好（7 类开关 + 每日摘要时间 + 邮件同步） */}
       <NotificationPreferencesCard />
