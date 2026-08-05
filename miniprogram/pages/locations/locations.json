@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "校园地点",
+  "usingComponents": {
+    "icon": "/components/icon/icon",
+    "empty-state": "/components/empty-state/empty-state"
+  }
+}

@@ -30,6 +30,18 @@
     </view>
   </scroll-view>
 
+  <!-- 校园地点入口 -->
+  <view class="locations-entry" bindtap="goToLocations" hover-class="locations-entry-hover" hover-stay-time="120">
+    <view class="locations-entry-icon">
+      <icon name="map-pin" size="40rpx" color="#ffffff" />
+    </view>
+    <view class="locations-entry-text">
+      <text class="locations-entry-title">校园地点 · 附近评分</text>
+      <text class="locations-entry-sub">打印店 · 食堂 · 图书馆，看评分做选择</text>
+    </view>
+    <icon name="chevron-right" size="32rpx" color="#174d5e" />
+  </view>
+
   <!-- 内容概要 -->
   <view wx:if="{{totalPosts > 0}}" class="content-summary">
     <icon name="file-text" size="22rpx" color="#6a7d81" />

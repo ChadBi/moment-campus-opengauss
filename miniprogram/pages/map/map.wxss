@@ -183,3 +183,100 @@
   background: var(--lake-dark);
   transform: scale(0.98);
 }
+
+/* ============== 帖子 / 附近 模式切换 ============== */
+.mode-switch {
+  position: fixed;
+  top: 140rpx;
+  right: 20rpx;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  z-index: 10;
+}
+
+.mode-item {
+  padding: 16rpx 28rpx;
+  font-size: 26rpx;
+  color: var(--ink-2);
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.mode-item.active {
+  background: var(--lake);
+  color: #fff;
+  font-weight: 600;
+}
+
+.mode-item-hover {
+  background: var(--paper-hover);
+}
+
+/* ============== 附近地点入口 ============== */
+.nearby-entry {
+  position: fixed;
+  top: 140rpx;
+  left: 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 14rpx 24rpx;
+  background: var(--paper);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  z-index: 10;
+  transition: all 0.2s;
+}
+
+.nearby-entry-hover {
+  background: var(--paper-hover);
+  transform: scale(0.96);
+}
+
+.nearby-entry-text {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: var(--lake);
+}
+
+/* ============== 地点信息卡片 ============== */
+.loc-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 12rpx;
+}
+
+.loc-stars {
+  color: var(--lamp);
+  font-size: 26rpx;
+  letter-spacing: 2rpx;
+}
+
+.loc-score {
+  font-family: var(--font-data);
+  font-weight: 700;
+  font-size: 28rpx;
+  color: var(--ink);
+}
+
+.loc-meta {
+  font-size: 22rpx;
+  color: var(--muted);
+}
+
+.loc-distance-row {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  margin-bottom: 16rpx;
+}
+
+.loc-distance-text {
+  font-size: 24rpx;
+  color: var(--ink-2);
+}

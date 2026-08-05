@@ -14,6 +14,7 @@
 - `auth` 新增校园身份认证能力（B-01/B-02）：`User` 增 campus_verified/student_id/campus_email/campus_verified_at；新建 `campus_verify_tokens` 表（一次性、限时、哈希存储）；`POST /users/me/verify-campus/send` 提交学号+校园邮箱并校验域名命中 `school_domains`，`POST /users/me/verify-campus/confirm` 校验验证码后置为已认证；`GET /users/me` 返回 campus_verified
 - `auth` 帖子/评论/评价作者信息（author）新增 `is_verified` 认证标识（B-03），前端可据此展示「已认证」徽标
 - `auth` 前端 Web 校园身份认证（B-05）：新增 `VerifiedBadge` 已认证徽标组件与 `CampusVerifyCard` 认证流程卡片（学号+校园邮箱发送验证码→确认认证，dev 环境直接展示验证码）；个人中心接入认证入口，帖子/评论区作者昵称旁展示「已认证」徽标
+- `rev` 小程序校园地点页（A-07）：新增 `pages/locations/locations`（附近地点列表按距离+半径筛选+星星评分；详情弹层含评分汇总/我的评价/全部评价，登录后可提交/更新/撤回评价）；地图页新增「帖子/附近」模式切换，附近地点渲染为带评分的 marker 并可跳详情；首页新增「校园地点·附近评分」入口；封装 `services/locations.ts`
 - `seed` 演示数据 seed 支持校园认证域名（B-01）：为三校写入 `school_domains`（jiangnan.edu.cn / fudan.edu.cn / zju.edu.cn）
 
 ## [2.1.7] - 2026-08-05

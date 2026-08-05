@@ -192,3 +192,61 @@ export interface IdentityInfo {
   created_at: string
   last_used_at?: string
 }
+
+// ============== 校园地点 / 评分评价（对齐 Web services/locations.ts） ==============
+
+export interface LocationAuthor {
+  id: number
+  nickname: string
+  avatar_url?: string
+  is_verified: boolean
+}
+
+export interface LocationItem {
+  id: number
+  school_id: number
+  name: string
+  description?: string
+  latitude: number
+  longitude: number
+  floor?: string
+  building?: string
+  post_count: number
+  is_verified: boolean
+  avg_score: number
+  rating_count: number
+  review_count: number
+  distance?: number
+}
+
+export interface LocationReview {
+  id: number
+  location_id: number
+  user_id: number
+  score: number
+  content?: string
+  created_at: string
+  updated_at: string
+  author: LocationAuthor | null
+}
+
+export interface LocationDetail {
+  location: LocationItem
+  my_review: LocationReview | null
+}
+
+export interface LocationNearbyResponse {
+  items: LocationItem[]
+  total: number
+  page: number
+  page_size: number
+  has_more: boolean
+}
+
+export interface LocationReviewsResponse {
+  items: LocationReview[]
+  total: number
+  page: number
+  page_size: number
+  has_more: boolean
+}

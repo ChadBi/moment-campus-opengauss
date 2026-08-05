@@ -130,6 +130,10 @@ Page({
     wx.navigateTo({ url: '/pages/map/map' })
   },
 
+  goToLocations() {
+    wx.navigateTo({ url: '/pages/locations/locations' })
+  },
+
   goToPublish() {
     wx.navigateTo({ url: '/pages/publish/publish' })
   },

@@ -13,7 +13,8 @@
     "pages/login/login",
     "pages/bind-account/bind-account",
     "pages/topics/topics",
-    "pages/topic-detail/topic-detail"
+    "pages/topic-detail/topic-detail",
+    "pages/locations/locations"
   ],
   "window": {
     "navigationBarTextStyle": "black",
