@@ -7,7 +7,7 @@ import { usersApi } from '../services/users';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { EmptyState, ErrorState, LoadingState } from './state';
-import { School as SchoolIcon, Search, Check, Tag, MapPin, ArrowRight, X } from 'lucide-react';
+import { School as SchoolIcon, Search, Check, Tag, MapPin, ArrowRight, X, BadgeCheck } from 'lucide-react';
 import type { CategoryListItem, LocationListItem } from '../services/categories';
 
 /**
@@ -178,6 +178,18 @@ export const FirstUseGuide: React.FC = () => {
     navigate('/search');
   };
 
+  // D-04: 首用引导直达「附近」价值入口
+  const handleGoNearby = () => {
+    handleComplete();
+    navigate('/locations');
+  };
+
+  // D-04: 首用引导直达个人中心「校园认证」入口
+  const handleGoVerify = () => {
+    handleComplete();
+    navigate('/profile');
+  };
+
   if (!open) return null;
 
   return (
@@ -297,24 +309,42 @@ export const FirstUseGuide: React.FC = () => {
           </div>
         )}
 
-        {/* Step 3: 完成搜索或跳过 */}
+        {/* Step 3: 价值入口（附近/搜索/认证） */}
         {step === 3 && (
           <div className="text-center py-2">
             <div className="w-12 h-12 rounded-full bg-lake/10 grid place-items-center mx-auto mb-3">
-              <Search size={24} className="text-lake" />
+              <MapPin size={24} className="text-lake" />
             </div>
-            <h3 className="font-display font-bold text-lg text-ink mb-1">试试搜索</h3>
+            <h3 className="font-display font-bold text-lg text-ink mb-1">三步开启你的校园生活</h3>
             <p className="text-sm text-ink-muted mb-4">
-              搜索你感兴趣的校园信息，或跳过此步
+              附近好去处、可信信息、随手分享，一应俱全
             </p>
-            <button
-              type="button"
-              onClick={handleGoSearch}
-              className="w-full px-4 py-2.5 rounded-[10px] bg-lake/5 border border-lake/20 text-lake text-sm font-medium hover:bg-lake/10 transition-colors flex items-center justify-center gap-1.5"
-            >
-              <Search size={14} />
-              前往搜索
-            </button>
+            <div className="space-y-2 mb-2">
+              <button
+                type="button"
+                onClick={handleGoNearby}
+                className="w-full px-4 py-2.5 rounded-[10px] bg-lake/5 border border-lake/20 text-lake text-sm font-medium hover:bg-lake/10 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <MapPin size={14} />
+                看看附近有什么，给设施评分
+              </button>
+              <button
+                type="button"
+                onClick={handleGoSearch}
+                className="w-full px-4 py-2.5 rounded-[10px] bg-lake/5 border border-lake/20 text-lake text-sm font-medium hover:bg-lake/10 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Search size={14} />
+                搜索你感兴趣的校园信息
+              </button>
+              <button
+                type="button"
+                onClick={handleGoVerify}
+                className="w-full px-4 py-2.5 rounded-[10px] bg-lake/5 border border-lake/20 text-lake text-sm font-medium hover:bg-lake/10 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <BadgeCheck size={14} />
+                完成校园认证，点亮「已认证」
+              </button>
+            </div>
           </div>
         )}
 
