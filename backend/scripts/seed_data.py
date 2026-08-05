@@ -117,25 +117,25 @@ JIANGNAN_USERS = [
     {"email": "admin@momentcampus.com", "nickname": "校园运营组", "role": "super_admin",
      "bio": "此刻校园平台运营组，负责内容审核与平台维护"},
     {"email": "user1@example.com", "nickname": "江南小李", "role": "user",
-     "bio": "计算机学院大三 | 校园信息搬运工"},
+     "bio": "计算机学院大三 | 校园信息搬运工", "campus_verified": True},
     {"email": "user2@example.com", "nickname": "蠡湖钓客", "role": "user",
      "bio": "喜欢在蠡湖边发呆的钓鱼佬"},
     {"email": "user3@example.com", "nickname": "食堂品鉴师", "role": "user",
-     "bio": "吃过江南大学所有食堂 | 美食地图绘制中"},
+     "bio": "吃过江南大学所有食堂 | 美食地图绘制中", "campus_verified": True},
     {"email": "user4@example.com", "nickname": "图书馆常客", "role": "user",
-     "bio": "图书馆三楼是我的第二卧室"},
+     "bio": "图书馆三楼是我的第二卧室", "campus_verified": True},
     {"email": "user5@example.com", "nickname": "跑道冲刺手", "role": "user",
      "bio": "田径队 | 每天夜跑 5 公里"},
     {"email": "user6@example.com", "nickname": "二食堂干饭人", "role": "user",
-     "bio": "干饭不积极思想有问题"},
+     "bio": "干饭不积极思想有问题", "campus_verified": True},
     {"email": "user7@example.com", "nickname": "江大摄影师", "role": "user",
-     "bio": "用镜头记录蠡湖的四季 | 摄影社"},
+     "bio": "用镜头记录蠡湖的四季 | 摄影社", "campus_verified": True},
     {"email": "user8@example.com", "nickname": "流浪猫救助站", "role": "user",
      "bio": "校园流浪猫 TNR 志愿者 | 已绝育 12 只"},
     {"email": "user9@example.com", "nickname": "期末突击队", "role": "user",
-     "bio": "靠期末两周创造奇迹的大学生"},
+     "bio": "靠期末两周创造奇迹的大学生", "campus_verified": True},
     {"email": "user10@example.com", "nickname": "无锡学长", "role": "user",
-     "bio": "大四老学长 | 江南生存指南作者"},
+     "bio": "大四老学长 | 江南生存指南作者", "campus_verified": True},
 ]
 
 
@@ -170,13 +170,13 @@ FUDAN_USERS = [
     {"email": "fudan_admin@momentcampus.com", "nickname": "复旦运营组", "role": "admin",
      "bio": "复旦此刻校园运营组"},
     {"email": "fudan_user1@example.com", "nickname": "邯郸路书虫", "role": "user",
-     "bio": "复旦文科院系 | 喜欢泡文科图书馆"},
+     "bio": "复旦文科院系 | 喜欢泡文科图书馆", "campus_verified": True},
     {"email": "fudan_user2@example.com", "nickname": "光华楼守夜人", "role": "user",
-     "bio": "光华楼自习室常客 | 期末突击选手"},
+     "bio": "光华楼自习室常客 | 期末突击选手", "campus_verified": True},
     {"email": "fudan_user3@example.com", "nickname": "南区干饭人", "role": "user",
      "bio": "南区食堂品鉴员"},
     {"email": "fudan_user4@example.com", "nickname": "相辉堂常客", "role": "user",
-     "bio": "校园话剧爱好者 | 学生艺术团"},
+     "bio": "校园话剧爱好者 | 学生艺术团", "campus_verified": True},
     {"email": "fudan_user5@example.com", "nickname": "本部跑者", "role": "user",
      "bio": "本部体育场夜跑爱好者"},
 ]
@@ -213,13 +213,13 @@ ZJU_USERS = [
     {"email": "zju_admin@momentcampus.com", "nickname": "浙大运营组", "role": "admin",
      "bio": "浙大此刻校园运营组"},
     {"email": "zju_user1@example.com", "nickname": "紫金港学子", "role": "user",
-     "bio": "浙大计算机学院 | 紫金港常住居民"},
+     "bio": "浙大计算机学院 | 紫金港常住居民", "campus_verified": True},
     {"email": "zju_user2@example.com", "nickname": "启真湖观察者", "role": "user",
      "bio": "启真湖生态观察 | 校园鸟类记录"},
     {"email": "zju_user3@example.com", "nickname": "西区干饭人", "role": "user",
-     "bio": "西区食堂常客 | 性价比美食挖掘"},
+     "bio": "西区食堂常客 | 性价比美食挖掘", "campus_verified": True},
     {"email": "zju_user4@example.com", "nickname": "图书馆守门人", "role": "user",
-     "bio": "图书馆是我的第二个家"},
+     "bio": "图书馆是我的第二个家", "campus_verified": True},
     {"email": "zju_user5@example.com", "nickname": "紫金港跑者", "role": "user",
      "bio": "紫金港夜跑团成员"},
 ]
@@ -1586,6 +1586,20 @@ async def seed_users(session: AsyncSession, schools: list):
     for school, cfg in zip(schools, SCHOOLS_REGISTRY):
         users = []
         for u in cfg["users"]:
+            # B-07: 演示数据为部分用户标记校园身份认证（campus_verified），
+            # 使前端/小程序能展示「已认证」徽标，体现真实校园实名社区氛围。
+            campus_verified = u.get("campus_verified", False)
+            campus_email = None
+            student_id = None
+            campus_verified_at = None
+            if campus_verified:
+                domain = cfg["meta"]["domain"]
+                local = u["email"].split("@", 1)[0].replace("_", "")[:40]
+                campus_email = f"{local}@{domain}"
+                digits = "".join(ch for ch in u["email"] if ch.isdigit())
+                last = digits[-1] if digits else "1"
+                student_id = f"2026{last}0{last}"
+                campus_verified_at = datetime.utcnow()
             user = User(
                 email=u["email"],
                 nickname=u["nickname"],
@@ -1596,6 +1610,11 @@ async def seed_users(session: AsyncSession, schools: list):
                 is_active=True,
                 # ACC-01.4: 演示账号视为已完成首次使用引导，避免每次登录弹教程
                 onboarding_completed=True,
+                # B-07: 校园身份认证演示数据
+                campus_verified=campus_verified,
+                campus_email=campus_email,
+                student_id=student_id,
+                campus_verified_at=campus_verified_at,
             )
             session.add(user)
             users.append(user)
