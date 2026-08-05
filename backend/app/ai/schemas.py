@@ -82,7 +82,6 @@ PUBLISH_SUGGESTION_SCHEMA: dict[str, Any] = {
             "additionalProperties": False,
             "required": [
                 "title",
-                "summary",
                 "category",
                 "tags",
                 "default_validity_days",
