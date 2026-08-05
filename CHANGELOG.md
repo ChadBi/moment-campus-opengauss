@@ -20,6 +20,7 @@
 - `seed` 演示数据为部分用户标记校园身份认证（B-07）：`seed_users` 依据用户清单 `campus_verified` 标记，为已认证用户写入 campus_email（学校域名）/student_id/campus_verified_at，使前端与小程序展示「已认证」徽标（江南 8/10、复旦 3/5、浙大 3/5）
 - `miniprogram` 小程序 API 指向公网 HTTPS（C-01）：`services/request.ts` API_HOST 设为 `https://campus.chaina1.com`，`resolveImageUrl` 统一把 `/uploads/` 相对路径解析到生产域名
 - `docs` 新增小程序上线落地指引（C-02）：`docs/36_微信小程序上线落地指引.md` 覆盖合法域名配置、隐私保护指引、体验版发布与体验成员管理流程
+- `docs` 定位与叙事打磨（D-01/D-02/D-03）：`00_project_overview` 新增「差异化优势（为什么学生会持续用）」三壁垒并更新产品边界；复赛方案 32/33 补充认证/附近评分/小程序已完成能力与证据；Demo作品帖、视频脚本、社媒文案同步补充附近探索/设施评分/校园认证/小程序场景
 
 ## [2.1.7] - 2026-08-05
 
