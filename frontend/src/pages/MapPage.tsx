@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Navigation, Plus, Minus, Filter, X, MapPin, ArrowRight, Edit3, AlertCircle, RefreshCw, ChevronRight } from 'lucide-react';
+import { Navigation, Plus, Minus, Filter, X, MapPin, ArrowRight, Edit3, AlertCircle, RefreshCw, ChevronRight, Star, MessageSquare } from 'lucide-react';
 import { mapApi, type MapMarker } from '../services/map';
+import { locationsApi, type LocationItem } from '../services/locations';
 import { categoriesApi, type CategoryListItem } from '../services/categories';
 import { Loading } from '../components/ui/Loading';
+import { Button } from '../components/ui/Button';
 import PostForm from '../components/PostForm';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
@@ -21,6 +23,12 @@ import {
 } from '../utils/mapMarker';
 import { wgs84ToGcj02 } from '../utils/coordinates';
 import { getCategoryVisual } from '../utils/categoryVisual';
+import {
+  clearMapLocationLayer,
+  installMapLocationLayer,
+  setMapLocationLayerData,
+  MAP_LOCATION_LAYER_ID,
+} from '../utils/mapLocationMarker';
 
 // 侧滑面板模式：null=关闭 / view=查看 marker / create=发帖
 type PanelMode = null | { type: 'view'; marker: MapMarker } | { type: 'create'; lngLat: { lng: number; lat: number } };
@@ -44,6 +52,8 @@ const MapPage: React.FC = () => {
   // DSC-01.3: post_id -> source feature 映射，用于 focus_post_id 深链接。
   const markersByIdRef = useRef<Map<number, { marker: MapMarker; groupKey: string }>>(new Map());
   const markerRequestRef = useRef(0);
+  // A-06: location_id -> LocationItem 映射，供附近模式地点标记点击事件查找
+  const nearbyLocationsRef = useRef<Map<number, LocationItem>>(new Map());
   // 聚合 marker 暂存的多帖列表（供侧滑面板渲染）
   const [groupedMarkers, setGroupedMarkers] = useState<MapMarker[] | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -124,6 +134,13 @@ const MapPage: React.FC = () => {
   // 侧滑面板模式
   const [panel, setPanel] = useState<PanelMode>(null);
 
+  // A-06: 地图「附近」模式（独立于帖子标记，展示附近地点 + 评分徽标）
+  const [nearbyMode, setNearbyMode] = useState(false);
+  const [nearbyLocations, setNearbyLocations] = useState<LocationItem[]>([]);
+  const [nearbyError, setNearbyError] = useState(false);
+  const [locatingNearby, setLocatingNearby] = useState(false);
+  const [locationPanel, setLocationPanel] = useState<LocationItem | null>(null);
+
   // 获取并更新地图标记
   const fetchMarkers = useCallback(async (bounds: maplibregl.LngLatBounds, categoryId?: number) => {
     const requestId = ++markerRequestRef.current;
@@ -157,6 +174,63 @@ const MapPage: React.FC = () => {
     if (!map.current) return;
     void fetchMarkers(map.current.getBounds(), selectedCategory ?? undefined);
   }, [fetchMarkers, selectedCategory]);
+
+  // A-06: 拉取附近地点并渲染到地图（GPS 优先，回退校园中心）
+  const fetchNearby = useCallback(() => {
+    if (!map.current) return;
+    setNearbyError(false);
+    setLocatingNearby(true);
+    const loadNearby = (lat: number, lng: number) => {
+      locationsApi
+        .getNearby(lat, lng, 5000, 1, 100)
+        .then((data) => {
+          setNearbyLocations(data.items);
+          nearbyLocationsRef.current = new Map(
+            data.items.map((loc) => [loc.id, loc])
+          );
+          if (map.current) setMapLocationLayerData(map.current, data.items);
+        })
+        .catch((err: unknown) => {
+          const e = err as { response?: { data?: { detail?: string } } };
+          logger.error('加载附近地点失败:', e?.response?.data?.detail || err);
+          setNearbyError(true);
+        })
+        .finally(() => setLocatingNearby(false));
+    };
+    const loadFromCenter = () => {
+      loadNearby(activeCenterRef.current[1], activeCenterRef.current[0]);
+    };
+    if (!navigator.geolocation) {
+      loadFromCenter();
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const gcj02 = wgs84ToGcj02(position.coords.latitude, position.coords.longitude);
+        loadNearby(gcj02.latitude, gcj02.longitude);
+      },
+      () => loadFromCenter()
+    );
+  }, []);
+
+  // A-06: 切换「附近」模式：开启时隐藏帖子标记、渲染附近地点；关闭时反之
+  const handleToggleNearby = useCallback(() => {
+    setPanel(null);
+    setLocationPanel(null);
+    const next = !nearbyMode;
+    setNearbyMode(next);
+    if (!map.current) return;
+    if (next) {
+      clearMapMarkerLayer(map.current);
+      installMapLocationLayer(map.current);
+      fetchNearby();
+    } else {
+      clearMapLocationLayer(map.current);
+      setNearbyLocations([]);
+      const bounds = map.current.getBounds();
+      void fetchMarkers(bounds, selectedCategory ?? undefined);
+    }
+  }, [nearbyMode, fetchNearby, fetchMarkers, selectedCategory]);
 
   // 初始化地图
   useEffect(() => {
@@ -232,6 +306,20 @@ const MapPage: React.FC = () => {
       setGroupedMarkers(group.markers.length > 1 ? group.markers : null);
     });
 
+    // A-06: 附近模式地点标记点击 → 打开地点信息面板
+    mapInstance.on('click', MAP_LOCATION_LAYER_ID, (event) => {
+      const locationId = event.features?.[0]?.properties?.locationId;
+      if (typeof locationId !== 'number') return;
+      const loc = nearbyLocationsRef.current.get(locationId);
+      if (loc) setLocationPanel(loc);
+    });
+    mapInstance.on('mouseenter', MAP_LOCATION_LAYER_ID, () => {
+      mapInstance.getCanvas().style.cursor = 'pointer';
+    });
+    mapInstance.on('mouseleave', MAP_LOCATION_LAYER_ID, () => {
+      mapInstance.getCanvas().style.cursor = '';
+    });
+
     // DSC-01.3: 监听地图加载错误（瓦片源不可达 / style 解析失败等），
     // 触发降级到列表视图，避免用户看到空白地图
     mapInstance.on('error', (e) => {
@@ -286,6 +374,7 @@ const MapPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 学校切换：清空旧学校标记并重新定位
   useEffect(() => {
     if (!map.current || !mapReady) return;
     markerRequestRef.current += 1;
@@ -295,22 +384,33 @@ const MapPage: React.FC = () => {
     setAllMarkers([]);
     setGroupedMarkers(null);
     setPanel(null);
+    setLocationPanel(null);
     setMarkersError(false);
+    // A-06: 学校切换时同步清理附近地点标记
+    clearMapLocationLayer(map.current);
+    nearbyLocationsRef.current.clear();
+    setNearbyLocations([]);
+    setNearbyError(false);
     map.current.flyTo({
       center: activeCenter,
       zoom: activeZoom,
       duration: 800,
     });
-    // 飞行结束后 moveend 事件会自动触发 fetchMarkers
-    // 但为保险起见，延迟 850ms 后主动拉取一次
-    const timer = setTimeout(() => {
-      if (!map.current) return;
-      const bounds = map.current.getBounds();
-      fetchMarkers(bounds, selectedCategory ?? undefined);
-    }, 850);
-    return () => clearTimeout(timer);
+    // 附近模式下，学校切换后重新拉取该校附近地点
+    if (nearbyMode) {
+      fetchNearby();
+    } else {
+      // 飞行结束后 moveend 事件会自动触发 fetchMarkers
+      // 但为保险起见，延迟 850ms 后主动拉取一次
+      const timer = setTimeout(() => {
+        if (!map.current) return;
+        const bounds = map.current.getBounds();
+        fetchMarkers(bounds, selectedCategory ?? undefined);
+      }, 850);
+      return () => clearTimeout(timer);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSchoolId, currentSchoolCenter, currentSchoolZoom]);
+  }, [currentSchoolId, currentSchoolCenter, currentSchoolZoom, nearbyMode, fetchNearby]);
 
   // 分类变化时重新获取标记
   useEffect(() => {
@@ -422,12 +522,31 @@ const MapPage: React.FC = () => {
             实时更新
           </span>
         </div>
+        {/* A-06: 附近模式切换 */}
+        <button
+          type="button"
+          onClick={handleToggleNearby}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex-shrink-0 ${
+            nearbyMode
+              ? 'bg-lake text-white shadow-lake'
+              : 'bg-mist text-ink-sub hover:bg-line'
+          }`}
+          aria-pressed={nearbyMode}
+        >
+          {locatingNearby && nearbyMode ? (
+            <Loading size="sm" />
+          ) : (
+            <Navigation size={13} />
+          )}
+          {nearbyMode ? '查看附近地点' : '附近'}
+        </button>
       </div>
 
-      {/* 分类筛选条：横向滚动 */}
-      <div className="bg-paper/70 backdrop-blur-sm border-b border-line/60 z-20">
-        <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto scrollbar-hide">
-          <Filter size={16} className="text-ink-muted flex-shrink-0" />
+      {/* 分类筛选条：横向滚动（附近模式下隐藏） */}
+      {!nearbyMode && (
+        <div className="bg-paper/70 backdrop-blur-sm border-b border-line/60 z-20">
+          <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto scrollbar-hide">
+            <Filter size={16} className="text-ink-muted flex-shrink-0" />
           <button
             onClick={() => setSelectedCategory(null)}
             className={`flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
@@ -471,6 +590,7 @@ const MapPage: React.FC = () => {
           )}
         </div>
       </div>
+      )}
 
       {/* 地图容器：大圆角(23px) + 纸张纹理叠加 */}
       <div className="relative flex-1 m-3 rounded-[23px] overflow-hidden border border-line shadow-md">
@@ -591,6 +711,79 @@ const MapPage: React.FC = () => {
               重试
             </button>
           </div>
+        )}
+
+        {/* A-06: 附近模式加载/错误/空状态提示 */}
+        {nearbyMode && !locatingNearby && !nearbyError && nearbyLocations.length === 0 && !mapFailed && (
+          <div className="absolute top-3 left-3 z-10 bg-paper border border-line/60 rounded-md px-3 py-2 shadow-md text-xs text-ink-muted">
+            附近暂无地点，试试切换学校或稍后再看
+          </div>
+        )}
+        {nearbyMode && nearbyError && !mapFailed && (
+          <div className="absolute top-3 left-3 z-10 bg-paper border border-danger/30 rounded-md px-3 py-2 shadow-md flex items-center gap-2">
+            <AlertCircle size={14} className="text-danger" />
+            <span className="text-xs text-ink-sub">附近地点加载失败</span>
+            <button type="button" onClick={fetchNearby} className="text-xs font-medium text-danger inline-flex items-center gap-1">
+              <RefreshCw size={12} />
+              重试
+            </button>
+          </div>
+        )}
+
+        {/* A-06: 附近模式地点侧滑面板 */}
+        {nearbyMode && locationPanel && (
+          <aside className="absolute top-2 right-2 bottom-2 z-30 w-[320px] max-w-[85vw] bg-paper shadow-2xl border border-line rounded-[16px] flex flex-col overflow-hidden">
+            <div className="px-5 py-4 bg-gradient-to-br from-lake/15 via-mist to-lamp/10 border-b border-line/60 flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <MapPin size={16} className="text-lamp flex-shrink-0" />
+                  <h3 className="font-display font-bold text-base text-ink truncate">{locationPanel.name}</h3>
+                  {locationPanel.is_verified && (
+                    <MapPin size={13} className="text-lake flex-shrink-0" aria-label="官方核验" />
+                  )}
+                </div>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <Star size={14} className="text-lamp fill-current" />
+                  <span className="text-lg font-display font-bold text-ink">{locationPanel.avg_score.toFixed(1)}</span>
+                  <span className="text-[11px] text-ink-muted">{locationPanel.rating_count} 人评分</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setLocationPanel(null)}
+                className="w-8 h-8 rounded-full bg-mist/80 flex items-center justify-center text-ink-sub hover:text-ink transition-colors flex-shrink-0"
+                aria-label="关闭"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+              {locationPanel.description && (
+                <p className="text-sm text-ink-sub leading-relaxed">{locationPanel.description}</p>
+              )}
+              <div className="flex items-center gap-2 text-xs text-ink-sub">
+                <Navigation size={12} className="text-lake" />
+                {locationPanel.distance != null
+                  ? locationPanel.distance < 1000
+                    ? `${Math.round(locationPanel.distance)} 米`
+                    : `${(locationPanel.distance / 1000).toFixed(1)} 公里`
+                  : '校园内'}
+                {locationPanel.building ? ` · ${locationPanel.building}` : ''}
+                {locationPanel.floor ? ` · ${locationPanel.floor} 层` : ''}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-ink-muted border-t border-line/60 pt-3">
+                <MessageSquare size={12} />
+                <span>{locationPanel.review_count} 条评价</span>
+              </div>
+            </div>
+            <div className="px-5 py-3 border-t border-line/60 flex gap-2">
+              <Button variant="primary" size="sm" onClick={() => navigate('/locations')} icon={<MapPin size={14} />}>
+                查看评价与评分
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setLocationPanel(null)}>
+                关闭
+              </Button>
+            </div>
+          </aside>
         )}
 
         {/* 右侧侧滑面板：view（查看 marker）/ create（发帖） */}
