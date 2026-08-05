@@ -53,6 +53,7 @@ async def super_admin_user(
     )
     user = result.scalar_one()
     user.role = "super_admin"
+    user.campus_verified = True  # D4 门禁：默认已认证
     await db_session.commit()
 
     return {

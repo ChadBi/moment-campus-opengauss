@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Integer, String, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import BigInteger, Integer, String, Boolean, DateTime, ForeignKey, Index, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 
@@ -43,7 +43,12 @@ class SchoolMembership(Base):
     inviter: Mapped["User | None"] = relationship(foreign_keys=[invited_by])
 
     __table_args__ = (
-        Index("idx_membership_user_school", "user_id", "school_id", unique=True),
+        # UC-01: 严格一对一绑定——每个用户至多一条 active 成员关系；
+        # 历史 left 行不受限制（部分唯一索引仅约束 status='active'）。
+        Index(
+            "idx_membership_user_active", "user_id", unique=True,
+            postgresql_where=text("status = 'active'"),
+        ),
         Index("idx_membership_school_role", "school_id", "role"),
         Index("idx_membership_school_status", "school_id", "status"),
         Index("idx_membership_default", "user_id", "is_default"),

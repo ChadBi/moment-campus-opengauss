@@ -6,6 +6,8 @@ import { Navigation, Plus, Minus, Filter, X, MapPin, ArrowRight, Edit3, AlertCir
 import { mapApi, type MapMarker } from '../services/map';
 import { locationsApi, type LocationItem } from '../services/locations';
 import { categoriesApi, type CategoryListItem } from '../services/categories';
+import { postsApi } from '../services/posts';
+import type { Post } from '../types';
 import { Loading } from '../components/ui/Loading';
 import { Button } from '../components/ui/Button';
 import PostForm from '../components/PostForm';
@@ -140,6 +142,41 @@ const MapPage: React.FC = () => {
   const [nearbyError, setNearbyError] = useState(false);
   const [locatingNearby, setLocatingNearby] = useState(false);
   const [locationPanel, setLocationPanel] = useState<LocationItem | null>(null);
+
+  // D-04: 地点面板相关帖子（GET /posts?location_id=）
+  const [locationPosts, setLocationPosts] = useState<Post[]>([]);
+  const [locationPostsLoading, setLocationPostsLoading] = useState(false);
+  const [locationPostsError, setLocationPostsError] = useState(false);
+
+  // D-04: 打开地点面板时并行拉取相关帖子
+  useEffect(() => {
+    if (!locationPanel) {
+      void Promise.resolve().then(() => setLocationPosts([]));
+      return;
+    }
+    let cancelled = false;
+    void Promise.resolve()
+      .then(async () => {
+        setLocationPostsLoading(true);
+        setLocationPostsError(false);
+        const res = await postsApi.getPosts({
+          location_id: locationPanel.id,
+          page: 1,
+          page_size: 5,
+          sort: 'latest',
+        });
+        if (!cancelled) setLocationPosts(res.items ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setLocationPostsError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLocationPostsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [locationPanel]);
 
   // 获取并更新地图标记
   const fetchMarkers = useCallback(async (bounds: maplibregl.LngLatBounds, categoryId?: number) => {
@@ -774,10 +811,46 @@ const MapPage: React.FC = () => {
                 <MessageSquare size={12} />
                 <span>{locationPanel.review_count} 条评价</span>
               </div>
+
+              {/* D-04: 相关帖子列表 */}
+              <div className="border-t border-line/60 pt-3">
+                <p className="text-xs font-medium text-ink mb-2">相关帖子</p>
+                {locationPostsLoading ? (
+                  <div className="flex items-center justify-center py-3">
+                    <RefreshCw size={14} className="animate-spin text-ink-muted" />
+                  </div>
+                ) : locationPostsError ? (
+                  <p className="text-xs text-danger/80 py-2">相关帖子加载失败</p>
+                ) : locationPosts.length === 0 ? (
+                  <p className="text-xs text-ink-muted py-2">暂无相关帖子，快来发布第一条吧</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {locationPosts.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => navigate(`/posts/${p.id}`)}
+                        className="w-full text-left p-2.5 rounded-[8px] border border-line/60 bg-paper hover:bg-paper-hover transition-colors flex items-center gap-2 group"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] text-ink truncate group-hover:text-lake transition-colors">
+                            {p.title}
+                          </p>
+                          <p className="text-[11px] text-ink-muted mt-0.5 truncate">
+                            {p.author?.nickname || '匿名用户'}
+                            {p.author?.is_verified ? ' · 已认证' : ''}
+                          </p>
+                        </div>
+                        <ChevronRight size={14} className="text-ink-muted flex-shrink-0 group-hover:text-lake" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="px-5 py-3 border-t border-line/60 flex gap-2">
-              <Button variant="primary" size="sm" onClick={() => navigate('/locations')} icon={<MapPin size={14} />}>
-                查看评价与评分
+              <Button variant="primary" size="sm" onClick={() => navigate(`/locations?location=${locationPanel.id}`)} icon={<MapPin size={14} />}>
+                查看完整详情
               </Button>
               <Button variant="secondary" size="sm" onClick={() => setLocationPanel(null)}>
                 关闭

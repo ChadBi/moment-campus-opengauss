@@ -209,6 +209,24 @@ export interface SchoolSettingsUpdateRequest {
   logo_url?: string | null;
 }
 
+// ============ B-03: 学校邮箱域名（默认邮箱后缀） ============
+
+/** 学校允许的邮箱域名条目 */
+export interface SchoolDomainItem {
+  id: number;
+  /** 邮箱域名，如 jiangnan.edu.cn */
+  domain: string;
+  /** 是否为默认邮箱后缀 */
+  is_primary: boolean;
+}
+
+/** 学校邮箱域名列表响应 */
+export interface SchoolDomainsResponse {
+  items: SchoolDomainItem[];
+  /** 默认邮箱后缀 */
+  default_domain: string | null;
+}
+
 // ============ GOV-02: 任务运行记录 ============
 
 /** 任务运行记录 */
@@ -547,6 +565,30 @@ export const adminApi = {
     data: SchoolSettingsUpdateRequest,
   ): Promise<SchoolSettings> => {
     const response = await api.put<SchoolSettings>('/admin/settings', data);
+    return response.data;
+  },
+
+  // -------- B-03: 学校邮箱域名（默认邮箱后缀） --------
+  getSchoolDomains: async (): Promise<SchoolDomainsResponse> => {
+    const response = await api.get<SchoolDomainsResponse>('/admin/school-domains');
+    return response.data;
+  },
+
+  updateSchoolDomains: async (
+    defaultDomain: string,
+  ): Promise<SchoolDomainsResponse> => {
+    const response = await api.put<SchoolDomainsResponse>('/admin/school-domains', {
+      default_domain: defaultDomain,
+    });
+    return response.data;
+  },
+
+  createSchoolDomain: async (
+    domain: string,
+  ): Promise<SchoolDomainsResponse> => {
+    const response = await api.post<SchoolDomainsResponse>('/admin/school-domains', {
+      domain,
+    });
     return response.data;
   },
 

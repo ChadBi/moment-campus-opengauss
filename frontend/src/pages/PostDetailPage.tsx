@@ -17,6 +17,7 @@ import { Toast } from '../components/ui/Toast';
 import { EmptyState, ErrorState, LoadingState } from '../components/state';
 import { VerifiedBadge } from '../components/VerifiedBadge';
 import { useAuthStore } from '../store/useAuthStore';
+import { VerifyGate } from '../components/VerifyGate';
 import { useCampusStore } from '../store/useCampusStore';
 import {
   Heart,
@@ -111,7 +112,9 @@ function formatExpireCountdown(expireAt?: string): { text: string; expired: bool
 const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const campusVerified = Boolean(user?.campus_verified);
+  const canInteract = isAuthenticated && campusVerified;
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -563,7 +566,12 @@ const PostDetailPage: React.FC = () => {
           )}
           {!isAuthenticated && (
             <div className="text-xs text-ink-muted/80 bg-paper-hover rounded-[8px] px-3 py-2 inline-block">
-              登录后可查看联系方式、参与投票与评论
+              登录并完成校园身份认证后可查看联系方式、参与投票与评论
+            </div>
+          )}
+          {isAuthenticated && !campusVerified && (
+            <div className="text-xs text-ink-muted/80 bg-paper-hover rounded-[8px] px-3 py-2 inline-block">
+              完成校园身份认证后可参与投票、点赞、评论与举报
             </div>
           )}
         </div>
@@ -631,8 +639,8 @@ const PostDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* DSC-02.1: 投票按钮仅登录用户可见，且作者不可给自己投票（后端会返回 403） */}
-          {isAuthenticated && (
+          {/* DSC-02.1: 投票按钮仅已认证用户可见（后端会再次校验） */}
+          {canInteract && (
             <div className="flex flex-wrap gap-2 mt-4">
               {VALIDATION_OPTIONS.map(opt => {
                 const isActive = userValidationType === opt.type;
@@ -662,7 +670,7 @@ const PostDetailPage: React.FC = () => {
 
         {/* 底部操作栏 */}
         <div className="px-6 py-4 border-t border-ink-divider flex flex-wrap gap-2 items-center">
-          {isAuthenticated && (
+          {canInteract && (
             <Button
               variant={post.is_liked ? 'secondary' : 'primary'}
               size="sm"
@@ -705,7 +713,7 @@ const PostDetailPage: React.FC = () => {
             {canNativeShare ? '分享' : '复制链接'}
           </Button>
 
-          {isAuthenticated && (
+          {canInteract && (
             <Button
               variant="text"
               size="sm"
@@ -718,7 +726,7 @@ const PostDetailPage: React.FC = () => {
         </div>
 
         {/* 举报表单 */}
-        {showReportForm && isAuthenticated && (
+        {showReportForm && canInteract && (
           <div className="mx-6 mb-4 p-4 bg-paper-hover rounded-[10px] border border-line/80">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display font-bold text-sm text-lake">举报这条信息</h3>
@@ -794,19 +802,24 @@ const PostDetailPage: React.FC = () => {
 
         <div className="px-6 pb-4">
           {isAuthenticated ? (
-            <form onSubmit={handleComment} className="mb-5">
-              <div className="flex gap-2">
-                <input
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="写下你的评论..."
-                  className="flex-1 h-10 px-3.5 bg-paper border border-line rounded-[10px] text-[14px] text-ink placeholder:text-ink-muted/60 transition-colors focus:outline-none focus:border-lake"
-                />
-                <Button type="submit" loading={submitting} size="sm">
-                  发布
-                </Button>
-              </div>
-            </form>
+            /* D4: 已登录未认证用户仅只读——评论需先完成校园身份认证 */
+            <div className="mb-5">
+              <VerifyGate compact message="完成校园身份认证后即可发表评论">
+                <form onSubmit={handleComment}>
+                  <div className="flex gap-2">
+                    <input
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="写下你的评论..."
+                      className="flex-1 h-10 px-3.5 bg-paper border border-line rounded-[10px] text-[14px] text-ink placeholder:text-ink-muted/60 transition-colors focus:outline-none focus:border-lake"
+                    />
+                    <Button type="submit" loading={submitting} size="sm">
+                      发布
+                    </Button>
+                  </div>
+                </form>
+              </VerifyGate>
+            </div>
           ) : (
             <div className="text-center py-3 text-ink-muted text-sm mb-5 bg-paper-hover rounded-[10px]">
               请先登录后再评论
@@ -857,7 +870,7 @@ const PostDetailPage: React.FC = () => {
                         </span>
                       </div>
                       <p className="text-ink text-[14px] leading-[1.7]">{comment.content}</p>
-                      {isAuthenticated && (
+                      {canInteract && (
                         <button
                           type="button"
                           onClick={() => {
@@ -929,7 +942,7 @@ const PostDetailPage: React.FC = () => {
                                   </span>
                                 </div>
                                 <p className="text-ink text-[13px] leading-[1.6]">{reply.content}</p>
-                                {isAuthenticated && (
+                                {canInteract && (
                                   <button
                                     type="button"
                                     onClick={() => {

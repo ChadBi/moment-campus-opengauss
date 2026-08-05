@@ -73,13 +73,18 @@ async def _assign_operations_subscription(db: AsyncSession, school_id: int) -> N
 async def _create_user(
     db: AsyncSession, email: str, nickname: str, school_id: int, role: str = "user"
 ) -> User:
-    """直接在 DB 创建用户（不走注册接口，避免触发额外逻辑）"""
+    """直接在 DB 创建用户（不走注册接口，避免触发额外逻辑）
+
+    D4 门禁：默认已完成校园身份认证（campus_verified=True），
+    使写操作测试不受「未认证只读」限制；未认证场景由 test_campus_gate 覆盖。
+    """
     user = User(
         email=email,
         nickname=nickname,
         password_hash=get_password_hash("testpass123"),
         school_id=school_id,
         role=role,
+        campus_verified=True,
     )
     db.add(user)
     await db.flush()
@@ -197,10 +202,9 @@ async def three_schools(db_session: AsyncSession) -> dict:
     await _create_membership(db_session, user_b.id, school_b.id, "member")
     await _create_membership(db_session, user_c.id, school_c.id, "member")
 
-    # user_ab：A 校默认用户，同时加入 B 校（用于跨校资源测试）
+    # user_ab：A 校用户（UC-01 一对一，仅一条 active membership；用于跨校资源测试）
     user_ab = await _create_user(db_session, "ab@example.com", "AB 双校用户", school_a.id)
     await _create_membership(db_session, user_ab.id, school_a.id, "member")
-    await _create_membership(db_session, user_ab.id, school_b.id, "member")
 
     # admin_a：A 校管理员
     admin_a = await _create_user(db_session, "admin_a@example.com", "A 校管理员", school_a.id, role="admin")
@@ -331,10 +335,10 @@ class TestTenantContextResolution:
     async def test_header_overrides_user_default_school(
         self, client: AsyncClient, three_schools: dict
     ):
-        """X-School-Code 头覆盖用户默认学校（需有 membership）"""
-        # user_ab 默认学校是 A，但通过头切换到 B
+        """X-School-Code 头覆盖用户默认学校（super_admin 可跨校）"""
+        # super_admin 默认学校是 A，通过头切换到 B 校上下文
         headers = {
-            **_auth_headers(three_schools["users"]["ab"]["token"]),
+            **_auth_headers(three_schools["users"]["super"]["token"]),
             **_school_headers("school-b"),
         }
         resp = await client.get("/api/v1/posts", headers=headers)
@@ -557,9 +561,9 @@ class TestResourceLevelIsolation:
         self, client: AsyncClient, three_schools: dict
     ):
         """A 校上下文访问 B 校帖子 → 404"""
-        # user_ab 有 A/B 双校 membership，在 A 校上下文访问 B 校帖子
+        # user_a 是 A 校用户，在 A 校上下文访问 B 校帖子
         headers = {
-            **_auth_headers(three_schools["users"]["ab"]["token"]),
+            **_auth_headers(three_schools["users"]["a"]["token"]),
             **_school_headers("school-a"),
         }
         resp = await client.get(
@@ -573,9 +577,9 @@ class TestResourceLevelIsolation:
         self, client: AsyncClient, three_schools: dict
     ):
         """同一用户在 B 校上下文访问自己在 A 校发的帖子 → 404"""
-        # user_ab 在 B 校上下文（有 B 校 membership），访问 A 校帖子
+        # super_admin 可跨校访问 B 校上下文，但资源级校验仍隔离 A 校帖子
         headers = {
-            **_auth_headers(three_schools["users"]["ab"]["token"]),
+            **_auth_headers(three_schools["users"]["super"]["token"]),
             **_school_headers("school-b"),
         }
         resp = await client.get(
@@ -641,11 +645,11 @@ class TestWriteIgnoresBodySchoolId:
         )
         assert resp_detail.status_code == 200
 
-        # B 校上下文应看不到该帖子
+        # B 校上下文应看不到该帖子（普通用户无 B 校 membership → 404）
         resp_b = await client.get(
             f"/api/v1/posts/{created_id}",
             headers={
-                **_auth_headers(three_schools["users"]["ab"]["token"]),
+                **_auth_headers(three_schools["users"]["a"]["token"]),
                 **_school_headers("school-b"),
             },
         )
@@ -820,9 +824,9 @@ class TestInteractionIsolation:
     async def test_cross_school_like_returns_404(
         self, client: AsyncClient, three_schools: dict
     ):
-        """user_ab 在 A 校上下文对 B 校帖子点赞 → 404"""
+        """user_a 在 A 校上下文对 B 校帖子点赞 → 404"""
         headers = {
-            **_auth_headers(three_schools["users"]["ab"]["token"]),
+            **_auth_headers(three_schools["users"]["a"]["token"]),
             **_school_headers("school-a"),
         }
         resp = await client.post(
@@ -835,9 +839,9 @@ class TestInteractionIsolation:
     async def test_cross_school_comment_returns_404(
         self, client: AsyncClient, three_schools: dict
     ):
-        """user_ab 在 A 校上下文对 B 校帖子评论 → 404"""
+        """user_a 在 A 校上下文对 B 校帖子评论 → 404"""
         headers = {
-            **_auth_headers(three_schools["users"]["ab"]["token"]),
+            **_auth_headers(three_schools["users"]["a"]["token"]),
             **_school_headers("school-a"),
         }
         resp = await client.post(

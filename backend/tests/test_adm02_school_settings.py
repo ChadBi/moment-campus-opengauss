@@ -50,6 +50,7 @@ async def _create_user(
         role=role,
         is_active=True,
         is_deleted=False,
+        campus_verified=True,  # D4 门禁：默认已认证
     )
     db.add(user)
     await db.flush()

@@ -68,6 +68,7 @@ async def _create_user(db: AsyncSession, email: str, nickname: str, school_id: i
         email=email, nickname=nickname,
         password_hash=get_password_hash("testpass123"),
         school_id=school_id, role=role,
+        campus_verified=True,  # D4 门禁：默认已认证
     )
     db.add(u)
     await db.flush()

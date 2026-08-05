@@ -39,6 +39,7 @@ from app.core.exceptions import (
     ConflictException,
 )
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
+from app.core.permissions import require_campus_verified
 
 router = APIRouter(prefix="/subscriptions", tags=["订阅"])
 
@@ -341,6 +342,7 @@ async def check_subscription(
     response_model=SubscriptionResponse,
     status_code=201,
     summary="订阅目标",
+    dependencies=[Depends(require_campus_verified())],
 )
 async def create_subscription(
     payload: SubscriptionCreate,
@@ -389,6 +391,7 @@ async def create_subscription(
     "/{subscription_id}",
     response_model=MessageResponse,
     summary="取消订阅",
+    dependencies=[Depends(require_campus_verified())],
 )
 async def delete_subscription(
     subscription_id: int,

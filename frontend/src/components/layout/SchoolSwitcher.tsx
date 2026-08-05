@@ -4,6 +4,7 @@ import { useCampusStore } from '../../store/useCampusStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useSwitchSchool } from '../../hooks/useSchoolSync';
 import { schoolsApi } from '../../services/schools';
+import { SwitchSchoolModal } from '../SwitchSchoolModal';
 
 /**
  * TEN-03.3: 页头学校切换组件
@@ -13,7 +14,8 @@ import { schoolsApi } from '../../services/schools';
  * - 已加入学校显示勾选标记；默认学校显示星标
  * - 切换通过 useSwitchSchool 写入 URL ?school=code
  * - 切换后由 useSchoolSync 取消进行中请求 + 清除旧缓存
- * - 切换未加入的学校时（登录态）：先调用 joinSchool，再切换
+ * - UC-01 严格一对一：普通用户点击未加入学校 → 打开 SwitchSchoolModal
+ *   （提示切校后果 + 确认），不再静默 join；super_admin 保留多校 join 能力
  *
  * UX-01.7 无障碍优化：
  * - role="listbox" + role="option" + aria-selected
@@ -30,9 +32,10 @@ export const SchoolSwitcher: React.FC = () => {
     loadingSchools,
     setMemberships,
   } = useCampusStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const switchSchool = useSwitchSchool();
   const [open, setOpen] = useState(false);
+  const [switchModalOpen, setSwitchModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   // UX-01.7: 当前聚焦选项索引（-1 表示未聚焦任何选项）
@@ -131,28 +134,33 @@ export const SchoolSwitcher: React.FC = () => {
     ) {
       return;
     }
-    // 登录用户：若未加入该学校，先 join（幂等）
+    // 登录用户：判断是否已加入该校
+    const joined = memberships.some(
+      (m) => m.school.code === code && m.status === 'active',
+    );
     if (isAuthenticated) {
-      const joined = memberships.some(
-        (m) =>
-          m.school.code === code &&
-          m.status === 'active'
-      );
       if (!joined) {
-        try {
-          // joinSchool 在 axios 拦截器里会注入当前 X-School-Code 头，
-          // 后端 join 接口以 URL {code} 为准（不受 header 影响）
-          await schoolsApi.joinSchool(code);
-          // join 成功后刷新 memberships，确保 useSwitchSchool 的权限校验
-          // 基于最新数据（否则会误判"无该学校访问权限"）
-          const list = await schoolsApi.listMyMemberships();
-          setMemberships(list);
-        } catch {
-          // 加入失败：仍然切换查看公开内容
+        // UC-01：super_admin 保留静默 join；普通用户走切换确认浮窗
+        if (user?.role === 'super_admin') {
+          try {
+            await schoolsApi.joinSchool(code);
+            const list = await schoolsApi.listMyMemberships();
+            setMemberships(list);
+          } catch {
+            // 加入失败：仍然切换查看公开内容
+          }
+          await switchSchool(code);
+        } else {
+          setSwitchModalOpen(true);
         }
+        return;
       }
+      // 已加入 → 直接切换
+      await switchSchool(code);
+    } else {
+      // 游客：直接切换查看公开内容
+      await switchSchool(code);
     }
-    await switchSchool(code);
   };
 
   if (!currentSchoolName) {
@@ -269,11 +277,19 @@ export const SchoolSwitcher: React.FC = () => {
           </ul>
           {isAuthenticated && currentSchoolId !== null && (
             <div className="border-t border-line/40 px-3 py-2 text-[11px] text-ink-muted">
-              点击未加入学校将自动申请加入
+              {user?.role === 'super_admin'
+                ? '点击未加入学校将自动申请加入'
+                : '切换学校将重新进行校园身份认证'}
             </div>
           )}
         </div>
       )}
+
+      {/* UC-01: 普通用户切换学校确认浮窗 */}
+      <SwitchSchoolModal
+        isOpen={switchModalOpen}
+        onClose={() => setSwitchModalOpen(false)}
+      />
     </div>
   );
 };

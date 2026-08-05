@@ -138,6 +138,7 @@ async def _create_user(
         role=role,
         is_active=True,
         is_deleted=False,
+        campus_verified=True,  # D4 门禁：默认已认证
     )
     db.add(user)
     await db.flush()
@@ -281,6 +282,7 @@ async def _create_user_with_token(
         role=role,
         is_active=True,
         is_deleted=False,
+        campus_verified=True,  # D4 门禁：默认已认证
     )
     db.add(user)
     await db.flush()  # 获取 user.id
@@ -630,24 +632,17 @@ async def test_delete_subscription_owner_only(
 async def test_list_subscriptions_tenant_isolation(
     client: AsyncClient, sub_01_two_school_setup: dict, db_session: AsyncSession
 ):
-    """SUB-01.1: A 校订阅者在 B 校 X-School-Code 下查询订阅列表为空（跨校不可见）
-
-    需先为 subscriber_a 添加 B 校 membership，否则 tenant context 会直接 404
-    （无权访问该校），无法验证"订阅列表跨校隔离"语义。
-    """
+    """SUB-01.1: A 校订阅者在 B 校 X-School-Code 下 → 404（UC-01 一对一，无 B 校 membership）"""
     setup = sub_01_two_school_setup
     # A 校订阅者订阅 A 校分类
     await _create_subscription(
         db_session, setup["subscriber_a"]["id"], setup["school_a"]["id"],
         "category", setup["school_a"]["category_id"],
     )
-    # 给 A 校订阅者添加 B 校 membership（使其可访问 B 校上下文）
-    await _create_membership(
-        db_session, setup["subscriber_a"]["id"], setup["school_b"]["id"], "member"
-    )
     await db_session.commit()
 
-    # 用 B 校 X-School-Code 查询 → 列表为空（B 校视角下该用户无订阅）
+    # UC-01 一对一：普通用户仅一条 active membership（A 校），
+    # 用 B 校 X-School-Code 查询 → 404（tenant context 拒绝无 membership 的学校）
     resp = await client.get(
         "/api/v1/subscriptions",
         headers={
@@ -655,10 +650,7 @@ async def test_list_subscriptions_tenant_isolation(
             "X-School-Code": "sub01-b",
         },
     )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["total"] == 0
-    assert data["items"] == []
+    assert resp.status_code == 404
 
 
 @pytest.mark.asyncio

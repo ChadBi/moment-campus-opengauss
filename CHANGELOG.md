@@ -7,6 +7,26 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.1.9] - 2026-08-06
+
+### 新增
+
+- `UC-01` 用户-学校严格一对一绑定：`school_memberships` 新增部分唯一索引 `idx_membership_user_active`，一个用户同一时刻只能有 1 个 active membership；`POST /schools/join` 语义升级为"切校"（leave old + join new 原子操作）；super_admin 保留跨校静默切换特权（platform 管理需要）
+- `UC-02` 教育邮箱验证系统：后端 `email_service.py` 接入 SMTP（SSL，支持 `smtp.qq.com` 等主流服务商，授权码经环境变量 `SMTP_*` 注入）；`school_domains` 后台管理端点（`GET/PUT/POST /admin/school-domains`）支持管理员配置学校邮箱后缀；`/verify-campus/send` 返回 `verify_link` 供 SMTP 未配置时的 dev 模式使用；verify 凭据支持双通道（6 位验证码或 24 位 token 哈希），token 落地页 `/verify-campus?token=xxx` 自动跳转个人中心完成认证
+- `UC-03` 学校切换功能：个人中心新增"切换学校"浮窗 `SwitchSchoolModal`（搜索学校→后果确认→执行切换）；切校后 `school_switch.py` 原子执行：原校 membership 置 inactive + 新校 membership 建/激活 + 重置 `campus_verified=false` + 清空 student_id/campus_email + 将原校 posts/comments/location_reviews 匿名化为「已离校用户」；SchoolSwitcher 普通用户选择未加入学校时打开切换浮窗
+- `D-04` 地点页面与地图整合：`MapPage` 地图地点标记（MAP_LOCATION_LAYER_ID）点击弹出地点侧面板，展示地点名称/类别/评分/评价数/距离，并并行拉取该地点相关帖子（`GET /posts?location_id=`，最多 5 条），可跳转地点详情页；保留 `/locations` 独立页面并支持深链 `?location={id}` 自动打开对应地点详情
+- `D4-gate` 未认证用户只读门禁：后端所有写入端点（发帖/评论/点赞/证实/证伪/举报/评分/订阅/回复）统一加 `require_campus_verified()` 依赖，返回 403；前端 `VerifyGate` 组件提供大卡/紧凑两种门禁模式；发布页/评论区/评分区均由 VerifyGate 包裹；PostDetailPage 点赞/协同验证/举报/回复按钮仅对已认证用户渲染；未认证已登录用户有明显"去认证"引导
+- `UX` 认证链接落地页 `/verify-campus`：读取 URL `token` 参数存 sessionStorage 后重定向个人中心，CampusVerifyCard 自动读取 token 完成确认
+
+### 变更
+
+- `perf(ui)` 修复 PostDetailPage 未认证已登录用户可见点赞/协同验证/举报/回复按钮的遗漏（补充 `canInteract = isAuthenticated && campusVerified` 判断）
+- `fix(schema)` CampusVerifyConfirmRequest.code 字段长度由 6 放宽到 128，以支持 24 位 token 凭据（此前 token 提交返回 422）
+- `test` 测试 fixture 全面适配 UC-01 一对一约束：普通用户仅保留 1 个 active membership（通过 super_admin 测试多校场景）；默认 fixture 用户标记 `campus_verified=True`（D4 门禁默认放行，未认证场景由 `test_campus_gate.py` 专项覆盖）
+- `test` 新增 `test_campus_gate.py` 覆盖未认证写入 403 场景
+- `fix(ui)` LocationPage 挂载 effect 读取 useCallback 定义的 openDetail 顺序导致的 `react-hooks/immutability` 警告，将 effect 移到 openDetail 定义之后；set-state-in-effect 警告统一用 `Promise.resolve().then(...)` 包裹
+- `chore(config)` config.py 新增 SMTP 配置字段（SMTP_HOST/PORT/USER/PASSWORD/USE_SSL/FROM_EMAIL/FROM_NAME）+ APP_BASE_URL 用于构造 verify_link
+
 ## [2.1.8] - 2026-08-06
 
 ### 新增

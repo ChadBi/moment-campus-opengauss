@@ -23,6 +23,7 @@ from app.models.validation_record import ValidationRecord
 # B-01: 校园身份认证
 from app.models.campus_verify_token import CampusVerifyToken
 from app.models.school_domain import SchoolDomain
+from app.models.school import School
 from app.schemas.user import UserResponse, UserUpdate
 from app.schemas.user import (
     CampusVerifySendRequest, CampusVerifySendResponse,
@@ -41,19 +42,28 @@ CAMPUS_VERIFY_CODE_EXPIRE_MINUTES = 10
 
 
 def _should_return_campus_verify_code() -> bool:
-    """本地开发环境在响应中返回验证码（无邮件服务），便于测试与演示闭环。"""
+    """本地开发环境在响应中返回验证码/链接（无邮件服务），便于测试与演示闭环。"""
     env = (settings.APP_ENV or "").lower()
     return env in ("opengauss", "demo", "test") or settings.DEBUG
 
 
 def _hash_token(token: str) -> str:
-    """对明文验证码取 SHA-256 哈希；DB 仅存哈希，避免明文泄露。"""
+    """对明文凭证（验证码/token）取 SHA-256 哈希；DB 仅存哈希，避免明文泄露。"""
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def _generate_code() -> str:
-    """生成 6 位数字验证码。"""
-    return f"{secrets.randbelow(1000000):06d}"
+def _generate_credential() -> str:
+    """生成一次性认证凭证（URL-safe token，24 字节熵）。
+
+    既用作验证链接中的 token，也作为手工输入的验证码（同一凭证双通道）。
+    """
+    return secrets.token_urlsafe(24)
+
+
+def _build_verify_link(credential: str) -> str:
+    """构造前端验证落地页链接（/verify-campus?token=xxx）。"""
+    base = settings.APP_BASE_URL or "http://localhost:8000"
+    return f"{base}/verify-campus?token={credential}"
 
 
 @router.get("/me", response_model=UserResponse, summary="获取当前用户信息")
@@ -117,9 +127,10 @@ async def send_campus_verify(
     业务规则：
     - 已认证用户不能再发起（返回 400）
     - 校验校园邮箱域名命中该校 `school_domains` 允许域名，否则 400
-    - 生成 6 位一次性验证码（10 分钟有效），DB 仅存 SHA-256 哈希
-    - 本地开发环境（APP_ENV in opengauss/demo/test 或 DEBUG=true）：
-      响应中携带 code 供测试链路打通（无邮件服务）
+    - 生成一次性认证凭证（URL-safe token，10 分钟有效），DB 仅存 SHA-256 哈希
+    - 构造验证链接 `{APP_BASE_URL}/verify-campus?token=xxx`，通过 SMTP 发送验证邮件
+    - SMTP 未配置或本地开发环境（APP_ENV in opengauss/demo/test 或 DEBUG=true）：
+      响应中携带 code / verify_link 供测试链路打通（无邮件服务）
     """
     if current_user.campus_verified:
         raise BadRequestException(detail="您已完成校园身份认证，无需重复认证")
@@ -135,10 +146,11 @@ async def send_campus_verify(
     if domain_result.scalar_one_or_none() is None:
         raise BadRequestException(detail="校园邮箱域名与您的学校不匹配，请使用学校官方邮箱")
 
-    # 生成验证码
-    code = _generate_code()
-    token_hash = _hash_token(code)
+    # 生成一次性凭证 + 验证链接
+    credential = _generate_credential()
+    token_hash = _hash_token(credential)
     expires_at = datetime.now() + timedelta(minutes=CAMPUS_VERIFY_CODE_EXPIRE_MINUTES)
+    verify_link = _build_verify_link(credential)
 
     client_ip = request.client.host if request.client else None
     db.add(CampusVerifyToken(
@@ -153,16 +165,42 @@ async def send_campus_verify(
     ))
     await db.commit()
 
-    message = f"验证码已发送至 {data.campus_email}（{CAMPUS_VERIFY_CODE_EXPIRE_MINUTES} 分钟内有效）"
-    if _should_return_campus_verify_code():
-        return CampusVerifySendResponse(message=message, code=code)
+    # 尝试通过 SMTP 发送验证邮件；失败/未配置时回退 dev 展示
+    from app.services import email_service
+    school_row = await db.scalar(
+        select(School.name).where(School.id == current_user.school_id)
+    )
+    school_name = school_row or ""
+    sent = email_service.send_verification_email(
+        to_email=data.campus_email,
+        verify_link=verify_link,
+        school_name=school_name,
+        code=None,
+    )
+    if sent:
+        message = (
+            f"验证邮件已发送至 {data.campus_email}，请查收并按邮件中的链接完成认证"
+            f"（{CAMPUS_VERIFY_CODE_EXPIRE_MINUTES} 分钟内有效）"
+        )
+    else:
+        message = (
+            f"验证凭证已生成（{CAMPUS_VERIFY_CODE_EXPIRE_MINUTES} 分钟内有效）；"
+            f"当前环境未配置邮件服务，请在下方使用返回的链接/验证码完成认证"
+        )
+
+    if _should_return_campus_verify_code() or not email_service.smtp_configured():
+        return CampusVerifySendResponse(
+            message=message,
+            code=credential,
+            verify_link=verify_link,
+        )
     return CampusVerifySendResponse(message=message)
 
 
 @router.post(
     "/me/verify-campus/confirm",
     response_model=CampusVerifyConfirmResponse,
-    summary="B-01: 确认校园身份认证（提交验证码）",
+    summary="B-01: 确认校园身份认证（提交 token 或验证码）",
 )
 async def confirm_campus_verify(
     data: CampusVerifyConfirmRequest,
@@ -172,14 +210,18 @@ async def confirm_campus_verify(
     """确认校园身份认证。
 
     业务规则：
-    - 校验验证码：哈希后查 DB，必须存在 + 未过期 + 未使用 + 属于当前用户
+    - 校验凭证（token 或 code 二选一）：哈希后查 DB，必须存在 + 未过期 + 未使用 + 属于当前用户
     - 校验通过 → campus_verified=true，记录 student_id/campus_email/verified_at
     - 一次性：标记 used_at = now，防止重复使用
     """
     if current_user.campus_verified:
         raise BadRequestException(detail="您已完成校园身份认证，无需重复认证")
 
-    token_hash = _hash_token(data.code)
+    credential = data.token or data.code
+    if not credential:
+        raise BadRequestException(detail="请提供验证 token 或验证码")
+
+    token_hash = _hash_token(credential)
     result = await db.execute(
         select(CampusVerifyToken).where(
             CampusVerifyToken.user_id == current_user.id,
@@ -188,11 +230,11 @@ async def confirm_campus_verify(
     )
     token = result.scalars().first()
     if token is None:
-        raise BadRequestException(detail="验证码无效，请重新发起认证")
+        raise BadRequestException(detail="验证凭证无效，请重新发起认证")
     if token.used_at is not None:
-        raise BadRequestException(detail="验证码已使用，请重新发起认证")
+        raise BadRequestException(detail="验证凭证已使用，请重新发起认证")
     if token.expires_at < datetime.now():
-        raise BadRequestException(detail="验证码已过期，请重新发起认证")
+        raise BadRequestException(detail="验证凭证已过期，请重新发起认证")
 
     # 标记使用 + 记录认证信息
     token.used_at = datetime.now()

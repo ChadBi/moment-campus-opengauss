@@ -93,13 +93,10 @@ async def schools_fixture(db_session: AsyncSession) -> dict:
     school_b = await _create_school(db_session, "B 校", "school-b")
     school_c = await _create_school(db_session, "C 校（停用）", "school-c", is_active=False)
 
-    # 用户 u1：默认 A 校，同时加入 B 校
+    # 用户 u1：默认 A 校（UC-01 一对一：仅一条 active）
     u1 = await _create_user(db_session, "u1@example.com", "U1", school_a.id)
     await _create_membership(
         db_session, u1.id, school_a.id, role="member", is_default=True
-    )
-    await _create_membership(
-        db_session, u1.id, school_b.id, role="admin", is_default=False
     )
 
     # 用户 u2：仅 A 校
@@ -205,14 +202,13 @@ class TestGetCurrentSchool:
     async def test_logged_in_user_with_header_overrides_default(
         self, client: AsyncClient, schools_fixture: dict
     ):
-        """登录用户传 X-School-Code → 切换到目标学校（需有 membership）"""
+        """UC-01：登录用户传 X-School-Code 访问非成员学校 → 404（一对一）"""
         headers = {
             **_auth_headers(schools_fixture["users"]["u1"]["token"]),
             **_school_headers("school-b"),
         }
         resp = await client.get("/api/v1/schools/current", headers=headers)
-        assert resp.status_code == 200
-        assert resp.json()["code"] == "school-b"
+        assert resp.status_code == 404
 
     @pytest.mark.asyncio
     async def test_nonexistent_school_returns_404(
@@ -242,14 +238,14 @@ class TestListMyMemberships:
     async def test_returns_all_memberships(
         self, client: AsyncClient, schools_fixture: dict
     ):
-        """u1 返回 A/B 两校 membership"""
+        """UC-01：u1 仅 A 校一条 active membership（一对一）"""
         headers = _auth_headers(schools_fixture["users"]["u1"]["token"])
         resp = await client.get("/api/v1/me/memberships", headers=headers)
         assert resp.status_code == 200
         data = resp.json()
         school_ids = {m["school_id"] for m in data}
         assert schools_fixture["schools"]["a"]["id"] in school_ids
-        assert schools_fixture["schools"]["b"]["id"] in school_ids
+        assert len(school_ids) == 1
 
     @pytest.mark.asyncio
     async def test_membership_fields(
@@ -297,10 +293,10 @@ class TestJoinSchool:
         assert resp.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_join_new_school_creates_active_membership(
+    async def test_join_new_school_switches_membership(
         self, client: AsyncClient, schools_fixture: dict, db_session: AsyncSession
     ):
-        """u2（仅 A 校）加入 B 校 → 创建 active membership"""
+        """UC-01：u2（仅 A 校）加入 B 校 → 切换语义（switched=true，active 指向 B）"""
         headers = _auth_headers(schools_fixture["users"]["u2"]["token"])
         resp = await client.post(
             "/api/v1/schools/school-b/join",
@@ -310,29 +306,30 @@ class TestJoinSchool:
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert data["already_member"] is False
+        assert data["switched"] is True
         assert data["membership"]["status"] == "active"
         assert data["membership"]["school_id"] == schools_fixture["schools"]["b"]["id"]
 
-        # DB 校验
-        db_m = (
+        # DB 校验：唯一 active membership 已指向 B
+        active = (
             await db_session.execute(
                 select(SchoolMembership).where(
                     SchoolMembership.user_id == schools_fixture["users"]["u2"]["id"],
-                    SchoolMembership.school_id == schools_fixture["schools"]["b"]["id"],
+                    SchoolMembership.status == "active",
                 )
             )
-        ).scalar_one_or_none()
-        assert db_m is not None
-        assert db_m.status == "active"
+        ).scalars().all()
+        assert len(active) == 1
+        assert active[0].school_id == schools_fixture["schools"]["b"]["id"]
 
     @pytest.mark.asyncio
     async def test_join_idempotent_when_already_member(
         self, client: AsyncClient, schools_fixture: dict
     ):
-        """u1 已是 B 校成员 → 幂等返回 already_member=true"""
+        """u1 已是 A 校成员 → 幂等返回 already_member=true"""
         headers = _auth_headers(schools_fixture["users"]["u1"]["token"])
         resp = await client.post(
-            "/api/v1/schools/school-b/join",
+            "/api/v1/schools/school-a/join",
             json={},
             headers=headers,
         )
@@ -345,7 +342,7 @@ class TestJoinSchool:
     async def test_join_upgrades_invited_to_active(
         self, client: AsyncClient, schools_fixture: dict, db_session: AsyncSession
     ):
-        """u3 在 A 校是 invited 状态 → 升级为 active"""
+        """u3 在 A 校是 invited 状态 → join 后升级为 active"""
         headers = _auth_headers(schools_fixture["users"]["u3"]["token"])
         resp = await client.post(
             "/api/v1/schools/school-a/join",
@@ -356,19 +353,7 @@ class TestJoinSchool:
         data = resp.json()
         assert data["already_member"] is False
         assert data["membership"]["status"] == "active"
-
-        # DB 校验
-        await db_session.refresh(
-            (
-                await db_session.execute(
-                    select(SchoolMembership).where(
-                        SchoolMembership.user_id == schools_fixture["users"]["u3"]["id"],
-                        SchoolMembership.school_id == schools_fixture["schools"]["a"]["id"],
-                    )
-                )
-            ).scalar_one(),
-            attribute_names=["status"],
-        )
+        assert data["membership"]["school_id"] == schools_fixture["schools"]["a"]["id"]
 
     @pytest.mark.asyncio
     async def test_join_nonexistent_school_returns_404(
@@ -419,38 +404,17 @@ class TestSetDefaultSchool:
         schools_fixture: dict,
         db_session: AsyncSession,
     ):
-        """u1 把默认学校从 A 切换到 B → B 成为默认，A 取消默认"""
+        """UC-01：u1 唯一学校 A → set-default A 一致校验通过并同步 user.school_id"""
         headers = _auth_headers(schools_fixture["users"]["u1"]["token"])
         resp = await client.put(
             "/api/v1/me/default-school",
-            json={"school_id": schools_fixture["schools"]["b"]["id"]},
+            json={"school_id": schools_fixture["schools"]["a"]["id"]},
             headers=headers,
         )
         assert resp.status_code == 200, resp.text
         data = resp.json()
-        assert data["default_school_id"] == schools_fixture["schools"]["b"]["id"]
+        assert data["default_school_id"] == schools_fixture["schools"]["a"]["id"]
         assert data["membership"]["is_default"] is True
-
-        # A 校 membership 应取消默认
-        db_session.expire_all()
-        m_a = (
-            await db_session.execute(
-                select(SchoolMembership).where(
-                    SchoolMembership.user_id == schools_fixture["users"]["u1"]["id"],
-                    SchoolMembership.school_id == schools_fixture["schools"]["a"]["id"],
-                )
-            )
-        ).scalar_one()
-        m_b = (
-            await db_session.execute(
-                select(SchoolMembership).where(
-                    SchoolMembership.user_id == schools_fixture["users"]["u1"]["id"],
-                    SchoolMembership.school_id == schools_fixture["schools"]["b"]["id"],
-                )
-            )
-        ).scalar_one()
-        assert m_a.is_default is False
-        assert m_b.is_default is True
 
         # user.school_id 同步
         u1 = (
@@ -458,7 +422,20 @@ class TestSetDefaultSchool:
                 select(User).where(User.id == schools_fixture["users"]["u1"]["id"])
             )
         ).scalar_one()
-        assert u1.school_id == schools_fixture["schools"]["b"]["id"]
+        assert u1.school_id == schools_fixture["schools"]["a"]["id"]
+
+    @pytest.mark.asyncio
+    async def test_set_default_to_other_school_returns_404(
+        self, client: AsyncClient, schools_fixture: dict
+    ):
+        """UC-01：普通用户唯一 active 不是目标校 → 404（切换请走 join）"""
+        headers = _auth_headers(schools_fixture["users"]["u1"]["token"])
+        resp = await client.put(
+            "/api/v1/me/default-school",
+            json={"school_id": schools_fixture["schools"]["b"]["id"]},
+            headers=headers,
+        )
+        assert resp.status_code == 404
 
     @pytest.mark.asyncio
     async def test_set_default_to_non_joined_school_returns_404(
@@ -487,40 +464,36 @@ class TestSetDefaultSchool:
         assert resp.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_set_default_only_one_default_at_a_time(
+    async def test_set_default_only_one_active_at_a_time(
         self,
         client: AsyncClient,
         schools_fixture: dict,
         db_session: AsyncSession,
     ):
-        """设置默认学校后，再次切换默认，确保仅有一个默认"""
+        """UC-01：切换学校（join）后仅有一条 active 且 is_default=true"""
         headers = _auth_headers(schools_fixture["users"]["u1"]["token"])
 
-        # u1 默认是 A，先切换到 B
-        await client.put(
-            "/api/v1/me/default-school",
-            json={"school_id": schools_fixture["schools"]["b"]["id"]},
-            headers=headers,
-        )
-        # 再切换回 A
-        resp = await client.put(
-            "/api/v1/me/default-school",
-            json={"school_id": schools_fixture["schools"]["a"]["id"]},
+        # u1 从 A 切换到 B（join 切换语义）
+        resp = await client.post(
+            "/api/v1/schools/school-b/join",
+            json={},
             headers=headers,
         )
         assert resp.status_code == 200
+        assert resp.json()["switched"] is True
 
         db_session.expire_all()
-        defaults = (
+        active = (
             await db_session.execute(
                 select(SchoolMembership).where(
                     SchoolMembership.user_id == schools_fixture["users"]["u1"]["id"],
-                    SchoolMembership.is_default == True,  # noqa: E712
+                    SchoolMembership.status == "active",
                 )
             )
         ).scalars().all()
-        assert len(defaults) == 1
-        assert defaults[0].school_id == schools_fixture["schools"]["a"]["id"]
+        assert len(active) == 1
+        assert active[0].school_id == schools_fixture["schools"]["b"]["id"]
+        assert active[0].is_default is True
 
 
 # ============================================================
@@ -533,22 +506,26 @@ class TestJoinThenListMemberships:
     async def test_join_then_list(
         self, client: AsyncClient, schools_fixture: dict
     ):
-        """u2 加入 B 校后，/me/memberships 包含 B 校"""
+        """UC-01：u2 从 A 切换到 B 后，/me/memberships 仅含 B 校（一对一）"""
         headers = _auth_headers(schools_fixture["users"]["u2"]["token"])
 
         # 加入前
         resp_before = await client.get("/api/v1/me/memberships", headers=headers)
         before_ids = {m["school_id"] for m in resp_before.json()}
         assert schools_fixture["schools"]["b"]["id"] not in before_ids
+        assert schools_fixture["schools"]["a"]["id"] in before_ids
 
-        # 加入 B 校
-        await client.post(
+        # 切换到 B 校（join 切换语义）
+        resp_join = await client.post(
             "/api/v1/schools/school-b/join",
             json={},
             headers=headers,
         )
+        assert resp_join.json()["switched"] is True
 
-        # 加入后
+        # 切换后：仅含 B 校（A 校成员关系已改指向 B）
         resp_after = await client.get("/api/v1/me/memberships", headers=headers)
         after_ids = {m["school_id"] for m in resp_after.json()}
         assert schools_fixture["schools"]["b"]["id"] in after_ids
+        assert schools_fixture["schools"]["a"]["id"] not in after_ids
+        assert len(after_ids) == 1

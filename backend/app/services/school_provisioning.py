@@ -60,6 +60,7 @@ class SchoolProvisionRequest:
     province: Optional[str] = None
     city: Optional[str] = None
     address: Optional[str] = None
+    email_domain: Optional[str] = None  # B-03: 默认邮箱后缀（校园身份认证允许域名）
 
 
 @dataclass
@@ -146,6 +147,17 @@ class SchoolProvisioningService:
         # 5. 分配默认套餐
         plan_code = req.plan_code or DEFAULT_PLAN_CODE
         subscription = await self._assign_plan(school.id, plan_code, operator_id, now)
+
+        # 6. B-03: 写入默认邮箱域名（校园身份认证允许域名）
+        if req.email_domain:
+            from app.models.school_domain import SchoolDomain
+            self.db.add(SchoolDomain(
+                school_id=school.id,
+                domain=req.email_domain.strip().lower().lstrip("@"),
+                is_primary=True,
+                created_at=now,
+                updated_at=now,
+            ))
 
         await self.db.flush()
         return {

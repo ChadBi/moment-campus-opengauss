@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-02（AI 搜索混合排序权重调整并同步华为云服务器：语义 35%→50%、新鲜度 25%→15%、验证数 20%→15%）
+> 最后更新：2026-08-06（用户系统四大调整：一对一绑定+教育邮箱验证+学校切换+地图地点整合+未认证只读门禁）
 
 ## 状态总览
 
@@ -15,9 +15,9 @@
 | 阶段 D：扩展能力 | — | ❌ 整阶段放弃 | — | — | 2026-07-02 | 按用户决策不做 |
 | 阶段 E：测试与交付 | P0 | ✅ 已完成 | 4/4 | 2026-07-10 | 2026-07-05 | T-E-01~04 全部完成 |
 | 阶段 OPT：项目优化 | P0 | ✅ 已完成 | 28/32（4 后续版本） | 2026-08-09 | 2026-07-26 | 累计关闭 87.5%，超目标 78% |
-| 阶段 R：复赛冲刺 | P0 | 🔄 进行中 | 6/14 | 2026-08-09 23:59 | — | R-02/03/04/05/06/08 已完成；R-01/07/09~14 待完成 |
+| 阶段 R：复赛冲刺 | P0 | 🔄 进行中 | 6/14 | 2026-08-09 23:59 | — | R-02/03/04/05/06/08 已完成；R-01/07/09~14 待完成；用户系统 UC-01~03 + D-04 + D4 门禁增量完成 |
 
-**整体进度**：已完成 63/72 项（87.5%），放弃 13 项，剩余 8 项待完成（R 系列 8 项 + 横切 1 项待确认）。
+**整体进度**：四大功能调整（用户绑定/邮箱验证/学校切换/地图整合/只读门禁）全部完成并通过 E2E 验证。
 
 ## 当前阶段
 
@@ -39,6 +39,25 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### 用户系统四大功能调整：一对一绑定 + 教育邮箱验证 + 学校切换 + 地图地点整合 + 未认证只读门禁（2026-08-06 完成）
+
+依据用户 `/plan` 指令要求，对校园用户系统进行四项重要功能调整，并加上未认证只读门禁以保证数据安全与用户体验。
+
+- [x] **UC-01 用户-学校严格一对一绑定**：`school_memberships` 新增部分唯一索引 `idx_membership_user_active`（Alembic 迁移 `c3d4e5f6a7b8`）；`POST /schools/join` 语义升级为"切换学校"（离旧+入新原子）；super_admin 保留跨校静默切换特权；`test_schools_api.py`、`test_tenant_isolation.py`、`test_prf01_personal_center.py` 等适配
+- [x] **UC-02 教育邮箱验证系统**：后端 `email_service.py` SMTP SSL 发送（授权码经 `SMTP_*` 环境变量注入）；`school_domains` 后台管理端点（`GET/PUT/POST /admin/school-domains`）；verify 凭据双通道（6 位验证码 / 24 位 token，SHA-256 哈希）；`/verify-campus/send` 响应返回 `verify_link`（dev 模式直出，SMTP 未配置时回退）；token 落地页 `/verify-campus?token=xxx` 自动跳转个人中心完成认证
+- [x] **UC-03 学校切换功能**：`school_switch.py` 原子执行——原校 membership 置 inactive + 新校建/激活 membership + 重置 `campus_verified=false` + 清空 student_id/campus_email + 原校 posts/comments/location_reviews 匿名化为「已离校用户」（`is_anonymous=true`）；前端 `SwitchSchoolModal` 切换浮窗（搜索学校→后果确认→执行切换）；`SchoolSwitcher` 普通用户选未加入学校打开切换浮窗；个人中心「我的学校」卡片新增「切换学校」入口
+- [x] **D-04 地点页面与地图整合**：`MapPage` 新增 MAP_LOCATION_LAYER_ID 地点图层，点击弹出地点侧面板（名称/类别/评分/评价数/距离+相关帖子最多 5 条）；保留 `/locations` 独立页面；深链 `?location={id}` 自动打开地点详情；后端 posts 列表支持 `location_id` 过滤
+- [x] **D4 未认证只读门禁**：后端所有写入端点统一加 `require_campus_verified()` 依赖（发帖/评论/点赞/证实/证伪/举报/评分/订阅/回复）；前端 `VerifyGate` 组件（大卡/紧凑两模式）；发布页/评论区/评分区均由 VerifyGate 包裹；PostDetailPage 点赞/协同验证/举报/回复按钮仅对 `canInteract = isAuthenticated && campusVerified` 用户渲染；新增 `test_campus_gate.py` 覆盖 403 场景；测试 fixture 默认 `campus_verified=True` 保持现有测试行为
+- [x] **Q-01** 后端 `pytest tests/ -v` 全量通过（含新增的 `test_campus_gate.py` 和重写的 `test_campus_verify.py`）
+- [x] **Q-02** 前端 `npm run lint` 零错误零警告，`npm run build` 通过
+- [x] **Q-03** MCP 浏览器 E2E 走查通过：
+  - 首页正常渲染、演示账号 user1 登录、个人中心认证状态展示
+  - 注册新用户 `e2e0805a@jiangnan.edu.cn`，未认证状态访问发布页被 VerifyGate 大卡片拦截
+  - 未认证用户进入帖子详情，点赞/证实/证伪/举报/回复按钮全部隐藏、评论区紧凑门禁拦截
+  - 未认证用户地点评分被 VerifyGate 拦截、地点评价列表正常可见（只读）
+  - `/locations` 地点列表正常、点击地点弹出详情、深链 `?location=8` 自动打开教学楼A区详情
+- [x] 任务报告：[AIwork/用户系统四大功能调整_一对一绑定_邮箱验证_学校切换_地图整合_任务报告.md](AIwork/用户系统四大功能调整_一对一绑定_邮箱验证_学校切换_地图整合_任务报告.md)
 
 ### 导师反馈完善方案：附近与设施评分 + 实名认证 + 小程序落地（2026-08-05 完成）
 

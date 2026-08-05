@@ -21,6 +21,7 @@ from app.schemas.common import PaginatedResponse
 from app.schemas.post import UserBrief
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
+from app.core.permissions import require_campus_verified
 
 router = APIRouter(tags=["地点"])
 
@@ -58,12 +59,21 @@ def _review_response(review: LocationReview) -> LocationReviewResponse:
     author = None
     if review.user:
         # campus_verified 字段由工作流 B（校园认证）新增；此处防御性读取
-        author = UserBrief(
-            id=review.user.id,
-            nickname=review.user.nickname,
-            avatar_url=review.user.avatar_url,
-            is_verified=bool(getattr(review.user, "campus_verified", False)),
-        )
+        if review.is_anonymous:
+            # UC-01: 用户离校后评价匿名化——作者显示「已离校用户」，移除认证徽标
+            author = UserBrief(
+                id=review.user.id,
+                nickname="已离校用户",
+                avatar_url=None,
+                is_verified=False,
+            )
+        else:
+            author = UserBrief(
+                id=review.user.id,
+                nickname=review.user.nickname,
+                avatar_url=review.user.avatar_url,
+                is_verified=bool(getattr(review.user, "campus_verified", False)),
+            )
     return LocationReviewResponse(
         id=review.id,
         location_id=review.location_id,
@@ -188,7 +198,8 @@ async def list_location_reviews(
     return PaginatedResponse.create(items=items, page=page, page_size=page_size, total=total)
 
 
-@router.post("/locations/{location_id}/reviews", response_model=LocationReviewResponse, status_code=201, summary="提交/更新地点评价")
+@router.post("/locations/{location_id}/reviews", response_model=LocationReviewResponse, status_code=201, summary="提交/更新地点评价",
+             dependencies=[Depends(require_campus_verified())])
 async def upsert_location_review(
     location_id: int,
     data: LocationReviewCreate,
@@ -240,7 +251,8 @@ async def upsert_location_review(
     return _review_response(fresh)
 
 
-@router.delete("/locations/{location_id}/reviews", summary="撤回我的地点评价")
+@router.delete("/locations/{location_id}/reviews", summary="撤回我的地点评价",
+               dependencies=[Depends(require_campus_verified())])
 async def delete_location_review(
     location_id: int,
     current_user: User = Depends(get_current_user),

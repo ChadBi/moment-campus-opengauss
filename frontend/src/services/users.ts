@@ -87,23 +87,24 @@ export const usersApi = {
 
   /**
    * B-01: 发起校园身份认证（提交学号 + 校园邮箱）
-   * 本地开发环境响应中携带 code（无邮件服务），便于演示闭环。
+   * 本地开发环境响应中携带 code / verify_link（未配置邮件服务），便于演示闭环。
    */
   sendCampusVerify: async (data: {
     student_id: string;
     campus_email: string;
-  }): Promise<{ message: string; code?: string }> => {
+  }): Promise<{ message: string; code?: string; verify_link?: string }> => {
     const response = await api.post('/users/me/verify-campus/send', data);
     return response.data;
   },
 
   /**
-   * B-01: 确认校园身份认证（提交学号 + 校园邮箱 + 验证码）
+   * B-01: 确认校园身份认证（学号 + 校园邮箱 + token 或 code 二选一）
    */
   confirmCampusVerify: async (data: {
     student_id: string;
     campus_email: string;
-    code: string;
+    token?: string;
+    code?: string;
   }): Promise<{ message: string; campus_verified: boolean }> => {
     const response = await api.post('/users/me/verify-campus/confirm', data);
     return response.data;

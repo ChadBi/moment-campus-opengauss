@@ -20,6 +20,10 @@ class Comment(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    is_anonymous: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false",
+        comment="UC-01: 用户离校后原校评论匿名化标记",
+    )
 
     # 关系
     post: Mapped["Post"] = relationship(back_populates="comments")

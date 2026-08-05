@@ -9,7 +9,6 @@ import { notificationsApi } from '../services/notifications';
 import { schoolsApi } from '../services/schools';
 import { recommendationsApi } from '../services/recommendations';
 import { authApi } from '../services/auth';
-import { useSwitchSchool } from '../hooks/useSchoolSync';
 import type { User, Post, PostStatus, PaginatedResponse, RecommendationPreference } from '../types';
 import { Card } from '../components/ui/Card';
 import { Avatar } from '../components/ui/Avatar';
@@ -21,6 +20,7 @@ import { NotificationPreferencesCard } from '../components/NotificationPreferenc
 import { SubscriptionsCard } from '../components/SubscriptionsCard';
 import { CampusVerifyCard } from '../components/CampusVerifyCard';
 import { VerifiedBadge } from '../components/VerifiedBadge';
+import { SwitchSchoolModal } from '../components/SwitchSchoolModal';
 import { logger } from '../utils/logger';
 import {
   Edit,
@@ -37,7 +37,6 @@ import {
   AlertCircle,
   Eye,
   School as SchoolIcon,
-  Star,
   RefreshCw,
   Sparkles,
   Shield,
@@ -95,12 +94,10 @@ const ProfilePage: React.FC = () => {
   const { isAuthenticated, logout, setUser } = useAuthStore();
   // PRF-01.3: 学校/角色/默认学校来自 useCampusStore（useSchoolSync 已加载）
   const {
-    memberships,
     currentSchoolId,
     currentSchoolName,
     setMemberships,
   } = useCampusStore();
-  const switchSchool = useSwitchSchool();
   const [userInfo, setUserInfo] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
@@ -130,8 +127,8 @@ const ProfilePage: React.FC = () => {
   const [historyCurrentPage, setHistoryCurrentPage] = useState(1);
   const [historyActionLoading, setHistoryActionLoading] = useState(false);
 
-  // PRF-01.3: 切换默认学校 loading
-  const [switchingDefaultId, setSwitchingDefaultId] = useState<number | null>(null);
+  // UC-01: 切换学校确认浮窗
+  const [switchSchoolModalOpen, setSwitchSchoolModalOpen] = useState(false);
 
   // REC-01.2: 推荐隐私偏好（个性化开关 + 清除画像历史）
   const [recPref, setRecPref] = useState<RecommendationPreference | null>(null);
@@ -211,16 +208,6 @@ const ProfilePage: React.FC = () => {
       setAuditNoticeByPostId(map);
     } catch (error) {
       logger.error('加载审核通知失败:', error);
-    }
-  };
-
-  // PRF-01.3: 重新拉取 memberships（设为默认学校后立即更新 UI）
-  const reloadMemberships = async () => {
-    try {
-      const list = await schoolsApi.listMyMemberships();
-      setMemberships(list);
-    } catch (error) {
-      logger.error('刷新学校列表失败:', error);
     }
   };
 
@@ -411,24 +398,16 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // PRF-01.3: 设为默认学校
-  const handleSetDefault = async (schoolId: number, schoolName: string) => {
-    setSwitchingDefaultId(schoolId);
+  // UC-01: 切换学校完成后刷新数据（认证状态已重置，重新拉取用户信息 + memberships）
+  const handleSwitchSchoolDone = async () => {
+    setToast({ message: '已切换学校，请完成新学校校园身份认证', type: 'info' });
     try {
-      await schoolsApi.setDefaultSchool(schoolId);
-      setToast({ message: `已将「${schoolName}」设为默认学校`, type: 'success' });
-      await reloadMemberships();
+      const list = await schoolsApi.listMyMemberships();
+      setMemberships(list);
     } catch (error) {
-      const e = error as { response?: { data?: { detail?: string } } };
-      setToast({ message: e?.response?.data?.detail || '设置默认学校失败', type: 'error' });
-    } finally {
-      setSwitchingDefaultId(null);
+      logger.error('刷新学校列表失败:', error);
     }
-  };
-
-  // PRF-01.3: 切换到该校（不设为默认）
-  const handleSwitchSchool = async (code: string) => {
-    await switchSchool(code, false);
+    await loadUserInfo();
   };
 
   // PUB-02: 从审核通知内容中提取驳回原因（"备注：xxx" 之后的部分）
@@ -443,12 +422,6 @@ const ProfilePage: React.FC = () => {
 
   const myPosts = useMemo(() => postsPage?.items ?? [], [postsPage]);
   const historyItems = useMemo(() => historyPage?.items ?? [], [historyPage]);
-
-  // PRF-01.3: 按学校分组的 memberships（同校可能多条记录通常不会发生，但兜底）
-  const activeMemberships = useMemo(
-    () => memberships.filter((m) => m.status === 'active'),
-    [memberships]
-  );
 
   if (!isAuthenticated) {
     return (
@@ -737,95 +710,57 @@ const ProfilePage: React.FC = () => {
         ))}
       </div>
 
-      {/* PRF-01.3: 加入学校 / 各校角色 / 默认学校 / 切换入口 */}
+      {/* UC-01: 当前学校 / 切换学校入口 */}
       <div className="bg-paper rounded-[16px] border border-line/60 p-5 shadow-sm mb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display font-semibold text-ink flex items-center gap-2">
             <SchoolIcon size={18} className="text-lake" />
-            加入的学校
+            我的学校
           </h2>
-          <span className="text-xs text-ink-muted bg-mist px-2 py-0.5 rounded-[6px]">
-            {activeMemberships.length} 所
-          </span>
+          {userInfo?.campus_verified ? (
+            <Badge variant="success">
+              <CheckCircle size={12} className="mr-0.5" />
+              已认证
+            </Badge>
+          ) : (
+            <Badge variant="warning">未认证</Badge>
+          )}
         </div>
-        {activeMemberships.length === 0 ? (
-          <div className="text-center py-6">
-            <p className="text-ink-sub text-sm mb-2">尚未加入任何学校</p>
-            <p className="text-ink-muted text-xs">可在页头切换器选择学校并自动加入</p>
+        <div className="flex items-center gap-3 p-3 rounded-[10px] border border-lake/40 bg-lake/[0.04]">
+          <div className="w-9 h-9 rounded-[10px] bg-lake/10 grid place-items-center flex-shrink-0">
+            <SchoolIcon size={17} className="text-lake" />
           </div>
-        ) : (
-          <div className="space-y-2">
-            {activeMemberships.map((m) => {
-              const isCurrent = m.school_id === currentSchoolId;
-              const isDefault = m.is_default;
-              const isSwitching = switchingDefaultId === m.school_id;
-              return (
-                <div
-                  key={m.id}
-                  className={`flex items-center gap-3 p-3 rounded-[10px] border transition-colors ${
-                    isCurrent
-                      ? 'border-lake/40 bg-lake/[0.04]'
-                      : 'border-line/60 bg-paper hover:bg-paper-hover'
-                  }`}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-medium text-ink text-sm truncate">
-                        {m.school.name}
-                      </span>
-                      {isDefault && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] text-sun bg-sun/10 px-1 py-0.5 rounded-[4px]">
-                          <Star size={9} /> 默认
-                        </span>
-                      )}
-                      {isCurrent && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] text-lake bg-lake/10 px-1 py-0.5 rounded-[4px]">
-                          当前
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[11px] text-ink-muted mt-0.5 flex items-center gap-2">
-                      <span>角色：{m.role === 'admin' ? '管理员' : '成员'}</span>
-                      <span>·</span>
-                      <span>{m.school.code}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {!isCurrent && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleSwitchSchool(m.school.code)}
-                      >
-                        切换
-                      </Button>
-                    )}
-                    {!isDefault && (
-                      <Button
-                        variant="text"
-                        size="sm"
-                        disabled={isSwitching}
-                        onClick={() => handleSetDefault(m.school_id, m.school.name)}
-                        icon={isSwitching ? <RefreshCw size={12} className="animate-spin" /> : <Star size={12} />}
-                      >
-                        设为默认
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-ink text-sm truncate">
+              {currentSchoolName || '未选择学校'}
+            </div>
+            <div className="text-[11px] text-ink-muted mt-0.5">
+              {currentSchoolName ? '当前绑定的学校' : '尚未绑定学校'}
+            </div>
           </div>
-        )}
-        {currentSchoolName && (
-          <p className="mt-3 text-[11px] text-ink-muted">
-            当前学校：{currentSchoolName}（统计/帖子/浏览历史均按当前学校过滤）
-          </p>
-        )}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setSwitchSchoolModalOpen(true)}
+            icon={<RefreshCw size={13} />}
+          >
+            切换学校
+          </Button>
+        </div>
+        <p className="mt-3 text-[11px] text-ink-muted">
+          切换学校后：原校认证失效、原校内容匿名化，需完成新校邮箱认证后才能发布内容
+        </p>
       </div>
 
       {/* B-01: 校园身份认证 */}
       <CampusVerifyCard />
+
+      {/* UC-01: 切换学校确认浮窗 */}
+      <SwitchSchoolModal
+        isOpen={switchSchoolModalOpen}
+        onClose={() => setSwitchSchoolModalOpen(false)}
+        onSwitched={() => { void handleSwitchSchoolDone(); }}
+      />
 
       {/* UX-01.5: 通知偏好（7 类开关 + 每日摘要时间 + 邮件同步） */}
       <NotificationPreferencesCard />

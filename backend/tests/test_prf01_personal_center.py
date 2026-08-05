@@ -84,6 +84,7 @@ async def _create_user(
         password_hash=get_password_hash("testpass123"),
         school_id=school_id,
         role=role,
+        campus_verified=True,  # D4 门禁：默认已认证
     )
     db.add(user)
     await db.flush()
@@ -205,13 +206,11 @@ async def two_schools_setup() -> dict:
             session, user_b.id, school_b.id, "member", is_default=True
         )
 
-        # user_ab：A 校默认 + B 校成员（用于跨校切换视角测试）
-        user_ab = await _create_user(session, "ab@example.com", "双校用户", school_a.id)
+        # user_ab：super_admin（UC-01 一对一，普通用户仅一条 active membership；
+        # super_admin 可跨校访问，用于浏览历史跨校隔离测试）
+        user_ab = await _create_user(session, "ab@example.com", "双校用户", school_a.id, role="super_admin")
         await _create_membership(
             session, user_ab.id, school_a.id, "member", is_default=True
-        )
-        await _create_membership(
-            session, user_ab.id, school_b.id, "member", is_default=False
         )
 
         # 甲校帖子：1 published + 1 draft + 1 pending + 1 expired

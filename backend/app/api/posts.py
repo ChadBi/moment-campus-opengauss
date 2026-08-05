@@ -31,7 +31,7 @@ from app.core.post_status import (
     can_transition, normalize_status, get_allowed_transitions, PostStatus,
     is_substantial_change,
 )
-from app.core.permissions import is_admin
+from app.core.permissions import is_admin, require_campus_verified
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.services.ai_publish import execute_publish_suggestion
 from app.services.embedding_service import generate_post_embedding
@@ -380,7 +380,8 @@ async def _build_governance_summary(
     )
 
 
-@router.post("", response_model=PostResponse, status_code=201, summary="创建信息")
+@router.post("", response_model=PostResponse, status_code=201, summary="创建信息",
+             dependencies=[Depends(require_campus_verified())])
 async def create_post(
     post_data: PostCreate,
     current_user: User = Depends(get_current_user),
@@ -502,7 +503,8 @@ async def create_post(
     return response
 
 
-@router.put("/{post_id}", response_model=PostResponse, summary="更新信息")
+@router.put("/{post_id}", response_model=PostResponse, summary="更新信息",
+            dependencies=[Depends(require_campus_verified())])
 async def update_post(
     post_id: int,
     post_data: PostUpdate,
@@ -681,7 +683,8 @@ async def update_post(
     return response
 
 
-@router.delete("/{post_id}", summary="删除信息")
+@router.delete("/{post_id}", summary="删除信息",
+               dependencies=[Depends(require_campus_verified())])
 async def delete_post(
     post_id: int,
     current_user: User = Depends(get_current_user),
@@ -776,6 +779,7 @@ async def get_post_allowed_transitions(
     "/{post_id}/transition",
     response_model=PostTransitionResponse,
     summary="状态流转（T-B-04）",
+    dependencies=[Depends(require_campus_verified())],
 )
 async def transition_post_status(
     post_id: int,
@@ -874,6 +878,7 @@ async def transition_post_status(
     "/ai-suggest",
     response_model=AIPublishSuggestionResponse,
     summary="AI 辅助发布建议（AI-03）",
+    dependencies=[Depends(require_campus_verified())],
 )
 async def ai_suggest_post(
     payload: AIPublishSuggestRequest,

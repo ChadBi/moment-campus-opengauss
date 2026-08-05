@@ -43,6 +43,10 @@ from app.schemas.admin import (
     JobRunRecordResponse,
     SchoolSettingsResponse,
     SchoolSettingsUpdate,
+    SchoolDomainItem,
+    SchoolDomainsResponse,
+    SchoolDomainsUpdate,
+    SchoolDomainCreate,
 )
 from app.core.exceptions import (
     NotFoundException, BadRequestException, ConflictException, ForbiddenException,
@@ -1183,6 +1187,197 @@ async def update_school_settings(
     await db.commit()
     await db.refresh(settings)
     return _settings_to_response(settings)
+
+
+# ============================================================
+# B-03: 学校邮箱域名管理（默认邮箱后缀）
+# ============================================================
+@router.get(
+    "/admin/school-domains",
+    response_model=SchoolDomainsResponse,
+    summary="B-03: 获取学校允许的邮箱域名列表",
+)
+async def get_school_domains(
+    admin: User = AdminDep,
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """获取当前学校允许的邮箱域名列表（校园身份认证用）。
+
+    - 仅 admin 及以上可访问
+    - school_id 由 TenantContext 决定
+    - 返回全部域名 + 默认域名（is_primary=true）
+    """
+    from app.models.school_domain import SchoolDomain
+
+    result = await db.execute(
+        select(SchoolDomain)
+        .where(SchoolDomain.school_id == tenant.school_id)
+        .order_by(SchoolDomain.is_primary.desc(), SchoolDomain.id.asc())
+    )
+    items = result.scalars().all()
+    default = next((d.domain for d in items if d.is_primary), None)
+    return SchoolDomainsResponse(
+        items=[
+            SchoolDomainItem(id=d.id, domain=d.domain, is_primary=d.is_primary)
+            for d in items
+        ],
+        default_domain=default,
+    )
+
+
+@router.put(
+    "/admin/school-domains",
+    response_model=SchoolDomainsResponse,
+    summary="B-03: 设置默认邮箱后缀",
+)
+async def update_school_domains(
+    data: SchoolDomainsUpdate,
+    admin: User = AdminDep,
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """设置当前学校的默认邮箱后缀。
+
+    - 目标域名存在则置 is_primary=true，其余置 false
+    - 目标域名不存在则 upsert 为新 primary 域名
+    - 写 AdminOperationLog（action=update_school_domains，diff 审计）
+    """
+    from app.models.school_domain import SchoolDomain
+
+    target = data.default_domain.strip().lower().lstrip("@")
+    if not target or "." not in target:
+        raise BadRequestException(detail="邮箱域名格式不正确")
+
+    old_rows = (
+        await db.execute(
+            select(SchoolDomain).where(SchoolDomain.school_id == tenant.school_id)
+        )
+    ).scalars().all()
+    old_domains = [(d.domain, d.is_primary) for d in old_rows]
+
+    existing = next((d for d in old_rows if d.domain == target), None)
+    now = datetime.now()
+    # 其余全部取消 primary
+    for d in old_rows:
+        if d.is_primary and d.domain != target:
+            d.is_primary = False
+            d.updated_at = now
+    if existing is not None:
+        existing.is_primary = True
+        existing.updated_at = now
+    else:
+        db.add(SchoolDomain(
+            school_id=tenant.school_id,
+            domain=target,
+            is_primary=True,
+            created_at=now,
+            updated_at=now,
+        ))
+
+    new_domains = [(d.domain, d.is_primary) for d in old_rows]
+    if not any(dom == target for dom, _ in new_domains):
+        new_domains.append((target, True))
+
+    changes = [
+        f"{d}: {p} → {'True' if d == target else 'False'}"
+        for d, p in old_domains
+    ]
+    db.add(AdminOperationLog(
+        admin_id=admin.id,
+        action="update_school_domains",
+        target_type="school_domains",
+        target_id=tenant.school_id,
+        detail=json.dumps({
+            "old": old_domains,
+            "new": new_domains,
+            "changes": changes,
+            "operator": {"id": admin.id, "email": admin.email, "nickname": admin.nickname},
+            "school_id": tenant.school_id,
+        }, ensure_ascii=False, default=str),
+    ))
+
+    await db.commit()
+
+    result = await db.execute(
+        select(SchoolDomain)
+        .where(SchoolDomain.school_id == tenant.school_id)
+        .order_by(SchoolDomain.is_primary.desc(), SchoolDomain.id.asc())
+    )
+    items = result.scalars().all()
+    return SchoolDomainsResponse(
+        items=[
+            SchoolDomainItem(id=d.id, domain=d.domain, is_primary=d.is_primary)
+            for d in items
+        ],
+        default_domain=target,
+    )
+
+
+@router.post(
+    "/admin/school-domains",
+    response_model=SchoolDomainsResponse,
+    summary="B-03: 添加附加邮箱域名",
+)
+async def create_school_domain(
+    data: SchoolDomainCreate,
+    admin: User = AdminDep,
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """添加当前学校的附加邮箱域名（非默认，校园认证同样接受）。
+
+    - 域名全局唯一（idx_domain_unique）；已存在则幂等返回
+    - 首个域名自动设为默认（is_primary=true）
+    """
+    from app.models.school_domain import SchoolDomain
+
+    domain = data.domain.strip().lower().lstrip("@")
+    if not domain or "." not in domain:
+        raise BadRequestException(detail="邮箱域名格式不正确")
+
+    existing = (
+        await db.execute(select(SchoolDomain).where(SchoolDomain.domain == domain))
+    ).scalar_one_or_none()
+    if existing is not None:
+        # 幂等：已存在（含其他学校）不重复创建；若属于本校正处理
+        if existing.school_id == tenant.school_id:
+            await db.commit()
+        else:
+            # 域名已被其他学校占用（唯一索引），报冲突
+            raise ConflictException(detail="该邮箱域名已被其他学校使用")
+    else:
+        # 判断本学校是否已有域名（决定是否设为主域名）
+        has_any = (
+            await db.execute(
+                select(SchoolDomain.id).where(
+                    SchoolDomain.school_id == tenant.school_id
+                ).limit(1)
+            )
+        ).first()
+        db.add(SchoolDomain(
+            school_id=tenant.school_id,
+            domain=domain,
+            is_primary=has_any is None,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        ))
+        await db.commit()
+
+    result = await db.execute(
+        select(SchoolDomain)
+        .where(SchoolDomain.school_id == tenant.school_id)
+        .order_by(SchoolDomain.is_primary.desc(), SchoolDomain.id.asc())
+    )
+    items = result.scalars().all()
+    default = next((d.domain for d in items if d.is_primary), None)
+    return SchoolDomainsResponse(
+        items=[
+            SchoolDomainItem(id=d.id, domain=d.domain, is_primary=d.is_primary)
+            for d in items
+        ],
+        default_domain=default,
+    )
 
 
 # ============================================================

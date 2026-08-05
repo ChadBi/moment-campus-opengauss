@@ -73,12 +73,14 @@ async def _assign_operations_subscription(db: AsyncSession, school_id: int) -> N
 async def _create_user(
     db: AsyncSession, email: str, nickname: str, school_id: int, role: str = "user"
 ) -> User:
+    """直接在 DB 创建用户（D4 门禁：默认已认证，未认证场景由 test_campus_gate 覆盖）"""
     user = User(
         email=email,
         nickname=nickname,
         password_hash=get_password_hash("testpass123"),
         school_id=school_id,
         role=role,
+        campus_verified=True,
     )
     db.add(user)
     await db.flush()

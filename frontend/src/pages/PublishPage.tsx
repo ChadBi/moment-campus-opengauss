@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCampusStore } from '../store/useCampusStore';
 import { Card } from '../components/ui/Card';
 import PostForm from '../components/PostForm';
+import { VerifyGate } from '../components/VerifyGate';
 
 /**
  * PUB-01.1: 发布页（页面壳）
@@ -49,12 +50,15 @@ const PublishPage: React.FC = () => {
       </header>
 
       <Card variant="elevated" padding="lg">
-        <PostForm
-          variant="page"
-          onSuccess={handleSuccess}
-          onCancel={() => navigate(-1)}
-          editPostId={editPostId}
-        />
+        {/* D4: 未认证用户仅只读——发帖需先完成校园身份认证 */}
+        <VerifyGate message="完成校园身份认证后即可发布内容（未认证用户仅拥有浏览权限）">
+          <PostForm
+            variant="page"
+            onSuccess={handleSuccess}
+            onCancel={() => navigate(-1)}
+            editPostId={editPostId}
+          />
+        </VerifyGate>
       </Card>
     </div>
   );

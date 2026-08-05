@@ -15,6 +15,7 @@ from app.schemas.comment import CommentCreate, CommentResponse
 from app.schemas.common import PaginatedResponse
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
+from app.core.permissions import require_campus_verified
 
 router = APIRouter(tags=["评论"])
 
@@ -27,7 +28,16 @@ def _build_comment_response(comment: Comment, include_replies: bool = False) -> 
     """
     author = None
     if comment.user:
-        author = {"id": comment.user.id, "nickname": comment.user.nickname, "avatar_url": comment.user.avatar_url, "is_verified": comment.user.campus_verified}
+        if comment.is_anonymous:
+            # UC-01: 用户离校后评论匿名化——作者显示「已离校用户」，移除认证徽标
+            author = {
+                "id": comment.user.id,
+                "nickname": "已离校用户",
+                "avatar_url": None,
+                "is_verified": False,
+            }
+        else:
+            author = {"id": comment.user.id, "nickname": comment.user.nickname, "avatar_url": comment.user.avatar_url, "is_verified": comment.user.campus_verified}
 
     reply_to_user = None
     if comment.reply_to_user:
@@ -131,7 +141,8 @@ async def get_post_comments(
     )
 
 
-@router.post("/posts/{post_id}/comments", response_model=CommentResponse, status_code=201, summary="创建评论")
+@router.post("/posts/{post_id}/comments", response_model=CommentResponse, status_code=201, summary="创建评论",
+             dependencies=[Depends(require_campus_verified())])
 async def create_comment(
     post_id: int,
     comment_data: CommentCreate,
@@ -226,7 +237,8 @@ async def create_comment(
     return _build_comment_response(comment, include_replies=False)
 
 
-@router.delete("/comments/{comment_id}", summary="删除评论")
+@router.delete("/comments/{comment_id}", summary="删除评论",
+               dependencies=[Depends(require_campus_verified())])
 async def delete_comment(
     comment_id: int,
     current_user: User = Depends(get_current_user),

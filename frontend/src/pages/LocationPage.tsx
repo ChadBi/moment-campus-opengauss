@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   MapPin,
   Navigation,
@@ -18,6 +18,7 @@ import { EmptyState, ErrorState, LoadingState } from '../components/state';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 import { useCampusStore } from '../store/useCampusStore';
+import { VerifyGate } from '../components/VerifyGate';
 import { logger } from '../utils/logger';
 import { formatRelativeTime } from '../utils/date';
 import { wgs84ToGcj02 } from '../utils/coordinates';
@@ -60,6 +61,7 @@ function ScoreStars({ score, size = 14 }: { score: number; size?: number }) {
 
 const LocationPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuthStore();
   const { showToast } = useUIStore();
   const { currentSchoolCenter, currentSchoolName } = useCampusStore();
@@ -128,12 +130,6 @@ const LocationPage: React.FC = () => {
     );
   }, [activeCenter, currentSchoolName, loadNearby]);
 
-  useEffect(() => {
-    // 用 microtask 延迟同步 setState，避免 react-hooks/set-state-in-effect 规则告警
-    void Promise.resolve().then(() => handleGeolocate());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const openDetail = useCallback(async (locationId: number) => {
     setActiveId(locationId);
     setDetailLoading(true);
@@ -160,6 +156,22 @@ const LocationPage: React.FC = () => {
     } finally {
       setDetailLoading(false);
     }
+  }, []);
+
+  // 挂载后初始化：定位 + 深链 ?location={id}（地图地点面板「查看完整详情」跳转）
+  useEffect(() => {
+    // 用 microtask 延迟同步 setState，避免 react-hooks/set-state-in-effect 规则告警
+    void Promise.resolve().then(() => {
+      handleGeolocate();
+      const locParam = searchParams.get('location');
+      if (locParam) {
+        const id = Number(locParam);
+        if (Number.isInteger(id) && id > 0) {
+          void openDetail(id);
+        }
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const closeDetail = useCallback(() => {
@@ -383,7 +395,9 @@ const LocationPage: React.FC = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-3">
+                /* D4: 已登录未认证用户仅只读——评分评价需先完成校园身份认证 */
+                <VerifyGate compact message="完成校园身份认证后即可评分评价">
+                  <div className="space-y-3">
                   <div className="flex items-center gap-1" role="radiogroup" aria-label="评分">
                     {[1, 2, 3, 4, 5].map((value) => (
                       <button
@@ -421,7 +435,8 @@ const LocationPage: React.FC = () => {
                       {myReview ? '更新评价' : '提交评价'}
                     </Button>
                   </div>
-                </div>
+                  </div>
+                </VerifyGate>
               )}
             </div>
 

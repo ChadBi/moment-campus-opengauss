@@ -284,6 +284,32 @@ class SchoolSettingsUpdate(BaseModel):
     logo_url: Optional[str] = Field(None, max_length=500, description="Logo URL")
 
 
+# ============ B-03: 学校邮箱域名（默认邮箱后缀） ============
+class SchoolDomainItem(BaseModel):
+    """学校允许的邮箱域名条目"""
+    id: int
+    domain: str = Field(..., description="邮箱域名，如 jiangnan.edu.cn")
+    is_primary: bool = Field(False, description="是否为默认邮箱后缀")
+
+
+class SchoolDomainsResponse(BaseModel):
+    """学校邮箱域名列表响应"""
+    items: List[SchoolDomainItem]
+    default_domain: Optional[str] = Field(None, description="默认邮箱后缀")
+
+
+class SchoolDomainsUpdate(BaseModel):
+    """设置默认邮箱后缀请求"""
+    default_domain: str = Field(
+        ..., min_length=3, max_length=255, description="默认邮箱后缀（域名）"
+    )
+
+
+class SchoolDomainCreate(BaseModel):
+    """添加附加邮箱域名请求（B-03 可选）"""
+    domain: str = Field(..., min_length=3, max_length=255, description="邮箱域名")
+
+
 # ============ GOV-02: 任务运行记录 ============
 class ExpirePostsJobRequest(BaseModel):
     """GOV-02.2: 手动触发过期任务请求"""

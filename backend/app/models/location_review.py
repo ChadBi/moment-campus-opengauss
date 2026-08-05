@@ -41,6 +41,10 @@ class LocationReview(Base):
     )
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    is_anonymous: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false",
+        comment="UC-01: 用户离校后原校评价匿名化标记",
+    )
 
     # 关系
     location: Mapped["Location"] = relationship(back_populates="reviews")

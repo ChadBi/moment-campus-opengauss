@@ -75,6 +75,7 @@ async def _create_test_user_in_school(
         school_id=school_id,
         role="user",
         is_active=True,
+        campus_verified=True,  # D4 门禁：默认已认证
     )
     db.add(user)
     await db.flush()

@@ -4,9 +4,9 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Loading } from '../../components/ui/Loading';
-import { adminApi, type SchoolSettings } from '../../services/admin';
+import { adminApi, type SchoolSettings, type SchoolDomainsResponse } from '../../services/admin';
 import { useUIStore } from '../../store/useUIStore';
-import { Settings, Save, Cloud, Info, RotateCcw } from 'lucide-react';
+import { Settings, Save, Cloud, Info, RotateCcw, Globe, Star, Plus } from 'lucide-react';
 import { logger } from '../../utils/logger';
 
 /**
@@ -182,6 +182,65 @@ const AdminSettingsPage: React.FC = () => {
     showToast('已恢复到最近一次保存值', 'info');
   };
 
+  // -------- B-03: 校园邮箱域名（默认邮箱后缀） --------
+  const [domains, setDomains] = useState<SchoolDomainsResponse | null>(null);
+  const [domainInput, setDomainInput] = useState('');
+  const [domainsLoading, setDomainsLoading] = useState(true);
+  const [domainSaving, setDomainSaving] = useState(false);
+
+  const loadDomains = useCallback(async () => {
+    setDomainsLoading(true);
+    try {
+      const data = await adminApi.getSchoolDomains();
+      setDomains(data);
+    } catch (error) {
+      logger.error('加载邮箱域名失败:', error);
+      showToast('加载邮箱域名失败，请稍后重试', 'error');
+    } finally {
+      setDomainsLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadDomains);
+  }, [loadDomains]);
+
+  /** 设置默认邮箱后缀 */
+  const handleSetDefaultDomain = async (domain: string) => {
+    setDomainSaving(true);
+    try {
+      const data = await adminApi.updateSchoolDomains(domain);
+      setDomains(data);
+      showToast(`已将 ${domain} 设为默认邮箱后缀`, 'success');
+    } catch (error) {
+      logger.error('设置默认邮箱后缀失败:', error);
+      showToast('设置失败，请重试', 'error');
+    } finally {
+      setDomainSaving(false);
+    }
+  };
+
+  /** 添加附加邮箱域名 */
+  const handleAddDomain = async () => {
+    const domain = domainInput.trim().toLowerCase().replace(/^@/, '');
+    if (!domain || domain.length < 3) {
+      showToast('请输入合法邮箱域名', 'error');
+      return;
+    }
+    setDomainSaving(true);
+    try {
+      const data = await adminApi.createSchoolDomain(domain);
+      setDomains(data);
+      setDomainInput('');
+      showToast('已添加邮箱域名', 'success');
+    } catch (error) {
+      logger.error('添加邮箱域名失败:', error);
+      showToast('添加失败，域名可能已被其他学校使用', 'error');
+    } finally {
+      setDomainSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -315,6 +374,84 @@ const AdminSettingsPage: React.FC = () => {
             }
           />
         </div>
+      </Card>
+
+      {/* B-03: 校园邮箱域名（默认邮箱后缀） */}
+      <Card variant="outlined" padding="md">
+        <h2 className="text-lg font-semibold text-ink mb-1 flex items-center gap-2">
+          <Globe size={20} />
+          校园邮箱域名
+        </h2>
+        <p className="text-xs text-ink-muted mb-4">
+          学生使用「@学校域名」的邮箱完成校园身份认证。默认邮箱后缀用于提示与示例；
+          认证时接受全部已添加域名。
+        </p>
+        {domainsLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loading />
+          </div>
+        ) : (
+          <>
+            <div className="space-y-2 mb-4">
+              {domains && domains.items.length === 0 ? (
+                <p className="text-sm text-ink-muted bg-mist/50 rounded-md px-3 py-4 text-center">
+                  尚未配置邮箱域名，学生将无法完成校园身份认证
+                </p>
+              ) : (
+                domains?.items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 p-3 rounded-[10px] border border-line bg-paper"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm text-ink break-all">
+                          @{item.domain}
+                        </span>
+                        {item.is_primary && (
+                          <Badge variant="success">
+                            <Star size={10} className="mr-0.5" />
+                            默认
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    {!item.is_primary && (
+                      <Button
+                        variant="text"
+                        size="sm"
+                        disabled={domainSaving}
+                        onClick={() => handleSetDefaultDomain(item.domain)}
+                      >
+                        设为默认
+                      </Button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                value={domainInput}
+                onChange={(e) => setDomainInput(e.target.value)}
+                placeholder="如 jiangnan.edu.cn"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    void handleAddDomain();
+                  }
+                }}
+              />
+              <Button
+                variant="secondary"
+                onClick={handleAddDomain}
+                disabled={domainSaving}
+                icon={<Plus size={14} />}
+              >
+                添加域名
+              </Button>
+            </div>
+          </>
+        )}
       </Card>
 
       {/* 功能开关 */}

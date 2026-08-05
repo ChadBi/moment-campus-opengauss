@@ -29,6 +29,8 @@ export interface CurrentSchool extends SchoolSummary {
 export interface JoinSchoolResponse {
   membership: Membership;
   already_member: boolean;
+  /** UC-01: 是否为切换学校（原 active 成员关系已改指向新校） */
+  switched?: boolean;
 }
 
 export interface SetDefaultSchoolResponse {

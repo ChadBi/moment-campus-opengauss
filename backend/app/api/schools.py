@@ -109,6 +109,9 @@ class JoinSchoolResponse(BaseModel):
     already_member: bool = Field(
         False, description="若用户已是该校 active 成员，返回 true 并幂等返回原 membership"
     )
+    switched: bool = Field(
+        False, description="UC-01: 是否为切换学校（原 active 成员关系已改指向新校）"
+    )
 
 
 class SetDefaultSchoolRequest(BaseModel):
@@ -232,21 +235,23 @@ async def list_my_memberships(
 @schools_router.post(
     "/{code}/join",
     response_model=JoinSchoolResponse,
-    summary="加入学校（创建 active membership，幂等）",
+    summary="加入学校（UC-01 起：普通用户为切换语义）",
 )
 async def join_school(
     code: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """加入指定学校。
+    """加入/切换学校。
 
-    业务规则（2026-08-01 起不再需要邀请码，直接加入）：
+    UC-01 严格一对一绑定（普通用户）：
     1. 学校必须存在且 is_active=true，否则 404
-    2. 若用户已是该校 active 成员：幂等返回 already_member=true，不修改
-    3. 若用户在该校已有 invited/suspended 状态的 membership：升级为 active
-    4. 若用户尚无任何默认学校，则将本次加入设为默认
-    5. 若用户已有其它默认学校，则本次加入 is_default=false（不抢占默认）
+    2. 用户已有 active membership 且目标校相同：幂等返回 already_member=true
+    3. 用户已有 active membership 且目标校不同：执行**切换**——
+       成员关系改指向新校、重置校园认证、匿名化原校内容（switched=true）
+    4. 用户无 active membership：创建（is_default=true）
+
+    super_admin 豁免一对一（可保留多校成员关系，供平台跨校管理）。
     """
     # 1. 校验学校存在且启用
     school = (
@@ -255,56 +260,117 @@ async def join_school(
     if school is None or not school.is_active:
         raise NotFoundException(detail="学校不存在或已停用")
 
-    # 2. 查找已有 membership
-    existing = (
+    is_super_admin = current_user.role == "super_admin"
+
+    # 2. 查找用户唯一 active membership（super_admin 除外，兼容多校）
+    if is_super_admin:
+        existing = (
+            await db.execute(
+                select(SchoolMembership)
+                .options(selectinload(SchoolMembership.school))
+                .where(
+                    SchoolMembership.user_id == current_user.id,
+                    SchoolMembership.school_id == school.id,
+                )
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            if existing.status == "active":
+                return JoinSchoolResponse(
+                    membership=_to_membership_response(existing),
+                    already_member=True,
+                )
+            existing.status = "active"
+            existing.joined_at = datetime.now()
+            existing.updated_at = datetime.now()
+            await db.commit()
+            await db.refresh(existing, attribute_names=["school"])
+            return JoinSchoolResponse(
+                membership=_to_membership_response(existing),
+                already_member=False,
+            )
+        # super_admin：创建新 membership（豁免一对一）
+        membership = SchoolMembership(
+            user_id=current_user.id,
+            school_id=school.id,
+            role="member",
+            status="active",
+            is_default=False,
+            joined_at=datetime.now(),
+        )
+        db.add(membership)
+        await db.commit()
+        await db.refresh(membership, attribute_names=["school"])
+        return JoinSchoolResponse(
+            membership=_to_membership_response(membership),
+            already_member=False,
+        )
+
+    # 3. 普通用户：一对一逻辑
+    active = (
         await db.execute(
-            select(SchoolMembership).where(
+            select(SchoolMembership)
+            .options(selectinload(SchoolMembership.school))
+            .where(
                 SchoolMembership.user_id == current_user.id,
-                SchoolMembership.school_id == school.id,
+                SchoolMembership.status == "active",
             )
         )
     ).scalar_one_or_none()
 
-    if existing is not None:
-        if existing.status == "active":
+    if active is not None:
+        if active.school_id == school.id:
             # 幂等返回
-            await db.refresh(existing, attribute_names=["school"])
             return JoinSchoolResponse(
-                membership=_to_membership_response(existing),
+                membership=_to_membership_response(active),
                 already_member=True,
             )
-        # invited/suspended → 升级为 active
-        existing.status = "active"
-        existing.joined_at = datetime.now()
-        existing.updated_at = datetime.now()
-        await db.commit()
-        await db.refresh(existing, attribute_names=["school"])
+        # 切换学校（重置认证 + 匿名化原校内容）
+        from app.services.school_switch import switch_school
+        switched = await switch_school(db, current_user, school.id)
         return JoinSchoolResponse(
-            membership=_to_membership_response(existing),
+            membership=_to_membership_response(switched),
             already_member=False,
+            switched=True,
         )
 
-    # 3. 新建 membership
-    # 决定是否设为默认：用户当前无任何默认学校时设为默认
-    default_count = (
+    # 4. 无 active membership：同校存在 invited/suspended 则升级，否则新建并设为默认
+    pending = (
         await db.execute(
-            select(SchoolMembership).where(
+            select(SchoolMembership)
+            .options(selectinload(SchoolMembership.school))
+            .where(
                 SchoolMembership.user_id == current_user.id,
-                SchoolMembership.is_default == True,  # noqa: E712
+                SchoolMembership.school_id == school.id,
+                SchoolMembership.status.in_(["invited", "suspended"]),
             )
         )
-    ).first()
-    is_default = default_count is None
+    ).scalar_one_or_none()
+    if pending is not None:
+        pending.status = "active"
+        pending.is_default = True
+        pending.joined_at = datetime.now()
+        pending.updated_at = datetime.now()
+        current_user.school_id = school.id
+        current_user.updated_at = datetime.now()
+        await db.commit()
+        await db.refresh(pending, attribute_names=["school"])
+        return JoinSchoolResponse(
+            membership=_to_membership_response(pending),
+            already_member=False,
+        )
 
     membership = SchoolMembership(
         user_id=current_user.id,
         school_id=school.id,
         role="member",
         status="active",
-        is_default=is_default,
+        is_default=True,
         joined_at=datetime.now(),
     )
     db.add(membership)
+    current_user.school_id = school.id
+    current_user.updated_at = datetime.now()
     await db.commit()
     await db.refresh(membership, attribute_names=["school"])
     return JoinSchoolResponse(
@@ -319,20 +385,20 @@ async def join_school(
 @me_router.put(
     "/default-school",
     response_model=SetDefaultSchoolResponse,
-    summary="设置默认学校",
+    summary="设置默认学校（UC-01 起：仅一致性校验）",
 )
 async def set_default_school(
     body: SetDefaultSchoolRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """设置默认学校。
+    """设置默认学校（UC-01 严格一对一后语义退化）。
 
-    规则：
-    1. 用户须为该校 active 成员，否则 404
-    2. 取消用户其它 membership 的 is_default（每用户仅一个默认）
-    3. 将目标 membership 设为 is_default=true
-    4. 同步更新 user.school_id（兼容旧逻辑：未指定 X-School-Code 时回退到此）
+    普通用户至多一条 active membership，且始终是默认学校；本端点仅校验：
+    1. 目标学校与用户唯一 active membership 一致（或为 super_admin 的多校之一）
+    2. 同步 user.school_id 保持一致性（兼容旧客户端）
+
+    super_admin 豁免一对一：仍可切换默认学校（保持多校管理能力）。
     """
     target = (
         await db.execute(
@@ -348,19 +414,32 @@ async def set_default_school(
     if target is None or target.status != "active":
         raise NotFoundException(detail="未加入该校或成员关系不可用")
 
-    # 取消其它默认
-    await db.execute(
-        update(SchoolMembership)
-        .where(
-            SchoolMembership.user_id == current_user.id,
-            SchoolMembership.id != target.id,
+    if current_user.role != "super_admin":
+        # 普通用户：唯一 active membership 必须就是目标学校，否则拒绝（一对一约束）
+        active_count = (
+            await db.scalar(
+                select(SchoolMembership)
+                .where(
+                    SchoolMembership.user_id == current_user.id,
+                    SchoolMembership.status == "active",
+                )
+            )
         )
-        .values(is_default=False, updated_at=datetime.now())
-    )
+        if active_count is None or active_count.school_id != body.school_id:
+            raise NotFoundException(detail="切换学校请使用「加入学校」接口（一对一绑定）")
+    else:
+        # super_admin：可切换默认
+        await db.execute(
+            update(SchoolMembership)
+            .where(
+                SchoolMembership.user_id == current_user.id,
+                SchoolMembership.id != target.id,
+            )
+            .values(is_default=False, updated_at=datetime.now())
+        )
+        target.is_default = True
+        target.updated_at = datetime.now()
 
-    # 设目标为默认
-    target.is_default = True
-    target.updated_at = datetime.now()
     # 同步 user.school_id
     current_user.school_id = body.school_id
     current_user.updated_at = datetime.now()

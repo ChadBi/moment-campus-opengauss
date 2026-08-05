@@ -22,6 +22,7 @@ from app.schemas.interaction import (
 from app.schemas.common import MessageResponse
 from app.core.exceptions import NotFoundException, BadRequestException, ForbiddenException
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
+from app.core.permissions import require_campus_verified
 from app.core.validation_type import (
     normalize_validation_type,
     ValidationType,
@@ -30,7 +31,8 @@ from app.core.validation_type import (
 router = APIRouter(tags=["互动"])
 
 
-@router.post("/posts/{post_id}/like", response_model=LikeResponse)
+@router.post("/posts/{post_id}/like", response_model=LikeResponse,
+             dependencies=[Depends(require_campus_verified())])
 async def toggle_like(
     post_id: int,
     current_user: User = Depends(get_current_user),
@@ -98,7 +100,8 @@ async def toggle_like(
     )
 
 
-@router.post("/posts/{post_id}/validate", response_model=ValidationResponse)
+@router.post("/posts/{post_id}/validate", response_model=ValidationResponse,
+             dependencies=[Depends(require_campus_verified())])
 async def create_validation(
     post_id: int,
     data: ValidationCreate,
@@ -223,7 +226,8 @@ async def create_validation(
     )
 
 
-@router.post("/posts/{post_id}/report", response_model=MessageResponse)
+@router.post("/posts/{post_id}/report", response_model=MessageResponse,
+             dependencies=[Depends(require_campus_verified())])
 async def create_report(
     post_id: int,
     data: ReportCreate,

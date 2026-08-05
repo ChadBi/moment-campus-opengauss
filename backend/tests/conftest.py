@@ -461,8 +461,12 @@ async def test_category(db_session: AsyncSession, test_school: dict) -> dict:
 
 
 @pytest_asyncio.fixture
-async def test_user(client: AsyncClient, test_school: dict) -> dict:
-    """Register a test user and return user info with tokens."""
+async def test_user(client: AsyncClient, test_school: dict, db_session: AsyncSession) -> dict:
+    """Register a test user and return user info with tokens.
+
+    UC-01（D4 门禁）：测试用户默认完成校园身份认证（campus_verified=True），
+    使既有写操作测试不受「未认证只读」限制；未认证场景由专用 fixture 覆盖。
+    """
     response = await client.post(
         "/api/v1/auth/register",
         json={
@@ -474,6 +478,18 @@ async def test_user(client: AsyncClient, test_school: dict) -> dict:
     )
     assert response.status_code == 200
     data = response.json()
+
+    # UC-01: 置为已认证（D4 门禁默认通过）
+    from app.models.user import User
+    user = (
+        await db_session.execute(
+            select(User).where(User.email == "testuser@example.com")
+        )
+    ).scalar_one_or_none()
+    assert user is not None
+    user.campus_verified = True
+    await db_session.commit()
+
     return {
         "id": data["user"]["id"],
         "email": "testuser@example.com",
@@ -509,8 +525,11 @@ async def test_post(client: AsyncClient, auth_headers: dict, test_school: dict, 
 
 
 @pytest_asyncio.fixture
-async def second_user(client: AsyncClient, test_school: dict) -> dict:
-    """Register a second test user for ownership tests."""
+async def second_user(client: AsyncClient, test_school: dict, db_session: AsyncSession) -> dict:
+    """Register a second test user for ownership tests.
+
+    UC-01（D4 门禁）：默认已完成校园认证。
+    """
     response = await client.post(
         "/api/v1/auth/register",
         json={
@@ -522,6 +541,17 @@ async def second_user(client: AsyncClient, test_school: dict) -> dict:
     )
     assert response.status_code == 200
     data = response.json()
+
+    from app.models.user import User
+    user = (
+        await db_session.execute(
+            select(User).where(User.email == "seconduser@example.com")
+        )
+    ).scalar_one_or_none()
+    assert user is not None
+    user.campus_verified = True
+    await db_session.commit()
+
     return {
         "email": "seconduser@example.com",
         "nickname": "第二用户",
@@ -564,6 +594,8 @@ async def admin_user(client: AsyncClient, db_session: AsyncSession, test_school:
     user = result.scalar_one_or_none()
     assert user is not None
     user.role = "admin"
+    # UC-01（D4 门禁）：管理员默认已完成校园认证
+    user.campus_verified = True
     await db_session.commit()
 
     return {

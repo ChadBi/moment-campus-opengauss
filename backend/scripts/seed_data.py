@@ -1282,15 +1282,11 @@ ZJU_TOPICS = [
 
 
 # =============================================================================
-# 跨校成员关系（TEN-05.3）：江南大学 user1/user2 加入复旦/浙大，演示切换效果
+# 跨校成员关系（UC-01 起置空）：严格一对一绑定后普通用户仅能关联一所学校；
+# 多校演示由 super_admin（admin@momentcampus.com 平台级）承载，seed 不再创建跨校普通用户。
 # =============================================================================
 
-CROSS_SCHOOL_MEMBERSHIPS = [
-    # user1@（江南小李，primary=jiangnan）→ 复旦 member
-    {"user_email": "user1@example.com", "school_code": "fudan", "role": "member", "is_default": False},
-    # user2@（蠡湖钓客，primary=jiangnan）→ 浙大 member
-    {"user_email": "user2@example.com", "school_code": "zju", "role": "member", "is_default": False},
-]
+CROSS_SCHOOL_MEMBERSHIPS = []
 
 
 # =============================================================================
@@ -1625,10 +1621,10 @@ async def seed_users(session: AsyncSession, schools: list):
 
 
 async def seed_memberships(session: AsyncSession, schools: list, users_by_email: dict):
-    """为每位用户创建 SchoolMembership（主校 + 跨校成员关系）
+    """为每位用户创建 SchoolMembership（UC-01 严格一对一：每用户仅一条 active）
 
     - 主校：is_default=True，role 与 user.role 一致（admin 或 member）
-    - 跨校：根据 CROSS_SCHOOL_MEMBERSHIPS 配置，is_default=False，role=member
+    - CROSS_SCHOOL_MEMBERSHIPS 已置空（一对一绑定后普通用户仅一所学校）
     """
     now = datetime.now()
     school_by_code = {s.code: s for s in schools}
@@ -2221,12 +2217,9 @@ async def seed_data():
         total_users = sum(len(u) for u in users_by_school.values())
         print(f"✓ 共创建 {total_users} 个用户")
 
-        print("\n[7/11] 创建成员关系（含跨校）...")
+        print("\n[7/11] 创建成员关系（UC-01 一对一，每用户仅一条 active）...")
         memberships = await seed_memberships(session, schools, users_by_email)
-        cross_count = len(CROSS_SCHOOL_MEMBERSHIPS)
-        print(f"✓ 创建了 {len(memberships)} 条成员关系（含 {cross_count} 条跨校关系）")
-        for cross in CROSS_SCHOOL_MEMBERSHIPS:
-            print(f"  - {cross['user_email']} → {cross['school_code']} ({cross['role']})")
+        print(f"✓ 创建了 {len(memberships)} 条成员关系（严格一对一，无跨校普通用户）")
 
         print("\n[8/11] 创建三校地点...")
         locations_by_school = await seed_locations(session, schools)
@@ -2294,19 +2287,10 @@ async def seed_data():
             for u in cfg["users"]:
                 print(f"    {u['email']:40s} | {u['nickname']:15s} | {u['role']:10s} | {u['bio']}")
 
-        print("\n【跨校成员关系】")
-        for cross in CROSS_SCHOOL_MEMBERSHIPS:
-            user = users_by_email.get(cross["user_email"])
-            school = next((s for s in schools if s.code == cross["school_code"]), None)
-            if user and school:
-                primary_school = next((s for s in schools if s.id == user.school_id), None)
-                print(f"  - {user.email}（主校={primary_school.code if primary_school else '?'}）"
-                      f" → 加入 {school.code} ({cross['role']})")
-
-        print("\n【演示切换说明】")
-        print("  登录 user1@example.com 后，可在学校切换器中选择「江南大学」或「复旦大学」，")
-        print("  切换后看到的内容/地图/角色/统计会同步变化（TEN-05.3）。")
-        print("  登录 user2@example.com 后，可在学校切换器中选择「江南大学」或「浙江大学」。")
+        print("\n【学校绑定说明（UC-01）】")
+        print("  每个普通用户仅能关联一所学校；平台管理员（super_admin）可跨校管理。")
+        print("  切换学校请使用「我的 → 切换学校」入口：切换后原校认证失效、")
+        print("  原校内容匿名化，需完成新校邮箱认证后才能发布内容。")
 
         print("\n【三校品牌差异化】")
         for school, cfg in zip(schools, SCHOOLS_REGISTRY):

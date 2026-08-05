@@ -108,18 +108,25 @@ class CampusVerifySendRequest(BaseModel):
 class CampusVerifySendResponse(BaseModel):
     """校园身份认证 send 响应。
 
-    production：仅 message；本地开发（APP_ENV in opengauss/demo/test 或 DEBUG=true）：
-    附加 code 便于测试链路打通（无邮件服务）。
+    production（SMTP 已配置）：仅 message，验证邮件已发送。
+    本地开发（APP_ENV in opengauss/demo/test 或 DEBUG=true 或 SMTP 未配置）：
+    附加 code / verify_link 便于测试链路打通（无邮件服务）。
     """
     message: str
-    code: Optional[str] = Field(None, description="仅本地开发环境返回；production 不返回")
+    code: Optional[str] = Field(None, description="6 位验证码；仅本地开发环境返回")
+    verify_link: Optional[str] = Field(None, description="一次性验证链接；仅本地开发环境返回")
 
 
 class CampusVerifyConfirmRequest(BaseModel):
-    """确认校园身份认证：提交学号 + 校园邮箱 + 验证码。"""
+    """确认校园身份认证：学号 + 校园邮箱 + token 或 code（二选一）。"""
     student_id: str = Field(..., min_length=1, max_length=50, description="校园学号")
     campus_email: EmailStr = Field(..., description="校园邮箱")
-    code: str = Field(..., min_length=6, max_length=6, description="6 位验证码")
+    token: Optional[str] = Field(
+        None, max_length=128, description="一次性验证 token（链接模式；与 code 二选一）"
+    )
+    code: Optional[str] = Field(
+        None, min_length=6, max_length=128, description="验证凭证（dev 模式返回的 code/token）"
+    )
 
 
 class CampusVerifyConfirmResponse(BaseModel):

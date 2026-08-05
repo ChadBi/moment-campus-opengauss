@@ -143,6 +143,34 @@ def require_role(required_role: str) -> Callable:
     return _check_role
 
 
+def require_campus_verified() -> Callable:
+    """FastAPI 依赖工厂：要求当前用户已完成校园身份认证（D4 未认证全站只读门禁）
+
+    应用于所有写操作端点（发帖/评论/点赞/评价/协同验证/订阅等）。
+    未认证用户（campus_verified=False）一律 403，仅保留只读权限。
+
+    用法：
+        @router.post("/posts", dependencies=[Depends(require_campus_verified())])
+        async def create_post(...):
+            ...
+
+        或作为参数依赖：
+        async def some_endpoint(user: User = Depends(require_campus_verified())):
+            ...
+    """
+    # 延迟导入避免循环依赖
+    from app.dependencies import get_current_user
+
+    async def _check_verified(user: User = Depends(get_current_user)) -> User:
+        if not user.campus_verified:
+            raise ForbiddenException(
+                detail="请先完成校园身份认证后再发布内容（未认证用户仅拥有只读权限）"
+            )
+        return user
+
+    return _check_verified
+
+
 # ============================================================
 # TEN-02.2: 租户内有效角色（实际实现位于 app.core.tenant，
 # 避免与 TenantContext 形成循环导入；此处提供委托接口便于从 permissions 导入）
