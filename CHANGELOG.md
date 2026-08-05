@@ -24,6 +24,7 @@
 - `ui` 新用户引导突出附近/评分/认证价值（D-04）：`FirstUseGuide.tsx` 第 3 步改为「三步开启校园生活」价值入口，可直达附近地点与校园认证页面
 - `test` 同步 AI 混合排序权重测试断言（Q-01）：`test_t7_vector_search.py` 断言由过时权重 0.35/0.25/0.20/0.20 改为与实现一致的 0.5/0.15/0.15/0.20（期望分 0.825）
 - `fix(ui)` 消除 `LocationPage.tsx` set-state-in-effect lint warning（Q-02），使 `npm run lint` 零错误零警告
+- `fix(ops)` E2E 走查发现 `school_domains` 表为空导致「校园邮箱域名不匹配」（Q-03）：重新执行 `seed_data.py` 填充三校域名与 `campus_verified` 标记后，地点评分/地图附近/校园认证/作者徽标链路全部验证通过
 
 ## [2.1.7] - 2026-08-05
 

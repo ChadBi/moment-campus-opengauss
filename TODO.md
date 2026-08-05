@@ -40,6 +40,18 @@
 
 ## 已完成
 
+### 导师反馈完善方案：附近与设施评分 + 实名认证 + 小程序落地（2026-08-05 完成）
+
+依据 [`docs/..trae/documents/导师反馈完善方案_附近与设施评分_实名认证_小程序落地.md`](.trae/documents/导师反馈完善方案_附近与设施评分_实名认证_小程序落地.md) 与 [`tasks.md`](.trae/documents/tasks.md)，按 A→B→C→D→Q 顺序完成两位导师的锐评回应：
+
+- [x] **工作流 A（附近 + 设施评分评价）**：`LocationReview` 模型 + 地点评分字段 + Alembic 迁移；`/locations` 列表/详情/评分提交/撤回/评价列表 API；`/locations/nearby` Haversine 距离排序；前端 Web 地点页 `/locations` + 地图「附近」模式 + 首页「附近好去处」；小程序地点页 `pages/locations` + 地图附近模式；`test_location_reviews.py`、`test_nearby.py` 通过
+- [x] **工作流 B（校园身份认证）**：`User` 认证字段 + `CampusVerifyToken` 一次性验证码模型；`/me/verify-campus/send`（域名校验，dev 返回验证码）+ `/confirm`；author 输出 `is_verified`；前端 Web 认证卡片 + `VerifiedBadge` 徽标；小程序认证入口 + 作者徽标；`test_campus_verify.py` 通过
+- [x] **工作流 C（小程序落地）**：API Base URL 指向公网 HTTPS `https://campus.chaina1.com`（C-01）；上线落地指引 `docs/36_微信小程序上线落地指引.md`（C-02）；wechatide 上传开发版编译通过（C-03 编译链路 OK，体验版/二维码需后台人工配置，如实标注未完成）
+- [x] **工作流 D（定位打磨）**：`00_project_overview` 差异化三壁垒；复赛方案 32/33 补充已完成能力证据；Demo作品帖/视频脚本/社媒文案补充附近/评分/认证/小程序场景；新用户引导突出三步价值
+- [x] **工作流 Q（质量门禁）**：Q-01 后端 `pytest tests/ -v` 全量通过（1002 passed）；Q-02 前端 `npm run build`、`npm run lint` 零错误零警告 + 小程序编译通过；Q-03 MCP 浏览器 E2E 走查通过（登录→地点评分→地图附近→认证→作者徽标）
+  - E2E 备注：发现 `school_domains` 表为空导致「校园邮箱域名不匹配」，重新执行 `seed_data.py` 填充域名与 `campus_verified` 后修复；评分/附近/认证/作者徽标链路均验证通过
+- [x] 任务报告：[AIwork/导师反馈完善方案_附近与设施评分_实名认证_小程序落地_任务报告.md](AIwork/导师反馈完善方案_附近与设施评分_实名认证_小程序落地_任务报告.md)
+
 ### Bug 修复：新建帖子选择信息截止时间报错（2026-08-02）
 
 - [x] 根因：前端 `toISOString()` 生成 UTC 时区 ISO 字符串，Pydantic 解析为带时区 datetime，asyncpg 无法插入 `TIMESTAMP WITHOUT TIME ZONE` 列
