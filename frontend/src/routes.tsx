@@ -28,6 +28,8 @@ const loadNotFoundPage = () => import('./pages/NotFoundPage');
 // TOPIC-01.1: 用户端专题
 const loadTopicListPage = () => import('./pages/TopicListPage');
 const loadTopicDetailPage = () => import('./pages/TopicDetailPage');
+// A-05: 校园地点页（附近 + 设施评分评价）
+const loadLocationPage = () => import('./pages/LocationPage');
 
 const HomePage = lazy(loadHomePage);
 const MapPage = lazy(loadMapPage);
@@ -42,6 +44,7 @@ const ForgotPasswordPage = lazy(loadForgotPasswordPage);
 const NotFoundPage = lazy(loadNotFoundPage);
 const TopicListPage = lazy(loadTopicListPage);
 const TopicDetailPage = lazy(loadTopicDetailPage);
+const LocationPage = lazy(loadLocationPage);
 
 // Admin pages
 const loadAdminDashboard = () => import('./pages/admin/AdminDashboard');
@@ -212,6 +215,8 @@ const AnimatedRoutes: React.FC = () => {
           {/* TOPIC-01.1: 用户端专题（列表 + 详情，仅展示已发布） */}
           <Route path="/topics" element={<TopicListPage />} />
           <Route path="/topics/:id" element={<TopicDetailPage />} />
+          {/* A-05: 校园地点页（附近 + 设施评分评价） */}
+          <Route path="/locations" element={<LocationPage />} />
 
           {/* Protected Routes */}
           <Route

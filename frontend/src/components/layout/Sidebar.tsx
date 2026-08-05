@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Map, Search, User, Bell, X } from 'lucide-react';
+import { Home, Map, Search, User, Bell, MapPin, X } from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -15,6 +15,8 @@ interface SidebarProps {
 const navItems = [
   { path: '/', label: '首页', icon: Home },
   { path: '/map', label: '地图', icon: Map },
+  // A-05: 校园地点（附近 + 设施评分评价）
+  { path: '/locations', label: '地点', icon: MapPin },
   { path: '/search', label: '搜索', icon: Search },
   { path: '/notifications', label: '通知', icon: Bell },
   { path: '/profile', label: '我的', icon: User },
