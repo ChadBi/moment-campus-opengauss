@@ -130,3 +130,14 @@ miniprogram/components/icon/._gen.cjs
 
 # AIwork 调试脚本（一次性验证脚本不入库）
 AIwork/*.ps1
+
+# 视频素材与音频（体积过大，不纳入版本控制）
+docs/video-assets/audio/
+docs/video-assets/**/*.mp4
+docs/video-assets/**/*.mov
+docs/video-assets/**/*.avi
+docs/video-assets/**/*.mp3
+docs/video-assets/**/*.wav
+docs/video-assets/**/*.m4a
+# 临时副本脚本（保留正式脚本 generate_narration.py）
+docs/video-assets/* copy.py
