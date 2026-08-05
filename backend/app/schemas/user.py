@@ -48,6 +48,8 @@ class UserResponse(BaseModel):
     created_at: datetime
     # ACC-01.4: 首次使用引导标记（前端 FirstUseGuide 据此决定是否弹出教程）
     onboarding_completed: bool = False
+    # B-01: 校园身份认证状态（前端据此展示认证徽标/入口）
+    campus_verified: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -94,3 +96,33 @@ class ForgotPasswordResponse(BaseModel):
 class ResetPasswordResponse(BaseModel):
     """重置密码响应。"""
     message: str
+
+
+# B-01: 校园身份认证
+class CampusVerifySendRequest(BaseModel):
+    """发起校园身份认证：提交学号 + 校园邮箱。"""
+    student_id: str = Field(..., min_length=1, max_length=50, description="校园学号")
+    campus_email: EmailStr = Field(..., description="校园邮箱（域名须命中该校允许域名）")
+
+
+class CampusVerifySendResponse(BaseModel):
+    """校园身份认证 send 响应。
+
+    production：仅 message；本地开发（APP_ENV in opengauss/demo/test 或 DEBUG=true）：
+    附加 code 便于测试链路打通（无邮件服务）。
+    """
+    message: str
+    code: Optional[str] = Field(None, description="仅本地开发环境返回；production 不返回")
+
+
+class CampusVerifyConfirmRequest(BaseModel):
+    """确认校园身份认证：提交学号 + 校园邮箱 + 验证码。"""
+    student_id: str = Field(..., min_length=1, max_length=50, description="校园学号")
+    campus_email: EmailStr = Field(..., description="校园邮箱")
+    code: str = Field(..., min_length=6, max_length=6, description="6 位验证码")
+
+
+class CampusVerifyConfirmResponse(BaseModel):
+    """校园身份认证 confirm 响应。"""
+    message: str
+    campus_verified: bool = True

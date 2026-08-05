@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Query
+from fastapi import APIRouter, Depends, UploadFile, File, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 from sqlalchemy.orm import selectinload, joinedload
@@ -6,7 +6,9 @@ from typing import Optional
 from pydantic import BaseModel, Field
 import os
 import uuid
-from datetime import datetime
+import hashlib
+import secrets
+from datetime import datetime, timedelta
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -18,7 +20,14 @@ from app.models.location import Location
 from app.models.browse_history import BrowseHistory
 # PRF-01.2: 真实统计需要协同验证记录
 from app.models.validation_record import ValidationRecord
+# B-01: 校园身份认证
+from app.models.campus_verify_token import CampusVerifyToken
+from app.models.school_domain import SchoolDomain
 from app.schemas.user import UserResponse, UserUpdate
+from app.schemas.user import (
+    CampusVerifySendRequest, CampusVerifySendResponse,
+    CampusVerifyConfirmRequest, CampusVerifyConfirmResponse,
+)
 from app.schemas.post import PostListResponse
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.core.exceptions import BadRequestException, NotFoundException
@@ -26,6 +35,25 @@ from app.core.tenant import TenantContext, get_tenant_context
 from app.config import settings
 
 router = APIRouter(prefix="/users", tags=["用户"])
+
+# B-01: 校园身份认证验证码有效期（分钟）
+CAMPUS_VERIFY_CODE_EXPIRE_MINUTES = 10
+
+
+def _should_return_campus_verify_code() -> bool:
+    """本地开发环境在响应中返回验证码（无邮件服务），便于测试与演示闭环。"""
+    env = (settings.APP_ENV or "").lower()
+    return env in ("opengauss", "demo", "test") or settings.DEBUG
+
+
+def _hash_token(token: str) -> str:
+    """对明文验证码取 SHA-256 哈希；DB 仅存哈希，避免明文泄露。"""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _generate_code() -> str:
+    """生成 6 位数字验证码。"""
+    return f"{secrets.randbelow(1000000):06d}"
 
 
 @router.get("/me", response_model=UserResponse, summary="获取当前用户信息")
@@ -71,6 +99,112 @@ async def complete_onboarding(
     await db.commit()
     await db.refresh(current_user)
     return current_user
+
+
+@router.post(
+    "/me/verify-campus/send",
+    response_model=CampusVerifySendResponse,
+    summary="B-01: 发起校园身份认证（提交学号 + 校园邮箱）",
+)
+async def send_campus_verify(
+    data: CampusVerifySendRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """发起校园身份认证。
+
+    业务规则：
+    - 已认证用户不能再发起（返回 400）
+    - 校验校园邮箱域名命中该校 `school_domains` 允许域名，否则 400
+    - 生成 6 位一次性验证码（10 分钟有效），DB 仅存 SHA-256 哈希
+    - 本地开发环境（APP_ENV in opengauss/demo/test 或 DEBUG=true）：
+      响应中携带 code 供测试链路打通（无邮件服务）
+    """
+    if current_user.campus_verified:
+        raise BadRequestException(detail="您已完成校园身份认证，无需重复认证")
+
+    # 校验邮箱域名命中该校允许域名
+    email_domain = data.campus_email.rsplit("@", 1)[-1].lower()
+    domain_result = await db.execute(
+        select(SchoolDomain).where(
+            SchoolDomain.school_id == current_user.school_id,
+            SchoolDomain.domain == email_domain,
+        )
+    )
+    if domain_result.scalar_one_or_none() is None:
+        raise BadRequestException(detail="校园邮箱域名与您的学校不匹配，请使用学校官方邮箱")
+
+    # 生成验证码
+    code = _generate_code()
+    token_hash = _hash_token(code)
+    expires_at = datetime.now() + timedelta(minutes=CAMPUS_VERIFY_CODE_EXPIRE_MINUTES)
+
+    client_ip = request.client.host if request.client else None
+    db.add(CampusVerifyToken(
+        user_id=current_user.id,
+        school_id=current_user.school_id,
+        target_email=data.campus_email,
+        token_hash=token_hash,
+        expires_at=expires_at,
+        used_at=None,
+        created_at=datetime.now(),
+        ip_address=client_ip,
+    ))
+    await db.commit()
+
+    message = f"验证码已发送至 {data.campus_email}（{CAMPUS_VERIFY_CODE_EXPIRE_MINUTES} 分钟内有效）"
+    if _should_return_campus_verify_code():
+        return CampusVerifySendResponse(message=message, code=code)
+    return CampusVerifySendResponse(message=message)
+
+
+@router.post(
+    "/me/verify-campus/confirm",
+    response_model=CampusVerifyConfirmResponse,
+    summary="B-01: 确认校园身份认证（提交验证码）",
+)
+async def confirm_campus_verify(
+    data: CampusVerifyConfirmRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """确认校园身份认证。
+
+    业务规则：
+    - 校验验证码：哈希后查 DB，必须存在 + 未过期 + 未使用 + 属于当前用户
+    - 校验通过 → campus_verified=true，记录 student_id/campus_email/verified_at
+    - 一次性：标记 used_at = now，防止重复使用
+    """
+    if current_user.campus_verified:
+        raise BadRequestException(detail="您已完成校园身份认证，无需重复认证")
+
+    token_hash = _hash_token(data.code)
+    result = await db.execute(
+        select(CampusVerifyToken).where(
+            CampusVerifyToken.user_id == current_user.id,
+            CampusVerifyToken.token_hash == token_hash,
+        ).order_by(CampusVerifyToken.created_at.desc())
+    )
+    token = result.scalars().first()
+    if token is None:
+        raise BadRequestException(detail="验证码无效，请重新发起认证")
+    if token.used_at is not None:
+        raise BadRequestException(detail="验证码已使用，请重新发起认证")
+    if token.expires_at < datetime.now():
+        raise BadRequestException(detail="验证码已过期，请重新发起认证")
+
+    # 标记使用 + 记录认证信息
+    token.used_at = datetime.now()
+    current_user.campus_verified = True
+    current_user.campus_verified_at = datetime.now()
+    current_user.student_id = data.student_id
+    current_user.campus_email = data.campus_email
+    current_user.updated_at = datetime.now()
+    await db.commit()
+    await db.refresh(current_user)
+
+    return CampusVerifyConfirmResponse(message="校园身份认证成功", campus_verified=True)
 
 
 @router.post("/me/avatar", response_model=MessageResponse, summary="上传头像")

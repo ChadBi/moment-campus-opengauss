@@ -192,7 +192,7 @@ async def get_posts(
         if post.is_anonymous:
             post_data.author = None
         elif post.user:
-            post_data.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url}
+            post_data.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url, "is_verified": post.user.campus_verified}
         # 设置封面图片
         if post.post_images:
             post_data.cover_image = post.post_images[0].image_url if post.post_images else None
@@ -303,7 +303,7 @@ async def get_post(
     if post.is_anonymous:
         response.author = None
     elif post.user:
-        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url}
+        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url, "is_verified": post.user.campus_verified}
 
     # DSC-02.1: 设置图片列表（按 sort_order 排序，前端轮播依赖）
     # post_images 关系已通过 selectinload 预加载
@@ -497,7 +497,7 @@ async def create_post(
     if post.is_anonymous:
         response.author = None
     elif post.user:
-        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url}
+        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url, "is_verified": post.user.campus_verified}
 
     return response
 
@@ -676,7 +676,7 @@ async def update_post(
     if post.is_anonymous:
         response.author = None
     elif post.user:
-        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url}
+        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url, "is_verified": post.user.campus_verified}
 
     return response
 

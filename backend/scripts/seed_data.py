@@ -39,7 +39,7 @@ from app.models import (
     Location, Comment, Like, ValidationRecord, Report, Notification,
     TopicCollection, TopicCollectionPost, Draft, BrowseHistory, SearchHistory,
     AdminOperationLog, SchoolMembership, SchoolSettings, SchoolSubscription,
-    ProductPlan, PlanEntitlement,
+    ProductPlan, PlanEntitlement, SchoolDomain,
 )
 from app.models.location_review import LocationReview
 import bcrypt
@@ -99,6 +99,7 @@ JIANGNAN_META = {
     "brand_color": "#1B4332",  # 江南绿
     "site_name": "此刻校园 · 江南大学",
     "description": "江南大学蠡湖校区校园信息协作平台",
+    "domain": "jiangnan.edu.cn",  # B-01: 校园身份认证允许域名
 }
 
 JIANGNAN_CATEGORIES = [
@@ -152,6 +153,7 @@ FUDAN_META = {
     "brand_color": "#00356B",  # 复旦蓝
     "site_name": "此刻校园 · 复旦大学",
     "description": "复旦大学邯郸校区校园信息协作平台（复赛演示校 A）",
+    "domain": "fudan.edu.cn",  # B-01: 校园身份认证允许域名
 }
 
 FUDAN_CATEGORIES = [
@@ -194,6 +196,7 @@ ZJU_META = {
     "brand_color": "#003F7F",  # 浙大蓝
     "site_name": "此刻校园 · 浙江大学",
     "description": "浙江大学紫金港校区校园信息协作平台（复赛演示校 B）",
+    "domain": "zju.edu.cn",  # B-01: 校园身份认证允许域名
 }
 
 ZJU_CATEGORIES = [
@@ -1370,6 +1373,7 @@ async def init_db():
         "user_recommendation_preferences",
         "subscriptions",
         "password_reset_tokens",
+        "campus_verify_tokens",
         # 日志与事件
         "admin_operation_logs",
         "platform_audit_logs",
@@ -1478,6 +1482,18 @@ async def seed_schools(session: AsyncSession):
         )
         schools.append(school)
         session.add(school)
+    await session.flush()
+    # B-01: 为每校写入校园身份认证允许域名（school_domains）
+    for school, cfg in zip(schools, SCHOOLS_REGISTRY):
+        domain = cfg["meta"].get("domain")
+        if domain:
+            session.add(SchoolDomain(
+                school_id=school.id,
+                domain=domain,
+                is_primary=True,
+                created_at=now,
+                updated_at=now,
+            ))
     await session.flush()
     return schools
 

@@ -27,7 +27,7 @@ def _build_comment_response(comment: Comment, include_replies: bool = False) -> 
     """
     author = None
     if comment.user:
-        author = {"id": comment.user.id, "nickname": comment.user.nickname, "avatar_url": comment.user.avatar_url}
+        author = {"id": comment.user.id, "nickname": comment.user.nickname, "avatar_url": comment.user.avatar_url, "is_verified": comment.user.campus_verified}
 
     reply_to_user = None
     if comment.reply_to_user:

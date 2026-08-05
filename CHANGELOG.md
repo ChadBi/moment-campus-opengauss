@@ -7,6 +7,14 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.1.8] - 2026-08-06
+
+### 新增
+
+- `auth` 新增校园身份认证能力（B-01/B-02）：`User` 增 campus_verified/student_id/campus_email/campus_verified_at；新建 `campus_verify_tokens` 表（一次性、限时、哈希存储）；`POST /users/me/verify-campus/send` 提交学号+校园邮箱并校验域名命中 `school_domains`，`POST /users/me/verify-campus/confirm` 校验验证码后置为已认证；`GET /users/me` 返回 campus_verified
+- `auth` 帖子/评论/评价作者信息（author）新增 `is_verified` 认证标识（B-03），前端可据此展示「已认证」徽标
+- `seed` 演示数据 seed 支持校园认证域名（B-01）：为三校写入 `school_domains`（jiangnan.edu.cn / fudan.edu.cn / zju.edu.cn）
+
 ## [2.1.7] - 2026-08-05
 
 ### 新增

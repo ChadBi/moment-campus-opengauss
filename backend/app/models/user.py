@@ -46,6 +46,30 @@ class User(Base):
         server_default="false",
         comment="ACC-01.4: 是否已完成首次使用引导（注册后默认 False）",
     )
+    # B-01: 校园身份认证。同学通过「学号 + 校园邮箱验证码」验证后置为 True，
+    # 昵称旁可显示「已认证」徽标，提升内容真实性与信任感（轻量方案，不接人脸/公安）。
+    campus_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+        server_default="false",
+        comment="B-01: 是否已完成校园身份认证（默认 False）",
+    )
+    student_id: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+        comment="B-01: 校园学号（认证通过后记录）",
+    )
+    campus_email: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        comment="B-01: 用于认证的校园邮箱（认证通过后记录）",
+    )
+    campus_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+        comment="B-01: 校园身份认证通过时间（NULL 表示未认证）",
+    )
 
     # 关系
     school: Mapped["School"] = relationship(back_populates="users")
@@ -74,6 +98,10 @@ class User(Base):
     auth_sessions: Mapped[list["AuthSession"]] = relationship(back_populates="user")
     # REV-01: 地点评分/评价
     location_reviews: Mapped[list["LocationReview"]] = relationship(back_populates="user")
+    # B-01: 校园身份认证（一对一，可空）
+    campus_verify_tokens: Mapped[list["CampusVerifyToken"]] = relationship(
+        back_populates="user", foreign_keys="CampusVerifyToken.user_id"
+    )
 
     __table_args__ = (
         Index("idx_user_school", "school_id"),
