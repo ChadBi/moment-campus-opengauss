@@ -30,7 +30,7 @@ backend_dir = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(backend_dir))
 
 import app.db_compat  # noqa: F401  openGauss 兼容性补丁，必须在 SQLAlchemy 引擎前导入
-from sqlalchemy import text
+from sqlalchemy import text, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import async_session_maker, engine
 from app.data.demo_coordinates import DEMO_SCHOOL_COORDINATES, location_tuples
@@ -41,6 +41,7 @@ from app.models import (
     AdminOperationLog, SchoolMembership, SchoolSettings, SchoolSubscription,
     ProductPlan, PlanEntitlement,
 )
+from app.models.location_review import LocationReview
 import bcrypt
 
 
@@ -1668,6 +1669,108 @@ async def seed_locations(session: AsyncSession, schools: list):
 
 
 # =============================================================================
+# 地点评分/评价（REV-01）
+# =============================================================================
+
+# 按地点类型给出差异化评分倾向与评价文案（name 子串匹配）
+_LOCATION_REVIEW_HINTS = [
+    # (匹配关键词, 评分范围, 评价文案列表)
+    ("打印", (3, 5), [
+        "打印便宜，速度也快，期末排队有点久。",
+        "老板娘很热情，帮忙排版很耐心。",
+        "价格实惠，就是中午人多要排队。",
+        "毕业论文打印首推，装订质量不错。",
+    ]),
+    ("食堂", (3, 5), [
+        "二楼窗口的麻辣香锅很香，性价比高。",
+        "食堂口味偏清淡，品种还算丰富。",
+        "中午高峰需要排队，味道中规中矩。",
+        "推荐他家的盖浇饭，分量很足。",
+    ]),
+    ("图书馆", (4, 5), [
+        "自习环境安静，插座充足，学习氛围好。",
+        "借书方便，馆藏丰富，周末位置紧张。",
+        "考研季要早点来占座，空调很给力。",
+    ]),
+    ("打印店", (3, 5), [
+        "打印、复印、彩印一站式，价格透明。",
+        "老板技术好，PDF 排版问题都能解决。",
+        "晚上营业到很晚，很贴心。",
+    ]),
+]
+
+_REVIEW_GEN_HINTS = [
+    "体验不错，值得推荐。",
+    "位置好找，服务态度好。",
+    "整体满意，会再来的。",
+    "环境不错，就是高峰期有点挤。",
+    "价格公道，童叟无欺。",
+]
+
+async def seed_location_reviews(session: AsyncSession, users_by_school: dict, schools: list):
+    """REV-01: 为各校地点生成真实感评分与评价，并回写地点评分汇总。
+
+    每个地点由该校普通用户产生 2~6 条评价（评分随机但有类型倾向），
+    地点 avg_score / rating_count / review_count 随之回写。
+    """
+    import random
+    rng = random.Random(20260805)  # 固定种子，保证每次演示数据一致
+
+    # 构建地点类型倾向
+    def hints_for(name: str):
+        for keyword, score_range, texts in _LOCATION_REVIEW_HINTS:
+            if keyword in name:
+                return score_range, texts
+        return (3, 5), _REVIEW_GEN_HINTS
+
+    now = datetime.now()
+    # school_code -> school_id
+    code_to_id = {s.code: s.id for s in schools}
+    locations = (await session.execute(
+        select(Location).order_by(Location.school_id, Location.id)
+    )).scalars().all()
+    total_reviews = 0
+
+    for loc in locations:
+        # 找到该地点所在学校的普通用户（排除 admin / super_admin）
+        school_code = next((code for code, sid in code_to_id.items() if sid == loc.school_id), None)
+        if school_code is None:
+            continue
+        candidates = [u for u in users_by_school.get(school_code, []) if u.role not in ("admin", "super_admin")]
+        if not candidates:
+            continue
+
+        score_range, texts = hints_for(loc.name)
+        review_count = rng.randint(2, 6)
+        chosen = rng.sample(candidates, min(review_count, len(candidates)))
+        scores = []
+        for user in chosen:
+            score = rng.randint(score_range[0], score_range[1])
+            scores.append(score)
+            content = rng.choice(texts)
+            session.add(LocationReview(
+                location_id=loc.id,
+                user_id=user.id,
+                school_id=loc.school_id,
+                score=score,
+                content=content,
+                status="published",
+                created_at=now,
+                updated_at=now,
+            ))
+            total_reviews += 1
+
+        # 回写地点评分汇总
+        if scores:
+            loc.rating_count = len(scores)
+            loc.review_count = len(scores)
+            loc.avg_score = round(sum(scores) / len(scores), 2)
+
+    await session.flush()
+    return total_reviews
+
+
+# =============================================================================
 # 帖子、评论、协同验证、状态样本
 # =============================================================================
 
@@ -2096,6 +2199,10 @@ async def seed_data():
             print(f"  - {code}: {len(locs)} 个地点")
         total_locs = sum(len(l) for l in locations_by_school.values())
         print(f"✓ 共创建 {total_locs} 个地点")
+
+        print("\n[REV] 为三校地点生成评分与评价...")
+        total_reviews = await seed_location_reviews(session, users_by_school, schools)
+        print(f"✓ 共生成 {total_reviews} 条地点评价，并回写各地点评分汇总")
 
         # [9/11] 创建三校官方发布主体 — 已下线（publisher_profiles / publisher_memberships / post_templates 表已 drop）
         # publishers_by_school = await seed_publishers(...)  # 已移除
