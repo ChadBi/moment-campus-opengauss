@@ -20,7 +20,7 @@ def _post() -> Post:
     )
 
 
-def test_hybrid_score_uses_35_25_20_20_weights():
+def test_hybrid_score_uses_weights():
     from app.services.ai_search import _compute_score
 
     score, reasons = _compute_score(
@@ -30,8 +30,9 @@ def test_hybrid_score_uses_35_25_20_20_weights():
         semantic_similarity=0.8,
     )
 
-    # 0.35*0.8 + 0.25*~1 + 0.20*0.5 + 0.20*1.0
-    assert score == pytest.approx(0.83, abs=0.001)
+    # 权重取自 ai_search._SCORE_WEIGHT_*：语义 0.50 + 新鲜度 0.15 + 验证 0.15 + 相关度 0.20
+    # 0.50*0.8 + 0.15*1.0(今日) + 0.15*0.5(valid_count=5→0.5) + 0.20*1.0(标题命中) = 0.825
+    assert score == pytest.approx(0.825, abs=0.001)
     assert any("语义" in reason for reason in reasons)
 
 

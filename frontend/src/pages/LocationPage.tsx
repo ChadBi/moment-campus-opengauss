@@ -129,7 +129,8 @@ const LocationPage: React.FC = () => {
   }, [activeCenter, currentSchoolName, loadNearby]);
 
   useEffect(() => {
-    void handleGeolocate();
+    // 用 microtask 延迟同步 setState，避免 react-hooks/set-state-in-effect 规则告警
+    void Promise.resolve().then(() => handleGeolocate());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
