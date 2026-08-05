@@ -72,6 +72,8 @@ class User(Base):
     auth_identities: Mapped[list["UserAuthIdentity"]] = relationship(back_populates="user")
     # 服务端会话（一对多）
     auth_sessions: Mapped[list["AuthSession"]] = relationship(back_populates="user")
+    # REV-01: 地点评分/评价
+    location_reviews: Mapped[list["LocationReview"]] = relationship(back_populates="user")
 
     __table_args__ = (
         Index("idx_user_school", "school_id"),

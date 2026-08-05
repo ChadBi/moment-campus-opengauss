@@ -10,6 +10,7 @@ class UserBrief(BaseModel):
     id: int
     nickname: str
     avatar_url: Optional[str] = None
+    is_verified: bool = Field(default=False, description="是否已通过校园身份认证")
 
     model_config = ConfigDict(from_attributes=True)
 

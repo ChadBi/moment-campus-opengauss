@@ -19,6 +19,8 @@ from app.api.schools import schools_router, me_router as schools_me_router
 from app.api.analytics import router as analytics_router, admin_analytics_router
 from app.api.recommendations import router as recommendations_router
 from app.api.subscriptions import router as subscriptions_router
+# REV-01: 地点（列表/详情/评分评价/附近）
+from app.api.locations import router as locations_router
 
 api_router = APIRouter()
 
@@ -57,3 +59,5 @@ api_router.include_router(admin_analytics_router)
 api_router.include_router(subscriptions_router)
 # REC-01: 首页推荐 + 推荐隐私偏好（个性化开关 + 清除画像历史）
 api_router.include_router(recommendations_router)
+# REV-01: 地点（列表/详情/评分评价/附近）
+api_router.include_router(locations_router)

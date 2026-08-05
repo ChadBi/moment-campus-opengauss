@@ -18,6 +18,10 @@ class Location(Base):
     building: Mapped[str | None] = mapped_column(String(100), nullable=True)
     post_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # REV-01: 地点评分汇总（由应用服务写入时重算）
+    avg_score: Mapped[float] = mapped_column(Numeric(3, 2), default=0, nullable=False, comment="平均评分（1-5，保留 2 位）")
+    rating_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="评分人数（有分评价数）")
+    review_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="评价条数")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -26,6 +30,7 @@ class Location(Base):
     # 关系
     school: Mapped["School"] = relationship(back_populates="locations")
     posts: Mapped[list["Post"]] = relationship(back_populates="location")
+    reviews: Mapped[list["LocationReview"]] = relationship(back_populates="location")
 
     __table_args__ = (
         Index("idx_location_school", "school_id"),

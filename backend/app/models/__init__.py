@@ -34,6 +34,7 @@ from .subscription import UserSubscription
 from .user_recommendation_preference import UserRecommendationPreference
 from .user_auth_identity import UserAuthIdentity
 from .auth_session import AuthSession, BindingTicket
+from .location_review import LocationReview
 
 __all__ = [
     "Base",
@@ -71,4 +72,5 @@ __all__ = [
     "UserAuthIdentity",
     "AuthSession",
     "BindingTicket",
+    "LocationReview",
 ]

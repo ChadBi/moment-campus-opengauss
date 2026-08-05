@@ -9,6 +9,13 @@
 
 ## [2.1.7] - 2026-08-05
 
+### 新增
+
+- `rev` 新增地点评分/评价能力（REV-01）：`location_reviews` 表 + `locations` 评分汇总字段（avg_score/rating_count/review_count），每地点每用户一条可改可撤回
+- `rev` 新增地点 API（`/locations`）：地点详情含评分汇总与"我的评价"、评价提交/更新/撤回、评价分页列表
+- `rev` 新增"附近地点"接口 `GET /locations/nearby`：Haversine 距离升序 + 半径过滤 + 距离字段，多租户隔离
+- `rev` 作者简明信息（UserBrief）新增 `is_verified` 认证标识字段
+
 ### 变更
 
 - `ai` 移除 AI 发布建议校验中 `summary` 必填约束，避免模型未生成摘要时校验失败
