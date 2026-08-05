@@ -230,11 +230,14 @@ Page({
   normalizePost(p: any): any {
     if (!p) return p
     const images = Array.isArray(p.images) ? p.images.map((u: string) => resolveImageUrl(u)) : []
+    const author = p.author || {}
     return {
       ...p,
       images,
       cover: images[0] || '',
-      author_avatar: resolveImageUrl(p.author_avatar),
+      author_nickname: p.author_nickname || author.nickname || '匿名用户',
+      author_avatar: resolveImageUrl(p.author_avatar || author.avatar_url),
+      is_verified: !!p.is_verified || !!author.is_verified,
       created_at_text: formatDate(p.created_at),
       content_brief: truncateText(p.content || '', 80),
       likes_count_text: formatCount(p.likes_count || 0),

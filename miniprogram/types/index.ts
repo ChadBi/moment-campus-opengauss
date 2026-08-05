@@ -7,6 +7,11 @@ export interface User {
   school_id: number
   is_active: boolean
   created_at: string
+  // B-01: 校园身份认证
+  campus_verified?: boolean
+  student_id?: string
+  campus_email?: string
+  campus_verified_at?: string
 }
 
 export interface School {
@@ -47,6 +52,8 @@ export interface Post {
   author_id: number
   author_nickname?: string
   author_avatar?: string
+  // B-01: 作者是否已通过校园身份认证
+  is_verified?: boolean
   school_id: number
   school_name?: string
   views_count: number
@@ -66,6 +73,19 @@ export interface PostListResponse {
   page: number
   page_size: number
   has_more: boolean
+}
+
+// B-01: 评论（作者是否已认证）
+export interface Comment {
+  id: number
+  post_id: number
+  parent_id?: number
+  user_id: number
+  content: string
+  author_nickname?: string
+  author_avatar?: string
+  is_verified?: boolean
+  created_at: string
 }
 
 export interface Category {

@@ -53,6 +53,17 @@
   font-family: var(--font-display);
 }
 
+/* B-06: 顶部昵称旁「已认证」徽标（深色渐变背景上的白字变体） */
+.verified-badge-header {
+  flex-shrink: 0;
+  padding: 2rpx 12rpx;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 20rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-sm);
+}
+
 .email {
   font-size: 24rpx;
   color: rgba(255, 255, 255, 0.85);
@@ -326,6 +337,175 @@
 .action-switch:active,
 .action-default:active {
   opacity: 0.7;
+}
+
+/* ============== 校园身份认证（对齐 Web CampusVerifyCard，B-06） ============== */
+.verify-section {
+  margin: 30rpx 30rpx 0;
+  background: var(--paper);
+  border: 1rpx solid rgba(216, 225, 227, 0.6);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.verify-section .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 30rpx 16rpx;
+  border-bottom: 1rpx solid var(--ink-divider);
+}
+
+.verify-card-badge {
+  flex-shrink: 0;
+  padding: 2rpx 12rpx;
+  background: var(--lake-light);
+  color: var(--lake);
+  font-size: 20rpx;
+  border-radius: var(--radius-sm);
+}
+
+.verify-body {
+  padding: 24rpx 30rpx 30rpx;
+}
+
+.verify-desc {
+  display: block;
+  font-size: 24rpx;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 20rpx;
+}
+
+/* 已认证态 */
+.verify-done {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  padding: 24rpx;
+  background: rgba(115, 160, 104, 0.06);
+  border: 1rpx solid rgba(115, 160, 104, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.verify-done-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.verify-done-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.verify-done-hint {
+  font-size: 22rpx;
+  color: var(--muted);
+  margin-top: 6rpx;
+  line-height: 1.6;
+}
+
+/* 发送验证码按钮 */
+.verify-send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 20rpx 0;
+  background: var(--lake);
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lake);
+  transition: all 0.2s;
+}
+
+.verify-send-btn-hover {
+  background: var(--lake-dark);
+  transform: scale(0.98);
+}
+
+.verify-send-btn.disabled {
+  opacity: 0.6;
+}
+
+/* 演示环境验证码提示 */
+.verify-devcode {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  padding: 16rpx 20rpx;
+  background: var(--lake-light);
+  border: 1rpx solid rgba(23, 77, 94, 0.2);
+  border-radius: var(--radius-sm);
+  font-size: 24rpx;
+  color: var(--lake);
+  margin-bottom: 20rpx;
+}
+
+.verify-devcode-val {
+  font-weight: 700;
+  letter-spacing: 4rpx;
+  font-family: var(--font-data);
+}
+
+.verify-devcode-hint {
+  font-size: 20rpx;
+  color: var(--muted);
+}
+
+/* 确认认证 / 返回修改 */
+.verify-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.verify-confirm-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 20rpx 0;
+  background: var(--lake);
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lake);
+  transition: all 0.2s;
+}
+
+.verify-confirm-btn-hover {
+  background: var(--lake-dark);
+  transform: scale(0.98);
+}
+
+.verify-confirm-btn.disabled {
+  opacity: 0.6;
+}
+
+.verify-back-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 32rpx;
+  background: var(--paper-hover);
+  color: var(--ink-2);
+  font-size: 28rpx;
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+
+.verify-back-btn-hover {
+  background: var(--mist);
+  transform: scale(0.98);
 }
 
 /* ============== 我的帖子 / 历史区域 ============== */

@@ -67,12 +67,17 @@ Page({
         res = await http.get(`/posts?category_id=${activeCategoryId}&page=${page}&page_size=${pageSize}`)
       }
       const items = res.items || res.posts || []
-      // 预处理帖子数据：用 resolveImageUrl 处理图片 URL
-      const processedPosts = items.map((post: any) => ({
-        ...post,
-        images: (post.images || []).map((img: string) => resolveImageUrl(img)),
-        author_avatar: resolveImageUrl(post.author_avatar),
-      }))
+      // 预处理帖子数据：用 resolveImageUrl 处理图片 URL + 归一化嵌套 author 字段（B-06）
+      const processedPosts = items.map((post: any) => {
+        const author = post.author || {}
+        return {
+          ...post,
+          images: (post.images || []).map((img: string) => resolveImageUrl(img)),
+          author_nickname: post.author_nickname || author.nickname || '匿名用户',
+          author_avatar: resolveImageUrl(post.author_avatar || author.avatar_url),
+          is_verified: !!post.is_verified || !!author.is_verified,
+        }
+      })
 
       const total = res.total !== undefined
         ? res.total

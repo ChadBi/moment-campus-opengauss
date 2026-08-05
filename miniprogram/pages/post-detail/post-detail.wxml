@@ -54,7 +54,10 @@
           mode="aspectFill"
         />
         <view class="author-meta">
-          <text class="author-name">{{post.author_nickname || '匿名'}}</text>
+          <view class="author-name-row">
+            <text class="author-name">{{post.author_nickname || '匿名'}}</text>
+            <text wx:if="{{post.is_verified}}" class="verified-badge">已认证</text>
+          </view>
           <text class="post-time">{{post.created_at_text}}</text>
         </view>
         <view wx:if="{{post.category_name}}" class="category-tag cat-{{categoryClass}}">
@@ -203,7 +206,10 @@
         />
         <view class="comment-body">
           <view class="comment-header">
-            <text class="comment-author">{{item.author_nickname || '匿名'}}</text>
+            <view class="comment-author-row">
+              <text class="comment-author">{{item.author_nickname || '匿名'}}</text>
+              <text wx:if="{{item.is_verified}}" class="verified-badge">已认证</text>
+            </view>
             <text class="comment-time">{{item.created_at_text}}</text>
           </view>
           <view class="comment-content">

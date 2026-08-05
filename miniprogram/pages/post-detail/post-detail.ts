@@ -116,10 +116,13 @@ Page({
     const images = Array.isArray(post.images)
       ? post.images.map((u: string) => resolveImageUrl(u))
       : []
+    const author = post.author || {}
     const normalized = {
       ...post,
       images,
-      author_avatar: resolveImageUrl(post.author_avatar),
+      author_nickname: post.author_nickname || author.nickname || '匿名用户',
+      author_avatar: resolveImageUrl(post.author_avatar || author.avatar_url),
+      is_verified: !!post.is_verified || !!author.is_verified,
       created_at_text: formatDate(post.created_at),
       likes_count_text: formatCount(post.likes_count || 0),
       comments_count_text: formatCount(post.comments_count || 0),
@@ -172,11 +175,16 @@ Page({
     try {
       const res: any = await listComments(this.data.postId, page)
       const items = (res && (res.items || res.comments || res.data)) || []
-      const list = items.map((c: any) => ({
-        ...c,
-        author_avatar: resolveImageUrl(c.author_avatar),
-        created_at_text: formatDate(c.created_at),
-      }))
+      const list = items.map((c: any) => {
+        const author = c.author || {}
+        return {
+          ...c,
+          author_nickname: c.author_nickname || author.nickname || '匿名',
+          author_avatar: resolveImageUrl(c.author_avatar || author.avatar_url),
+          is_verified: !!c.is_verified || !!author.is_verified,
+          created_at_text: formatDate(c.created_at),
+        }
+      })
       this.setData({
         comments: page === 1 ? list : [...this.data.comments, ...list],
         commentPage: page,
@@ -218,9 +226,12 @@ Page({
     try {
       const parentId = this.data.replyingTo ? this.data.replyingTo.id : undefined
       const res: any = await createComment(this.data.postId, content, parentId)
+      const author = (res && res.author) || {}
       const newComment = {
         ...(res || {}),
-        author_avatar: resolveImageUrl(res && res.author_avatar),
+        author_nickname: (res && (res.author_nickname || author.nickname)) || '匿名',
+        author_avatar: resolveImageUrl(res && (res.author_avatar || author.avatar_url)),
+        is_verified: !!(res && (res.is_verified || author.is_verified)),
         created_at_text: formatDate((res && res.created_at) || new Date()),
       }
       this.setData({

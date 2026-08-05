@@ -111,6 +111,23 @@
   color: var(--ink);
 }
 
+/* B-06: 作者昵称行 + 已认证徽标 */
+.author-name-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.verified-badge {
+  flex-shrink: 0;
+  margin-left: 10rpx;
+  padding: 2rpx 12rpx;
+  background: var(--lake-light);
+  color: var(--lake);
+  font-size: 20rpx;
+  border-radius: var(--radius-sm);
+}
+
 .post-time {
   font-size: 22rpx;
   color: var(--muted);
@@ -434,6 +451,13 @@
   font-size: 26rpx;
   font-weight: 600;
   color: var(--ink);
+}
+
+/* B-06: 评论作者昵称行 + 已认证徽标 */
+.comment-author-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .comment-time {

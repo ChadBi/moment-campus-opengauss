@@ -29,6 +29,7 @@ Component({
   data: {
     displayImages: [] as string[],
     authorAvatar: '',
+    authorName: '匿名用户',
     formattedTime: '',
     formattedViews: '0',
     formattedLikes: '0',
@@ -36,6 +37,7 @@ Component({
     formattedValidations: '0',
     formattedRefutations: '0',
     categoryClass: 'default',
+    verified: false,
   },
 
   observers: {
@@ -43,11 +45,17 @@ Component({
       if (!post) return
       const rawImages = post.images || []
       const categoryName = post.category_name || (post.category && post.category.name) || ''
+      // B-06: 归一化作者认证状态（页面已把 author.is_verified 归一化到 post.is_verified，兜底再查嵌套）
+      const verified = !!post.is_verified || !!(post.author && post.author.is_verified)
+      const authorName = post.author_nickname || (post.author && post.author.nickname) || '匿名用户'
+      const authorAvatar = post.author_avatar || (post.author && post.author.avatar_url) || ''
       this.setData({
         displayImages: rawImages
           .map((img: string) => resolveImageUrl(img))
           .slice(0, 3),
-        authorAvatar: resolveImageUrl(post.author_avatar),
+        authorAvatar: resolveImageUrl(authorAvatar),
+        authorName,
+        verified,
         formattedTime: formatDate(post.created_at),
         formattedViews: formatCount(post.views_count || 0),
         formattedLikes: formatCount(post.likes_count || 0),

@@ -166,7 +166,10 @@
           mode="aspectFill"
         />
         <view class="author-info">
-          <text class="author-name">{{item.author_nickname || '匿名'}}</text>
+          <view class="author-name-row">
+            <text class="author-name">{{item.author_nickname || '匿名'}}</text>
+            <text wx:if="{{item.is_verified}}" class="verified-badge">已认证</text>
+          </view>
           <text class="post-time">{{item.created_at_text}}</text>
         </view>
         <text class="post-status status-{{item.status}}">{{item.status}}</text>

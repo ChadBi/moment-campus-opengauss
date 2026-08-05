@@ -15,6 +15,7 @@
       <view class="user-meta">
         <view class="nickname-row">
           <text class="nickname">{{nickname || '未命名用户'}}</text>
+          <text wx:if="{{campusVerified}}" class="verified-badge-header">已认证</text>
         </view>
         <text wx:if="{{email}}" class="email">{{email}}</text>
         <text wx:if="{{bio}}" class="bio">{{bio}}</text>
@@ -118,6 +119,107 @@
           >设为默认</text>
         </view>
       </view>
+    </view>
+  </view>
+
+  <!-- ============== 校园身份认证（对齐 Web CampusVerifyCard，B-06） ============== -->
+  <view class="verify-section">
+    <view class="section-header">
+      <view class="section-title-wrap">
+        <icon name="shield" size="32rpx" color="#174d5e" />
+        <text class="section-title">校园身份认证</text>
+      </view>
+      <text wx:if="{{campusVerified}}" class="verify-card-badge">已认证</text>
+    </view>
+
+    <view class="verify-body">
+      <block wx:if="{{campusVerified}}">
+        <view class="verify-done">
+          <icon name="check-circle" size="36rpx" color="#73a068" />
+          <view class="verify-done-text">
+            <text class="verify-done-title">你已完成校园身份认证</text>
+            <text class="verify-done-hint">昵称旁会显示「已认证」徽标，帮助同学识别你的信息更可信。</text>
+          </view>
+        </view>
+      </block>
+
+      <block wx:else>
+        <text class="verify-desc">通过学号 + 校园邮箱验证身份，昵称旁将显示「已认证」徽标，让同学更信任你的信息。请使用所在学校的官方邮箱。</text>
+
+        <block wx:if="{{verifyStep === 'form'}}">
+          <view class="form-item">
+            <text class="form-label">学号</text>
+            <input
+              class="form-input"
+              type="text"
+              placeholder="请输入校园学号"
+              placeholder-class="ph"
+              value="{{verifyStudentId}}"
+              maxlength="50"
+              bindinput="onVerifyStudentIdInput"
+            />
+          </view>
+          <view class="form-item">
+            <text class="form-label">校园邮箱</text>
+            <input
+              class="form-input"
+              type="text"
+              placeholder="name@学校官方域名"
+              placeholder-class="ph"
+              value="{{verifyEmail}}"
+              maxlength="255"
+              bindinput="onVerifyEmailInput"
+            />
+          </view>
+          <view
+            class="verify-send-btn {{verifySending ? 'disabled' : ''}}"
+            bindtap="onSendVerifyCode"
+            hover-class="verify-send-btn-hover"
+            hover-stay-time="120"
+          >
+            <icon name="shield" size="28rpx" color="#ffffff" />
+            <text>{{verifySending ? '发送中...' : '发送验证码'}}</text>
+          </view>
+        </block>
+
+        <block wx:else>
+          <view class="form-item">
+            <text class="form-label">验证码（6 位）</text>
+            <input
+              class="form-input"
+              type="number"
+              placeholder="请输入验证码"
+              placeholder-class="ph"
+              value="{{verifyCode}}"
+              maxlength="6"
+              bindinput="onVerifyCodeInput"
+            />
+          </view>
+          <view wx:if="{{devCode}}" class="verify-devcode">
+            <text>👇 演示环境验证码：<text class="verify-devcode-val">{{devCode}}</text></text>
+            <text class="verify-devcode-hint">正式环境验证码将发送至你的校园邮箱</text>
+          </view>
+          <view class="verify-actions">
+            <view
+              class="verify-confirm-btn {{verifyConfirming ? 'disabled' : ''}}"
+              bindtap="onConfirmVerify"
+              hover-class="verify-confirm-btn-hover"
+              hover-stay-time="120"
+            >
+              <icon name="check-circle" size="28rpx" color="#ffffff" />
+              <text>{{verifyConfirming ? '确认中...' : '确认认证'}}</text>
+            </view>
+            <view
+              class="verify-back-btn"
+              bindtap="onBackVerifyForm"
+              hover-class="verify-back-btn-hover"
+              hover-stay-time="120"
+            >
+              <text>返回修改</text>
+            </view>
+          </view>
+        </block>
+      </block>
     </view>
   </view>
 

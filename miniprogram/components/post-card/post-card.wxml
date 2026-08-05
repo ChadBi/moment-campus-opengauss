@@ -2,7 +2,10 @@
   <view class="card-header">
     <image class="author-avatar" src="{{authorAvatar || '/assets/default-avatar.png'}}" mode="aspectFill"/>
     <view class="header-info">
-      <text class="author-name">{{post.author_nickname || '匿名用户'}}</text>
+      <view class="author-row">
+        <text class="author-name">{{authorName}}</text>
+        <text wx:if="{{verified}}" class="verified-badge">已认证</text>
+      </view>
       <text class="post-time">{{formattedTime}}</text>
     </view>
     <view wx:if="{{post.category_name}}" class="category-tag cat-{{categoryClass}}">

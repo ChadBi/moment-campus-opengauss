@@ -39,6 +39,7 @@ Page({
               images: cover ? [cover] : (Array.isArray(p.images) ? p.images.map((u: string) => resolveImageUrl(u)) : []),
               author_avatar: resolveImageUrl(p.author_avatar),
               author_nickname: p.author_name || p.author_nickname,
+              is_verified: !!p.is_verified || !!(p.author && p.author.is_verified),
               likes_count: p.like_count !== undefined ? p.like_count : (p.likes_count || 0),
               comments_count: p.comment_count !== undefined ? p.comment_count : (p.comments_count || 0),
               views_count: p.view_count !== undefined ? p.view_count : (p.views_count || 0),

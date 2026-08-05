@@ -82,3 +82,23 @@ export async function revokeSession(sessionId: number): Promise<{ message: strin
 export async function logoutAll(): Promise<{ message: string; revoked_count: number }> {
   return http.post('/auth/wechat/logout-all')
 }
+
+// ============== 校园身份认证（B-01/B-06） ==============
+
+export async function sendCampusVerify(params: {
+  student_id: string
+  campus_email: string
+}): Promise<{ message: string; code?: string }> {
+  return http.post<{ message: string; code?: string }>('/users/me/verify-campus/send', params)
+}
+
+export async function confirmCampusVerify(params: {
+  student_id: string
+  campus_email: string
+  code: string
+}): Promise<{ message: string; campus_verified: boolean }> {
+  return http.post<{ message: string; campus_verified: boolean }>(
+    '/users/me/verify-campus/confirm',
+    params
+  )
+}

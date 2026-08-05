@@ -4,6 +4,7 @@ import { campusStore } from '../../store/campus'
 import { formatDate, formatCount } from '../../utils/format'
 import { listIdentities, deleteIdentity, listSessions, revokeSession, logoutAll } from '../../services/auth'
 import { logout } from '../../services/auth'
+import { sendCampusVerify, confirmCampusVerify } from '../../services/auth'
 
 const STATUS_TABS = [
   { key: 'all', label: '全部' },
@@ -85,10 +86,20 @@ Page({
     identities: [] as any[],
     loadingIdentities: false,
 
-    // 设备管理弹出层
+    // 会话管理弹出层
     sessionVisible: false,
     sessions: [] as any[],
     loadingSessions: false,
+
+    // 校园身份认证（B-06）
+    campusVerified: false,
+    verifyStep: 'form', // 'form' | 'code'
+    verifyStudentId: '',
+    verifyEmail: '',
+    verifyCode: '',
+    devCode: '',
+    verifySending: false,
+    verifyConfirming: false,
 
     loadingUser: false,
   },
@@ -126,6 +137,7 @@ Page({
       nickname: user.nickname || '',
       bio: user.bio || '',
       email: user.email || '',
+      campusVerified: !!user.campus_verified,
       createdAtText: user.created_at ? formatDate(user.created_at, 'datetime') : '',
     })
   },
@@ -233,6 +245,85 @@ Page({
         }
       },
     })
+  },
+
+  // ============== 校园身份认证（B-06） ==============
+  onVerifyStudentIdInput(e: any) {
+    this.setData({ verifyStudentId: e.detail.value || '' })
+  },
+
+  onVerifyEmailInput(e: any) {
+    this.setData({ verifyEmail: e.detail.value || '' })
+  },
+
+  onVerifyCodeInput(e: any) {
+    this.setData({ verifyCode: e.detail.value || '' })
+  },
+
+  onBackVerifyForm() {
+    this.setData({ verifyStep: 'form', verifyCode: '', devCode: '' })
+  },
+
+  async onSendVerifyCode() {
+    if (!this.data.isLoggedIn) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    const studentId = (this.data.verifyStudentId || '').trim()
+    const campusEmail = (this.data.verifyEmail || '').trim()
+    if (!studentId || !campusEmail) {
+      wx.showToast({ title: '请填写学号与校园邮箱', icon: 'none' })
+      return
+    }
+    if (this.data.verifySending) return
+    this.setData({ verifySending: true })
+    try {
+      const res: any = await sendCampusVerify({ student_id: studentId, campus_email: campusEmail })
+      this.setData({
+        devCode: res && res.code ? String(res.code) : '',
+        verifyStep: 'code',
+      })
+      wx.showToast({ title: (res && res.message) || '验证码已发送', icon: 'none' })
+    } catch (e: any) {
+      wx.showToast({ title: e.message || '发送失败，请重试', icon: 'none' })
+    } finally {
+      this.setData({ verifySending: false })
+    }
+  },
+
+  async onConfirmVerify() {
+    if (!this.data.isLoggedIn) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    const code = (this.data.verifyCode || '').trim()
+    if (code.length !== 6) {
+      wx.showToast({ title: '请输入 6 位验证码', icon: 'none' })
+      return
+    }
+    if (this.data.verifyConfirming) return
+    this.setData({ verifyConfirming: true })
+    try {
+      const studentId = (this.data.verifyStudentId || '').trim()
+      const campusEmail = (this.data.verifyEmail || '').trim()
+      const res: any = await confirmCampusVerify({
+        student_id: studentId,
+        campus_email: campusEmail,
+        code,
+      })
+      // 同步更新本地用户状态
+      const user = this.data.user ? { ...this.data.user, campus_verified: true } : null
+      if (user) {
+        authStore.setUser(user)
+        this.applyUser(user)
+      }
+      this.setData({ verifyStep: 'form', verifyCode: '', devCode: '' })
+      wx.showToast({ title: (res && res.message) || '校园身份认证成功', icon: 'success' })
+    } catch (e: any) {
+      wx.showToast({ title: e.message || '认证失败，请重试', icon: 'none' })
+    } finally {
+      this.setData({ verifyConfirming: false })
+    }
   },
 
   // ============== 我的帖子 ==============
