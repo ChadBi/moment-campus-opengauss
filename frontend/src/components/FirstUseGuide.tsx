@@ -178,8 +178,8 @@ export const FirstUseGuide: React.FC = () => {
     navigate('/search');
   };
 
-  // D-04: 首用引导直达校园地点价值入口
-  const handleGoNearby = () => {
+  // 首用引导直达校园地点价值入口
+  const handleGoLocations = () => {
     handleComplete();
     navigate('/locations');
   };
@@ -322,7 +322,7 @@ export const FirstUseGuide: React.FC = () => {
             <div className="space-y-2 mb-2">
               <button
                 type="button"
-                onClick={handleGoNearby}
+                onClick={handleGoLocations}
                 className="w-full px-4 py-2.5 rounded-[10px] bg-lake/5 border border-lake/20 text-lake text-sm font-medium hover:bg-lake/10 transition-colors flex items-center justify-center gap-1.5"
               >
                 <MapPin size={14} />

@@ -93,7 +93,7 @@ def main():
     status, _ = http("GET", f"{BASE}/posts?page=1&page_size=20&sort=hottest", token=user1_token)
     record("帖子列表", "最热排序", status == 200, f"status={status}")
 
-    status, _ = http("GET", f"{BASE}/posts?page=1&page_size=20&sort=nearest", token=user1_token)
+    status, _ = http("GET", f"{BASE}/posts?page=1&page_size=20&sort=latest", token=user1_token)
     record("帖子列表", "最近排序", status == 200, f"status={status}")
 
     # ========== 3. 帖子详情 ==========
