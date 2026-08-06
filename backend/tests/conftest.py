@@ -613,3 +613,92 @@ async def admin_user(client: AsyncClient, db_session: AsyncSession, test_school:
 async def admin_headers(admin_user: dict) -> dict:
     """Return authorization headers for the admin user."""
     return {"Authorization": f"Bearer {admin_user['access_token']}"}
+
+
+@pytest_asyncio.fixture
+async def two_school_users(client: AsyncClient, db_session: AsyncSession) -> dict:
+    """A 校 + B 校 + 两个普通用户（每校一个）+ 每校各一个管理员。
+
+    用于跨校隔离、多用户内容生成的地点摘要主链路集成测试。
+    返回结构：
+    {
+      "school_a": {"id", "name", "code"},
+      "school_b": {"id", "name", "code"},
+      "user_a": {"id", "email", "access_token", ...},
+      "user_b": {"id", "email", "access_token", ...},
+      "admin_a": {"id", "email", "access_token", ...},
+      "admin_b": {"id", "email", "access_token", ...},
+      "headers_a": {"Authorization": "Bearer ..."},
+      "headers_b": {"Authorization": "Bearer ..."},
+      "admin_headers_a": {...},
+      "admin_headers_b": {...},
+    }
+    """
+    from datetime import datetime
+    from sqlalchemy import select as _select
+    from app.models.school import School
+    from app.models.user import User
+    from app.models.product_plan import ProductPlan
+    from app.models.school_subscription import SchoolSubscription
+
+    async def _make_school(code: str, name: str) -> dict:
+        school = School(name=name, code=code, is_active=True)
+        db_session.add(school)
+        await db_session.flush()
+        sid = school.id
+        await db_session.commit()
+        plan = (await db_session.execute(
+            _select(ProductPlan).where(ProductPlan.code == "operations")
+        )).scalar_one_or_none()
+        if plan is not None:
+            now = datetime.now()
+            sub = SchoolSubscription(
+                school_id=sid, plan_id=plan.id, status="active",
+                started_at=now, assigned_at=now,
+                note=f"two_school_users fixture auto-assign for {code}",
+            )
+            db_session.add(sub)
+            await db_session.commit()
+        return {"id": sid, "name": name, "code": code}
+
+    async def _register_user(email: str, nickname: str, password: str, school_id: int, *, is_admin: bool = False) -> dict:
+        resp = await client.post("/api/v1/auth/register", json={
+            "email": email, "nickname": nickname, "password": password, "school_id": school_id,
+        })
+        assert resp.status_code == 200, f"注册失败 {email}: {resp.status_code} {resp.text}"
+        data = resp.json()
+        user = (await db_session.execute(_select(User).where(User.email == email))).scalar_one_or_none()
+        assert user is not None
+        user.campus_verified = True
+        if is_admin:
+            user.role = "admin"
+        await db_session.commit()
+        return {
+            "id": data["user"]["id"],
+            "email": email,
+            "nickname": nickname,
+            "password": password,
+            "school_id": school_id,
+            "access_token": data["access_token"],
+            "refresh_token": data["refresh_token"],
+        }
+
+    school_a = await _make_school("school-a", "A 大学")
+    school_b = await _make_school("school-b", "B 大学")
+    user_a = await _register_user("user_a@example.com", "A 校学生", "pw_user_a_123", school_a["id"])
+    user_b = await _register_user("user_b@example.com", "B 校学生", "pw_user_b_123", school_b["id"])
+    admin_a = await _register_user("admin_a@example.com", "A 校管理员", "pw_admin_a_123", school_a["id"], is_admin=True)
+    admin_b = await _register_user("admin_b@example.com", "B 校管理员", "pw_admin_b_123", school_b["id"], is_admin=True)
+
+    return {
+        "school_a": school_a,
+        "school_b": school_b,
+        "user_a": user_a,
+        "user_b": user_b,
+        "admin_a": admin_a,
+        "admin_b": admin_b,
+        "headers_a": {"Authorization": f"Bearer {user_a['access_token']}"},
+        "headers_b": {"Authorization": f"Bearer {user_b['access_token']}"},
+        "admin_headers_a": {"Authorization": f"Bearer {admin_a['access_token']}"},
+        "admin_headers_b": {"Authorization": f"Bearer {admin_b['access_token']}"},
+    }

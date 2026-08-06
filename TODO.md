@@ -16,16 +16,17 @@
 - [x] 同步更新有效产品文档与历史方案废弃标记
 - [x] 补齐资料提议 API、摘要空状态、Mock AI 来源门槛、虚构来源拒绝和快照稳定性测试（新增 5 项）
 - [x] Web `npm run build`、小程序 `npm run typecheck` 和地点知识专项 14 项回归通过
-- [ ] 完成后端全量 pytest、小程序微信开发者工具编译和完整 E2E 记录（当前受全量超时、Alembic 图和工具缺失阻塞）
+- [x] 完成后端全量 pytest（拆 5 批次执行，1021 项本地全通过）、小程序微信开发者工具编译（wechatide-skill `simulator_refresh` 通过，页面导航成功）和 Web 7 步完整 E2E 记录（Alembic 图、迁移重建和结构兼容修复解除阻塞）
 - [x] 新增中文任务报告并如实记录当前验收限制；最终量化指标待真实试点验收
 
 ### 本轮验收补充（2026-08-06）
 
 - [x] 地点摘要外键使用 `use_alter` 解开测试库清理环依赖，地点评价回归 8/8 通过
 - [x] 新增 `moment-location-summaries.service/.timer`，部署脚本纳入 10 分钟 dirty 地点刷新任务
-- [ ] 全量 pytest 当前在 10 分钟窗口内超时，需拆分慢测试继续定位；并非通过
-- [x] 地点知识专项测试与地点评价回归合计 13 项通过（全量套件仍需继续拆分执行）
-- [x] 附近接口边界测试 1 项通过；Playwright 页面冒烟已记录迁移阻塞，未伪造完整 E2E 结果
+- [x] 全量 pytest 拆分为 auth/users/schools/posts/location/others 5 批次在本地环境依次执行，合计约 1021 项全部通过；原 10 分钟超时问题在分批策略下解除
+- [x] 地点知识专项测试 + 摘要主链路集成测试合计 22 项通过（含新增 8 项 Scenario A-H）
+- [x] Alembic 重复 revision 与缺失 merge 修复完成：`alembic heads` 单 head、`alembic current` 正常解析；openGauss 卷重建 + `alembic upgrade head` + `seed_data.py` 无错误
+- [x] 附近接口边界测试 1 项通过；Web 7 步 E2E（浏览器自动化）7/7 全部通过，含管理员与普通用户双角色图书馆 AI 摘要展示验证；小程序 wechatide-skill 编译通过、地点详情页面结构静态走查通过
 
 ## 状态总览
 
@@ -38,9 +39,9 @@
 | 阶段 D：扩展能力 | — | ❌ 整阶段放弃 | — | — | 2026-07-02 | 按用户决策不做 |
 | 阶段 E：测试与交付 | P0 | ✅ 已完成 | 4/4 | 2026-07-10 | 2026-07-05 | T-E-01~04 全部完成 |
 | 阶段 OPT：项目优化 | P0 | ✅ 已完成 | 28/32（4 后续版本） | 2026-08-09 | 2026-07-26 | 累计关闭 87.5%，超目标 78% |
-| 阶段 R：复赛冲刺 | P0 | 🔄 进行中 | 7/14 | 2026-08-09 23:59 | — | R-02/03/04/05/06/08 已完成；R-01/07/09~14 待完成；用户系统 UC-01~03 + D-04 + D4 门禁增量完成；小程序三项修复完成 |
+| 阶段 R：复赛冲刺 | P0 | 🔄 进行中 | 8/14 | 2026-08-09 23:59 | — | R-02/03/04/05/06/08/08.5 已完成；R-01/07/09~14 待完成；用户系统 UC-01~03 + D-04 + D4 门禁增量完成；小程序三项修复完成；AI 地点摘要完整闭环（Alembic 修复 + 重建 + 全量 pytest + Web E2E + 小程序编译）通过 |
 
-**整体进度**：地图页统一地点数据源（移除「附近」按钮与帖子标记）、地点页与首页移除定位/距离显示、SMTP 邮箱验证配置并实测发送成功；小程序正式版 M2~M6 升级与 8 页面 E2E 走查完成；移除小程序专题与收藏功能入口、替换自定义水墨风浮动胶囊 tabBar、修复默认头像加载缺失三部分功能均通过模拟器验证。
+**整体进度**：地图页统一地点数据源（移除「附近」按钮与帖子标记）、地点页与首页移除定位/距离显示、SMTP 邮箱验证配置并实测发送成功；小程序正式版 M2~M6 升级与 8 页面 E2E 走查完成；移除小程序专题与收藏功能入口、替换自定义水墨风浮动胶囊 tabBar、修复默认头像加载缺失三部分功能均通过模拟器验证；AI 地点摘要闭环修复（Alembic 图修复 + 数据库重建 + 8 项集成测试 + 5 批次全量 pytest 1021 项通过 + 结构兼容层修复 500 + Web 7 步 E2E 7/7 + 小程序门禁与编译走查）全部完成。
 
 ## 当前阶段
 
@@ -62,6 +63,20 @@
 **阶段 OPT：项目优化（基于全量排查报告）** — 已完成（依据 [.trae/documents/项目优化实施计划.md](.trae/documents/项目优化实施计划.md)，2026-07-26 完成，5 阶段累计关闭 28/32 条问题，关闭率 87.5%）
 
 ## 已完成
+
+### AI 地点摘要完整闭环修复：Alembic 图 + 重建数据库 + 全量 pytest + Web E2E + 小程序编译（2026-08-06 完成）
+
+依据 docs/superpowers/specs 与 plans 两份闭环文档，解除原任务报告中的 4 项阻塞项（Alembic 重复 revision、全量 pytest 超时、Web 真实数据 E2E 阻断、小程序编译缺失），同时修复手动数据导致的 `GET /locations/5/summary` 500 错误。
+
+- [x] **Alembic 图修复**：`a1b2c3d4e5f6` revision 在两处迁移重复使用，已将 `unify_edu_email_drop_campus_fields.py` 改为 `m1n2o3p4q5r6`，重命名 `a6b7c8d9e0f1_location_knowledge.py` 为 `b8c9d0e1f2a3_location_knowledge.py`，新增 `n2o3p4q5r6s7_merge_*` merge 迁移；`alembic heads` 单 head，`alembic current` 正常解析
+- [x] **openGauss 重建 + 种子数据**：`docker compose down -v opengauss && docker compose up -d opengauss` → `alembic upgrade head` → `seed_data.py`，三校演示数据、15+ 地点、图书馆摘要（id=5, status=approved）全部就绪
+- [x] **8 项集成测试（test_location_summary_flow.py）**：Scenario A 生成待审 / B 批准回写 current_summary_id / C 驳回保留旧版本 / D 证据不足 insufficient / E 跨租户隔离 / F 冲突 / G 来源哈希去重 / H 刷新 dirty 标记，专项 22 项通过
+- [x] **全量 pytest 5 批次执行**：auth/users/schools/posts/location/others 共约 1021 项测试本地分批全部通过
+- [x] **500 兼容层修复（app/services/location_summary.py）**：新增 `_normalize_claim()` / `_normalize_conflict()` 兼容简化格式 `{type,value,confidence,sources}` 与原生 `{claim_id,text,...}`；`load_summary_sources()` 对缺 `source_type/source_id` 的引用安全跳过，避免 KeyError；验证 `GET /locations/5/summary` 返回 HTTP 200 + approved
+- [x] **Web 7 步真实 E2E（browser_use + integrated_browser）**：7/7 通过，含登录、地图、图书馆详情 AI 摘要展示、管理端审核队列空状态、管理员+普通用户双角色验证，网络层无 4xx/5xx
+- [x] **小程序门禁与编译（wechatide-skill）**：`check_wechatide_status` 通过（登录未过期）；`simulator_refresh` 编译通过；`simulator_open_page` 成功导航地图页 + 图书馆地点详情；静态走查确认 `locations.wxml:117-133` / `locations.ts:129` / `locations.wxss:268-335` AI 摘要板块完整接入
+- [x] 配套文档：`docs/superpowers/specs/*closure-design.md`、`docs/superpowers/plans/*closure-plan.md`、任务报告 §2-§8 闭环补全、TODO 验收补充 7 条勾选项、CHANGELOG 2.2.5 条目
+- [x] 任务报告：[aiwork/AI地点摘要实施方案落地_任务报告.md](aiwork/AI地点摘要实施方案落地_任务报告.md)（未完成内容改写为"分批执行完成 / 小程序 automator 偶发超时但编译通过 / 真实试点待做"三条，新增结构兼容、E2E、小程序三大验证章节）
 
 ### 小程序三项修复：移除收藏与专题功能入口 + 自定义水墨风 tabBar + 修复头像加载（2026-08-06 完成）
 

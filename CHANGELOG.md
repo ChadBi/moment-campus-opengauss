@@ -7,6 +7,24 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.5] - 2026-08-06
+
+### 修复
+
+- `alembic`：消除重复 revision（`a1b2c3d4e5f6` 在两处迁移同时使用），把 `unify_edu_email_drop_campus_fields.py` 的 revision 改为 `m1n2o3p4q5r6`，并新增 `n2o3p4q5r6s7_merge_drop_publisher_and_location_knowledge.py` 作为唯一 merge head，`alembic heads` 输出单 head
+- `location_summary`：修复 `GET /api/v1/locations/{id}/summary` 手动录入简化格式触发的 500 错误；新增 `_normalize_claim()` / `_normalize_conflict()` 兼容简化 `{type,value,confidence,sources}` 与原生 `{claim_id,text,confidence_level,source_refs}` 两种 claim 结构；`load_summary_sources()` 对 `source_refs_json` 中缺失 `source_type` / `source_id` 的引用做合法性过滤，避免 `KeyError: 'source_type'`
+- `CORS`：在 `app/config.py` 与 `.env.opengauss` 中补充 `http://127.0.0.1:5173/5174/5175` 允许源，修复前端使用 `127.0.0.1` 访问时的跨域预检失败
+
+### 测试
+
+- 新增 `tests/test_location_summary_flow.py` 8 项地点摘要主链路集成测试（Scenario A~H：生成待审、批准回写、驳回、证据不足、跨租户隔离、冲突、来源哈希去重、管理员刷新标记）
+- 全量 `pytest tests/ -v` 拆分为 auth/users/schools/posts/location/others 5 批次在本地环境依次执行，合计约 1021 项全部通过；原 10 分钟单次窗口超时问题在分批策略下解除
+- Web 7 步真实 E2E（browser_use + integrated_browser）7/7 通过：登录、管理员跳转后台、地图渲染、图书馆 AI「此刻摘要」展示、网络层无 4xx/5xx + API 返回 `approved`、管理员审核队列空状态、普通用户登录后摘要可见
+
+### 验证
+
+- 小程序 wechatide-skill：`check_wechatide_status` 通过（登录未过期），`simulator_refresh` 编译通过，`simulator_open_page` 成功导航 `pages/map/map` 与 `subpackages/pages/locations/locations?id=5`；静态走查确认 `locations.wxml:117-133` / `locations.ts:129` / `locations.wxss:268-335` AI 摘要板块完整接入
+
 ## [2.2.4] - 2026-08-06
 
 ### 变更

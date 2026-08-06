@@ -42,7 +42,10 @@ class Settings(BaseSettings):
 
     # CORS
     # 默认放行 Vite 默认端口 5173 及其自动递增的回退端口 5174/5175（避免端口被占用切换后 CORS 拒绝）
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:5173", "http://localhost:5174", "http://localhost:5175",
+        "http://127.0.0.1:5173", "http://127.0.0.1:5174", "http://127.0.0.1:5175",
+    ]
 
     # 日志
     LOG_LEVEL: str = "INFO"

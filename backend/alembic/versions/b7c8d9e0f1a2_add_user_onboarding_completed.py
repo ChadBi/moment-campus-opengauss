@@ -1,7 +1,7 @@
 """ADD-USER-ONBOARDING-COMPLETED: ACC-01.4 首次使用引导标记字段
 
 Revision ID: b7c8d9e0f1a2
-Revises: a6b7c8d9e0f1
+Revises: n2o3p4q5r6s7
 Create Date: 2026-07-29 19:30:00.000000
 
 背景：
@@ -19,7 +19,7 @@ import sqlalchemy as sa
 
 
 revision: str = "b7c8d9e0f1a2"
-down_revision: Union[str, None] = "a6b7c8d9e0f1"
+down_revision: Union[str, None] = "n2o3p4q5r6s7"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

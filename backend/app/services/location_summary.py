@@ -33,18 +33,52 @@ SUMMARY_MAX_POSTS = 20
 SUMMARY_MAX_REVIEWS = 20
 
 
+def _normalize_claim(raw: dict[str, Any], idx: int) -> dict[str, Any]:
+    """兼容两种 claim 结构：AI 原生格式（claim_id/text/confidence_level/source_refs）
+    与手动录入简化格式（type/value/confidence/sources）。"""
+    if "text" in raw and "claim_id" in raw:
+        return {
+            "claim_id": raw["claim_id"],
+            "text": raw["text"],
+            "confidence_level": raw.get("confidence_level", "medium"),
+            "source_refs": raw.get("source_refs") or [],
+        }
+    # 简化格式 -> 规范格式
+    text = raw.get("value") or raw.get("text") or raw.get("claim") or f"信息点 {idx + 1}"
+    return {
+        "claim_id": raw.get("claim_id") or f"c{idx}",
+        "text": text,
+        "confidence_level": raw.get("confidence_level") or raw.get("confidence") or "medium",
+        "source_refs": raw.get("source_refs") or [],
+    }
+
+
+def _normalize_conflict(raw: dict[str, Any], idx: int) -> dict[str, Any]:
+    if "text" in raw and isinstance(raw.get("source_refs"), list):
+        return raw
+    text = raw.get("value") or raw.get("text") or raw.get("description") or f"冲突 {idx + 1}"
+    return {
+        "text": text,
+        "source_refs": raw.get("source_refs") or [],
+    }
+
+
 def summary_response(summary: Optional[LocationSummaryVersion], sources: list[dict[str, Any]]) -> LocationSummaryResponse:
     """将已批准摘要转换为统一公开响应；没有摘要时返回证据不足空状态。"""
     if summary is None:
         return LocationSummaryResponse(status="insufficient", confidence_level="insufficient", sources=[])
+    raw_claims = summary.claims_json or []
+    raw_conflicts = summary.conflicts_json or []
+    claims = [_normalize_claim(c, i) for i, c in enumerate(raw_claims)]
+    conflicts = [_normalize_conflict(c, i) for i, c in enumerate(raw_conflicts)]
     return LocationSummaryResponse(
         id=summary.id,
         version=summary.version,
         status=summary.status,
         summary_text=summary.summary_text,
         confidence_level=summary.confidence_level,
-        claims=summary.claims_json or [],
-        conflicts=summary.conflicts_json or [],
+        claims=claims,
+        conflicts=conflicts,
         source_count=summary.source_count,
         generated_at=summary.generated_at,
         stale_at=summary.stale_at,
@@ -435,11 +469,23 @@ async def load_summary_sources(
 ) -> list[dict[str, Any]]:
     check_resource_in_tenant(summary.school_id, tenant)
     refs = summary.source_refs_json or []
-    source_map = {_source_key(item["source_type"], int(item["source_id"])): item for item in refs}
+    valid_refs: list[dict[str, Any]] = []
+    for item in refs:
+        if not isinstance(item, dict):
+            continue
+        stype = item.get("source_type")
+        sid = item.get("source_id")
+        if stype not in ("post", "review", "fact") or sid is None:
+            continue
+        try:
+            valid_refs.append({"source_type": stype, "source_id": int(sid)})
+        except (TypeError, ValueError):
+            continue
+    source_map = {_source_key(item["source_type"], item["source_id"]): item for item in valid_refs}
     result: list[dict[str, Any]] = []
     for key, ref in source_map.items():
         source_type = ref["source_type"]
-        source_id = int(ref["source_id"])
+        source_id = ref["source_id"]
         if source_type == "post":
             post = await db.scalar(
                 select(Post).options(joinedload(Post.user)).where(
