@@ -1,0 +1,54 @@
+<view class="about-page">
+  <!-- 品牌区 -->
+  <view class="brand">
+    <view class="brand-logo">
+      <icon name="school" size="56rpx" color="#174d5e" />
+    </view>
+    <text class="brand-name">此刻校园</text>
+    <text class="brand-desc">校园生活此刻分享与发现</text>
+  </view>
+
+  <!-- 版本信息 -->
+  <view class="version-row">
+    <view class="version-info">
+      <text class="version-label">当前版本</text>
+      <text class="version-value">v{{version}}</text>
+    </view>
+    <view
+      class="check-btn {{checking ? 'disabled' : ''}}"
+      bindtap="checkUpdate"
+      hover-class="check-btn-hover"
+      hover-stay-time="120"
+    >
+      <icon name="refresh-cw" size="24rpx" color="#174d5e" />
+      <text>{{checking ? '检查中...' : '检查更新'}}</text>
+    </view>
+  </view>
+
+  <!-- 功能入口 -->
+  <view class="menu">
+    <view class="menu-item" bindtap="goToAgreement" hover-class="menu-item-hover" hover-stay-time="120">
+      <view class="menu-icon-wrap">
+        <icon name="file-text" size="32rpx" color="#174d5e" />
+      </view>
+      <text class="menu-label">用户协议</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
+    </view>
+    <view class="menu-item" bindtap="goToPrivacy" hover-class="menu-item-hover" hover-stay-time="120">
+      <view class="menu-icon-wrap">
+        <icon name="lock" size="32rpx" color="#174d5e" />
+      </view>
+      <text class="menu-label">隐私政策</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
+    </view>
+    <view class="menu-item" bindtap="goToFeedback" hover-class="menu-item-hover" hover-stay-time="120">
+      <view class="menu-icon-wrap">
+        <icon name="message-circle" size="32rpx" color="#174d5e" />
+      </view>
+      <text class="menu-label">意见反馈</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
+    </view>
+  </view>
+
+  <view class="copyright">© 2026 此刻校园 · 用心记录校园每一刻</view>
+</view>

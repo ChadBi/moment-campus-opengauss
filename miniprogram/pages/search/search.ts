@@ -1,9 +1,16 @@
 import { searchPosts, aiSearch, getHotTags } from '../../services/search'
 import { resolveImageUrl } from '../../services/request'
-import { formatDate, formatCount, truncateText } from '../../utils/format'
+import { formatDate, formatCount, truncateText, getRemainingTime } from '../../utils/format'
+import { campusStore } from '../../store/campus'
 
-const HISTORY_KEY = 'search_history'
+const HISTORY_PREFIX = 'search_history_'
 const MAX_HISTORY = 20
+
+// 按学校 code 分键：切换学校后历史互不干扰（对齐 Web `moment_search_recent::<schoolCode>`）
+function historyKey(): string {
+  const schoolCode = campusStore.getState().schoolCode || 'jiangnan'
+  return `${HISTORY_PREFIX}${schoolCode}`
+}
 
 Page({
   data: {
@@ -40,7 +47,7 @@ Page({
   // ============== 历史与热门标签 ==============
   loadHistory() {
     try {
-      const list = wx.getStorageSync(HISTORY_KEY)
+      const list = wx.getStorageSync(historyKey())
       this.setData({ history: Array.isArray(list) ? list : [] })
     } catch {
       this.setData({ history: [] })
@@ -56,7 +63,7 @@ Page({
     if (list.length > MAX_HISTORY) list = list.slice(0, MAX_HISTORY)
     this.setData({ history: list })
     try {
-      wx.setStorageSync(HISTORY_KEY, list)
+      wx.setStorageSync(historyKey(), list)
     } catch {
       // ignore
     }
@@ -122,7 +129,7 @@ Page({
         if (res.confirm) {
           this.setData({ history: [] })
           try {
-            wx.removeStorageSync(HISTORY_KEY)
+            wx.removeStorageSync(historyKey())
           } catch {
             // ignore
           }
@@ -239,6 +246,7 @@ Page({
       author_avatar: resolveImageUrl(p.author_avatar || author.avatar_url),
       is_verified: !!p.is_verified || !!author.is_verified,
       created_at_text: formatDate(p.created_at),
+      remaining_text: p.expires_at ? getRemainingTime(p.expires_at) : '',
       content_brief: truncateText(p.content || '', 80),
       likes_count_text: formatCount(p.likes_count || 0),
       comments_count_text: formatCount(p.comments_count || 0),

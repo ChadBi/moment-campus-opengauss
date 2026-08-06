@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-06（地图统一地点数据源 + SMTP 邮箱实测 + 移除定位/距离功能）
+> 最后更新：2026-08-06（小程序正式版升级完成 M2~M6 + 游客模式全链路 E2E + 质量门禁 281 passed）
 
 ## 状态总览
 
@@ -17,7 +17,7 @@
 | 阶段 OPT：项目优化 | P0 | ✅ 已完成 | 28/32（4 后续版本） | 2026-08-09 | 2026-07-26 | 累计关闭 87.5%，超目标 78% |
 | 阶段 R：复赛冲刺 | P0 | 🔄 进行中 | 6/14 | 2026-08-09 23:59 | — | R-02/03/04/05/06/08 已完成；R-01/07/09~14 待完成；用户系统 UC-01~03 + D-04 + D4 门禁增量完成 |
 
-**整体进度**：地图页统一地点数据源（移除「附近」按钮与帖子标记）、地点页与首页移除定位/距离显示、SMTP 邮箱验证配置并实测发送成功，全部完成并通过多端 E2E 验证。
+**整体进度**：地图页统一地点数据源（移除「附近」按钮与帖子标记）、地点页与首页移除定位/距离显示、SMTP 邮箱验证配置并实测发送成功；小程序正式版 M2~M6 升级与 8 页面 E2E 走查完成，全部通过多端质量门禁验证。
 
 ## 当前阶段
 
@@ -70,6 +70,47 @@
 - [x] **工作流 Q（质量门禁）**：Q-01 后端 `pytest tests/ -v` 全量通过（1002 passed）；Q-02 前端 `npm run build`、`npm run lint` 零错误零警告 + 小程序编译通过；Q-03 MCP 浏览器 E2E 走查通过（登录→地点评分→地图附近→认证→作者徽标）
   - E2E 备注：发现 `school_domains` 表为空导致「校园邮箱域名不匹配」，重新执行 `seed_data.py` 填充域名与 `campus_verified` 后修复；评分/附近/认证/作者徽标链路均验证通过
 - [x] 任务报告：[AIwork/导师反馈完善方案_附近与设施评分_实名认证_小程序落地_任务报告.md](AIwork/导师反馈完善方案_附近与设施评分_实名认证_小程序落地_任务报告.md)
+
+### 小程序正式版升级：M2 游客模式 → M6 发布准备（2026-08-06 完成）
+
+依据 [`.trae/specs/miniprogram-production-upgrade/spec.md`](.trae/specs/miniprogram-production-upgrade/spec.md) 与 [`tasks.md`](.trae/specs/miniprogram-production-upgrade/tasks.md)，完成 M2~M6 全部任务，把开发阶段的小程序升级为对齐 Web 用户面能力的正式版本。
+
+- [x] **M2 功能完善**：
+  - [x] Task 5 空状态与加载态：`components/empty-state` 与 `components/skeleton` 组件接入 `pages/home`、`pages/search`、`pages/post-detail`、`pages/topics`、`pages/locations`、`subpackages/pages/subscriptions`、`pages/profile`、`pages/notifications` 共 8 页面
+  - [x] Task 6 游客浏览模式：移除 `app.ts` 强制登录跳转；新增 `utils/auth-guard.ts` 的 `requireLogin()`（写操作引导）与 `guardPageLogin()`（页面级守卫）；修复 `request.ts` 401 游客场景不再 `reLaunch` 跳转；`pages/publish` onShow 守卫 + `pages/notifications` / `pages/profile` onShow 守卫；`post-detail` 点赞/验证/举报/评论 4 种写操作统一用 `requireLogin` 双按钮引导
+  - [x] Task 7 版本更新与关于页：`app.ts` 启动 `wx.getUpdateManager` 版本检查；新增 `subpackages/pages/about/about` 关于页（品牌、v1.0.0、检查更新、用户协议/隐私政策/意见反馈入口）；`pages/profile` 增加关于入口
+  - [x] Task 8 分包瘦身：`subpackages/sub-pages.json` 收录 `about / profile-edit / subscriptions / feedback / campus-verify` 共 5 个低频页面，主包仅保留 5 Tab 页 + 发布/详情/搜索/专题/登录/地图等核心页面
+- [x] **M3 性能优化**：
+  - [x] Task 9 图片懒加载：`components/post-card/post-card.wxml` 所有 `<image>` 加 `lazy-load`
+  - [x] Task 10 列表分页与接口缓存：新增 `utils/cache.ts` 按 schoolCode 分区 10 分钟过期；`pages/home/loadCategories` 与 `pages/publish/loadCategories` 使用 `cachedFetch`；首页推荐接口、帖子列表全部具备分页加载能力
+  - [x] Task 11 首屏预加载：`app.ts` onLaunch 后 `campusStore.initFromStorage()` 与 `authStore.initFromStorage()`，避免首页启动时等待学校/认证初始化
+- [x] **M4 兼容性**：
+  - [x] Task 12 平台与基础库兼容：`app.wxss` `.safe-bottom-{0,1,2,3}` 与 `.tabbar-page` 统一适配 iOS 底部安全区；`config/env.ts` `ENV.current` 按小程序平台分支选择 BASE_URL；`wx.getUpdateManager` 使用前先判断 function 类型避免老基础库崩溃
+- [x] **M5 安全加固（Task 13）**：
+  - [x] Token 存储：`wx.setStorageSync`（客户端隔离沙盒）+ `store/auth.ts` 仅运行时缓存 header，`services/request.ts` 打印日志前先 `removeSensitiveHeaders`
+  - [x] 敏感操作二次确认：`pages/publish/onSubmit` 发布前 `wx.showModal` 确认；`post-detail` 举报弹窗 6 种 Reason 枚举对齐后端 `enums.py`；敏感字段 API 路径统一经 getAccessToken
+  - [x] 上传安全：`services/upload.ts` `chooseAndUploadImage` 前先 5MB 大小校验 + `jpg/png/gif` 正则白名单 + 张数 5 上限；后端 `upload.py` magic bytes 识别 + Pillow 重新编码 + uuid4 命名
+- [x] **M5 测试与质量**：
+  - [x] Task 14 单元测试：新增 `scripts/test-format.mjs` 验证 `formatCount`、`truncateText`、`formatDate`、`getRemainingTime`；`typings/global.d.ts` 补齐 `URLSearchParams`；修复 `GetApp<T>` 泛型约束；修复 `services/upload.ts` 上传 URL 硬编码为 `${BASE_URL}/upload/image`
+  - [x] Task 15 E2E（wechatide-skill）：`wechatide check_wechatide_status` 门禁 OK；`automation_runtime_info` 打开小程序模拟器；关键走查 8 页面全部 PASS：
+    - 首页 ✅ 推荐 501 条数据加载、推荐理由标签、底部 5 Tab、校园地点入口
+    - 地图页 ✅ 腾讯地图底图、校区地块、地点 pin（户外野餐摊）、全部地点按钮
+    - 搜索页 ✅ 普通搜索 / AI 搜索 Tab、8×3 = 24 个热门标签完整
+    - 详情页（id=229）✅ 修复 401 跳转 Bug 后游客可正常阅读；复制地址 / 链接按钮；互动计数区；协同验证区 证实/证伪/总计/valid 徽标
+    - 关于页 ✅ 品牌 logo + v1.0.0 + 检查更新 + 协议/反馈入口
+    - 发布页 ✅ 游客 onShow 守卫生效（「请先登录后再发布帖子」双按钮）；分类/标题/正文/图片上传/位置/有效期 + 清空/发布按钮完整
+    - 通知页 ✅ 游客守卫生效；6 Tab（全部/评论/点赞/验证/举报/系统）
+    - 专题页 ✅ 空状态组件完整（暂无专题）
+    - 交互验证 ✅ 游客点击详情点赞 → `requireLogin` 弹出「登录后即可点赞」双按钮（再看看 / 去登录）
+- [x] **M6 发布准备 + 质量门禁（Task 16）**：
+  - [x] 后端 pytest：`tests/test_post_status.py` / `test_validation_type.py` / `test_upload_security.py` / `test_schemas.py` / `test_config.py` / `test_database.py` / `test_posts.py` / `test_interactions.py` / `test_auth.py` / `test_permissions.py` / `test_wechat_auth.py` / `test_campus_verify.py` → **281 passed (0 failed, 0 errors, 207s)**
+  - [x] 前端：`npm run build` → 42 chunks built in 2.12s，0 error
+  - [x] 小程序：`npm run typecheck`（tsc --noEmit 0 error）+ `npm run test:format`（format 单测通过）
+  - [x] Console：`wechatide get_simulator_console` 搜索 `error|fail|warning|throw` → 无匹配
+- [x] **Bug 修复汇总（2）**：
+  1. `services/request.ts` 401 分支游客模式不再 `wx.reLaunch`：新增 `getRefreshToken()` 判空，游客 401 只抛异常由调用方 try/catch 静默，避免公开页面因需要鉴权的子接口（如 `/interactions`、`/validations`）触发跳登录打断浏览
+  2. `pages/publish/publish.ts` 新增 onShow `guardPageLogin('请先登录后再发布帖子')`：发布页是纯写操作，原实现到 onSubmit 才 `requireLogin` 拦截会让游客填半天表单发现不能发布，改为进入时就先提醒给选择权
+- [x] 任务报告：`AIwork/微信小程序正式版升级M2至M6与E2E走查_任务报告.md`
 
 ### Bug 修复：新建帖子选择信息截止时间报错（2026-08-02）
 

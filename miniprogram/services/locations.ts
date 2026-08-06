@@ -7,6 +7,10 @@ import type {
   LocationReviewsResponse,
 } from '../types'
 
+export async function getLocations(): Promise<LocationItem[]> {
+  return http.get<LocationItem[]>('/locations')
+}
+
 export async function getNearby(params: {
   lat: number
   lng: number

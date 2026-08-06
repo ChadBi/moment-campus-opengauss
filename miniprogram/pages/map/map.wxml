@@ -5,7 +5,6 @@
     longitude="{{longitude}}"
     scale="{{scale}}"
     markers="{{markers}}"
-    show-location
     enable-zoom
     enable-scroll
     bindmarkertap="onMarkerTap"
@@ -17,59 +16,15 @@
       <text class="school-name">{{schoolName}}</text>
       <text class="school-subtitle">校园地图</text>
     </view>
-    <view class="locate-btn" bindtap="requestLocation" hover-class="locate-btn-hover" hover-stay-time="120">
-      <icon name="map-pin" size="36rpx" color="#ffffff" />
-    </view>
   </view>
 
-  <!-- 权限提示 -->
-  <view wx:if="{{locationDenied}}" class="denied-tip" bindtap="openSetting" hover-class="denied-tip-hover" hover-stay-time="120">
-    <icon name="alert-circle" size="32rpx" color="#cc5f30" />
-    <text class="denied-text">未授权位置信息，已默认显示学校中心点。点击重新授权</text>
-  </view>
-
-  <!-- 模式切换：帖子 / 附近 -->
-  <view class="mode-switch">
-    <view class="mode-item {{mapMode === 'posts' ? 'active' : ''}}" data-mode="posts" bindtap="switchMapMode" hover-class="mode-item-hover" hover-stay-time="120">
-      <text>帖子</text>
-    </view>
-    <view class="mode-item {{mapMode === 'locations' ? 'active' : ''}}" data-mode="locations" bindtap="switchMapMode" hover-class="mode-item-hover" hover-stay-time="120">
-      <text>附近</text>
-    </view>
-  </view>
-
-  <!-- 附近地点入口（直达地点页） -->
+  <!-- 全部地点入口（直达地点页） -->
   <view class="nearby-entry" bindtap="goToLocationsPage" hover-class="nearby-entry-hover" hover-stay-time="120">
     <icon name="map-pin" size="28rpx" color="#174d5e" />
-    <text class="nearby-entry-text">附近地点</text>
+    <text class="nearby-entry-text">全部地点</text>
   </view>
 
-  <!-- 标记点信息卡片（帖子模式） -->
-  <view wx:if="{{selectedMarker}}" class="info-card">
-    <view class="info-card-header">
-      <text class="info-title">{{selectedMarker.title}}</text>
-      <view class="info-close" catchtap="closeInfoCard" hover-class="info-close-hover" hover-stay-time="120">
-        <icon name="x" size="32rpx" color="#6a7d81" />
-      </view>
-    </view>
-    <view wx:if="{{selectedMarker.content_snippet}}" class="info-snippet">
-      <text>{{selectedMarker.content_snippet}}</text>
-    </view>
-    <view class="info-meta">
-      <view wx:if="{{selectedMarker.category_name}}" class="info-tag">
-        <text>{{selectedMarker.category_name}}</text>
-      </view>
-      <view class="info-tag info-status">
-        <text>{{selectedMarker.statusLabel}}</text>
-      </view>
-    </view>
-    <view class="info-action" catchtap="goToPostDetail" hover-class="info-action-hover" hover-stay-time="120">
-      <text>查看帖子详情</text>
-      <icon name="chevron-right" size="28rpx" color="#ffffff" />
-    </view>
-  </view>
-
-  <!-- 地点信息卡片（附近模式） -->
+  <!-- 地点信息卡片 -->
   <view wx:if="{{selectedLocation}}" class="info-card">
     <view class="info-card-header">
       <text class="info-title">{{selectedLocation.name}}</text>
@@ -81,10 +36,6 @@
       <text class="loc-stars">{{selectedLocation.starsText}}</text>
       <text class="loc-score">{{selectedLocation.avgScoreText}}</text>
       <text class="loc-meta">{{selectedLocation.rating_count}} 人评 · {{selectedLocation.review_count}} 条评价</text>
-    </view>
-    <view class="loc-distance-row">
-      <icon name="map-pin" size="24rpx" color="#6a7d81" />
-      <text class="loc-distance-text">距你 {{selectedLocation.distanceText}}</text>
     </view>
     <view class="info-action" catchtap="goToLocationDetail" hover-class="info-action-hover" hover-stay-time="120">
       <text>查看详情</text>

@@ -36,6 +36,7 @@ from .user_auth_identity import UserAuthIdentity
 from .auth_session import AuthSession, BindingTicket
 from .location_review import LocationReview
 from .campus_verify_token import CampusVerifyToken
+from .feedback import Feedback
 
 __all__ = [
     "Base",
@@ -75,4 +76,5 @@ __all__ = [
     "BindingTicket",
     "LocationReview",
     "CampusVerifyToken",
+    "Feedback",
 ]

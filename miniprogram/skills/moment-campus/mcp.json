@@ -233,7 +233,7 @@
         }
       },
       "_meta": {
-        "ui": { "pagePath": "/pages/topic-detail/topic-detail" }
+        "ui": { "pagePath": "/subpackages/pages/topic-detail/topic-detail" }
       }
     },
     {

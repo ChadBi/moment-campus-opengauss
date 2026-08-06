@@ -1,12 +1,13 @@
-import { http, resolveImageUrl } from './request'
+import { http, resolveImageUrl, getAccessToken } from './request'
+import { BASE_URL } from '../config/env'
 
 export async function uploadImage(filePath: string): Promise<{ url: string }> {
   return new Promise((resolve, reject) => {
-    const token = wx.getStorageSync('access_token')
+    const token = getAccessToken()
     const schoolCode = wx.getStorageSync('school_code') || 'jiangnan'
 
     wx.uploadFile({
-      url: 'http://localhost:8000/api/v1/uploads',
+      url: `${BASE_URL}/upload/image`,
       filePath,
       name: 'file',
       header: {
@@ -28,9 +29,14 @@ export async function uploadImage(filePath: string): Promise<{ url: string }> {
 }
 
 export async function chooseAndUploadImage(count: number = 1): Promise<string[]> {
+  // 与后端校验一致：单张 ≤5MB、仅 jpg/png/gif、总张数上限 5
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024
+  const ALLOWED_IMAGE_TYPES = /\.(jpe?g|png|gif)$/i
+  const safeCount = Math.max(1, Math.min(Math.floor(count), 5))
+
   const res = await new Promise<any>((resolve, reject) => {
     wx.chooseMedia({
-      count,
+      count: safeCount,
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
       maxDuration: 30,
@@ -42,8 +48,12 @@ export async function chooseAndUploadImage(count: number = 1): Promise<string[]>
 
   const urls: string[] = []
   for (const file of res.tempFiles) {
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > MAX_IMAGE_SIZE) {
       wx.showToast({ title: '图片不能超过5MB', icon: 'none' })
+      continue
+    }
+    if (!ALLOWED_IMAGE_TYPES.test(file.tempFilePath || '')) {
+      wx.showToast({ title: '仅支持 jpg/png/gif 图片', icon: 'none' })
       continue
     }
     try {

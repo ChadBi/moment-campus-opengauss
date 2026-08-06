@@ -519,6 +519,15 @@
   margin-bottom: 16rpx;
 }
 
+.post-remaining {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #cc5f30;
+  margin-bottom: 16rpx;
+}
+
 /* ============== 单条 AI 匹配理由 ============== */
 .match-reasons {
   background: rgba(23, 77, 94, 0.06);

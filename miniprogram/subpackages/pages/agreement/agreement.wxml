@@ -1,0 +1,65 @@
+<view class="doc-page">
+  <view class="doc-title">此刻校园用户协议</view>
+  <view class="doc-meta">更新日期：2026 年 8 月 6 日</view>
+
+  <view class="doc-section">
+    <text class="doc-h2">一、总则</text>
+    <text class="doc-p">欢迎使用「此刻校园」。本协议是您与平台之间就使用平台服务所订立的协议。在使用本服务前，请仔细阅读并充分理解本协议全部内容。您登录或使用本服务即视为您已阅读并同意受本协议约束。</text>
+  </view>
+
+  <view class="doc-section">
+    <text class="doc-h2">二、账号与登录</text>
+    <text class="doc-p">1. 您可通过邮箱注册账号，或使用微信账号快捷登录，也可绑定校园邮箱完成校园身份认证。</text>
+    <text class="doc-p">2. 您应妥善保管账号与密码，对以您的账号进行的全部操作负责。可通过「身份管理」管理登录方式，通过「设备管理」查看并退出陌生设备。</text>
+    <text class="doc-p">3. 账号信息不得转让、出借或出售。若发现账号被盗用，请及时通过会话管理退出全部设备并修改密码。</text>
+  </view>
+
+  <view class="doc-section">
+    <text class="doc-h2">三、内容发布规范</text>
+    <text class="doc-p">1. 您发布的内容应真实、客观，不得包含违法、色情、暴力、仇恨、虚假或侵犯他人合法权益的信息。</text>
+    <text class="doc-p">2. 发布时需授权位置信息以便在地图上标注；上传图片需授权相册或摄像头权限，仅用于展示您发布的内容。</text>
+    <text class="doc-p">3. 您应对发布内容引起的全部后果负责。平台可对违规内容进行审核、下架、标记冲突或归档处理。</text>
+  </view>
+
+  <view class="doc-section">
+    <text class="doc-h2">四、帖子的状态与可见性</text>
+    <text class="doc-p">帖子在发布后可能处于以下六种状态，不同状态下可见性不同：</text>
+    <view class="doc-list">
+      <text class="doc-li">草稿（draft）：仅您本人可见，可继续编辑。</text>
+      <text class="doc-li">待审核（pending）：已提交，等待审核，仅您本人可见。</text>
+      <text class="doc-li">已发布（published）：公开可见，其他用户可查看、点赞、评论。</text>
+      <text class="doc-li">已过期（expired）：超过有效期后自动过期，转为归档可见。</text>
+      <text class="doc-li">冲突中（conflict）：被协同验证标记为存在争议，平台将进行核验。</text>
+      <text class="doc-li">已归档（archived）：内容已下架或逾期，转为仅存档可见。</text>
+    </view>
+  </view>
+
+  <view class="doc-section">
+    <text class="doc-h2">五、举报与协同证伪</text>
+    <text class="doc-p">1. 如您发现内容不实或违规，可对帖子进行举报。平台将依据举报对内容进行审核。</text>
+    <text class="doc-p">2. 平台支持协同验证机制：用户可对帖子进行「证实」或「证伪」验证。证实与证伪互斥，可在有效期内切换或取消。</text>
+    <text class="doc-p">3. 当帖子被一定数量证伪后，将进入「冲突中」状态，由平台治理人员进行最终核定。</text>
+  </view>
+
+  <view class="doc-section">
+    <text class="doc-h2">六、校园身份认证</text>
+    <text class="doc-p">为提升内容可信度，您可自愿通过「学号 + 校园邮箱验证码」完成校园身份认证。认证通过后，您的昵称旁将显示「已认证」徽标。认证信息仅用于身份核验，不会用于其他用途。</text>
+  </view>
+
+  <view class="doc-section">
+    <text class="doc-h2">七、权限与图片上传</text>
+    <text class="doc-p">1. 位置授权：用于在地图上定位并标注您发布的校园信息点，方便附近用户查找。您可在系统设置中随时关闭。</text>
+    <text class="doc-p">2. 相册 / 摄像头权限：用于选择或拍摄内容图片。非上传图片场景不会调用。</text>
+    <text class="doc-p">3. 图片上传内容不得包含违法侵权信息，平台对违规图片有权处理。</text>
+  </view>
+
+  <view class="doc-section">
+    <text class="doc-h2">八、用户权利</text>
+    <text class="doc-p">您有权查询、更正您账号下的个人信息，有权删除您发布的内容，并按平台流程申请注销账号。注销后，您的个人信息将在合理期限内被删除或匿名化处理。</text>
+  </view>
+
+  <view class="doc-section">
+    <text class="doc-h2">九、协议变更</text>
+    <text class="doc-p">平台可适时修订本协议。修订后将在本页面公布，继续使用服务即视为接受修订后的协议。若您不同意修订内容，可停止使用并注销账号。</text>
+  </view>
+</view>

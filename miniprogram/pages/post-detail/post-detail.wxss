@@ -173,6 +173,58 @@
   font-weight: 500;
 }
 
+/* 联系方式 */
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 26rpx;
+  color: var(--ink);
+  margin-bottom: 16rpx;
+  padding: 10rpx 16rpx;
+  background: var(--mist);
+  border-radius: var(--radius-sm);
+  align-self: flex-start;
+}
+
+.contact-label {
+  font-size: 24rpx;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.contact-value {
+  font-size: 24rpx;
+  color: var(--ink);
+  font-weight: 500;
+  word-break: break-all;
+}
+
+/* 复制操作区 */
+.copy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 10rpx 20rpx;
+  background: var(--lake-light);
+  border: 1rpx solid var(--lake);
+  border-radius: var(--radius-sm);
+  font-size: 24rpx;
+  color: var(--lake);
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.copy-btn-hover {
+  transform: scale(0.96);
+}
+
 /* 倒计时 */
 .countdown-row {
   display: inline-flex;

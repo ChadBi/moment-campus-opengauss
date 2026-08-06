@@ -1,0 +1,111 @@
+<view class="fb-page">
+  <!-- 未登录占位 -->
+  <view wx:if="{{!isLoggedIn}}" class="login-guide">
+    <icon name="message-circle" size="88rpx" color="#9aabae" />
+    <text class="login-guide-title">登录后提交反馈</text>
+    <text class="login-guide-hint">登录后可提交建议或问题反馈，并查看处理进度</text>
+    <view class="login-guide-btn" bindtap="goLogin" hover-class="login-guide-btn-hover" hover-stay-time="120">
+      <text>去登录</text>
+    </view>
+  </view>
+
+  <block wx:else>
+    <!-- 提交表单 -->
+    <view class="fb-form">
+      <view class="fb-type-label">反馈类型</view>
+      <view class="fb-type-grid">
+        <view
+          wx:for="{{typeOptions}}"
+          wx:key="key"
+          class="fb-type-item {{selectedType === item.key ? 'active' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onTypeTap"
+          hover-class="fb-type-item-hover"
+          hover-stay-time="120"
+        >
+          <text>{{item.label}}</text>
+        </view>
+      </view>
+
+      <view class="fb-form-item">
+        <text class="fb-label">反馈内容 <text class="fb-required">*</text></text>
+        <textarea
+          class="fb-textarea"
+          placeholder="请描述你的建议、遇到问题或投诉内容，帮助我们持续改进"
+          placeholder-class="ph"
+          value="{{content}}"
+          maxlength="2000"
+          auto-height
+          bindinput="onContentInput"
+        />
+      </view>
+
+      <view class="fb-form-item">
+        <text class="fb-label">联系方式（选填）</text>
+        <input
+          class="fb-input"
+          type="text"
+          placeholder="邮箱 / 微信 / 手机号，便于我们回复你"
+          placeholder-class="ph"
+          value="{{contact}}"
+          maxlength="200"
+          bindinput="onContactInput"
+        />
+      </view>
+
+      <view
+        class="fb-submit-btn {{submitting ? 'disabled' : ''}}"
+        bindtap="onSubmit"
+        hover-class="fb-submit-btn-hover"
+        hover-stay-time="120"
+      >
+        <icon name="send" size="28rpx" color="#ffffff" />
+        <text>{{submitting ? '提交中...' : '提交反馈'}}</text>
+      </view>
+    </view>
+
+    <!-- 我的反馈历史 -->
+    <view class="fb-history">
+      <view class="fb-history-header">
+        <text class="fb-history-title">我的反馈</text>
+        <text class="fb-history-count">共 {{feedbacks.length}} 条</text>
+      </view>
+
+      <view wx:if="{{loadingList}}" class="fb-loading">
+        <view class="loading-dot"></view>
+        <view class="loading-dot loading-dot-delay1"></view>
+        <view class="loading-dot loading-dot-delay2"></view>
+      </view>
+
+      <block wx:elif="{{feedbacks.length === 0}}">
+        <empty-state
+          compact
+          icon="message-circle"
+          title="暂无反馈记录"
+          hint="提交的反馈会显示在这里"
+        />
+      </block>
+
+      <block wx:else>
+        <view wx:for="{{feedbacks}}" wx:key="id" class="fb-item">
+          <view class="fb-item-top">
+            <text class="fb-item-type">{{item.type_label}}</text>
+            <text class="fb-item-status status-{{item.status}}">{{item.status_label}}</text>
+          </view>
+          <text class="fb-item-content">{{item.content}}</text>
+          <text wx:if="{{item.remark}}" class="fb-item-reply">处理备注：{{item.remark}}</text>
+          <text class="fb-item-time">{{item.created_at_text}}</text>
+        </view>
+
+        <view wx:if="{{loadingMore}}" class="fb-loading-more">
+          <view class="loading-dot"></view>
+          <view class="loading-dot loading-dot-delay1"></view>
+          <view class="loading-dot loading-dot-delay2"></view>
+        </view>
+        <view wx:if="{{!hasMore && !loadingMore}}" class="fb-no-more">
+          <text>没有更多了</text>
+        </view>
+      </block>
+    </view>
+  </block>
+</view>

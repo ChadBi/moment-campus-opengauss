@@ -1,0 +1,202 @@
+<view class="locations-page page-fade-in">
+  <!-- 顶部标题 -->
+  <view class="page-header">
+    <view class="header-text">
+      <text class="page-title">校园地点</text>
+      <text class="page-subtitle">全部校园设施 · 打印店 · 食堂 · 图书馆，看评分做选择</text>
+    </view>
+  </view>
+
+  <!-- 列表状态区 -->
+  <view class="list-area">
+    <!-- 加载中：骨架屏 -->
+    <block wx:if="{{loading}}">
+      <view class="loading-skeleton">
+        <skeleton variant="list-item" />
+        <skeleton variant="list-item" />
+        <skeleton variant="list-item" />
+        <skeleton variant="list-item" />
+      </view>
+    </block>
+
+    <!-- 错误态：统一到空态组件重试入口 -->
+    <block wx:elif="{{error}}">
+      <view class="empty-result-wrap">
+        <empty-state
+          icon="alert-circle"
+          title="加载失败"
+          hint="{{error}}"
+          action-text="重试"
+          bind:action="retryList"
+        />
+      </view>
+    </block>
+
+    <!-- 空态 -->
+    <block wx:elif="{{locations.length === 0}}">
+      <empty-state icon="map-pin" title="暂无地点" hint="稍后再来看看校园设施" />
+    </block>
+
+    <!-- 地点卡片列表 -->
+    <block wx:else>
+      <view
+        wx:for="{{locations}}"
+        wx:key="id"
+        class="loc-card"
+        data-id="{{item.id}}"
+        bindtap="onCardTap"
+        hover-class="loc-card-hover"
+        hover-stay-time="120"
+      >
+        <view class="loc-card-top">
+          <view class="loc-name-wrap">
+            <text class="loc-name">{{item.name}}</text>
+            <text wx:if="{{item.is_verified}}" class="verified-badge">官方核验</text>
+          </view>
+        </view>
+        <text wx:if="{{item.description}}" class="loc-desc text-ellipsis">{{item.description}}</text>
+        <view class="loc-card-bottom">
+          <view class="loc-rating">
+            <text class="stars">{{item.starsText}}</text>
+            <text class="score-number">{{item.avgScoreText}}</text>
+            <text class="rating-count">{{item.rating_count}} 人评</text>
+          </view>
+          <text class="review-count">{{item.review_count}} 条评价</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- ============ 详情弹层 ============ -->
+  <view wx:if="{{detailVisible}}" class="popup-mask" bindtap="closeDetail">
+    <view class="detail-panel" catchtap="noop">
+      <view class="panel-header">
+        <text class="panel-title">{{detail && detail.location.name || '地点详情'}}</text>
+        <view class="panel-close" bindtap="closeDetail" hover-class="panel-close-hover" hover-stay-time="120">
+          <icon name="x" size="32rpx" color="#6a7d81" />
+        </view>
+      </view>
+
+      <scroll-view scroll-y class="panel-scroll">
+        <!-- 详情加载中 -->
+        <view wx:if="{{detailLoading}}" class="detail-loading">
+          <view class="loading-dot"></view>
+          <view class="loading-dot loading-dot-delay1"></view>
+          <view class="loading-dot loading-dot-delay2"></view>
+          <text class="loading-text">正在加载详情</text>
+        </view>
+
+        <!-- 详情错误态：统一到空态组件重试入口 -->
+        <view wx:elif="{{detailError}}" class="empty-result-wrap">
+          <empty-state
+            compact
+            icon="alert-circle"
+            title="加载失败"
+            hint="{{detailError}}"
+            action-text="重试"
+            bind:action="retryDetail"
+          />
+        </view>
+
+        <block wx:elif="{{detail}}">
+          <!-- 评分汇总 -->
+          <view class="summary">
+            <view class="summary-top">
+              <text class="stars-lg">{{detail.location.starsText}}</text>
+              <text class="score-lg">{{detail.location.avgScoreText}}</text>
+            </view>
+            <text class="summary-meta">{{detail.location.rating_count}} 人评分 · {{detail.location.review_count}} 条评价</text>
+            <text wx:if="{{detail.location.description}}" class="summary-desc">{{detail.location.description}}</text>
+            <view class="summary-loc">
+              <icon name="map-pin" size="24rpx" color="#6a7d81" />
+              <text class="summary-loc-text">{{detail.location.building || detail.location.floor || '校园内'}}</text>
+            </view>
+          </view>
+
+          <!-- 我的评价 -->
+          <view class="my-review">
+            <text class="section-title">{{myReview ? '我的评价' : '给这个地点打个分'}}</text>
+
+            <!-- 未登录 -->
+            <view wx:if="{{!isLoggedIn}}" class="login-row">
+              <text class="login-hint">登录后即可为校园设施评分评价</text>
+              <view class="login-btn" bindtap="goToLogin" hover-class="login-btn-hover" hover-stay-time="120">
+                <text>去登录</text>
+              </view>
+            </view>
+
+            <!-- 已登录 -->
+            <block wx:else>
+              <view class="star-selector">
+                <view
+                  wx:for="{{starOptions}}"
+                  wx:key="*this"
+                  class="star-option {{score >= item ? 'active' : ''}}"
+                  data-score="{{item}}"
+                  bindtap="onScoreTap"
+                  hover-class="star-option-hover"
+                  hover-stay-time="120"
+                >
+                  <text class="star-char">{{score >= item ? '★' : '☆'}}</text>
+                </view>
+                <text class="score-preview">{{score}}.0 分</text>
+              </view>
+              <textarea
+                class="review-input"
+                value="{{content}}"
+                maxlength="500"
+                auto-height
+                placeholder="分享你的体验，如排队情况、价格、营业时间等（最多 500 字）"
+                placeholder-class="ph"
+                bindinput="onContentInput"
+              />
+              <view class="review-actions">
+                <view
+                  wx:if="{{myReview}}"
+                  class="withdraw-btn"
+                  bindtap="withdrawReview"
+                  hover-class="withdraw-btn-hover"
+                  hover-stay-time="120"
+                >
+                  撤回评价
+                </view>
+                <view
+                  class="submit-btn"
+                  bindtap="submitReview"
+                  hover-class="submit-btn-hover"
+                  hover-stay-time="120"
+                >
+                  {{submitting ? '提交中...' : (myReview ? '更新评价' : '提交评价')}}
+                </view>
+              </view>
+            </block>
+          </view>
+
+          <!-- 全部评价 -->
+          <view class="all-reviews">
+            <text class="section-title">全部评价</text>
+            <block wx:if="{{detail.reviews.length === 0}}">
+              <text class="no-reviews">还没有评价，来当第一个吧。</text>
+            </block>
+            <block wx:else>
+              <view wx:for="{{detail.reviews}}" wx:key="id" class="review-item">
+                <view class="review-top">
+                  <view class="review-author">
+                    <text class="author-name">{{item.author && item.author.nickname || '匿名用户'}}</text>
+                    <text wx:if="{{item.author && item.author.is_verified}}" class="verified-badge">已认证</text>
+                  </view>
+                  <text class="review-time">{{item.created_at_text}}</text>
+                </view>
+                <view class="review-meta">
+                  <text class="stars-sm">{{item.starsText}}</text>
+                  <text class="review-score">{{item.score}}.0</text>
+                </view>
+                <text wx:if="{{item.content}}" class="review-content">{{item.content}}</text>
+              </view>
+            </block>
+          </view>
+        </block>
+      </scroll-view>
+    </view>
+  </view>
+</view>

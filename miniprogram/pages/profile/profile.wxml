@@ -303,7 +303,7 @@
                 </view>
                 <text class="post-content text-ellipsis-2">{{item.content}}</text>
               </view>
-              <image wx:if="{{item.cover}}" class="post-cover" src="{{item.cover}}" mode="aspectFill" />
+              <image wx:if="{{item.cover}}" class="post-cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
               <view class="post-footer">
                 <text class="post-time">{{item.created_at_text}}</text>
                 <view class="post-stats">
@@ -422,6 +422,43 @@
     </block>
   </view>
 
+  <!-- ============== 推荐隐私（Task 4b） ============== -->
+  <view class="rec-section">
+    <view class="section-header">
+      <view class="section-title-wrap">
+        <icon name="sparkles" size="32rpx" color="#174d5e" />
+        <text class="section-title">推荐隐私</text>
+      </view>
+    </view>
+    <view class="rec-item">
+      <view class="rec-info">
+        <text class="rec-label">个性化推荐</text>
+        <text class="rec-desc">根据浏览与搜索记录推荐你可能感兴趣的内容</text>
+      </view>
+      <switch
+        checked="{{recEnabled}}"
+        color="#174d5e"
+        disabled="{{recLoading}}"
+        bindchange="onRecToggle"
+      />
+    </view>
+    <view class="rec-item">
+      <view class="rec-info">
+        <text class="rec-label">清除推荐画像历史</text>
+        <text class="rec-desc">删除浏览与搜索画像，用于重置推荐</text>
+      </view>
+      <view
+        class="rec-clear-btn"
+        bindtap="onClearRecHistory"
+        hover-class="rec-clear-btn-hover"
+        hover-stay-time="120"
+      >
+        <icon name="trash2" size="24rpx" color="#cd5852" />
+        <text>清除</text>
+      </view>
+    </view>
+  </view>
+
   <!-- ============== 设置区域 ============== -->
   <view class="settings-section">
     <view class="settings-item" bindtap="showEditPopup" hover-class="settings-item-hover" hover-stay-time="120">
@@ -450,6 +487,41 @@
         <icon name="bookmark" size="32rpx" color="#174d5e" />
       </view>
       <text class="settings-label">订阅管理</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
+    </view>
+    <view class="settings-item" bindtap="goToNotificationPreferences" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap">
+        <icon name="bell" size="32rpx" color="#174d5e" />
+      </view>
+      <text class="settings-label">通知偏好</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
+    </view>
+    <view class="settings-item" bindtap="goToFeedback" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap">
+        <icon name="message-circle" size="32rpx" color="#174d5e" />
+      </view>
+      <text class="settings-label">意见反馈</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
+    </view>
+    <view class="settings-item" bindtap="goToAgreement" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap">
+        <icon name="file-text" size="32rpx" color="#174d5e" />
+      </view>
+      <text class="settings-label">用户协议</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
+    </view>
+    <view class="settings-item" bindtap="goToPrivacy" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap">
+        <icon name="lock" size="32rpx" color="#174d5e" />
+      </view>
+      <text class="settings-label">隐私政策</text>
+      <icon name="chevron-right" size="32rpx" color="#9aabae" />
+    </view>
+    <view class="settings-item" bindtap="goToAbout" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap">
+        <icon name="info" size="32rpx" color="#174d5e" />
+      </view>
+      <text class="settings-label">关于</text>
       <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
     <view class="settings-item danger" bindtap="onLogoutAll" hover-class="settings-item-hover" hover-stay-time="120">

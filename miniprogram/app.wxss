@@ -257,3 +257,24 @@ image {
   font-family: var(--font-display);
   font-weight: 800;
 }
+
+/* ============================================================
+ * iOS 安全区适配
+ * 底部固定导航栏 / 底部弹层需叠加 env(safe-area-inset-bottom)
+ * ============================================================ */
+
+/* 通用安全区下边距（用于底部固定操作栏） */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 通用安全区底部 + 原有内边距（按需叠加到具体弹层/导航） */
+.safe-area-bottom-flex {
+  padding-bottom: calc(0rpx + env(safe-area-inset-bottom));
+}
+
+/* 底部固定导航栏：底部留白 + 安全区 */
+.fixed-bottom-safe {
+  bottom: 0;
+  padding-bottom: calc(env(safe-area-inset-bottom));
+}

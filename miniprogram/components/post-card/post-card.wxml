@@ -1,6 +1,6 @@
 <view class="post-card" bindtap="onTap" hover-class="post-card-hover" hover-stay-time="120">
   <view class="card-header">
-    <image class="author-avatar" src="{{authorAvatar || '/assets/default-avatar.png'}}" mode="aspectFill"/>
+    <image class="author-avatar" src="{{authorAvatar || '/assets/default-avatar.png'}}" mode="aspectFill" lazy-load/>
     <view class="header-info">
       <view class="author-row">
         <text class="author-name">{{authorName}}</text>
@@ -18,6 +18,11 @@
     <text class="post-content">{{post.content}}</text>
   </view>
 
+  <view wx:if="{{recommendReason}}" class="recommend-reason">
+    <text class="recommend-reason-label">为你推荐</text>
+    <text class="recommend-reason-text">{{recommendReason}}</text>
+  </view>
+
   <view wx:if="{{displayImages.length > 0}}" class="card-images">
     <image
       wx:for="{{displayImages}}"
@@ -25,6 +30,7 @@
       src="{{item}}"
       mode="aspectFill"
       class="post-image"
+      lazy-load
       catchtap="onImageTap"
       data-src="{{item}}"/>
   </view>

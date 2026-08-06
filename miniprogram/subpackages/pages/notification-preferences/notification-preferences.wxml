@@ -1,0 +1,43 @@
+<view class="np-page">
+  <!-- 未登录占位 -->
+  <view wx:if="{{!isLoggedIn}}" class="login-guide">
+    <icon name="bell" size="88rpx" color="#9aabae" />
+    <text class="login-guide-title">登录后设置通知偏好</text>
+    <text class="login-guide-hint">登录后可管理各类型通知的接收方式</text>
+    <view class="login-guide-btn" bindtap="goLogin" hover-class="login-guide-btn-hover" hover-stay-time="120">
+      <text>去登录</text>
+    </view>
+  </view>
+
+  <block wx:else>
+    <!-- 加载中 -->
+    <view wx:if="{{loading}}" class="np-loading">
+      <view class="loading-dot"></view>
+      <view class="loading-dot loading-dot-delay1"></view>
+      <view class="loading-dot loading-dot-delay2"></view>
+    </view>
+
+    <block wx:else>
+      <view class="np-tip">
+        <icon name="info" size="28rpx" color="#6a7d81" />
+        <text class="np-tip-text">按需选择希望接收的通知类型。为保障账号安全，站内即时、审核、系统通知至少需保留一个。</text>
+      </view>
+
+      <view class="np-group">
+        <view wx:for="{{items}}" wx:key="key" class="np-item">
+          <view class="np-info">
+            <text class="np-label">{{item.label}}</text>
+            <text class="np-desc">{{item.desc}}</text>
+          </view>
+          <switch
+            checked="{{item.value}}"
+            color="#174d5e"
+            data-key="{{item.key}}"
+            bindchange="onToggle"
+            disabled="{{saving}}"
+          />
+        </view>
+      </view>
+    </block>
+  </block>
+</view>

@@ -1,26 +1,39 @@
-// C-01: 小程序 API Base URL 指向公网 HTTPS（生产：campus.chaina1.com）
-// 本地联调可临时改为 'http://localhost:8000'（注意微信开发者工具勾选"不校验合法域名"）
-const API_HOST = 'https://campus.chaina1.com'
-const BASE_URL = `${API_HOST}/api/v1`
+import { API_HOST, BASE_URL, IMAGE_HOST } from '../config/env'
+
 const REQUEST_TIMEOUT = 15000
 
 let isRefreshing = false
-let pendingRequests: Array<(token: string) => void> = []
+let pendingRequests: Array<(token: string | null) => void> = []
 
-function getAccessToken(): string {
-  return wx.getStorageSync('access_token') || ''
+// access_token 为短时效凭据，尽量保持在内存态，不落 storage，降低明文敏感信息驻留面。
+// refresh_token 为长凭据，仍需持久化用于冷启动静默刷新。
+let accessTokenCache = ''
+let refreshTokenCache = ''
+
+export function getAccessToken(): string {
+  if (accessTokenCache) return accessTokenCache
+  // 兜底：兼容旧版本残留的 access_token 缓存
+  accessTokenCache = wx.getStorageSync('access_token') || ''
+  return accessTokenCache
 }
 
 function getRefreshToken(): string {
-  return wx.getStorageSync('refresh_token') || ''
+  if (refreshTokenCache) return refreshTokenCache
+  refreshTokenCache = wx.getStorageSync('refresh_token') || ''
+  return refreshTokenCache
 }
 
 function setTokens(accessToken: string, refreshToken: string): void {
-  wx.setStorageSync('access_token', accessToken)
-  wx.setStorageSync('refresh_token', refreshToken)
+  accessTokenCache = accessToken
+  refreshTokenCache = refreshToken
+  // 只持久化 refresh_token；access_token 不落 storage
+  if (refreshToken) wx.setStorageSync('refresh_token', refreshToken)
+  wx.removeStorageSync('access_token')
 }
 
 function clearTokens(): void {
+  accessTokenCache = ''
+  refreshTokenCache = ''
   wx.removeStorageSync('access_token')
   wx.removeStorageSync('refresh_token')
 }
@@ -39,7 +52,7 @@ export function resolveImageUrl(url: string | undefined): string {
   if (!url) return ''
   if (url.startsWith('http')) return url
   if (url.startsWith('/uploads/')) {
-    return url.replace('/uploads/', `${API_HOST}/uploads/`)
+    return url.replace('/uploads/', `${IMAGE_HOST}/uploads/`)
   }
   return url
 }
@@ -128,7 +141,7 @@ export async function request<T = any>(options: RequestOptions): Promise<T> {
     const res = await new Promise<{ statusCode: number; data: any }>((resolve, reject) => {
       wx.request({
         url: fullUrl,
-        method,
+        method: method as any,
         data,
         header: headers,
         timeout: REQUEST_TIMEOUT,
@@ -138,13 +151,18 @@ export async function request<T = any>(options: RequestOptions): Promise<T> {
     })
 
     if (res.statusCode === 401 && !authUrl) {
+      // 游客模式（无 refresh_token 持久化）：401 仅代表该接口需要登录，不强制打断浏览跳转
+      const isGuest = !getRefreshToken()
+      if (isGuest) {
+        throw new Error('该操作需要登录')
+      }
       const newToken = await refreshToken()
       if (newToken) {
         headers['Authorization'] = `Bearer ${newToken}`
         const retryRes = await new Promise<{ statusCode: number; data: any }>((resolve, reject) => {
           wx.request({
             url: fullUrl,
-            method,
+            method: method as any,
             data,
             header: headers,
             timeout: REQUEST_TIMEOUT,
@@ -176,6 +194,11 @@ function handleResponse<T>(statusCode: number, data: any): T {
   }
 
   if (statusCode === 401) {
+    // 游客模式：401 只抛异常，不跳登录打断浏览（写操作在交互层用 requireLogin 引导）
+    const isGuest = !getRefreshToken()
+    if (isGuest) {
+      throw new Error((data && data.detail) || '该操作需要登录')
+    }
     clearTokens()
     wx.reLaunch({ url: '/pages/login/login' })
     throw new Error((data && data.detail) || '未登录或登录已过期')

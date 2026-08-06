@@ -5,16 +5,11 @@
     "pages/search/search",
     "pages/publish/publish",
     "pages/post-detail/post-detail",
-    "pages/edit-post/edit-post",
     "pages/profile/profile",
     "pages/notifications/notifications",
     "pages/subscriptions/subscriptions",
-    "pages/school-select/school-select",
     "pages/login/login",
-    "pages/bind-account/bind-account",
-    "pages/topics/topics",
-    "pages/topic-detail/topic-detail",
-    "pages/locations/locations"
+    "pages/topics/topics"
   ],
   "window": {
     "navigationBarTextStyle": "black",
@@ -45,6 +40,23 @@
     ]
   },
   "subPackages": [
+    {
+      "root": "subpackages/pages",
+      "name": "pagesExtra",
+      "pages": [
+        "agreement/agreement",
+        "privacy/privacy",
+        "feedback/feedback",
+        "notification-preferences/notification-preferences",
+        "forgot-password/forgot-password",
+        "school-select/school-select",
+        "bind-account/bind-account",
+        "edit-post/edit-post",
+        "topic-detail/topic-detail",
+        "locations/locations",
+        "about/about"
+      ]
+    },
     {
       "root": "skills",
       "name": "skills",

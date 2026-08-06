@@ -1,0 +1,140 @@
+/* ============================================================
+ * 专题详情页 - 水墨风
+ * ============================================================ */
+
+.topic-detail-page {
+  min-height: 100vh;
+  padding-bottom: 40rpx;
+}
+
+/* 顶部专题封面 */
+.topic-header {
+  position: relative;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.topic-cover {
+  width: 100%;
+  height: 360rpx;
+  background: var(--mist);
+}
+
+.cover-img {
+  width: 100%;
+  height: 100%;
+}
+
+.topic-meta-wrap {
+  padding: 30rpx;
+  background: var(--paper);
+}
+
+.topic-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.topic-title {
+  flex: 1;
+  font-family: var(--font-display);
+  font-size: 40rpx;
+  font-weight: 800;
+  color: var(--lake);
+  line-height: 1.4;
+  display: block;
+}
+
+/* 订阅按钮 */
+.subscribe-btn {
+  flex-shrink: 0;
+  min-width: 140rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  padding: 0 24rpx;
+  margin: 0;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--lake);
+  border-radius: 999rpx;
+  border: none;
+}
+
+.subscribe-btn::after {
+  border: none;
+}
+
+.subscribe-btn.subscribed {
+  color: var(--lake);
+  background: transparent;
+  border: 2rpx solid var(--lake);
+}
+
+.topic-desc {
+  margin-top: 16rpx;
+  padding: 20rpx;
+  font-size: 28rpx;
+  color: var(--ink-2);
+  line-height: 1.6;
+  background: var(--paper-alt);
+  border-radius: var(--radius-md);
+  display: block;
+}
+
+.topic-meta {
+  margin-top: 24rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28rpx;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+/* 帖子数量：湖水蓝 + 数据字体 */
+.meta-count {
+  color: var(--lake);
+  font-family: var(--font-data);
+  font-weight: 700;
+}
+
+.meta-time {
+  font-family: var(--font-data);
+}
+
+.meta-views {
+  font-family: var(--font-data);
+}
+
+/* 关联帖子标题 */
+.section-title {
+  padding: 30rpx 30rpx 16rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* 帖子列表 */
+.post-list {
+  padding: 0 20rpx;
+}
+
+/* 骨架屏 */
+.loading-skeleton {
+  padding: 30rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.empty-result-wrap {
+  padding: 80rpx 0;
+}

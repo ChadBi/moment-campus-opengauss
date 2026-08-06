@@ -5,6 +5,7 @@ import { formatDate, formatCount } from '../../utils/format'
 import { listIdentities, deleteIdentity, listSessions, revokeSession, logoutAll } from '../../services/auth'
 import { logout } from '../../services/auth'
 import { sendCampusVerify, confirmCampusVerify } from '../../services/auth'
+import { guardPageLogin } from '../../utils/auth-guard'
 
 const STATUS_TABS = [
   { key: 'all', label: '全部' },
@@ -102,6 +103,10 @@ Page({
     verifyConfirming: false,
 
     loadingUser: false,
+
+    // 推荐隐私（Task 4b）
+    recEnabled: false,
+    recLoading: false,
   },
 
   onLoad() {
@@ -119,8 +124,12 @@ Page({
   },
 
   async onShow() {
+    // 游客访问「我的」时引导登录（Task 6），不打断浏览上下文
+    if (!guardPageLogin('请先登录后查看个人中心')) {
+      return
+    }
     if (authStore.getState().isLoggedIn) {
-      const tasks: Promise<any>[] = [this.loadUser(), this.loadStats(), this.refreshPosts(), this.loadMemberships()]
+      const tasks: Promise<any>[] = [this.loadUser(), this.loadStats(), this.refreshPosts(), this.loadMemberships(), this.loadRecPreference()]
       if (this.data.activeSection === 'history') {
         tasks.push(this.refreshHistory())
       }
@@ -710,6 +719,66 @@ Page({
     wx.reLaunch({ url: '/pages/login/login' })
   },
 
+  // ============== 推荐隐私（Task 4b） ==============
+  async loadRecPreference() {
+    try {
+      const res: any = await http.get('/users/me/recommendation-preferences')
+      const prefs = res.preferences || res
+      this.setData({ recEnabled: !!prefs.personalization_enabled })
+    } catch (e: any) {
+      console.error('加载推荐偏好失败', e)
+    }
+  },
+
+  async onRecToggle(e: any) {
+    const next = !!e.detail.value
+    if (this.data.recLoading) return
+    if (!next) {
+      // 关闭前提示将清除浏览/搜索画像历史
+      wx.showModal({
+        title: '关闭个性化推荐',
+        content: '关闭后将清除你的浏览与搜索画像历史，推荐将转为热门/最新内容。确定关闭？',
+        success: async r => {
+          if (r.confirm) {
+            await this.updateRecPreference(false)
+          }
+        },
+      })
+      return
+    }
+    await this.updateRecPreference(true)
+  },
+
+  async updateRecPreference(next: boolean) {
+    this.setData({ recLoading: true })
+    try {
+      await http.put('/users/me/recommendation-preferences', { personalization_enabled: next })
+      this.setData({ recEnabled: next })
+      wx.showToast({ title: next ? '已开启个性化推荐' : '已关闭个性化推荐', icon: 'success' })
+    } catch (e: any) {
+      wx.showToast({ title: e.message || '设置失败', icon: 'none' })
+      await this.loadRecPreference()
+    } finally {
+      this.setData({ recLoading: false })
+    }
+  },
+
+  onClearRecHistory() {
+    wx.showModal({
+      title: '清除推荐画像历史',
+      content: '将清除全部浏览与搜索画像历史，此操作不可恢复。确定清除？',
+      success: async r => {
+        if (!r.confirm) return
+        try {
+          await http.delete('/users/me/recommendation-history')
+          wx.showToast({ title: '已清除推荐画像历史', icon: 'success' })
+        } catch (err: any) {
+          wx.showToast({ title: err.message || '清除失败', icon: 'none' })
+        }
+      },
+    })
+  },
+
   // ============== tab bar 跳转 ==============
   goToHome() {
     wx.switchTab({ url: '/pages/home/home' })
@@ -733,5 +802,47 @@ Page({
 
   goToSubscriptions() {
     wx.navigateTo({ url: '/pages/subscriptions/subscriptions' })
+  },
+
+  goToNotificationPreferences() {
+    if (!this.data.isLoggedIn) {
+      wx.showModal({
+        title: '提示',
+        content: '请先登录后再设置通知偏好',
+        confirmText: '去登录',
+        success: r => {
+          if (r.confirm) wx.reLaunch({ url: '/pages/login/login' })
+        },
+      })
+      return
+    }
+    wx.navigateTo({ url: '/subpackages/pages/notification-preferences/notification-preferences' })
+  },
+
+  goToFeedback() {
+    if (!this.data.isLoggedIn) {
+      wx.showModal({
+        title: '提示',
+        content: '请先登录后再提交反馈',
+        confirmText: '去登录',
+        success: r => {
+          if (r.confirm) wx.reLaunch({ url: '/pages/login/login' })
+        },
+      })
+      return
+    }
+    wx.navigateTo({ url: '/subpackages/pages/feedback/feedback' })
+  },
+
+  goToAgreement() {
+    wx.navigateTo({ url: '/subpackages/pages/agreement/agreement' })
+  },
+
+  goToPrivacy() {
+    wx.navigateTo({ url: '/subpackages/pages/privacy/privacy' })
+  },
+
+  goToAbout() {
+    wx.navigateTo({ url: '/subpackages/pages/about/about' })
   },
 })

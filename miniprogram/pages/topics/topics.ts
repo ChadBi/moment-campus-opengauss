@@ -70,7 +70,7 @@ Page({
   onTopicTap(e: any) {
     const id = e.currentTarget.dataset.id
     if (!id) return
-    wx.navigateTo({ url: `/pages/topic-detail/topic-detail?id=${id}` })
+    wx.navigateTo({ url: `/subpackages/pages/topic-detail/topic-detail?id=${id}` })
   },
 
   onShareAppMessage() {

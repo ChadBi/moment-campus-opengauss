@@ -1,6 +1,9 @@
 import { http } from '../../services/request'
 import { chooseAndUploadImage } from '../../services/upload'
 import { resolveImageUrl } from '../../services/request'
+import { requireLogin, guardPageLogin } from '../../utils/auth-guard'
+import { cachedFetch } from '../../utils/cache'
+import { campusStore } from '../../store/campus'
 
 const DRAFT_KEY = 'publish_draft'
 
@@ -61,6 +64,11 @@ Page({
     this.restoreDraft()
   },
 
+  onShow() {
+    // 发布页是纯写操作，进入前就提醒登录（避免填半天表单才发现不能提交）
+    guardPageLogin('请先登录后再发布帖子')
+  },
+
   onUnload() {
     // 离开页面时自动保存草稿（仅在表单有内容时）
     this.saveDraftSilent()
@@ -70,7 +78,9 @@ Page({
   async loadCategories() {
     this.setData({ loadingCategories: true })
     try {
-      const res: any = await http.get('/categories')
+      // 分类为低频数据，走本地缓存 + 过期刷新（Task 10）
+      const schoolCode = campusStore.getState().schoolCode
+      const res: any = await cachedFetch<any>('categories', () => http.get('/categories'), { schoolCode })
       const list = (res && (res.categories || res.items || res.data)) || []
       const cats = list
         .filter((c: any) => c.is_active === undefined || c.is_active === true)
@@ -303,12 +313,27 @@ Page({
   },
 
   async onSubmit() {
+    if (!requireLogin('登录后即可发布帖子')) return
     if (this.data.submitting) return
     const err = this.validate()
     if (err) {
       wx.showToast({ title: err, icon: 'none' })
       return
     }
+
+    // 敏感操作二次确认
+    const confirmed = await new Promise<boolean>(resolve => {
+      wx.showModal({
+        title: '确认发布',
+        content: '确定要发布这条帖子吗？',
+        confirmText: '发布',
+        cancelText: '取消',
+        success: (r: any) => resolve(!!r.confirm),
+        fail: () => resolve(false),
+      })
+    })
+    if (!confirmed) return
+
     const expiresAt = this.computeExpiresAt()
 
     const payload: any = {

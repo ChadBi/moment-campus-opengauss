@@ -1,0 +1,124 @@
+.about-page {
+  min-height: 100vh;
+  padding: 60rpx 36rpx 80rpx;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============== 品牌区 ============== */
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 0 48rpx;
+}
+.brand-logo {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 32rpx;
+  background: linear-gradient(135deg, #174d5e, #2a7a8c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12rpx 28rpx rgba(23, 77, 94, 0.25);
+}
+.brand-name {
+  margin-top: 24rpx;
+  font-family: var(--font-display);
+  font-size: 40rpx;
+  font-weight: 800;
+  color: var(--ink);
+}
+.brand-desc {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+
+/* ============== 版本信息 ============== */
+.version-row {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4rpx 16rpx rgba(23, 77, 94, 0.06);
+}
+.version-info {
+  display: flex;
+  flex-direction: column;
+}
+.version-label {
+  font-size: 24rpx;
+  color: var(--muted);
+}
+.version-value {
+  margin-top: 6rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--ink);
+}
+.check-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 28rpx;
+  border-radius: 999rpx;
+  background: var(--paper);
+  border: 2rpx solid var(--line);
+  font-size: 26rpx;
+  color: var(--lake);
+}
+.check-btn-hover {
+  opacity: 0.7;
+}
+.check-btn.disabled {
+  opacity: 0.6;
+}
+
+/* ============== 功能入口 ============== */
+.menu {
+  margin-top: 32rpx;
+  background: #ffffff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(23, 77, 94, 0.06);
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 2rpx solid var(--line);
+}
+.menu-item:last-child {
+  border-bottom: none;
+}
+.menu-item-hover {
+  background: var(--paper);
+}
+.menu-icon-wrap {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  background: rgba(23, 77, 94, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+}
+.menu-label {
+  flex: 1;
+  font-size: 30rpx;
+  color: var(--ink);
+}
+
+/* ============== 版权 ============== */
+.copyright {
+  margin-top: auto;
+  padding-top: 60rpx;
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--muted);
+}

@@ -76,6 +76,25 @@
         <text class="loc-text">{{post.location_name}}</text>
       </view>
 
+      <!-- 联系方式（仅登录可见，后端对游客返回 null） -->
+      <view wx:if="{{post.contact_info}}" class="contact-row">
+        <icon name="phone" size="28rpx" color="#174d5e" />
+        <text class="contact-label">联系方式</text>
+        <text class="contact-value">{{post.contact_info}}</text>
+      </view>
+
+      <!-- 复制操作区 -->
+      <view class="copy-actions">
+        <view wx:if="{{post.location_address}}" class="copy-btn" bindtap="copyAddress" hover-class="copy-btn-hover" hover-stay-time="120">
+          <icon name="map-pin" size="28rpx" color="#174d5e" />
+          <text>复制地址</text>
+        </view>
+        <view class="copy-btn" bindtap="copyLink" hover-class="copy-btn-hover" hover-stay-time="120">
+          <icon name="link" size="28rpx" color="#174d5e" />
+          <text>复制链接</text>
+        </view>
+      </view>
+
       <!-- 倒计时 -->
       <view wx:if="{{remainingTime}}" class="countdown-row {{remainingTime === '已过期' ? 'expired' : ''}}">
         <icon
@@ -270,12 +289,12 @@
       <view class="report-types">
         <view
           wx:for="{{reportReasons}}"
-          wx:key="*this"
-          class="report-type {{reportType === item ? 'active' : ''}}"
-          data-type="{{item}}"
+          wx:key="value"
+          class="report-type {{reportType === item.value ? 'active' : ''}}"
+          data-type="{{item.value}}"
           bindtap="onPickReportType"
         >
-          <text>{{item}}</text>
+          <text>{{item.label}}</text>
         </view>
       </view>
       <textarea

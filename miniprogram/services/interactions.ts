@@ -25,7 +25,7 @@ export async function deleteComment(commentId: number): Promise<void> {
 }
 
 export async function validatePost(postId: number, validationType: 'confirmation' | 'refutation'): Promise<any> {
-  return http.post(`/posts/${postId}/validations`, { validation_type: validationType })
+  return http.post(`/posts/${postId}/validate`, { validation_type: validationType })
 }
 
 export async function getValidationStats(postId: number): Promise<any> {
@@ -33,5 +33,5 @@ export async function getValidationStats(postId: number): Promise<any> {
 }
 
 export async function reportPost(postId: number, reason: string, type: string): Promise<any> {
-  return http.post(`/posts/${postId}/report`, { reason, report_type: type })
+  return http.post(`/posts/${postId}/report`, { report_type: type, description: reason })
 }

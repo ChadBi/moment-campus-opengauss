@@ -8,13 +8,16 @@ import {
   reportPost,
   listComments,
 } from '../../services/interactions'
+import { requireLogin } from '../../utils/auth-guard'
 
+// 举报类型与后端 ReportType 枚举对齐（backend/app/schemas/enums.py 六类）
 const REPORT_REASONS = [
-  '垃圾信息',
-  '虚假内容',
-  '不当言论',
-  '侵权内容',
-  '其他',
+  { label: '垃圾信息', value: 'spam' },
+  { label: '滥用信息', value: 'abuse' },
+  { label: '骚扰言论', value: 'harassment' },
+  { label: '虚假信息', value: 'false_info' },
+  { label: '信息过期', value: 'expired_info' },
+  { label: '其他', value: 'other' },
 ]
 
 /**
@@ -68,7 +71,7 @@ Page({
     // 举报
     reportVisible: false,
     reportReason: '',
-    reportType: '其他',
+    reportType: 'other',
     reportReasons: REPORT_REASONS,
     submittingReport: false,
 
@@ -117,9 +120,16 @@ Page({
       ? post.images.map((u: string) => resolveImageUrl(u))
       : []
     const author = post.author || {}
+    const location = post.location || {}
+    const locationParts: string[] = []
+    if (location.name) locationParts.push(location.name)
+    if (location.building) locationParts.push(location.building)
+    if (location.floor) locationParts.push(`${location.floor} 层`)
     const normalized = {
       ...post,
       images,
+      location_name: post.location_name || location.name || '',
+      location_address: locationParts.join(' · '),
       author_nickname: post.author_nickname || author.nickname || '匿名用户',
       author_avatar: resolveImageUrl(post.author_avatar || author.avatar_url),
       is_verified: !!post.is_verified || !!author.is_verified,
@@ -216,6 +226,7 @@ Page({
   },
 
   async onSubmitComment() {
+    if (!requireLogin('登录后即可发表评论')) return
     const content = (this.data.commentInput || '').trim()
     if (!content) {
       wx.showToast({ title: '请输入评论内容', icon: 'none' })
@@ -265,6 +276,7 @@ Page({
 
   // ============== 点赞 ==============
   async onLike() {
+    if (!requireLogin('登录后即可点赞')) return
     if (!this.data.post) return
     try {
       const res: any = await likePost(this.data.postId)
@@ -292,20 +304,24 @@ Page({
 
   // ============== 协同验证 ==============
   async onValidate(e: any) {
+    if (!requireLogin('登录后即可参与协同验证')) return
     const type: 'confirmation' | 'refutation' = e.currentTarget.dataset.type
     if (!type) return
-    // 已投过同类型 → 提示
-    if (this.data.userValidationType === type) {
-      wx.showToast({ title: '你已经投过此票', icon: 'none' })
-      return
-    }
     try {
-      await validatePost(this.data.postId, type)
-      wx.showToast({
-        title: type === 'confirmation' ? '已证实' : '已证伪',
-        icon: 'success',
-      })
-      this.setData({ userValidationType: type })
+      const res = await validatePost(this.data.postId, type)
+      // 后端自动处理：同类型=取消(removed)，不同类型=切换(switched)，首次=created
+      const action = res && res.action
+      const currentType = res && res.current_validation_type
+      if (action === 'removed') {
+        wx.showToast({ title: '已取消投票', icon: 'none' })
+        this.setData({ userValidationType: '' })
+      } else {
+        wx.showToast({
+          title: currentType === 'confirmation' ? '已证实' : '已证伪',
+          icon: 'success',
+        })
+        this.setData({ userValidationType: currentType || type })
+      }
       await this.loadValidationStats()
     } catch (e: any) {
       wx.showToast({ title: e.message || '操作失败', icon: 'none' })
@@ -314,7 +330,8 @@ Page({
 
   // ============== 举报 ==============
   openReport() {
-    this.setData({ reportVisible: true, reportReason: '', reportType: '其他' })
+    if (!requireLogin('登录后即可举报')) return
+    this.setData({ reportVisible: true, reportReason: '', reportType: 'other' })
   },
 
   closeReport() {
@@ -326,8 +343,8 @@ Page({
   },
 
   onPickReportType(e: any) {
-    const type = e.currentTarget.dataset.type
-    this.setData({ reportType: type })
+    const value = e.currentTarget.dataset.type
+    this.setData({ reportType: value })
   },
 
   async onSubmitReport() {
@@ -340,12 +357,34 @@ Page({
     try {
       await reportPost(this.data.postId, this.data.reportReason.trim(), this.data.reportType)
       wx.showToast({ title: '举报已提交', icon: 'success' })
-      this.setData({ reportVisible: false, reportReason: '', reportType: '其他' })
+      this.setData({ reportVisible: false, reportReason: '', reportType: 'other' })
     } catch (e: any) {
       wx.showToast({ title: e.message || '提交失败', icon: 'none' })
     } finally {
       this.setData({ submittingReport: false })
     }
+  },
+
+  // ============== 复制地址 / 链接 ==============
+  copyAddress() {
+    const post = this.data.post || {}
+    const text = post.location_address || post.location_name || ''
+    if (!text) {
+      wx.showToast({ title: '暂无地点信息', icon: 'none' })
+      return
+    }
+    wx.setClipboardData({
+      data: text,
+      success: () => wx.showToast({ title: '地址已复制', icon: 'success' }),
+    })
+  },
+
+  copyLink() {
+    const url = `https://campus.chaina1.com/posts/${this.data.postId}`
+    wx.setClipboardData({
+      data: url,
+      success: () => wx.showToast({ title: '链接已复制', icon: 'success' }),
+    })
   },
 
   // ============== 倒计时 ==============

@@ -339,6 +339,22 @@ export interface ReportBrief {
   created_at: string;
 }
 
+/** 用户反馈（管理视图） */
+export interface FeedbackItem {
+  id: number;
+  user_id: number;
+  school_id: number;
+  feedback_type: string;
+  content: string;
+  contact: string | null;
+  status: string;
+  remark: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  user_name: string | null;
+}
+
 // ============ 请求参数类型 ============
 
 export interface LogQueryParams {
@@ -367,6 +383,13 @@ export interface ReportQueryParams {
   page?: number;
   page_size?: number;
   status?: string;
+}
+
+export interface FeedbackQueryParams {
+  page?: number;
+  page_size?: number;
+  status?: string;
+  type?: string;
 }
 
 export interface PendingPostQueryParams {
@@ -427,6 +450,11 @@ export interface ToggleActiveRequest {
 export interface HandleReportRequest {
   action: 'dismiss' | 'warn' | 'delete_post' | 'ban_user';
   reason: string;
+}
+
+export interface FeedbackUpdateRequest {
+  status?: 'open' | 'in_review' | 'resolved';
+  remark?: string;
 }
 
 // ============ API ============
@@ -500,6 +528,17 @@ export const adminApi = {
 
   handleReport: async (id: number, data: HandleReportRequest): Promise<{ message: string }> => {
     const response = await api.put(`/admin/reports/${id}/handle`, data);
+    return response.data;
+  },
+
+  // -------- 用户反馈管理 --------
+  getAllFeedbacks: async (params?: FeedbackQueryParams): Promise<PaginatedResponse<FeedbackItem>> => {
+    const response = await api.get('/feedback/all', { params });
+    return response.data;
+  },
+
+  updateFeedback: async (id: number, data: FeedbackUpdateRequest): Promise<FeedbackItem> => {
+    const response = await api.patch(`/feedback/${id}`, data);
     return response.data;
   },
 

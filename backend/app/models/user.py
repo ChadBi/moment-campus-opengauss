@@ -102,6 +102,8 @@ class User(Base):
     campus_verify_tokens: Mapped[list["CampusVerifyToken"]] = relationship(
         back_populates="user", foreign_keys="CampusVerifyToken.user_id"
     )
+    # 用户反馈（一对多）
+    feedbacks: Mapped[list["Feedback"]] = relationship(back_populates="user")
 
     __table_args__ = (
         Index("idx_user_school", "school_id"),

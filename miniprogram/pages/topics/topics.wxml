@@ -34,7 +34,7 @@
         hover-class="topic-card-hover"
         hover-stay-time="120">
         <view wx:if="{{item.cover_image}}" class="topic-cover">
-          <image class="cover-img" src="{{item.cover_image}}" mode="aspectFill" />
+          <image class="cover-img" src="{{item.cover_image}}" mode="aspectFill" lazy-load />
         </view>
         <view wx:else class="topic-cover topic-cover-placeholder">
           <icon name="file-text" size="56rpx" color="#174d5e" />

@@ -1,5 +1,6 @@
 import { http } from '../../services/request'
 import { formatDate } from '../../utils/format'
+import { guardPageLogin } from '../../utils/auth-guard'
 
 const TYPE_ICONS: Record<string, string> = {
   category: 'file-text',
@@ -31,6 +32,10 @@ Page({
   },
 
   onLoad() {
+    // 游客访问订阅页时引导登录（Task 6）
+    if (!guardPageLogin('请先登录后管理订阅')) {
+      return
+    }
     this.loadSubscriptions()
   },
 

@@ -13,17 +13,17 @@
     },
     "coverView": false,
     "postcss": false,
-    "minified": false,
-    "enhance": false,
+    "minified": true,
+    "enhance": true,
     "showShadowRootInWxmlPanel": false,
     "packNpmRelationList": [],
     "ignoreUploadUnusedFiles": true,
     "compileHotReLoad": false,
-    "skylineRenderEnable": true,
-    "es6": false,
+    "skylineRenderEnable": false,
+    "es6": true,
     "compileWorklet": false,
     "uglifyFileName": false,
-    "uploadWithSourceMap": true,
+    "uploadWithSourceMap": false,
     "packNpmManually": false,
     "minifyWXSS": true,
     "minifyWXML": true,
@@ -44,7 +44,7 @@
     "tabIndent": "insertSpaces",
     "tabSize": 2
   },
-  "libVersion": "trial",
+  "libVersion": "3.7.12",
   "packOptions": {
     "ignore": [
       {

@@ -39,6 +39,9 @@ export const authStore = {
       state.refreshToken = data.refresh_token
       state.user = data.user
       state.isLoggedIn = true
+      // 仅持久化长凭据 refresh_token；access_token 保持内存态，不落 storage
+      if (data.refresh_token) wx.setStorageSync('refresh_token', data.refresh_token)
+      wx.removeStorageSync('access_token')
     }
     notify()
   },
@@ -46,8 +49,8 @@ export const authStore = {
   setTokens(accessToken: string, refreshToken: string) {
     state.accessToken = accessToken
     state.refreshToken = refreshToken
-    wx.setStorageSync('access_token', accessToken)
-    wx.setStorageSync('refresh_token', refreshToken)
+    if (refreshToken) wx.setStorageSync('refresh_token', refreshToken)
+    wx.removeStorageSync('access_token')
     notify()
   },
 
@@ -67,11 +70,12 @@ export const authStore = {
   },
 
   initFromStorage() {
-    const accessToken = wx.getStorageSync('access_token') || ''
+    // 以 refresh_token 是否持久化作为登录态依据；access_token 不落 storage
     const refreshToken = wx.getStorageSync('refresh_token') || ''
-    if (accessToken && refreshToken) {
-      state.accessToken = accessToken
+    const accessToken = wx.getStorageSync('access_token') || '' // 兼容旧版本残留
+    if (refreshToken) {
       state.refreshToken = refreshToken
+      state.accessToken = accessToken || ''
       state.isLoggedIn = true
     }
     notify()

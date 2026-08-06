@@ -164,6 +164,7 @@
           class="author-avatar"
           src="{{item.author_avatar || '/assets/default-avatar.png'}}"
           mode="aspectFill"
+          lazy-load
         />
         <view class="author-info">
           <view class="author-name-row">
@@ -181,12 +182,17 @@
       </view>
 
       <view wx:if="{{item.cover}}" class="post-cover">
-        <image class="cover-image" src="{{item.cover}}" mode="aspectFill" />
+        <image class="cover-image" src="{{item.cover}}" mode="aspectFill" lazy-load />
       </view>
 
       <view wx:if="{{item.location_name}}" class="post-location">
         <icon name="map-pin" size="24rpx" color="#2d6270" />
         <text class="loc-text">{{item.location_name}}</text>
+      </view>
+
+      <view wx:if="{{item.remaining_text}}" class="post-remaining">
+        <icon name="clock" size="24rpx" color="#cc5f30" />
+        <text class="remaining-text">{{item.remaining_text}}</text>
       </view>
 
       <!-- AI 单条匹配理由 -->

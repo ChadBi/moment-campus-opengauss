@@ -55,7 +55,7 @@ Page({
         setTimeout(() => wx.switchTab({ url: '/pages/home/home' }), 500)
       } else if (exchangeRes.status === 'binding_required') {
         wx.navigateTo({
-          url: `/pages/bind-account/bind-account?ticket=${exchangeRes.binding_ticket}`,
+          url: `/subpackages/pages/bind-account/bind-account?ticket=${exchangeRes.binding_ticket}`,
         })
       }
     } catch (e: any) {
@@ -86,7 +86,11 @@ Page({
   },
 
   goToRegister() {
-    wx.navigateTo({ url: '/pages/school-select/school-select?mode=register' })
+    wx.navigateTo({ url: '/subpackages/pages/school-select/school-select?mode=register' })
+  },
+
+  goToForgotPassword() {
+    wx.navigateTo({ url: '/subpackages/pages/forgot-password/forgot-password' })
   },
 })
 

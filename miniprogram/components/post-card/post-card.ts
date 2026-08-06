@@ -22,7 +22,7 @@ Component({
   properties: {
     post: {
       type: Object,
-      value: null,
+      value: {},
     }
   },
 
@@ -38,6 +38,7 @@ Component({
     formattedRefutations: '0',
     categoryClass: 'default',
     verified: false,
+    recommendReason: '',
   },
 
   observers: {
@@ -63,6 +64,7 @@ Component({
         formattedValidations: formatCount(post.validations_count || 0),
         formattedRefutations: formatCount(post.refutations_count || 0),
         categoryClass: mapCategoryToClass(categoryName),
+        recommendReason: post.recommend_reason || '',
       })
     }
   },

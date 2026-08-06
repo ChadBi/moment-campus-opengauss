@@ -12,6 +12,13 @@
 ### 新增
 
 - `map` 地图页统一地点数据源：发帖地点与评分地点同为 `locations` 表，地图页只渲染「带评分的地点标记」，移除「附近」按钮与帖子标记（小水滴），信息全部集成在每个地点上——点击地点打开面板展示评分/描述/楼层与相关帖子（`GET /posts?location_id=`）
+- `miniprogram` 小程序正式版 M2 功能完善：新增 `components/empty-state`、`components/skeleton` 空态/骨架屏组件；新增 `utils/auth-guard.ts`（`requireLogin` 写操作引导 + `guardPageLogin` 页面守卫）；新增 `subpackages/pages/about` 关于页（品牌展示、版本号、检查更新）；`subpackages/sub-pages.json` 分包 5 个低频页面
+- `miniprogram` 小程序正式版 M3 性能优化：`components/post-card` 图片 `lazy-load`；新增 `utils/cache.ts` 按 schoolCode 分区 10 分钟缓存；`app.ts` 启动时 auth/campus store 首屏预恢复
+- `miniprogram` 小程序正式版 M4 兼容性：`app.wxss` iOS 安全区 `.safe-bottom-*` 适配；老基础库 `wx.getUpdateManager` 类型保护
+- `miniprogram` 小程序正式版 M5 安全加固：上传前 5MB 大小 + jpg/png/gif 格式 + 5 张数三重预检；Token 存储用 `wx.setStorageSync` 隔离沙盒 + 请求日志脱敏；发布二次确认；举报 6 种 Reason 枚举对齐后端 enums
+- `miniprogram` 小程序正式版 Task 14 测试脚本：新增 `scripts/test-format.mjs` formatCount/truncateText/formatDate/getRemainingTime 单测；`typings/global.d.ts` 补齐 `URLSearchParams` 类型声明
+- `feedback` 用户反馈模块（前后端）：后端 `feedback.py` 路由 + `feedback` 模型 + schema + Alembic 迁移 `f4b5c6d7a8b9_fdb_01_feedbacks.py`；前端 `AdminFeedbackPage.tsx` 管理端处理页；小程序 `services/feedback.ts`
+- `miniprogram` 小程序分包：`miniprogram/subpackages/pages/about/about.*` 关于页 4 件套
 
 ### 变更
 
@@ -20,6 +27,15 @@
 - `home` 移除首页「附近好去处」区块，不再显示「几公里内」与距离
 - `auth` 为江南大学补充允许的校园邮箱域名 `stu.jiangnan.edu.cn`（seed 支持 `addl_domains` 多域名写入），使 `@stu.jiangnan.edu.cn` 教育邮箱可通过校园身份认证
 - `auth` 配置 QQ 邮箱 SMTP（smtp.qq.com:465，授权码存 `.env.opengauss` 不进 Git），实测向 `1030424433@stu.jiangnan.edu.cn` 成功发送验证邮件
+- `miniprogram(app)` `app.ts` 移除 `onLaunch/onShow` 强制登录跳转，游客可直接浏览首页/地图/搜索/详情/专题/地点
+- `miniprogram(request)` `services/request.ts` 401 分支分场景处理：游客场景（无 refreshToken）401 只抛异常不 `reLaunch` 跳登录，由页面调用方 `try/catch` 静默；登录过期场景才清 Token 并跳转
+- `miniprogram(publish)` `pages/publish/publish.ts` 新增 `onShow` 守卫（`guardPageLogin('请先登录后再发布帖子')`），避免游客填半天表单才发现不能发布
+- `miniprogram(auth)` 登录页新增「以游客身份继续浏览」链接入口
+- `miniprogram(upload)` `services/upload.ts` 上传 URL 从硬编码 `http://localhost:8000/api/v1/uploads` 改为 `${BASE_URL}/upload/image` 与后端路由一致
+- `miniprogram(ts)` `typings/types/wx/lib.wx.app.d.ts` 修复 `GetApp<T>` 泛型约束：由 `<T = IAnyObject>` 改为 `<T extends IAnyObject = IAnyObject>`，解决 TypeScript 编译错误
+- `miniprogram(notifications)` `pages/notifications` onShow `guardPageLogin('请先登录后查看通知')` 守卫生效
+- `miniprogram(profile)` `pages/profile` onShow 守卫生效 + 关于页入口
+- `miniprogram(post-detail)` 点赞/验证/举报/评论 4 种写操作统一 `requireLogin(具体文案)`，双按钮（再看看 / 去登录）给用户选择权
 
 ## [2.1.9] - 2026-08-06
 

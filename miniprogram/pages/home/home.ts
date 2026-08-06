@@ -2,6 +2,7 @@ import { http, resolveImageUrl } from '../../services/request'
 import { formatDate, formatCount } from '../../utils/format'
 import { authStore } from '../../store/auth'
 import { campusStore } from '../../store/campus'
+import { cachedFetch } from '../../utils/cache'
 
 Page({
   data: {
@@ -39,7 +40,9 @@ Page({
 
   async loadCategories() {
     try {
-      const res = await http.get('/categories') as any
+      // 分类为低频数据，走本地缓存 + 过期刷新（Task 10）
+      const schoolCode = campusStore.getState().schoolCode
+      const res = await cachedFetch<any>('categories', () => http.get('/categories'), { schoolCode })
       const cats = res.categories || res.items || []
       this.setData({
         categories: [{ id: 0, name: '推荐' }, ...cats]
@@ -68,15 +71,21 @@ Page({
       }
       const items = res.items || res.posts || []
       // 预处理帖子数据：用 resolveImageUrl 处理图片 URL + 归一化嵌套 author 字段（B-06）
+      // activeCategoryId===0 为推荐模式：把接口返回的 reason/reason_code 归一化到 recommend_reason（普通分类不设置）
+      const isRecommend = activeCategoryId === 0
       const processedPosts = items.map((post: any) => {
         const author = post.author || {}
-        return {
+        const normalized: any = {
           ...post,
           images: (post.images || []).map((img: string) => resolveImageUrl(img)),
           author_nickname: post.author_nickname || author.nickname || '匿名用户',
           author_avatar: resolveImageUrl(post.author_avatar || author.avatar_url),
           is_verified: !!post.is_verified || !!author.is_verified,
         }
+        if (isRecommend && (post.reason || post.reason_code)) {
+          normalized.recommend_reason = post.reason || post.reason_code
+        }
+        return normalized
       })
 
       const total = res.total !== undefined
@@ -136,7 +145,7 @@ Page({
   },
 
   goToLocations() {
-    wx.navigateTo({ url: '/pages/locations/locations' })
+    wx.navigateTo({ url: '/subpackages/pages/locations/locations' })
   },
 
   goToPublish() {

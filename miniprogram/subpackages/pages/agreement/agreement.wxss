@@ -1,0 +1,55 @@
+/* ============================================================
+ * 合规静态页 - 水墨风正文样式
+ * ============================================================ */
+.doc-page {
+  padding: 40rpx 36rpx 80rpx;
+  background: var(--paper);
+  min-height: 100vh;
+}
+.doc-title {
+  font-family: var(--font-display);
+  font-size: 40rpx;
+  font-weight: 800;
+  color: var(--lake);
+  letter-spacing: 2rpx;
+}
+.doc-meta {
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: var(--muted);
+}
+.doc-section {
+  margin-top: 40rpx;
+}
+.doc-h2 {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 16rpx;
+}
+.doc-p {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.8;
+  color: var(--ink-2);
+  margin-bottom: 12rpx;
+}
+.doc-list {
+  margin-top: 8rpx;
+}
+.doc-li {
+  display: block;
+  font-size: 28rpx;
+  line-height: 1.8;
+  color: var(--ink-2);
+  margin-bottom: 8rpx;
+  padding-left: 24rpx;
+  position: relative;
+}
+.doc-li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  color: var(--lamp);
+}

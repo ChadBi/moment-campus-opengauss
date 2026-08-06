@@ -1,6 +1,8 @@
 import { http } from '../../services/request'
 import { formatDate } from '../../utils/format'
 import { listNotifications, markAsRead, markAllAsRead, deleteNotification, getUnreadCount } from '../../services/notifications'
+import { guardPageLogin } from '../../utils/auth-guard'
+import { authStore } from '../../store/auth'
 
 const TYPE_TABS = [
   { key: 'all', label: '全部' },
@@ -44,10 +46,15 @@ Page({
   },
 
   onLoad() {
+    // 游客访问通知页时引导登录（Task 6）
+    if (!guardPageLogin('请先登录后查看通知')) {
+      return
+    }
     this.refreshNotifications()
   },
 
   onShow() {
+    if (!authStore.getState().isLoggedIn) return
     this.loadUnreadCount()
   },
 

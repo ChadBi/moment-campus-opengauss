@@ -27,6 +27,7 @@ import {
   Globe,
   BookMarked,
   BarChart3,
+  MessageCircle,
 } from 'lucide-react';
 
 /** 管理员角色判断：admin 或 super_admin */
@@ -50,6 +51,7 @@ const MENU_ITEMS: MenuItem[] = [
   { path: '/admin/review', label: '内容审核', icon: FileText, crumb: '内容审核' },
   { path: '/admin/users', label: '用户管理', icon: Users, crumb: '用户管理' },
   { path: '/admin/reports', label: '举报管理', icon: Flag, crumb: '举报管理' },
+  { path: '/admin/feedback', label: '反馈管理', icon: MessageCircle, crumb: '反馈管理' },
   { path: '/admin/locations', label: '地点核验', icon: MapPin, crumb: '地点核验' },
   { path: '/admin/categories', label: '分类管理', icon: FolderTree, crumb: '分类管理' },
   { path: '/admin/topics', label: '专题管理', icon: BookMarked, crumb: '专题管理' },

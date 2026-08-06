@@ -21,6 +21,8 @@ from app.api.recommendations import router as recommendations_router
 from app.api.subscriptions import router as subscriptions_router
 # REV-01: 地点（列表/详情/评分评价/附近）
 from app.api.locations import router as locations_router
+# 用户反馈（提交/我的反馈/管理端处理）
+from app.api.feedback import router as feedback_router
 
 api_router = APIRouter()
 
@@ -61,3 +63,5 @@ api_router.include_router(subscriptions_router)
 api_router.include_router(recommendations_router)
 # REV-01: 地点（列表/详情/评分评价/附近）
 api_router.include_router(locations_router)
+# 用户反馈（提交/我的反馈/管理端处理）
+api_router.include_router(feedback_router)

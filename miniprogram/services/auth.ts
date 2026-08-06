@@ -45,6 +45,22 @@ export async function emailRegister(params: {
   return http.post<LoginResponse>('/auth/register', params)
 }
 
+export async function forgotPassword(email: string): Promise<{
+  message: string
+  reset_token?: string
+}> {
+  return http.post<{ message: string; reset_token?: string }>('/auth/forgot-password', {
+    email,
+  })
+}
+
+export async function resetPassword(params: {
+  token: string
+  new_password: string
+}): Promise<{ message: string }> {
+  return http.post<{ message: string }>('/auth/reset-password', params)
+}
+
 export async function refreshToken(refreshToken: string): Promise<{
   access_token: string
   refresh_token: string
