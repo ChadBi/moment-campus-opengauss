@@ -35,8 +35,8 @@ class AISearchOverrides(BaseModel):
     location_id: Optional[int] = Field(None, description="地点ID覆盖")
     sort: Optional[str] = Field(
         None,
-        pattern="^(latest|hottest|nearest|active|relevance)$",
-        description="排序覆盖：latest/hottest/nearest/active/relevance",
+        pattern="^(latest|hottest|active|relevance)$",
+        description="排序覆盖：latest/hottest/active/relevance",
     )
     date_from: Optional[datetime] = Field(None, description="起始时间覆盖")
     date_to: Optional[datetime] = Field(None, description="截止时间覆盖")

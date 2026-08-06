@@ -99,6 +99,41 @@
         </view>
 
         <block wx:elif="{{detail}}">
+          <!-- 已审核稳定资料 -->
+          <view class="knowledge-card">
+            <view class="knowledge-title-row">
+              <text class="section-title">已审核资料</text>
+              <text class="knowledge-note">管理员审核后生效</text>
+            </view>
+            <block wx:if="{{detail.facts.length}}">
+              <view wx:for="{{detail.facts}}" wx:key="id" class="fact-row">
+                <text class="fact-label">{{item.label}}</text>
+                <text class="fact-value">{{item.value}}</text>
+              </view>
+            </block>
+            <text wx:else class="knowledge-empty">暂无稳定资料</text>
+          </view>
+
+          <!-- AI 此刻摘要 -->
+          <view class="knowledge-card summary-card">
+            <view class="knowledge-title-row">
+              <text class="section-title">AI「此刻摘要」</text>
+              <text wx:if="{{detail.summary.confidence_level !== 'insufficient'}}" class="summary-confidence">{{detail.summary.confidence_level}}</text>
+            </view>
+            <text wx:if="{{detail.summary.summary_text}}" class="summary-text">{{detail.summary.summary_text}}</text>
+            <text wx:else class="knowledge-empty">暂无足够近期信息，暂不生成具体结论。</text>
+            <text wx:if="{{detail.summary.source_count}}" class="knowledge-note summary-source-count">{{detail.summary.source_count}} 条来源 · 管理员已审核</text>
+            <view wx:if="{{detail.summary.claims.length}}" class="claims-list">
+              <view wx:for="{{detail.summary.claims}}" wx:key="claim_id" class="claim-row">
+                <text class="claim-text">{{item.text}}</text>
+                <text class="knowledge-note">依据 {{item.source_refs.length}} 条来源</text>
+              </view>
+            </view>
+            <view wx:if="{{detail.summary.conflicts.length}}" class="conflict-box">
+              <text>存在相互矛盾的信息：{{detail.summary.conflicts[0].text}}</text>
+            </view>
+          </view>
+
           <!-- 评分汇总 -->
           <view class="summary">
             <view class="summary-top">
@@ -194,6 +229,26 @@
                 <text wx:if="{{item.content}}" class="review-content">{{item.content}}</text>
               </view>
             </block>
+          </view>
+
+          <!-- 补充地点资料 -->
+          <view class="knowledge-card proposal-card">
+            <text class="section-title">补充地点资料</text>
+            <text class="knowledge-note proposal-hint">仅认证用户可提交，管理员审核后才公开。</text>
+            <view wx:if="{{!isLoggedIn}}" class="login-row">
+              <text class="login-hint">登录并完成校园认证后即可补充</text>
+              <view class="login-btn" bindtap="goToLogin"><text>去登录</text></view>
+            </view>
+            <view wx:elif="{{!campusVerified}}" class="knowledge-empty">请先完成校园身份认证</view>
+            <view wx:else class="proposal-form">
+              <picker mode="selector" range="{{['营业时间','服务内容','价格说明','联系方式','进入方式','预约方式','其他']}}" bindchange="onFactKeyChange">
+                <view class="fact-picker">选择资料类型：{{factKey}}</view>
+              </picker>
+              <input class="proposal-input" value="{{factLabel}}" bindinput="onFactLabelInput" placeholder="资料标题" />
+              <textarea class="proposal-input" value="{{factValue}}" bindinput="onFactValueInput" maxlength="2000" auto-height placeholder="填写你确认过的地点资料" />
+              <input class="proposal-input" value="{{factReason}}" bindinput="onFactReasonInput" maxlength="1000" placeholder="补充说明（可选）" />
+              <view class="submit-btn {{proposalSubmitting || !factValue ? 'disabled' : ''}}" bindtap="submitFactProposal">{{proposalSubmitting ? '提交中...' : '提交资料提议'}}</view>
+            </view>
           </view>
         </block>
       </scroll-view>

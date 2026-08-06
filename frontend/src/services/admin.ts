@@ -159,6 +159,35 @@ export interface LocationAdmin {
   created_at: string;
 }
 
+export interface LocationFactProposalAdmin {
+  id: number;
+  location_id: number;
+  school_id: number;
+  proposer_id: number;
+  changes_json: {
+    upserts?: Array<{ fact_key: string; label?: string; value: string; source_note?: string }>;
+    remove_keys?: string[];
+  };
+  reason: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface LocationSummaryAdmin {
+  id: number;
+  location_id: number;
+  location_name: string;
+  version: number;
+  status: string;
+  summary_text: string | null;
+  confidence_level: string;
+  claims: Array<{ claim_id: string; text: string; source_refs: Array<{ source_type: string; source_id: number }> }>;
+  conflicts: Array<{ text: string; source_refs: Array<{ source_type: string; source_id: number }> }>;
+  source_count: number;
+  generated_at: string;
+  stale_at: string | null;
+}
+
 // ============ ADM-02.1: 学校设置 ============
 
 /**
@@ -591,6 +620,32 @@ export const adminApi = {
     const response = await api.put(`/admin/locations/${id}/verify`, null, {
       params: { is_verified: isVerified },
     });
+    return response.data;
+  },
+
+  // 地点知识层审核
+  getLocationFactProposals: async (params?: { status?: string; page?: number; page_size?: number }): Promise<PaginatedResponse<LocationFactProposalAdmin>> => {
+    const response = await api.get('/admin/location-fact-proposals', { params });
+    return response.data;
+  },
+  approveLocationFactProposal: async (id: number, reason?: string): Promise<LocationFactProposalAdmin> => {
+    const response = await api.post(`/admin/location-fact-proposals/${id}/approve`, { reason });
+    return response.data;
+  },
+  rejectLocationFactProposal: async (id: number, reason?: string): Promise<LocationFactProposalAdmin> => {
+    const response = await api.post(`/admin/location-fact-proposals/${id}/reject`, { reason });
+    return response.data;
+  },
+  getLocationSummaries: async (params?: { status?: string; page?: number; page_size?: number }): Promise<PaginatedResponse<LocationSummaryAdmin>> => {
+    const response = await api.get('/admin/location-summaries', { params });
+    return response.data;
+  },
+  approveLocationSummary: async (id: number, reason?: string): Promise<unknown> => {
+    const response = await api.post(`/admin/location-summaries/${id}/approve`, { reason });
+    return response.data;
+  },
+  rejectLocationSummary: async (id: number, reason?: string): Promise<unknown> => {
+    const response = await api.post(`/admin/location-summaries/${id}/reject`, { reason });
     return response.data;
   },
 

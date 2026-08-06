@@ -22,7 +22,7 @@
   <view class="doc-section">
     <text class="doc-h2">三、权限申请与用途</text>
     <view class="doc-list">
-      <text class="doc-li">位置权限：用于在地图上展示您的位置，并标注您发布的校园信息点，便于附近用户查找。</text>
+      <text class="doc-li">地点选择：仅在您主动为帖子选择地点时调用地图选择能力；平台不采集或展示您的实时位置。</text>
       <text class="doc-li">相册权限：用于您选择本地图片作为内容图片或头像上传。</text>
       <text class="doc-li">摄像头权限：用于您现场拍摄内容图片。</text>
     </view>

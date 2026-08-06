@@ -2,7 +2,7 @@ import type { Feature, FeatureCollection, Point } from 'geojson';
 import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl';
 import type { LocationItem } from '../services/locations';
 
-// A-06: 地图「附近」模式专用地点标记图层（独立于帖子标记图层）
+// A-06: 地图地点标记图层（独立于帖子标记图层）
 // 每个标记为水滴 pin，内部绘制该地点的评分（avg_score），未评分显示「新」。
 
 export const MAP_LOCATION_SOURCE_ID = 'campus-location-markers';

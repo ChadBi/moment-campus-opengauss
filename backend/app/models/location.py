@@ -22,6 +22,11 @@ class Location(Base):
     avg_score: Mapped[float] = mapped_column(Numeric(3, 2), default=0, nullable=False, comment="平均评分（1-5，保留 2 位）")
     rating_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="评分人数（有分评价数）")
     review_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="评价条数")
+    # 地点知识层：当前已批准摘要和待刷新标记
+    current_summary_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("location_summary_versions.id", ondelete="SET NULL"), nullable=True,
+    )
+    summary_dirty_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -31,6 +36,14 @@ class Location(Base):
     school: Mapped["School"] = relationship(back_populates="locations")
     posts: Mapped[list["Post"]] = relationship(back_populates="location")
     reviews: Mapped[list["LocationReview"]] = relationship(back_populates="location")
+    facts: Mapped[list["LocationFact"]] = relationship(back_populates="location", cascade="all, delete-orphan")
+    fact_proposals: Mapped[list["LocationFactProposal"]] = relationship(back_populates="location", cascade="all, delete-orphan")
+    summary_versions: Mapped[list["LocationSummaryVersion"]] = relationship(
+        back_populates="location", foreign_keys="LocationSummaryVersion.location_id", cascade="all, delete-orphan"
+    )
+    current_summary: Mapped["LocationSummaryVersion | None"] = relationship(
+        foreign_keys=[current_summary_id], post_update=True,
+    )
 
     __table_args__ = (
         Index("idx_location_school", "school_id"),

@@ -48,7 +48,7 @@
 
   <view class="doc-section">
     <text class="doc-h2">七、权限与图片上传</text>
-    <text class="doc-p">1. 位置授权：用于在地图上定位并标注您发布的校园信息点，方便附近用户查找。您可在系统设置中随时关闭。</text>
+    <text class="doc-p">1. 地点选择：仅用于您主动选择并标注帖子地点。平台不采集您的实时位置，也不提供按距离排序。</text>
     <text class="doc-p">2. 相册 / 摄像头权限：用于选择或拍摄内容图片。非上传图片场景不会调用。</text>
     <text class="doc-p">3. 图片上传内容不得包含违法侵权信息，平台对违规图片有权处理。</text>
   </view>

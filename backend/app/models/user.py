@@ -94,6 +94,15 @@ class User(Base):
     )
     # 用户反馈（一对多）
     feedbacks: Mapped[list["Feedback"]] = relationship(back_populates="user")
+    location_fact_proposals: Mapped[list["LocationFactProposal"]] = relationship(
+        foreign_keys="LocationFactProposal.proposer_id", back_populates="proposer"
+    )
+    reviewed_location_fact_proposals: Mapped[list["LocationFactProposal"]] = relationship(
+        foreign_keys="LocationFactProposal.reviewer_id", back_populates="reviewer"
+    )
+    location_summary_reviews: Mapped[list["LocationSummaryVersion"]] = relationship(
+        foreign_keys="LocationSummaryVersion.reviewer_id", back_populates="reviewer"
+    )
 
     __table_args__ = (
         Index("idx_user_school", "school_id"),

@@ -10,7 +10,12 @@ import {
   Check,
   BadgeCheck,
 } from 'lucide-react';
-import { locationsApi, type LocationItem, type LocationReviewItem } from '../services/locations';
+import {
+  locationsApi,
+  type LocationItem,
+  type LocationReviewItem,
+  type LocationDetail,
+} from '../services/locations';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState, ErrorState, LoadingState } from '../components/state';
@@ -55,7 +60,7 @@ const LocationPage: React.FC = () => {
 
   // 详情 Modal 状态
   const [activeId, setActiveId] = useState<number | null>(null);
-  const [detail, setDetail] = useState<{ location: LocationItem; reviews: LocationReviewItem[] } | null>(null);
+  const [detail, setDetail] = useState<(LocationDetail & { reviews: LocationReviewItem[] }) | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [myReview, setMyReview] = useState<LocationReviewItem | null>(null);
@@ -63,6 +68,11 @@ const LocationPage: React.FC = () => {
   const [score, setScore] = useState(5);
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [factKey, setFactKey] = useState('normal_hours');
+  const [factLabel, setFactLabel] = useState('营业时间');
+  const [factValue, setFactValue] = useState('');
+  const [factReason, setFactReason] = useState('');
+  const [submittingProposal, setSubmittingProposal] = useState(false);
 
   const loadLocations = useCallback(async () => {
     setLoading(true);
@@ -92,7 +102,7 @@ const LocationPage: React.FC = () => {
         locationsApi.getDetail(locationId),
         locationsApi.getReviews(locationId),
       ]);
-      setDetail({ location: d.location, reviews: reviews.items });
+      setDetail({ ...d, reviews: reviews.items });
       setMyReview(d.my_review ?? null);
       if (d.my_review) {
         setScore(d.my_review.score);
@@ -126,7 +136,32 @@ const LocationPage: React.FC = () => {
     setActiveId(null);
     setDetail(null);
     setMyReview(null);
+    setFactValue('');
+    setFactReason('');
   }, []);
+
+  const handleSubmitFactProposal = useCallback(async () => {
+    if (!activeId || !factValue.trim()) return;
+    setSubmittingProposal(true);
+    try {
+      await locationsApi.submitFactProposal(activeId, {
+        upserts: [{
+          fact_key: factKey,
+          label: factLabel.trim() || undefined,
+          value: factValue.trim(),
+        }],
+        reason: factReason.trim() || undefined,
+      });
+      setFactValue('');
+      setFactReason('');
+      showToast('资料提议已提交，等待管理员审核', 'success');
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      showToast(e?.response?.data?.detail || '提交资料提议失败', 'error');
+    } finally {
+      setSubmittingProposal(false);
+    }
+  }, [activeId, factKey, factLabel, factReason, factValue, showToast]);
 
   const handleSubmitReview = useCallback(async () => {
     if (!activeId) return;
@@ -140,7 +175,7 @@ const LocationPage: React.FC = () => {
         locationsApi.getDetail(activeId),
         locationsApi.getReviews(activeId),
       ]);
-      setDetail({ location: d.location, reviews: reviews.items });
+      setDetail({ ...d, reviews: reviews.items });
       setMyReview(review);
       showToast('评价已提交', 'success');
     } catch (err: unknown) {
@@ -161,7 +196,7 @@ const LocationPage: React.FC = () => {
         locationsApi.getDetail(activeId),
         locationsApi.getReviews(activeId),
       ]);
-      setDetail({ location: d.location, reviews: reviews.items });
+      setDetail({ ...d, reviews: reviews.items });
       setMyReview(null);
       setScore(5);
       setContent('');
@@ -266,6 +301,79 @@ const LocationPage: React.FC = () => {
           <ErrorState description={detailError} onRetry={activeId ? () => void openDetail(activeId) : undefined} />
         ) : detail ? (
           <div className="space-y-5">
+            {/* 已审核稳定资料：不由 AI 改写 */}
+            <section className="rounded-[12px] border border-line/60 p-4">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h3 className="font-semibold text-ink text-sm">已审核资料</h3>
+                <span className="text-[11px] text-ink-muted">管理员审核后生效</span>
+              </div>
+              {detail.facts.length === 0 ? (
+                <p className="text-sm text-ink-muted">暂无稳定资料。</p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {detail.facts.map((fact) => (
+                    <div key={fact.id} className="rounded-[10px] bg-mist/60 px-3 py-2">
+                      <div className="text-xs text-ink-muted">{fact.label}</div>
+                      <div className="text-sm text-ink mt-0.5 whitespace-pre-wrap">{fact.value}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* AI 此刻摘要：只展示管理员批准版本 */}
+            <section className="rounded-[12px] border border-lake/20 bg-lake/5 p-4">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <h3 className="font-semibold text-ink text-sm">AI「此刻摘要」</h3>
+                {detail.summary.confidence_level !== 'insufficient' && (
+                  <span className="text-[11px] text-lake font-medium">
+                    可信层级：{detail.summary.confidence_level}
+                  </span>
+                )}
+              </div>
+              {detail.summary.summary_text ? (
+                <p className="text-sm text-ink-sub leading-relaxed">{detail.summary.summary_text}</p>
+              ) : (
+                <p className="text-sm text-ink-muted">暂无足够近期信息，暂不生成具体结论。</p>
+              )}
+              <div className="mt-2 text-[11px] text-ink-muted">
+                {detail.summary.generated_at
+                  ? `整理于 ${formatRelativeTime(detail.summary.generated_at)} · ${detail.summary.source_count} 条来源`
+                  : '来源达到门槛并经管理员审核后才会展示'}
+              </div>
+              {detail.summary.claims.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {detail.summary.claims.map((claim) => (
+                    <details key={claim.claim_id} className="rounded-[10px] bg-paper/80 px-3 py-2">
+                      <summary className="cursor-pointer text-sm text-ink">{claim.text}</summary>
+                      <div className="mt-2 text-[11px] text-ink-muted">
+                        查看依据：{claim.source_refs.map((ref) => `${ref.source_type}:${ref.source_id}`).join('、')}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              )}
+              {detail.summary.conflicts.length > 0 && (
+                <div className="mt-3 rounded-[10px] border border-lamp/30 bg-lamp/10 px-3 py-2 text-xs text-ink-sub">
+                  <span className="font-medium">存在相互矛盾的信息：</span>
+                  {detail.summary.conflicts.map((conflict) => conflict.text).join('；')}
+                </div>
+              )}
+              {detail.summary.sources.length > 0 && (
+                <div className="mt-3 border-t border-line/50 pt-2">
+                  <div className="text-[11px] text-ink-muted mb-1">来源卡片</div>
+                  <div className="space-y-1">
+                    {detail.summary.sources.map((source) => (
+                      <div key={`${source.source_type}:${source.source_id}`} className="text-xs text-ink-sub">
+                        <span className="font-medium">{source.source_type}:{source.source_id}</span>
+                        {source.snippet ? ` · ${source.snippet}` : ''}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+
             {/* 评分汇总 */}
             <div className="bg-mist/60 rounded-[12px] p-4">
               <div className="flex items-center gap-3">
@@ -378,6 +486,70 @@ const LocationPage: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* 稳定资料提议 */}
+            <section className="border border-line/60 rounded-[12px] p-4">
+              <h3 className="font-semibold text-ink text-sm mb-1">补充地点资料</h3>
+              <p className="text-xs text-ink-muted mb-3">仅认证用户可提交，管理员审核后才会公开。</p>
+              {!isAuthenticated ? (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm text-ink-muted">登录并完成校园认证后即可补充</span>
+                  <Button variant="secondary" size="sm" onClick={() => navigate('/login')}>去登录</Button>
+                </div>
+              ) : (
+                <VerifyGate compact message="完成校园身份认证后即可补充资料">
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={factKey}
+                        onChange={(e) => setFactKey(e.target.value)}
+                        className="rounded-[10px] border border-line bg-paper px-3 py-2 text-sm text-ink"
+                      >
+                        <option value="normal_hours">营业时间</option>
+                        <option value="services">服务内容</option>
+                        <option value="price_note">价格说明</option>
+                        <option value="contact">联系方式</option>
+                        <option value="access">进入方式</option>
+                        <option value="booking">预约方式</option>
+                        <option value="other">其他</option>
+                      </select>
+                      <input
+                        value={factLabel}
+                        onChange={(e) => setFactLabel(e.target.value)}
+                        placeholder="资料标题"
+                        className="rounded-[10px] border border-line bg-paper px-3 py-2 text-sm text-ink"
+                      />
+                    </div>
+                    <textarea
+                      value={factValue}
+                      onChange={(e) => setFactValue(e.target.value)}
+                      rows={2}
+                      maxLength={2000}
+                      placeholder="填写你确认过的地点资料"
+                      className="w-full rounded-[10px] border border-line bg-paper px-3 py-2 text-sm text-ink resize-none"
+                    />
+                    <input
+                      value={factReason}
+                      onChange={(e) => setFactReason(e.target.value)}
+                      maxLength={1000}
+                      placeholder="补充说明（可选）"
+                      className="w-full rounded-[10px] border border-line bg-paper px-3 py-2 text-sm text-ink"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        loading={submittingProposal}
+                        disabled={!factValue.trim()}
+                        onClick={() => void handleSubmitFactProposal()}
+                      >
+                        提交资料提议
+                      </Button>
+                    </div>
+                  </div>
+                </VerifyGate>
+              )}
+            </section>
           </div>
         ) : null}
       </Modal>

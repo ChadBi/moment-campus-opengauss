@@ -4,7 +4,6 @@ from sqlalchemy import select, func, or_, and_
 from sqlalchemy.orm import selectinload, joinedload
 from typing import Optional, List
 from datetime import datetime, timedelta
-from math import radians, cos, sin, asin, sqrt
 import logging
 
 from app.database import get_db
@@ -35,6 +34,7 @@ from app.core.permissions import is_admin, require_campus_verified
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.services.ai_publish import execute_publish_suggestion
 from app.services.embedding_service import generate_post_embedding
+from app.services.location_summary import mark_location_summary_dirty
 
 router = APIRouter(prefix="/posts", tags=["信息"])
 
@@ -106,8 +106,8 @@ async def get_posts(
     date_to: Optional[datetime] = Query(default=None, description="截止时间（created_at <=）"),
     sort: str = Query(
         default="latest",
-        pattern="^(latest|hottest|nearest|active)$",
-        description="排序方式: latest（最新）/ hottest（最热）/ nearest（最近活动）/ active（综合活动）",
+        pattern="^(latest|hottest|active)$",
+        description="排序方式: latest（最新）/ hottest（最热）/ active（综合活动）",
     ),
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
@@ -158,9 +158,6 @@ async def get_posts(
     elif sort == "active":
         # DSC-01.1: 最近活动 = 评论+点赞+浏览综合活跃度，按 updated_at 优先
         query = query.order_by(Post.updated_at.desc(), Post.created_at.desc())
-    elif sort == "nearest":
-        # DSC-01.1: nearest 简化为按 updated_at 排序（真正地理距离排序需 location_id 参数走专用端点）
-        query = query.order_by(Post.updated_at.desc())
     else:
         query = query.order_by(Post.created_at.desc())
 
@@ -465,6 +462,9 @@ async def create_post(
     db.add(post)
     await db.flush()  # 获取 post.id
 
+    if post.location_id is not None and post.status in {PostStatus.PUBLISHED, PostStatus.EXPIRED}:
+        await mark_location_summary_dirty(db, post.location_id)
+
     # 处理图片
     if post_data.image_urls:
         for idx, image_url in enumerate(post_data.image_urls):
@@ -573,6 +573,8 @@ async def update_post(
     if post.status == PostStatus.ARCHIVED:
         raise BadRequestException(detail="已归档的帖子不可修改")
 
+    original_location_id = post.location_id
+
     # update_data 已在前面租户校验阶段计算，此处直接复用
     # 收集实际发生变化的实质字段（用于判断是否触发回审）
     # 注意：location_name/lat/lng 是 PostUpdate 的字段，但 Post 模型上没有这些字段
@@ -661,6 +663,9 @@ async def update_post(
         if refreshed_embedding is not None:
             post.embedding = refreshed_embedding
 
+    if original_location_id != post.location_id:
+        await mark_location_summary_dirty(db, original_location_id)
+    await mark_location_summary_dirty(db, post.location_id)
     await db.commit()
 
     # 重新查询以获取更新后的关联数据
@@ -729,6 +734,7 @@ async def delete_post(
         post.status = PostStatus.ARCHIVED
         post.updated_at = datetime.now()
 
+    await mark_location_summary_dirty(db, post.location_id)
     await db.commit()
 
     return {"message": "删除成功"}
@@ -853,6 +859,8 @@ async def transition_post_status(
         await notify_post_expired(db, post, actor_id=current_user.id)
     elif target == PostStatus.CONFLICT and previous_status != PostStatus.CONFLICT:
         await notify_post_conflict(db, post, actor_id=current_user.id)
+
+    await mark_location_summary_dirty(db, post.location_id)
 
     try:
         await db.commit()

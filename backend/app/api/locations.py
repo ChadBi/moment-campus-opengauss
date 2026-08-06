@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import joinedload
 from typing import Optional
-from math import radians, sin, cos, asin, sqrt
 from datetime import datetime
 
 from app.database import get_db
@@ -22,21 +21,18 @@ from app.schemas.post import UserBrief
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.core.permissions import require_campus_verified
+from app.services.location_summary import (
+    load_current_summary,
+    load_location_facts,
+    load_summary_sources,
+    summary_response,
+    mark_location_summary_dirty,
+)
 
 router = APIRouter(tags=["地点"])
 
 
-def _haversine(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-    """Haversine 距离（米），用于「附近」排序（GCJ-02 坐标近似）。"""
-    R = 6371000.0
-    p1, p2 = radians(lat1), radians(lat2)
-    dp = radians(lat2 - lat1)
-    dl = radians(lng2 - lng1)
-    a = sin(dp / 2) ** 2 + cos(p1) * cos(p2) * sin(dl / 2) ** 2
-    return 2 * R * asin(sqrt(a))
-
-
-def _location_response(location: Location, distance: Optional[float] = None) -> LocationResponse:
+def _location_response(location: Location) -> LocationResponse:
     return LocationResponse(
         id=location.id,
         school_id=location.school_id,
@@ -51,7 +47,6 @@ def _location_response(location: Location, distance: Optional[float] = None) -> 
         avg_score=float(location.avg_score or 0),
         rating_count=location.rating_count,
         review_count=location.review_count,
-        distance=distance,
     )
 
 
@@ -105,33 +100,6 @@ async def _recalc_location_rating(db: AsyncSession, location: Location) -> None:
     location.avg_score = round(float(avg), 2)
 
 
-@router.get("/locations/nearby", response_model=PaginatedResponse[LocationResponse], summary="附近地点")
-async def nearby_locations(
-    lat: float = Query(..., description="当前纬度"),
-    lng: float = Query(..., description="当前经度"),
-    radius: float = Query(default=5000, ge=0, description="半径（米），默认 5000"),
-    page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
-    tenant: TenantContext = Depends(get_tenant_context),
-):
-    """以当前位置为中心，按距离升序返回附近地点（含评分、距离）。"""
-    condition = [Location.school_id == tenant.school_id, Location.is_deleted == False]
-    query = select(Location).where(*condition)
-    result = (await db.execute(query)).scalars().all()
-
-    scored = []
-    for loc in result:
-        d = _haversine(lat, lng, float(loc.latitude), float(loc.longitude))
-        if d <= radius:
-            scored.append((d, loc))
-    scored.sort(key=lambda x: x[0])
-    total = len(scored)
-    start = (page - 1) * page_size
-    items = [_location_response(loc, distance=round(d, 0)) for d, loc in scored[start:start + page_size]]
-    return PaginatedResponse.create(items=items, page=page, page_size=page_size, total=total)
-
-
 @router.get("/locations/{location_id}", response_model=LocationDetailResponse, summary="地点详情")
 async def get_location(
     location_id: int,
@@ -161,7 +129,15 @@ async def get_location(
         if review is not None:
             my_review = _review_response(review)
 
-    return LocationDetailResponse(location=_location_response(location), my_review=my_review)
+    facts = await load_location_facts(db, location.id, tenant.school_id)
+    current_summary = await load_current_summary(db, location)
+    sources = await load_summary_sources(db, current_summary, tenant) if current_summary else []
+    return LocationDetailResponse(
+        location=_location_response(location),
+        my_review=my_review,
+        facts=facts,
+        summary=summary_response(current_summary, sources),
+    )
 
 
 @router.get("/locations/{location_id}/reviews", response_model=PaginatedResponse[LocationReviewResponse], summary="地点评价列表")
@@ -241,6 +217,7 @@ async def upsert_location_review(
 
     await db.flush()
     await _recalc_location_rating(db, location)
+    await mark_location_summary_dirty(db, location.id)
     await db.commit()
 
     # 返回最新评价（含作者）
@@ -281,6 +258,7 @@ async def delete_location_review(
         review.deleted_at = datetime.now()
         await db.flush()
         await _recalc_location_rating(db, location)
+        await mark_location_summary_dirty(db, location.id)
         await db.commit()
 
     return {"message": "撤回成功"}

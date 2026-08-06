@@ -55,8 +55,8 @@ async def search_posts(
     date_to: Optional[datetime] = Query(default=None, description="截止时间（created_at <=）"),
     sort: str = Query(
         default="latest",
-        pattern="^(latest|hottest|nearest|active)$",
-        description="排序方式: latest（最新）/ hottest（最热）/ nearest（最近活动）/ active（综合活动）",
+        pattern="^(latest|hottest|active)$",
+        description="排序方式: latest（最新）/ hottest（最热）/ active（综合活动）",
     ),
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页数量"),
@@ -123,9 +123,6 @@ async def search_posts(
         query = query.order_by(Post.like_count.desc(), Post.created_at.desc())
     elif sort == "active":
         query = query.order_by(Post.updated_at.desc(), Post.created_at.desc())
-    elif sort == "nearest":
-        # 最近活动 = 按 updated_at 降序
-        query = query.order_by(Post.updated_at.desc())
     else:
         query = query.order_by(Post.created_at.desc())
 

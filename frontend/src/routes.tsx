@@ -28,7 +28,7 @@ const loadNotFoundPage = () => import('./pages/NotFoundPage');
 // TOPIC-01.1: 用户端专题
 const loadTopicListPage = () => import('./pages/TopicListPage');
 const loadTopicDetailPage = () => import('./pages/TopicDetailPage');
-// A-05: 校园地点页（附近 + 设施评分评价）
+// A-05: 校园地点页（设施资料、AI 摘要与评分评价）
 const loadLocationPage = () => import('./pages/LocationPage');
 // B-01: 校园身份认证验证链接落地页
 const loadVerifyLinkPage = () => import('./pages/VerifyLinkPage');
@@ -223,7 +223,7 @@ const AnimatedRoutes: React.FC = () => {
           {/* TOPIC-01.1: 用户端专题（列表 + 详情，仅展示已发布） */}
           <Route path="/topics" element={<TopicListPage />} />
           <Route path="/topics/:id" element={<TopicDetailPage />} />
-          {/* A-05: 校园地点页（附近 + 设施评分评价） */}
+          {/* A-05: 校园地点页（设施资料、AI 摘要与评分评价） */}
           <Route path="/locations" element={<LocationPage />} />
 
           {/* Protected Routes */}

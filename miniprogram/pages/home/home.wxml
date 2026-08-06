@@ -32,7 +32,7 @@
       <icon name="map-pin" size="40rpx" color="#ffffff" />
     </view>
     <view class="locations-entry-text">
-      <text class="locations-entry-title">校园地点 · 附近评分</text>
+      <text class="locations-entry-title">校园地点 · 设施评分</text>
       <text class="locations-entry-sub">打印店 · 食堂 · 图书馆，看评分做选择</text>
     </view>
     <icon name="chevron-right" size="32rpx" color="#174d5e" />

@@ -58,7 +58,6 @@ const SORT_OPTIONS: { value: SearchSort; label: string }[] = [
   { value: 'latest', label: '最新' },
   { value: 'hottest', label: '最热' },
   { value: 'active', label: '近期活动' },
-  { value: 'nearest', label: '最近更新' },
 ];
 
 const AI_SORT_OPTIONS: { value: string; label: string }[] = [

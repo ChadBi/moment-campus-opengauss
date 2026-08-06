@@ -234,7 +234,32 @@ export interface LocationItem {
   avg_score: number
   rating_count: number
   review_count: number
-  distance?: number
+}
+
+export interface LocationFact {
+  id: number
+  location_id: number
+  fact_key: string
+  label: string
+  value: string
+  sort_order: number
+  source_note?: string
+  approved_at?: string
+  updated_at: string
+}
+
+export interface LocationSummary {
+  id?: number | null
+  version?: number | null
+  status: string
+  summary_text?: string | null
+  confidence_level: string
+  claims: Array<{ claim_id: string; text: string; confidence_level: string; source_refs: Array<{ source_type: string; source_id: number }> }>
+  conflicts: Array<{ text: string; source_refs: Array<{ source_type: string; source_id: number }> }>
+  source_count: number
+  generated_at?: string | null
+  stale_at?: string | null
+  sources: Array<{ source_type: string; source_id: number; title?: string; snippet?: string; created_at?: string; author_name?: string; score?: number }>
 }
 
 export interface LocationReview {
@@ -251,14 +276,8 @@ export interface LocationReview {
 export interface LocationDetail {
   location: LocationItem
   my_review: LocationReview | null
-}
-
-export interface LocationNearbyResponse {
-  items: LocationItem[]
-  total: number
-  page: number
-  page_size: number
-  has_more: boolean
+  facts: LocationFact[]
+  summary: LocationSummary
 }
 
 export interface LocationReviewsResponse {

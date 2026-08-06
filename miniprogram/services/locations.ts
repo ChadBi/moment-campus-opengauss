@@ -3,26 +3,11 @@ import type {
   LocationItem,
   LocationDetail,
   LocationReview,
-  LocationNearbyResponse,
   LocationReviewsResponse,
 } from '../types'
 
 export async function getLocations(): Promise<LocationItem[]> {
   return http.get<LocationItem[]>('/locations')
-}
-
-export async function getNearby(params: {
-  lat: number
-  lng: number
-  radius?: number
-  page?: number
-  page_size?: number
-}): Promise<LocationNearbyResponse> {
-  const query = new URLSearchParams()
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined) query.append(k, String(v))
-  })
-  return http.get<LocationNearbyResponse>(`/locations/nearby?${query.toString()}`)
 }
 
 export async function getDetail(id: number): Promise<LocationDetail> {
@@ -52,4 +37,11 @@ export async function submitReview(
 
 export async function withdrawReview(id: number): Promise<{ message: string }> {
   return http.delete<{ message: string }>(`/locations/${id}/reviews`)
+}
+
+export async function submitFactProposal(
+  id: number,
+  data: { upserts?: Array<{ fact_key: string; label?: string; value: string; sort_order?: number; source_note?: string }>; remove_keys?: string[]; reason?: string },
+): Promise<{ id: number; status: string }> {
+  return http.post<{ id: number; status: string }>(`/locations/${id}/fact-proposals`, data)
 }

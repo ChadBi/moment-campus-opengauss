@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 from app.schemas.post import UserBrief
+from app.schemas.location_knowledge import LocationFactResponse, LocationSummaryResponse
 
 
 # 地点列表/详情响应
@@ -21,9 +22,6 @@ class LocationResponse(BaseModel):
     avg_score: float = Field(default=0, description="平均评分（1-5，保留 2 位）")
     rating_count: int = Field(default=0, description="评分人数")
     review_count: int = Field(default=0, description="评价条数")
-    # 附近（可选，米）
-    distance: Optional[float] = Field(default=None, description="距参考点距离（米，仅附近场景返回）")
-
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -53,3 +51,5 @@ class LocationDetailResponse(BaseModel):
     my_review: Optional[LocationReviewResponse] = Field(
         default=None, description="当前登录用户我的评价（未登录/未评价为 None）"
     )
+    facts: list[LocationFactResponse] = Field(default_factory=list, description="已审核地点稳定资料")
+    summary: LocationSummaryResponse = Field(default_factory=LocationSummaryResponse, description="已审核 AI 地点摘要")

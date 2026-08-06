@@ -42,7 +42,7 @@ SEARCH_INTENT_SCHEMA: dict[str, Any] = {
                 "category": {"type": ["string", "null"]},
                 "sort": {
                     "type": ["string", "null"],
-                    "enum": ["latest", "hottest", "nearest", "active", "relevance", None],
+                    "enum": ["latest", "hottest", "active", "relevance", None],
                 },
                 "date_from": {"type": ["string", "null"]},
                 "date_to": {"type": ["string", "null"]},

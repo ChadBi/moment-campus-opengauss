@@ -22,9 +22,9 @@
   </view>
 
   <!-- 全部地点入口（直达地点页） -->
-  <view class="nearby-entry" bindtap="goToLocationsPage" hover-class="nearby-entry-hover" hover-stay-time="120">
+  <view class="locations-entry" bindtap="goToLocationsPage" hover-class="locations-entry-hover" hover-stay-time="120">
     <icon name="map-pin" size="28rpx" color="#174d5e" />
-    <text class="nearby-entry-text">全部地点</text>
+    <text class="locations-entry-text">全部地点</text>
   </view>
 
   <!-- 地点信息卡片 -->

@@ -1124,9 +1124,9 @@ app.include_router(api_router, prefix="/api")
 
 ## 9. 地图模块
 
-### 9.1 获取附近信息标记
+### 9.1 获取学校静态地图信息标记
 
-**接口说明**：获取地图范围内的信息标记
+**接口说明**：获取当前学校地图范围内的信息标记；不读取用户当前位置。
 
 本接口及所有地点、学校中心、距离搜索坐标统一使用 **GCJ-02**。
 
@@ -1185,9 +1185,7 @@ app.include_router(api_router, prefix="/api")
 | category_id | uuid | 否 | 分类筛选 |
 | validity_status | string | 否 | 有效性筛选 |
 | has_image | boolean | 否 | 是否有图片 |
-| sort | string | 否 | 排序：comprehensive/distance/latest/hottest |
-| latitude | number | 否 | 用户纬度（距离排序时需要） |
-| longitude | number | 否 | 用户经度（距离排序时需要） |
+| sort | string | 否 | 排序：comprehensive/latest/hottest |
 | page | number | 否 | 页码 |
 | page_size | number | 否 | 每页数量 |
 

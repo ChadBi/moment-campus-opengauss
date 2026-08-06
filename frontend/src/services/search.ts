@@ -12,7 +12,7 @@ import type {
  * 后端端点 GET /search 支持：
  *   keyword / category_id / location_id / post_type_id / tag
  *   / status（published|expired|valid） / date_from / date_to
- *   / sort（latest|hottest|nearest|active） / page / page_size
+ *   / sort（latest|hottest|active） / page / page_size
  *
  * 响应为 PaginatedResponse<Post>（含 total/total_pages/has_more）。
  * 所有 GET 依赖 Axios 拦截器注入的 X-School-Code 头实现租户隔离。
@@ -25,7 +25,7 @@ import type {
 export type SearchStatusFilter = 'published' | 'expired' | 'valid';
 
 /** 排序方式（与后端 pattern 对齐） */
-export type SearchSort = 'latest' | 'hottest' | 'nearest' | 'active';
+export type SearchSort = 'latest' | 'hottest' | 'active';
 
 interface SearchParams {
   keyword?: string;

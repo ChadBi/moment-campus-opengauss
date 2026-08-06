@@ -27,6 +27,7 @@ from app.core.validation_type import (
     normalize_validation_type,
     ValidationType,
 )
+from app.services.location_summary import mark_location_summary_dirty
 
 router = APIRouter(tags=["互动"])
 
@@ -150,6 +151,7 @@ async def create_validation(
                 post.valid_count = max(0, post.valid_count - 1)
             else:
                 post.invalid_count = max(0, post.invalid_count - 1)
+            await mark_location_summary_dirty(db, post.location_id)
             try:
                 await db.commit()
             except IntegrityError:
@@ -174,6 +176,7 @@ async def create_validation(
                 post.valid_count += 1
             else:
                 post.invalid_count += 1
+            await mark_location_summary_dirty(db, post.location_id)
             await db.commit()
             await db.refresh(existing)
             return ValidationResponse(
@@ -203,6 +206,8 @@ async def create_validation(
         post.valid_count += 1
     else:
         post.invalid_count += 1
+
+    await mark_location_summary_dirty(db, post.location_id)
 
     try:
         await db.commit()

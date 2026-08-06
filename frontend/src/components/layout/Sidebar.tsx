@@ -15,7 +15,7 @@ interface SidebarProps {
 const navItems = [
   { path: '/', label: '首页', icon: Home },
   { path: '/map', label: '地图', icon: Map },
-  // A-05: 校园地点（附近 + 设施评分评价）
+  // A-05: 校园地点（设施资料、AI 摘要与评分评价）
   { path: '/locations', label: '地点', icon: MapPin },
   { path: '/search', label: '搜索', icon: Search },
   { path: '/notifications', label: '通知', icon: Bell },

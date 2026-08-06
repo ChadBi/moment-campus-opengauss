@@ -5,7 +5,12 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Input } from '../../components/ui/Input';
 import { Table, Pagination, type Column } from '../../components/ui/Table';
-import { adminApi, type LocationAdmin } from '../../services/admin';
+import {
+  adminApi,
+  type LocationAdmin,
+  type LocationFactProposalAdmin,
+  type LocationSummaryAdmin,
+} from '../../services/admin';
 import { useUIStore } from '../../store/useUIStore';
 import { MapPin, Check, X, Search, Eye, Building2, Layers, Info } from 'lucide-react';
 import MapLocationPicker from '../../components/MapLocationPicker';
@@ -34,6 +39,10 @@ const AdminLocationsPage: React.FC = () => {
   const [actingId, setActingId] = useState<number | null>(null);
   // Task 3.6: 详情弹窗（展示地点坐标 + 地图）
   const [detailLocation, setDetailLocation] = useState<LocationAdmin | null>(null);
+  const [factProposals, setFactProposals] = useState<LocationFactProposalAdmin[]>([]);
+  const [summaryQueue, setSummaryQueue] = useState<LocationSummaryAdmin[]>([]);
+  const [knowledgeLoading, setKnowledgeLoading] = useState(true);
+  const [actingKnowledgeId, setActingKnowledgeId] = useState<string | null>(null);
 
   const loadLocations = useCallback(async (p: number) => {
     try {
@@ -58,6 +67,52 @@ const AdminLocationsPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadLocations(page);
   }, [page, loadLocations]);
+
+  const loadKnowledgeQueues = useCallback(async () => {
+    setKnowledgeLoading(true);
+    try {
+      const [proposals, summaries] = await Promise.all([
+        adminApi.getLocationFactProposals({ status: 'pending', page: 1, page_size: 8 }),
+        adminApi.getLocationSummaries({ status: 'pending_review', page: 1, page_size: 8 }),
+      ]);
+      setFactProposals(proposals.items);
+      setSummaryQueue(summaries.items);
+    } catch (error) {
+      logger.error('加载地点知识审核队列失败:', error);
+    } finally {
+      setKnowledgeLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadKnowledgeQueues();
+  }, [loadKnowledgeQueues]);
+
+  const handleKnowledgeAction = async (
+    kind: 'fact' | 'summary',
+    id: number,
+    action: 'approve' | 'reject',
+  ) => {
+    const key = `${kind}:${id}`;
+    setActingKnowledgeId(key);
+    try {
+      if (kind === 'fact') {
+        if (action === 'approve') await adminApi.approveLocationFactProposal(id);
+        else await adminApi.rejectLocationFactProposal(id, '资料暂未通过审核');
+      } else if (action === 'approve') {
+        await adminApi.approveLocationSummary(id);
+      } else {
+        await adminApi.rejectLocationSummary(id, '摘要暂未通过审核');
+      }
+      showToast(action === 'approve' ? '已批准' : '已驳回', 'success');
+      void loadKnowledgeQueues();
+    } catch (error) {
+      logger.error('地点知识审核失败:', error);
+      showToast('审核操作失败', 'error');
+    } finally {
+      setActingKnowledgeId(null);
+    }
+  };
 
   const updateVerifiedFilter = (value: string) => {
     const next = new URLSearchParams(searchParams);
@@ -198,6 +253,61 @@ const AdminLocationsPage: React.FC = () => {
           <span className="font-medium text-ink">核验流程：</span>
           用户发帖时新增地点 → <code className="text-xs bg-mist px-1.5 py-0.5 rounded">is_verified=false</code> → 管理员在此核验 → 标记 <code className="text-xs bg-mist px-1.5 py-0.5 rounded">is_verified=true</code> 后合并到正式地点列表。点击「详情」可在地图上查看地点位置。
         </div>
+      </div>
+
+      {/* 地点知识层审核队列 */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card variant="outlined" padding="sm">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-ink">资料提议（{factProposals.length}）</h2>
+            <span className="text-xs text-ink-muted">整份批准或驳回</span>
+          </div>
+          {knowledgeLoading ? <p className="text-sm text-ink-muted">加载中…</p> : factProposals.length === 0 ? (
+            <p className="text-sm text-ink-muted">暂无待审核资料提议。</p>
+          ) : (
+            <div className="space-y-3">
+              {factProposals.map((proposal) => (
+                <div key={proposal.id} className="rounded-lg bg-mist/60 p-3">
+                  <div className="text-xs text-ink-muted mb-1">地点 #{proposal.location_id} · 用户 #{proposal.proposer_id}</div>
+                  <div className="space-y-1 text-sm text-ink">
+                    {(proposal.changes_json.upserts || []).map((item) => (
+                      <div key={item.fact_key}><span className="text-ink-muted">{item.label || item.fact_key}：</span>{item.value}</div>
+                    ))}
+                  </div>
+                  {proposal.reason && <p className="text-xs text-ink-sub mt-1">说明：{proposal.reason}</p>}
+                  <div className="flex justify-end gap-2 mt-2">
+                    <Button size="sm" variant="text" loading={actingKnowledgeId === `fact:${proposal.id}`} onClick={() => void handleKnowledgeAction('fact', proposal.id, 'reject')}>驳回</Button>
+                    <Button size="sm" variant="primary" loading={actingKnowledgeId === `fact:${proposal.id}`} onClick={() => void handleKnowledgeAction('fact', proposal.id, 'approve')}>批准</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card variant="outlined" padding="sm">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-ink">AI 摘要待审（{summaryQueue.length}）</h2>
+            <span className="text-xs text-ink-muted">审核时核对来源</span>
+          </div>
+          {knowledgeLoading ? <p className="text-sm text-ink-muted">加载中…</p> : summaryQueue.length === 0 ? (
+            <p className="text-sm text-ink-muted">暂无待审核摘要。</p>
+          ) : (
+            <div className="space-y-3">
+              {summaryQueue.map((summary) => (
+                <div key={summary.id} className="rounded-lg bg-mist/60 p-3">
+                  <div className="text-xs text-ink-muted mb-1">{summary.location_name} · v{summary.version} · {summary.source_count} 条来源</div>
+                  <p className="text-sm text-ink line-clamp-3">{summary.summary_text || '暂无摘要正文（证据不足）'}</p>
+                  {summary.conflicts.length > 0 && <p className="text-xs text-lamp mt-1">包含 {summary.conflicts.length} 条冲突提示</p>}
+                  <div className="flex justify-end gap-2 mt-2">
+                    <Button size="sm" variant="text" loading={actingKnowledgeId === `summary:${summary.id}`} onClick={() => void handleKnowledgeAction('summary', summary.id, 'reject')}>驳回</Button>
+                    <Button size="sm" variant="primary" loading={actingKnowledgeId === `summary:${summary.id}`} onClick={() => void handleKnowledgeAction('summary', summary.id, 'approve')}>批准</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* 筛选栏 */}

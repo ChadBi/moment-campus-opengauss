@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 # 常量
 # ============================================================
 # 允许的排序值（白名单）
-_ALLOWED_SORTS = {"latest", "hottest", "nearest", "active", "relevance"}
+_ALLOWED_SORTS = {"latest", "hottest", "active", "relevance"}
 
 # 敏感词基础清单（命中即降级普通搜索，不向模型发送）
 # 注：生产环境应接入专门的内容安全服务，这里只做基础防护
@@ -213,7 +213,7 @@ def _build_prompt(
   "filters": {{
     "keyword": "用于检索的核心关键词（提取实体名词与场景词，去除停用词/疑问词/语气词；可空）",
     "category": "分类名称（必须从下方分类白名单中选取；用户未明确则填 null）",
-    "sort": "排序方式：latest（最新）/ hottest（最热）/ nearest（最近活动）/ active（综合活动）/ relevance（相关度）；默认 latest",
+    "sort": "排序方式：latest（最新）/ hottest（最热）/ active（综合活动）/ relevance（相关度）；默认 latest",
     "date_from": "起始日期 ISO 字符串（如 2026-07-01T00:00:00）；用户提到时间范围时填，否则 null",
     "date_to": "截止日期 ISO 字符串；用户提到时间范围时填，否则 null",
     "map_bounds": {{"north": 数字, "south": 数字, "east": 数字, "west": 数字}}
@@ -601,7 +601,6 @@ def _sort_posts(
     - sort=latest：按 created_at 降序（分数仍计算用于展示）
     - sort=hottest：按 like_count 降序
     - sort=active：按 updated_at 降序
-    - sort=nearest：按 updated_at 降序（与 DSC-01 语义一致）
     """
     scored: list[_ScoredPost] = []
     for p in posts:
@@ -617,8 +616,6 @@ def _sort_posts(
         scored.sort(key=lambda x: (-x.post.like_count, -x.post.created_at.timestamp()))
     elif sort == "active":
         scored.sort(key=lambda x: (-x.post.updated_at.timestamp(), -x.post.created_at.timestamp()))
-    elif sort == "nearest":
-        scored.sort(key=lambda x: (-x.post.updated_at.timestamp(), -x.score))
     else:
         scored.sort(key=lambda x: (-x.score, -x.post.created_at.timestamp()))
 
@@ -707,7 +704,7 @@ async def _fallback_search(
 
     # 排序：降级场景按 latest（与普通搜索默认一致）
     sort = "latest"
-    if overrides is not None and overrides.sort in {"latest", "hottest", "nearest", "active"}:
+    if overrides is not None and overrides.sort in {"latest", "hottest", "active"}:
         sort = overrides.sort
     if sort == "latest":
         base_query = base_query.order_by(Post.created_at.desc())
@@ -715,8 +712,6 @@ async def _fallback_search(
         base_query = base_query.order_by(Post.like_count.desc(), Post.created_at.desc())
     elif sort == "active":
         base_query = base_query.order_by(Post.updated_at.desc(), Post.created_at.desc())
-    elif sort == "nearest":
-        base_query = base_query.order_by(Post.updated_at.desc())
 
     # 总数
     count_query = select(func.count()).select_from(base_query.subquery())

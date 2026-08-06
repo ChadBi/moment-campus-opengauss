@@ -119,7 +119,7 @@
 }
 
 /* ============== 全部地点入口 ============== */
-.nearby-entry {
+.locations-entry {
   position: fixed;
   top: 140rpx;
   left: 20rpx;
@@ -134,12 +134,12 @@
   transition: all 0.2s;
 }
 
-.nearby-entry-hover {
+.locations-entry-hover {
   background: var(--paper-hover);
   transform: scale(0.96);
 }
 
-.nearby-entry-text {
+.locations-entry-text {
   font-size: 26rpx;
   font-weight: 500;
   color: var(--lake);

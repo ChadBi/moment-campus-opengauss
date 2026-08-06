@@ -178,7 +178,7 @@ export const FirstUseGuide: React.FC = () => {
     navigate('/search');
   };
 
-  // D-04: 首用引导直达「附近」价值入口
+  // D-04: 首用引导直达校园地点价值入口
   const handleGoNearby = () => {
     handleComplete();
     navigate('/locations');
@@ -309,7 +309,7 @@ export const FirstUseGuide: React.FC = () => {
           </div>
         )}
 
-        {/* Step 3: 价值入口（附近/搜索/认证） */}
+        {/* Step 3: 价值入口（地点/搜索/认证） */}
         {step === 3 && (
           <div className="text-center py-2">
             <div className="w-12 h-12 rounded-full bg-lake/10 grid place-items-center mx-auto mb-3">
@@ -317,7 +317,7 @@ export const FirstUseGuide: React.FC = () => {
             </div>
             <h3 className="font-display font-bold text-lg text-ink mb-1">三步开启你的校园生活</h3>
             <p className="text-sm text-ink-muted mb-4">
-              附近好去处、可信信息、随手分享，一应俱全
+              可信地点资料、近期动态、随手分享，一应俱全
             </p>
             <div className="space-y-2 mb-2">
               <button
@@ -326,7 +326,7 @@ export const FirstUseGuide: React.FC = () => {
                 className="w-full px-4 py-2.5 rounded-[10px] bg-lake/5 border border-lake/20 text-lake text-sm font-medium hover:bg-lake/10 transition-colors flex items-center justify-center gap-1.5"
               >
                 <MapPin size={14} />
-                看看附近有什么，给设施评分
+              查看校园地点资料，给设施评分
               </button>
               <button
                 type="button"

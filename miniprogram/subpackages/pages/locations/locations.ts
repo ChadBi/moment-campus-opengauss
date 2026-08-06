@@ -1,4 +1,4 @@
-import { getLocations, getDetail, getReviews, submitReview, withdrawReview } from '../../../services/locations'
+import { getLocations, getDetail, getReviews, submitReview, withdrawReview, submitFactProposal } from '../../../services/locations'
 import { formatDate } from '../../../utils/format'
 import { authStore } from '../../../store/auth'
 import { campusStore } from '../../../store/campus'
@@ -16,6 +16,7 @@ function formatStars(score: number): string {
 Page({
   data: {
     isLoggedIn: false,
+    campusVerified: false,
     schoolName: '',
     // 列表
     locations: [] as any[],
@@ -32,12 +33,18 @@ Page({
     score: 5,
     content: '',
     submitting: false,
+    factKey: 'normal_hours',
+    factLabel: '营业时间',
+    factValue: '',
+    factReason: '',
+    proposalSubmitting: false,
+    factKeyOptions: ['normal_hours', 'services', 'price_note', 'contact', 'access', 'booking', 'other'],
     starOptions: [1, 2, 3, 4, 5],
   },
 
   onLoad(options: Record<string, string | undefined>) {
     authStore.subscribe(state => {
-      this.setData({ isLoggedIn: state.isLoggedIn })
+      this.setData({ isLoggedIn: state.isLoggedIn, campusVerified: !!state.user?.campus_verified })
     })
     campusStore.subscribe(state => {
       this.setData({
@@ -102,6 +109,8 @@ Page({
       myReview: null,
       score: 5,
       content: '',
+      factValue: '',
+      factReason: '',
     })
     await this.reloadDetail(id, true)
   },
@@ -116,6 +125,8 @@ Page({
       this.setData({
         detail: {
           location: this.normalizeLocation(detailRes.location),
+          facts: detailRes.facts || [],
+          summary: detailRes.summary || { status: 'insufficient', confidence_level: 'insufficient', claims: [], conflicts: [], source_count: 0, sources: [] },
           reviews: (reviewsRes.items || []).map(r => this.normalizeReview(r)),
         },
         myReview,
@@ -148,6 +159,50 @@ Page({
 
   onContentInput(e: any) {
     this.setData({ content: e.detail.value || '' })
+  },
+
+  onFactKeyChange(e: any) {
+    const options = this.data.factKeyOptions as string[]
+    this.setData({ factKey: options[Number(e.detail.value)] || 'other' })
+  },
+
+  onFactLabelInput(e: any) {
+    this.setData({ factLabel: e.detail.value || '' })
+  },
+
+  onFactValueInput(e: any) {
+    this.setData({ factValue: e.detail.value || '' })
+  },
+
+  onFactReasonInput(e: any) {
+    this.setData({ factReason: e.detail.value || '' })
+  },
+
+  async submitFactProposal() {
+    if (!requireLogin('登录后即可补充地点资料')) return
+    if (!this.data.campusVerified) {
+      wx.showToast({ title: '请先完成校园认证', icon: 'none' })
+      return
+    }
+    const id = this.data.activeDetailId
+    const value = (this.data.factValue || '').trim()
+    if (!id || !value) {
+      wx.showToast({ title: '请填写资料内容', icon: 'none' })
+      return
+    }
+    this.setData({ proposalSubmitting: true })
+    try {
+      await submitFactProposal(id, {
+        upserts: [{ fact_key: this.data.factKey, label: this.data.factLabel || undefined, value }],
+        reason: (this.data.factReason || '').trim() || undefined,
+      })
+      wx.showToast({ title: '已提交，等待管理员审核', icon: 'success' })
+      this.setData({ factValue: '', factReason: '' })
+    } catch (e: any) {
+      wx.showToast({ title: e.message || '提交失败', icon: 'none' })
+    } finally {
+      this.setData({ proposalSubmitting: false })
+    }
   },
 
   async submitReview() {

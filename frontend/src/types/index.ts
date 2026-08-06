@@ -587,7 +587,6 @@ export interface SchoolUsageResponse {
 export type AISearchSort =
   | 'latest'
   | 'hottest'
-  | 'nearest'
   | 'active'
   | 'relevance';
 

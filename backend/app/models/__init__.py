@@ -37,6 +37,8 @@ from .auth_session import AuthSession, BindingTicket
 from .location_review import LocationReview
 from .campus_verify_token import CampusVerifyToken
 from .feedback import Feedback
+from .location_fact import LocationFact, LocationFactProposal
+from .location_summary import LocationSummaryVersion
 
 __all__ = [
     "Base",
@@ -77,4 +79,7 @@ __all__ = [
     "LocationReview",
     "CampusVerifyToken",
     "Feedback",
+    "LocationFact",
+    "LocationFactProposal",
+    "LocationSummaryVersion",
 ]

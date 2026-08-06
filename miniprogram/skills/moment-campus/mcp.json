@@ -238,7 +238,7 @@
     },
     {
       "name": "getMapMarkers",
-      "description": "获取地图上的此刻标记点。返回所有带位置的帖子标记，用于地图展示。适用于'看看附近有什么'、'地图上的此刻'等场景。",
+      "description": "获取地图上的此刻标记点。返回所有带位置的帖子标记，用于静态校园地图展示。",
       "inputSchema": {
         "type": "object",
         "properties": {

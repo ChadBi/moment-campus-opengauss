@@ -19,8 +19,9 @@ from app.api.schools import schools_router, me_router as schools_me_router
 from app.api.analytics import router as analytics_router, admin_analytics_router
 from app.api.recommendations import router as recommendations_router
 from app.api.subscriptions import router as subscriptions_router
-# REV-01: 地点（列表/详情/评分评价/附近）
+# REV-01: 地点（列表/详情/评分评价）
 from app.api.locations import router as locations_router
+from app.api.location_knowledge import router as location_knowledge_router
 # 用户反馈（提交/我的反馈/管理端处理）
 from app.api.feedback import router as feedback_router
 
@@ -61,7 +62,8 @@ api_router.include_router(admin_analytics_router)
 api_router.include_router(subscriptions_router)
 # REC-01: 首页推荐 + 推荐隐私偏好（个性化开关 + 清除画像历史）
 api_router.include_router(recommendations_router)
-# REV-01: 地点（列表/详情/评分评价/附近）
+# REV-01: 地点知识层（资料提议、AI 摘要与审核）
 api_router.include_router(locations_router)
+api_router.include_router(location_knowledge_router)
 # 用户反馈（提交/我的反馈/管理端处理）
 api_router.include_router(feedback_router)
