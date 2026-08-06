@@ -126,13 +126,17 @@ echo "⚙️  步骤8：配置 systemd 服务..."
 cp $PROJECT_DIR/deploy/bare-metal/moment-backend.service /etc/systemd/system/
 cp $PROJECT_DIR/deploy/bare-metal/moment-expire-posts.service /etc/systemd/system/
 cp $PROJECT_DIR/deploy/bare-metal/moment-expire-posts.timer /etc/systemd/system/
+cp $PROJECT_DIR/deploy/bare-metal/moment-location-summaries.service /etc/systemd/system/
+cp $PROJECT_DIR/deploy/bare-metal/moment-location-summaries.timer /etc/systemd/system/
 sed -i "s|WorkingDirectory=.*|WorkingDirectory=$PROJECT_DIR/backend|g" /etc/systemd/system/moment-backend.service
 sed -i "s|Environment=\"PATH=.*|Environment=\"PATH=$PROJECT_DIR/backend/.venv/bin:/usr/local/bin:/usr/bin:/bin\"|g" /etc/systemd/system/moment-backend.service
 sed -i "s|ExecStart=.*|ExecStart=$PROJECT_DIR/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 4|g" /etc/systemd/system/moment-backend.service
 sed -i "s|User=.*|User=$SERVICE_USER|g; s|Group=.*|Group=$SERVICE_USER|g; s|/opt/moment-campus|$PROJECT_DIR|g" /etc/systemd/system/moment-expire-posts.service
+sed -i "s|User=.*|User=$SERVICE_USER|g; s|Group=.*|Group=$SERVICE_USER|g; s|/opt/moment-campus|$PROJECT_DIR|g" /etc/systemd/system/moment-location-summaries.service
 systemctl daemon-reload
 systemctl enable moment-backend
 systemctl enable --now moment-expire-posts.timer
+systemctl enable --now moment-location-summaries.timer
 echo "✅ systemd 服务配置完成"
 echo ""
 

@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Moment Campus Location Summary Worker Every 10 Minutes
+
+[Timer]
+OnBootSec=7min
+OnUnitActiveSec=10min
+AccuracySec=30s
+Persistent=true
+Unit=moment-location-summaries.service
+
+[Install]
+WantedBy=timers.target
+

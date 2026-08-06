@@ -24,7 +24,14 @@ class Location(Base):
     review_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False, comment="评价条数")
     # 地点知识层：当前已批准摘要和待刷新标记
     current_summary_id: Mapped[int | None] = mapped_column(
-        BigInteger, ForeignKey("location_summary_versions.id", ondelete="SET NULL"), nullable=True,
+        BigInteger,
+        ForeignKey(
+            "location_summary_versions.id",
+            ondelete="SET NULL",
+            name="fk_locations_current_summary",
+            use_alter=True,
+        ),
+        nullable=True,
     )
     summary_dirty_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)

@@ -21,6 +21,16 @@
 - 删除实时定位、距离字段、Haversine/`/locations/nearby` 和 `nearest` 产品入口，保留静态校园地图与地点坐标
 - 重写评委反馈文档为六部分 AI 地点摘要内部实施方案，并标注历史方案废弃口径
 
+## [2.2.1] - 2026-08-06
+
+### 修复
+
+- `Location.current_summary_id` 外键改为 `use_alter`，解除地点与摘要版本的循环依赖，避免 openGauss 测试清理时先删学校导致外键错误
+
+### 运维
+
+- 新增地点摘要 worker 的 systemd service/timer，并接入安装、更新和混合部署脚本
+
 ## [2.1.12] - 2026-08-06
 
 ### 变更

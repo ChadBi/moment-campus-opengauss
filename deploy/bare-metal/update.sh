@@ -47,9 +47,13 @@ echo "🔄 步骤5：重启服务..."
 chown -R moment:moment $PROJECT_DIR
 cp $PROJECT_DIR/deploy/bare-metal/moment-expire-posts.service /etc/systemd/system/
 cp $PROJECT_DIR/deploy/bare-metal/moment-expire-posts.timer /etc/systemd/system/
+cp $PROJECT_DIR/deploy/bare-metal/moment-location-summaries.service /etc/systemd/system/
+cp $PROJECT_DIR/deploy/bare-metal/moment-location-summaries.timer /etc/systemd/system/
 sed -i "s|/opt/moment-campus|$PROJECT_DIR|g" /etc/systemd/system/moment-expire-posts.service
+sed -i "s|/opt/moment-campus|$PROJECT_DIR|g" /etc/systemd/system/moment-location-summaries.service
 systemctl daemon-reload
 systemctl enable --now moment-expire-posts.timer
+systemctl enable --now moment-location-summaries.timer
 systemctl restart moment-backend
 systemctl restart nginx
 sleep 2

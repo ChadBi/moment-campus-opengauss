@@ -241,10 +241,22 @@ def _normalise_output(parsed: Any, snapshot: dict[str, Any]) -> tuple[dict[str, 
             clean = {"source_type": ref["source_type"], "source_id": int(ref["source_id"])}
             normal_refs.append(clean)
             all_refs[key] = clean
-        if len({(r["source_type"], r["source_id"]) for r in normal_refs}) < 2:
-            # 只有一条动态来源不能形成可发布结论；稳定资料可以单条引用。
-            if not any(r["source_type"] == "fact" for r in normal_refs):
-                continue
+        unique_refs = {(r["source_type"], r["source_id"]) for r in normal_refs}
+        dynamic_items = [
+            candidates[_source_key(ref["source_type"], ref["source_id"])]
+            for ref in normal_refs
+            if ref["source_type"] != "fact"
+        ]
+        dynamic_authors = {
+            int(item["author_id"])
+            for item in dynamic_items
+            if item.get("author_id") is not None
+        }
+        # 稳定资料可以单条引用；只要结论涉及动态内容，就必须来自两个不同用户。
+        if dynamic_items and len(dynamic_authors) < 2:
+            continue
+        if not dynamic_items and len(unique_refs) < 1:
+            continue
         valid_claims.append({
             "claim_id": str(claim.get("claim_id") or f"claim-{len(valid_claims) + 1}"),
             "text": str(claim.get("text") or "").strip()[:300],
