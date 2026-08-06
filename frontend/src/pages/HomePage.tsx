@@ -1,71 +1,22 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { postsApi } from '../services/posts';
 import { recommendationsApi } from '../services/recommendations';
-import { locationsApi, type LocationItem } from '../services/locations';
 import type { Post, RecommendationItem } from '../types';
 import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { EmptyState, ErrorState, LoadingState } from '../components/state';
 import { VerifiedBadge } from '../components/VerifiedBadge';
-import { Heart, MessageCircle, Eye, MapPin, Clock, Sparkles, FilePlus2, Navigation, Star, BadgeCheck, ChevronRight } from 'lucide-react';
+import { Heart, MessageCircle, Eye, MapPin, Clock, Sparkles, FilePlus2 } from 'lucide-react';
 import { useSchoolQueryKey } from '../hooks/useSchoolQueryKey';
-import { useCampusStore } from '../store/useCampusStore';
 import { formatRelativeTime as formatDate } from '../utils/date';
 import { getCategoryVisual } from '../utils/categoryVisual';
-import { wgs84ToGcj02 } from '../utils/coordinates';
-import { logger } from '../utils/logger';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const schoolKey = useSchoolQueryKey();
-  const { currentSchoolCenter, currentSchoolName } = useCampusStore();
-
-  // A-06: 首页「附近地点」区块（GPS 定位优先，回退校园中心）
-  const [nearby, setNearby] = useState<LocationItem[]>([]);
-  const [nearbyLoading, setNearbyLoading] = useState(true);
-  const [nearbyError, setNearbyError] = useState(false);
-  const [nearbyLabel, setNearbyLabel] = useState('');
-
-  const loadNearbyHome = useCallback((lat: number, lng: number, label: string) => {
-    setNearbyLoading(true);
-    setNearbyError(false);
-    setNearbyLabel(label);
-    locationsApi
-      .getNearby(lat, lng, 3000, 1, 5)
-      .then((data) => setNearby(data.items))
-      .catch((err: unknown) => {
-        logger.error('首页加载附近地点失败:', err);
-        setNearbyError(true);
-      })
-      .finally(() => setNearbyLoading(false));
-  }, []);
-
-  const handleNearbyLocate = useCallback(() => {
-    const loadFromCenter = () => {
-      const lng = currentSchoolCenter?.lng ?? 120.27116;
-      const lat = currentSchoolCenter?.lat ?? 31.483652;
-      loadNearbyHome(lat, lng, currentSchoolName || '校园中心');
-    };
-    if (!navigator.geolocation) {
-      loadFromCenter();
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const gcj02 = wgs84ToGcj02(position.coords.latitude, position.coords.longitude);
-        loadNearbyHome(gcj02.latitude, gcj02.longitude, '我的位置');
-      },
-      () => loadFromCenter()
-    );
-  }, [currentSchoolCenter, currentSchoolName, loadNearbyHome]);
-
-  useEffect(() => {
-    void handleNearbyLocate();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // REC-01.1: 首页"为你推荐"区块（仅首页第一屏，取前 5 条）
   // 与 posts feed 分开查询，避免分页耦合
@@ -227,82 +178,6 @@ const HomePage: React.FC = () => {
           </div>
         </section>
       ) : null}
-
-      {/* A-06: 附近地点区块 */}
-      <section className="mb-6 bg-paper border border-lamp/25 rounded-[18px] shadow-sm overflow-hidden">
-        <div className="px-5 pt-4 pb-3 bg-gradient-to-br from-lamp/[0.08] to-mist/40 border-b border-line/60">
-          <div className="flex items-center gap-2 mb-1">
-            <Navigation size={18} className="text-lamp" />
-            <h2 className="font-display font-bold text-[17px] text-ink">附近好去处</h2>
-            {nearbyLabel && (
-              <span className="ml-auto text-[10px] text-lamp bg-lamp/15 px-2 py-0.5 rounded-[6px]">
-                {nearbyLabel}
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] text-ink-muted">看看身边的打印店、食堂与图书馆，评分一目了然</p>
-        </div>
-
-        {nearbyLoading ? (
-          <LoadingState title="正在寻找附近好去处" compact />
-        ) : nearbyError ? (
-          <ErrorState
-            title="附近地点加载失败"
-            description="稍后再试，或前往地点页查看完整列表。"
-            onRetry={() => void handleNearbyLocate()}
-            compact
-          />
-        ) : nearby.length === 0 ? (
-          <div className="px-5 py-6 text-center text-ink-muted text-sm">
-            附近还没收录地点，去探索更多校园角落吧。
-          </div>
-        ) : (
-          <div className="px-4 py-3 flex gap-3 overflow-x-auto scrollbar-hide">
-            {nearby.map((loc) => (
-              <button
-                key={loc.id}
-                onClick={() => navigate(`/locations`)}
-                className="flex-shrink-0 w-[200px] text-left bg-mist/50 hover:bg-lamp/10 transition-colors rounded-[12px] p-3 border border-line/50"
-              >
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <MapPin size={14} className="text-lamp flex-shrink-0" />
-                  <span className="font-semibold text-ink text-sm truncate">{loc.name}</span>
-                  {loc.is_verified && (
-                    <BadgeCheck size={13} className="text-lake flex-shrink-0" aria-label="官方核验" />
-                  )}
-                </div>
-                <div className="mt-2 flex items-center gap-1">
-                  <Star size={13} className="text-lamp fill-current" />
-                  <span className="text-sm font-bold text-ink">{loc.avg_score.toFixed(1)}</span>
-                  <span className="text-[11px] text-ink-muted">{loc.rating_count} 人评</span>
-                </div>
-                <div className="mt-1.5 text-[11px] text-ink-muted flex items-center gap-1">
-                  <Navigation size={10} className="flex-shrink-0" />
-                  {loc.distance != null
-                    ? loc.distance < 1000
-                      ? `${Math.round(loc.distance)} 米`
-                      : `${(loc.distance / 1000).toFixed(1)} 公里`
-                    : '校园内'}
-                  <span className="ml-auto inline-flex items-center gap-0.5">
-                    查看评价 <ChevronRight size={11} />
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="px-5 py-3 border-t border-line/60">
-          <Button
-            variant="text"
-            size="sm"
-            onClick={() => navigate('/locations')}
-            icon={<MapPin size={14} />}
-          >
-            查看全部地点与评分
-          </Button>
-        </div>
-      </section>
 
       {/* 普通信息流（最新/最热/...） */}
       <div className="space-y-0">

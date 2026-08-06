@@ -99,7 +99,8 @@ JIANGNAN_META = {
     "brand_color": "#1B4332",  # 江南绿
     "site_name": "此刻校园 · 江南大学",
     "description": "江南大学蠡湖校区校园信息协作平台",
-    "domain": "jiangnan.edu.cn",  # B-01: 校园身份认证允许域名
+    "domain": "jiangnan.edu.cn",  # B-01: 校园身份认证主域名
+    "addl_domains": "stu.jiangnan.edu.cn",  # B-01: 校园身份认证附加允许域名（学生邮箱子域）
 }
 
 JIANGNAN_CATEGORIES = [
@@ -1480,13 +1481,20 @@ async def seed_schools(session: AsyncSession):
         session.add(school)
     await session.flush()
     # B-01: 为每校写入校园身份认证允许域名（school_domains）
+    # 支持多域名：meta["domain"] 为主域名，meta["addl_domains"] 为逗号分隔的附加域名
     for school, cfg in zip(schools, SCHOOLS_REGISTRY):
-        domain = cfg["meta"].get("domain")
-        if domain:
+        domain_list = []
+        primary = cfg["meta"].get("domain")
+        if primary:
+            domain_list.append(primary.strip())
+        addl = cfg["meta"].get("addl_domains", "")
+        if addl:
+            domain_list.extend([d.strip() for d in addl.split(",") if d.strip()])
+        for i, d in enumerate(domain_list):
             session.add(SchoolDomain(
                 school_id=school.id,
-                domain=domain,
-                is_primary=True,
+                domain=d,
+                is_primary=(i == 0),
                 created_at=now,
                 updated_at=now,
             ))

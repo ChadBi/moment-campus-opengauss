@@ -7,6 +7,20 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.1.10] - 2026-08-06
+
+### 新增
+
+- `map` 地图页统一地点数据源：发帖地点与评分地点同为 `locations` 表，地图页只渲染「带评分的地点标记」，移除「附近」按钮与帖子标记（小水滴），信息全部集成在每个地点上——点击地点打开面板展示评分/描述/楼层与相关帖子（`GET /posts?location_id=`）
+
+### 变更
+
+- `map` 增强 `GET /locations` 返回评分汇总（avg_score/rating_count/review_count/post_count），前端新增 `locationsApi.getLocations()` 复用，地图页与地点页共用同一份地点数据
+- `rev` 地点页（/locations）移除定位按钮、半径筛选与距离显示，改为展示学校全部地点（看评分做选择）
+- `home` 移除首页「附近好去处」区块，不再显示「几公里内」与距离
+- `auth` 为江南大学补充允许的校园邮箱域名 `stu.jiangnan.edu.cn`（seed 支持 `addl_domains` 多域名写入），使 `@stu.jiangnan.edu.cn` 教育邮箱可通过校园身份认证
+- `auth` 配置 QQ 邮箱 SMTP（smtp.qq.com:465，授权码存 `.env.opengauss` 不进 Git），实测向 `1030424433@stu.jiangnan.edu.cn` 成功发送验证邮件
+
 ## [2.1.9] - 2026-08-06
 
 ### 新增

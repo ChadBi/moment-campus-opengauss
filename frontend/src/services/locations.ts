@@ -65,6 +65,12 @@ export interface ReviewPayload {
 }
 
 export const locationsApi = {
+  /** 当前学校全部地点（含评分汇总），供地图/地点页使用 */
+  getLocations: async (): Promise<LocationItem[]> => {
+    const response = await api.get('/locations');
+    return response.data;
+  },
+
   /** 附近地点：以 lat/lng 为中心、radius 半径内按距离升序返回（含评分、距离） */
   getNearby: async (
     lat: number,

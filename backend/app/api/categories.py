@@ -27,7 +27,7 @@ class CategoryResponse(BaseModel):
 
 
 class LocationResponse(BaseModel):
-    """地点响应"""
+    """地点响应（含评分汇总，供地图/地点页展示）"""
     id: int = Field(..., description="地点ID")
     name: str = Field(..., description="地点名称")
     latitude: float = Field(..., description="GCJ-02 纬度")
@@ -36,6 +36,11 @@ class LocationResponse(BaseModel):
     building: Optional[str] = Field(None, description="建筑物")
     floor: Optional[str] = Field(None, description="楼层")
     is_verified: bool = Field(..., description="是否已核验")
+    # 评分汇总（REV-01 冗余列，由 _recalc_location_rating 维护）
+    avg_score: float = Field(default=0, description="平均评分（1-5，保留 2 位）")
+    rating_count: int = Field(default=0, description="评分人数")
+    review_count: int = Field(default=0, description="评价条数")
+    post_count: int = Field(default=0, description="相关帖子数")
 
 
 class LocationCreate(BaseModel):
@@ -120,6 +125,10 @@ async def get_locations(
             building=loc.building,
             floor=loc.floor,
             is_verified=loc.is_verified,
+            avg_score=float(loc.avg_score or 0),
+            rating_count=loc.rating_count,
+            review_count=loc.review_count,
+            post_count=loc.post_count,
         )
         for loc in locations
     ]

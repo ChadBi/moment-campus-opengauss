@@ -35,6 +35,11 @@ export interface LocationListItem {
   floor?: string | null;
   /** PUB-01.2：是否已核验（用户自建地点为 false，进核验队列） */
   is_verified: boolean;
+  /** REV-01：评分汇总 */
+  avg_score: number;
+  rating_count: number;
+  review_count: number;
+  post_count: number;
 }
 
 /** 新建地点请求体 */

@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   MapPin,
-  Navigation,
   Star,
   StarHalf,
   ChevronRight,
@@ -21,25 +20,9 @@ import { useCampusStore } from '../store/useCampusStore';
 import { VerifyGate } from '../components/VerifyGate';
 import { logger } from '../utils/logger';
 import { formatRelativeTime } from '../utils/date';
-import { wgs84ToGcj02 } from '../utils/coordinates';
 
-// A-05: 校园地点页（附近 + 设施评分评价）
-// 页面形态：顶部定位状态 + 附近地点卡片列表；点击卡片打开详情 Modal（评分汇总 + 评价 + 提交/撤回）
-
-const FALLBACK_CENTER: [number, number] = [120.27116, 31.483652];
-
-interface NearbyState {
-  lat: number;
-  lng: number;
-  source: 'gps' | 'school' | 'fallback';
-  label: string;
-}
-
-function formatDistance(m?: number | null): string {
-  if (m == null) return '未知距离';
-  if (m < 1000) return `${Math.round(m)} 米`;
-  return `${(m / 1000).toFixed(1)} 公里`;
-}
+// A-05: 校园地点页（当前学校全部地点 + 设施评分评价）
+// 页面形态：按名称排列的学校地点卡片列表；点击卡片打开详情 Modal（评分汇总 + 评价 + 提交/撤回）
 
 function ScoreStars({ score, size = 14 }: { score: number; size?: number }) {
   const full = Math.floor(score);
@@ -64,14 +47,11 @@ const LocationPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuthStore();
   const { showToast } = useUIStore();
-  const { currentSchoolCenter, currentSchoolName } = useCampusStore();
+  const { currentSchoolName } = useCampusStore();
 
-  const [nearby, setNearby] = useState<LocationItem[]>([]);
+  const [locations, setLocations] = useState<LocationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [locating, setLocating] = useState(false);
-  const [center, setCenter] = useState<NearbyState | null>(null);
-  const [radius, setRadius] = useState(5000);
 
   // 详情 Modal 状态
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -84,51 +64,20 @@ const LocationPage: React.FC = () => {
   const [content, setContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const activeCenter: [number, number] = useMemo(
-    () =>
-      currentSchoolCenter
-        ? [currentSchoolCenter.lng, currentSchoolCenter.lat]
-        : FALLBACK_CENTER,
-    [currentSchoolCenter]
-  );
-
-  const loadNearby = useCallback(
-    async (lat: number, lng: number, source: NearbyState['source'], label: string) => {
-      setLoading(true);
-      setError(null);
-      setCenter({ lat, lng, source, label });
-      try {
-        const data = await locationsApi.getNearby(lat, lng, radius);
-        setNearby(data.items);
-      } catch (err: unknown) {
-        logger.error('加载附近地点失败:', err);
-        const e = err as { response?: { data?: { detail?: string } } };
-        setError(e?.response?.data?.detail || '加载附近地点失败');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [radius]
-  );
-
-  const handleGeolocate = useCallback(() => {
-    if (!navigator.geolocation) {
-      void loadNearby(activeCenter[1], activeCenter[0], 'school', currentSchoolName || '校园中心');
-      return;
+  const loadLocations = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await locationsApi.getLocations();
+      setLocations(data);
+    } catch (err: unknown) {
+      logger.error('加载地点失败:', err);
+      const e = err as { response?: { data?: { detail?: string } } };
+      setError(e?.response?.data?.detail || '加载地点失败');
+    } finally {
+      setLoading(false);
     }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const gcj02 = wgs84ToGcj02(position.coords.latitude, position.coords.longitude);
-        setLocating(false);
-        void loadNearby(gcj02.latitude, gcj02.longitude, 'gps', '我的位置');
-      },
-      () => {
-        setLocating(false);
-        void loadNearby(activeCenter[1], activeCenter[0], 'school', currentSchoolName || '校园中心');
-      }
-    );
-  }, [activeCenter, currentSchoolName, loadNearby]);
+  }, []);
 
   const openDetail = useCallback(async (locationId: number) => {
     setActiveId(locationId);
@@ -158,11 +107,10 @@ const LocationPage: React.FC = () => {
     }
   }, []);
 
-  // 挂载后初始化：定位 + 深链 ?location={id}（地图地点面板「查看完整详情」跳转）
+  // 挂载后加载全部地点 + 处理深链 ?location={id}（地图地点面板「查看完整详情」跳转）
   useEffect(() => {
-    // 用 microtask 延迟同步 setState，避免 react-hooks/set-state-in-effect 规则告警
     void Promise.resolve().then(() => {
-      handleGeolocate();
+      void loadLocations();
       const locParam = searchParams.get('location');
       if (locParam) {
         const id = Number(locParam);
@@ -227,14 +175,6 @@ const LocationPage: React.FC = () => {
     }
   }, [activeId, showToast]);
 
-  const handleRadiusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = Number(e.target.value);
-    setRadius(value);
-    if (center) {
-      void loadNearby(center.lat, center.lng, center.source, center.label);
-    }
-  };
-
   return (
     <div className="max-w-3xl mx-auto py-4 px-1">
       {/* 页头 */}
@@ -244,64 +184,30 @@ const LocationPage: React.FC = () => {
             校园地点
           </h1>
           <p className="text-ink-muted text-sm mt-1">
-            附近设施 · 打印店 · 食堂 · 图书馆，看评分做选择
+            {currentSchoolName || '学校'}全部地点 · 打印店 · 食堂 · 图书馆，看评分做选择
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={radius}
-            onChange={handleRadiusChange}
-            className="h-9 rounded-[10px] border border-line bg-paper px-3 text-xs text-ink-sub focus:outline-none focus:ring-2 focus:ring-lake/30"
-            aria-label="搜索半径"
-          >
-            <option value={1000}>1 公里内</option>
-            <option value={3000}>3 公里内</option>
-            <option value={5000}>5 公里内</option>
-            <option value={10000}>10 公里内</option>
-          </select>
-          <Button
-            variant="secondary"
-            size="sm"
-            loading={locating}
-            onClick={handleGeolocate}
-            icon={!locating ? <Navigation size={14} /> : undefined}
-          >
-            {center?.source === 'gps' ? '重新定位' : '定位'}
-          </Button>
         </div>
       </header>
 
-      {/* 定位状态条 */}
-      {center && (
-        <div className="mb-4 flex items-center gap-2 text-xs text-ink-sub bg-mist rounded-[10px] px-3 py-2">
-          <MapPin size={14} className="text-lake flex-shrink-0" />
-          <span className="truncate">
-            {center.source === 'gps'
-              ? `当前定位：${center.label}`
-              : `展示 ${center.label} 附近（未授权定位）`}
-          </span>
-        </div>
-      )}
-
       {loading ? (
         <div className="bg-paper rounded-[16px] border border-line/60">
-          <LoadingState title="正在加载附近地点" />
+          <LoadingState title="正在加载地点" />
         </div>
       ) : error ? (
         <div className="bg-paper rounded-[16px] border border-line/60">
-          <ErrorState description={error} onRetry={() => center && void loadNearby(center.lat, center.lng, center.source, center.label)} />
+          <ErrorState description={error} onRetry={() => void loadLocations()} />
         </div>
-      ) : nearby.length === 0 ? (
+      ) : locations.length === 0 ? (
         <div className="bg-paper rounded-[16px] border border-line/60 shadow-sm">
           <EmptyState
-            title="附近暂无地点"
-            description="换个范围或稍后再来看看校园设施。"
+            title="暂无地点"
+            description="去探索更多校园角落吧。"
             icon={<MapPin size={24} />}
           />
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {nearby.map((loc) => (
+          {locations.map((loc) => (
             <button
               key={loc.id}
               onClick={() => void openDetail(loc.id)}
@@ -319,9 +225,8 @@ const LocationPage: React.FC = () => {
                         <BadgeCheck size={14} className="text-lake flex-shrink-0" aria-label="官方核验" />
                       )}
                     </div>
-                    <div className="text-xs text-ink-muted mt-0.5 flex items-center gap-1">
-                      <Navigation size={11} className="flex-shrink-0" />
-                      {formatDistance(loc.distance)}
+                    <div className="text-xs text-ink-muted mt-0.5 truncate">
+                      {loc.building || loc.floor || ''}
                     </div>
                   </div>
                 </div>
@@ -378,7 +283,6 @@ const LocationPage: React.FC = () => {
               <div className="text-xs text-ink-muted mt-2 flex items-center gap-1">
                 <MapPin size={12} className="flex-shrink-0" />
                 {detail.location.building || detail.location.floor || '校园内'}
-                {detail.location.distance != null && `（距你 ${formatDistance(detail.location.distance)}）`}
               </div>
             </div>
 
