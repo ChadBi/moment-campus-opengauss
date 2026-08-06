@@ -144,32 +144,13 @@
       </block>
 
       <block wx:else>
-        <text class="verify-desc">通过学号 + 校园邮箱验证身份，昵称旁将显示「已认证」徽标，让同学更信任你的信息。请使用所在学校的官方邮箱。</text>
+        <text class="verify-desc">通过登录邮箱验证身份，昵称旁将显示「已认证」徽标，让同学更信任你的信息。请使用所在学校的官方邮箱注册/登录。</text>
 
         <block wx:if="{{verifyStep === 'form'}}">
-          <view class="form-item">
-            <text class="form-label">学号</text>
-            <input
-              class="form-input"
-              type="text"
-              placeholder="请输入校园学号"
-              placeholder-class="ph"
-              value="{{verifyStudentId}}"
-              maxlength="50"
-              bindinput="onVerifyStudentIdInput"
-            />
-          </view>
-          <view class="form-item">
-            <text class="form-label">校园邮箱</text>
-            <input
-              class="form-input"
-              type="text"
-              placeholder="name@学校官方域名"
-              placeholder-class="ph"
-              value="{{verifyEmail}}"
-              maxlength="255"
-              bindinput="onVerifyEmailInput"
-            />
+          <view class="verify-email-box">
+            <text class="verify-email-label">认证邮箱</text>
+            <text class="verify-email-val">{{email}}</text>
+            <text class="verify-email-hint">验证凭证将发送至该邮箱</text>
           </view>
           <view
             class="verify-send-btn {{verifySending ? 'disabled' : ''}}"
@@ -178,7 +159,7 @@
             hover-stay-time="120"
           >
             <icon name="shield" size="28rpx" color="#ffffff" />
-            <text>{{verifySending ? '发送中...' : '发送验证码'}}</text>
+            <text>{{verifySending ? '发送中...' : '向我的邮箱发送验证码'}}</text>
           </view>
         </block>
 

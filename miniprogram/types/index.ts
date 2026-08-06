@@ -7,10 +7,8 @@ export interface User {
   school_id: number
   is_active: boolean
   created_at: string
-  // B-01: 校园身份认证
+  // B-01: 校园身份认证（统一教育邮箱，认证用登录邮箱）
   campus_verified?: boolean
-  student_id?: string
-  campus_email?: string
   campus_verified_at?: string
 }
 

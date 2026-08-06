@@ -55,16 +55,6 @@ class User(Base):
         server_default="false",
         comment="B-01: 是否已完成校园身份认证（默认 False）",
     )
-    student_id: Mapped[str | None] = mapped_column(
-        String(50),
-        nullable=True,
-        comment="B-01: 校园学号（认证通过后记录）",
-    )
-    campus_email: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True,
-        comment="B-01: 用于认证的校园邮箱（认证通过后记录）",
-    )
     campus_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime,
         nullable=True,

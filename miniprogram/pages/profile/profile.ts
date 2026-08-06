@@ -94,8 +94,6 @@ Page({
     // 校园身份认证（B-06）
     campusVerified: false,
     verifyStep: 'form', // 'form' | 'code'
-    verifyStudentId: '',
-    verifyEmail: '',
     verifyCode: '',
     devCode: '',
     verifySending: false,
@@ -259,14 +257,6 @@ Page({
   },
 
   // ============== 校园身份认证（B-06） ==============
-  onVerifyStudentIdInput(e: any) {
-    this.setData({ verifyStudentId: e.detail.value || '' })
-  },
-
-  onVerifyEmailInput(e: any) {
-    this.setData({ verifyEmail: e.detail.value || '' })
-  },
-
   onVerifyCodeInput(e: any) {
     this.setData({ verifyCode: e.detail.value || '' })
   },
@@ -280,16 +270,10 @@ Page({
       wx.showToast({ title: '请先登录', icon: 'none' })
       return
     }
-    const studentId = (this.data.verifyStudentId || '').trim()
-    const campusEmail = (this.data.verifyEmail || '').trim()
-    if (!studentId || !campusEmail) {
-      wx.showToast({ title: '请填写学号与校园邮箱', icon: 'none' })
-      return
-    }
     if (this.data.verifySending) return
     this.setData({ verifySending: true })
     try {
-      const res: any = await sendCampusVerify({ student_id: studentId, campus_email: campusEmail })
+      const res: any = await sendCampusVerify()
       this.setData({
         devCode: res && res.code ? String(res.code) : '',
         verifyStep: 'code',
@@ -308,20 +292,14 @@ Page({
       return
     }
     const code = (this.data.verifyCode || '').trim()
-    if (code.length !== 6) {
-      wx.showToast({ title: '请输入 6 位验证码', icon: 'none' })
+    if (!code) {
+      wx.showToast({ title: '请输入验证凭证', icon: 'none' })
       return
     }
     if (this.data.verifyConfirming) return
     this.setData({ verifyConfirming: true })
     try {
-      const studentId = (this.data.verifyStudentId || '').trim()
-      const campusEmail = (this.data.verifyEmail || '').trim()
-      const res: any = await confirmCampusVerify({
-        student_id: studentId,
-        campus_email: campusEmail,
-        code,
-      })
+      const res: any = await confirmCampusVerify({ code })
       // 同步更新本地用户状态
       const user = this.data.user ? { ...this.data.user, campus_verified: true } : null
       if (user) {

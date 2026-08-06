@@ -98,11 +98,10 @@ class ResetPasswordResponse(BaseModel):
     message: str
 
 
-# B-01: 校园身份认证
+# B-01: 校园身份认证（统一教育邮箱：认证用登录邮箱发码，无需单独邮箱/学号）
 class CampusVerifySendRequest(BaseModel):
-    """发起校园身份认证：提交学号 + 校园邮箱。"""
-    student_id: str = Field(..., min_length=1, max_length=50, description="校园学号")
-    campus_email: EmailStr = Field(..., description="校园邮箱（域名须命中该校允许域名）")
+    """发起校园身份认证：使用当前登录邮箱（须命中该校允许域名）。"""
+    pass
 
 
 class CampusVerifySendResponse(BaseModel):
@@ -118,9 +117,7 @@ class CampusVerifySendResponse(BaseModel):
 
 
 class CampusVerifyConfirmRequest(BaseModel):
-    """确认校园身份认证：学号 + 校园邮箱 + token 或 code（二选一）。"""
-    student_id: str = Field(..., min_length=1, max_length=50, description="校园学号")
-    campus_email: EmailStr = Field(..., description="校园邮箱")
+    """确认校园身份认证：提交 token 或 code（二选一）。"""
     token: Optional[str] = Field(
         None, max_length=128, description="一次性验证 token（链接模式；与 code 二选一）"
     )

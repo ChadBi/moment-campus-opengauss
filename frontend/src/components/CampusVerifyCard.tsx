@@ -23,8 +23,6 @@ export const CampusVerifyCard: React.FC = () => {
   const campusVerified = Boolean(user?.campus_verified);
 
   const [step, setStep] = useState<'form' | 'code'>('form');
-  const [studentId, setStudentId] = useState('');
-  const [campusEmail, setCampusEmail] = useState('');
   const [code, setCode] = useState('');
   const [devCode, setDevCode] = useState<string | null>(null);
   const [verifyLink, setVerifyLink] = useState<string | null>(null);
@@ -45,16 +43,9 @@ export const CampusVerifyCard: React.FC = () => {
   }, []);
 
   const handleSend = async () => {
-    if (!studentId.trim() || !campusEmail.trim()) {
-      setToast({ message: '请填写学号与校园邮箱', type: 'error' });
-      return;
-    }
     setLoading(true);
     try {
-      const res = await usersApi.sendCampusVerify({
-        student_id: studentId.trim(),
-        campus_email: campusEmail.trim(),
-      });
+      const res = await usersApi.sendCampusVerify();
       setDevCode(res.code ?? null);
       setVerifyLink(res.verify_link ?? null);
       setStep('code');
@@ -75,11 +66,7 @@ export const CampusVerifyCard: React.FC = () => {
     }
     setLoading(true);
     try {
-      await usersApi.confirmCampusVerify({
-        student_id: studentId.trim(),
-        campus_email: campusEmail.trim(),
-        code: credential,
-      });
+      await usersApi.confirmCampusVerify({ code: credential });
       updateUser({ campus_verified: true });
       setToast({ message: '校园身份认证成功', type: 'success' });
     } catch (error) {
@@ -124,34 +111,19 @@ export const CampusVerifyCard: React.FC = () => {
       ) : (
         <div className="space-y-3">
           <p className="text-[12px] text-ink-muted leading-relaxed">
-            通过学号 + 校园邮箱验证身份，昵称旁将显示「已认证」徽标，让同学更信任你的信息。
-            请使用所在学校的官方邮箱。
+            通过登录邮箱验证身份，昵称旁将显示「已认证」徽标，让同学更信任你的信息。
+            请使用所在学校官方域名注册/登录。
           </p>
 
           {step === 'form' ? (
             <>
-              <label className="block">
-                <span className="text-xs text-ink-sub">学号</span>
-                <input
-                  type="text"
-                  value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
-                  maxLength={50}
-                  placeholder="请输入校园学号"
-                  className="mt-1 w-full px-3 py-2 rounded-[10px] border border-line/60 focus:border-lake focus:outline-none text-sm"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs text-ink-sub">校园邮箱</span>
-                <input
-                  type="email"
-                  value={campusEmail}
-                  onChange={(e) => setCampusEmail(e.target.value)}
-                  maxLength={255}
-                  placeholder="name@学校官方域名"
-                  className="mt-1 w-full px-3 py-2 rounded-[10px] border border-line/60 focus:border-lake focus:outline-none text-sm"
-                />
-              </label>
+              <div className="rounded-[10px] bg-lake/5 border border-lake/20 px-3 py-2 text-xs text-lake">
+                <span className="font-medium">认证邮箱：</span>
+                <span className="font-data">{user?.email}</span>
+                <span className="block text-[10px] text-ink-muted mt-0.5">
+                  验证凭证将发送至该邮箱
+                </span>
+              </div>
               <Button
                 variant="primary"
                 disabled={loading}

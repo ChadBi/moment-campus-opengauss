@@ -114,19 +114,18 @@ async def complete_onboarding(
 @router.post(
     "/me/verify-campus/send",
     response_model=CampusVerifySendResponse,
-    summary="B-01: 发起校园身份认证（提交学号 + 校园邮箱）",
+    summary="B-01: 发起校园身份认证（使用登录邮箱发码）",
 )
 async def send_campus_verify(
-    data: CampusVerifySendRequest,
     request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """发起校园身份认证。
+    """发起校园身份认证（统一教育邮箱）。
 
     业务规则：
     - 已认证用户不能再发起（返回 400）
-    - 校验校园邮箱域名命中该校 `school_domains` 允许域名，否则 400
+    - 校验当前登录邮箱域名命中该校 `school_domains` 允许域名，否则 400
     - 生成一次性认证凭证（URL-safe token，10 分钟有效），DB 仅存 SHA-256 哈希
     - 构造验证链接 `{APP_BASE_URL}/verify-campus?token=xxx`，通过 SMTP 发送验证邮件
     - SMTP 未配置或本地开发环境（APP_ENV in opengauss/demo/test 或 DEBUG=true）：
@@ -135,8 +134,8 @@ async def send_campus_verify(
     if current_user.campus_verified:
         raise BadRequestException(detail="您已完成校园身份认证，无需重复认证")
 
-    # 校验邮箱域名命中该校允许域名
-    email_domain = data.campus_email.rsplit("@", 1)[-1].lower()
+    # 校验当前登录邮箱域名命中该校允许域名
+    email_domain = current_user.email.rsplit("@", 1)[-1].lower()
     domain_result = await db.execute(
         select(SchoolDomain).where(
             SchoolDomain.school_id == current_user.school_id,
@@ -144,7 +143,7 @@ async def send_campus_verify(
         )
     )
     if domain_result.scalar_one_or_none() is None:
-        raise BadRequestException(detail="校园邮箱域名与您的学校不匹配，请使用学校官方邮箱")
+        raise BadRequestException(detail="邮箱域名与您的学校不匹配，请使用学校官方邮箱注册/登录")
 
     # 生成一次性凭证 + 验证链接
     credential = _generate_credential()
@@ -156,7 +155,7 @@ async def send_campus_verify(
     db.add(CampusVerifyToken(
         user_id=current_user.id,
         school_id=current_user.school_id,
-        target_email=data.campus_email,
+        target_email=current_user.email,
         token_hash=token_hash,
         expires_at=expires_at,
         used_at=None,
@@ -172,14 +171,14 @@ async def send_campus_verify(
     )
     school_name = school_row or ""
     sent = email_service.send_verification_email(
-        to_email=data.campus_email,
+        to_email=current_user.email,
         verify_link=verify_link,
         school_name=school_name,
         code=None,
     )
     if sent:
         message = (
-            f"验证邮件已发送至 {data.campus_email}，请查收并按邮件中的链接完成认证"
+            f"验证邮件已发送至 {current_user.email}，请查收并按邮件中的链接完成认证"
             f"（{CAMPUS_VERIFY_CODE_EXPIRE_MINUTES} 分钟内有效）"
         )
     else:
@@ -207,11 +206,11 @@ async def confirm_campus_verify(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """确认校园身份认证。
+    """确认校园身份认证（统一教育邮箱）。
 
     业务规则：
     - 校验凭证（token 或 code 二选一）：哈希后查 DB，必须存在 + 未过期 + 未使用 + 属于当前用户
-    - 校验通过 → campus_verified=true，记录 student_id/campus_email/verified_at
+    - 校验通过 → campus_verified=true，记录 campus_verified_at
     - 一次性：标记 used_at = now，防止重复使用
     """
     if current_user.campus_verified:
@@ -240,8 +239,6 @@ async def confirm_campus_verify(
     token.used_at = datetime.now()
     current_user.campus_verified = True
     current_user.campus_verified_at = datetime.now()
-    current_user.student_id = data.student_id
-    current_user.campus_email = data.campus_email
     current_user.updated_at = datetime.now()
     await db.commit()
     await db.refresh(current_user)

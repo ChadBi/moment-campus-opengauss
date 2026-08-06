@@ -409,6 +409,36 @@
   line-height: 1.6;
 }
 
+/* 认证邮箱展示（统一教育邮箱：只读展示登录邮箱） */
+.verify-email-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  padding: 20rpx 24rpx;
+  background: var(--lake-light);
+  border: 1rpx solid rgba(23, 77, 94, 0.2);
+  border-radius: var(--radius-md);
+  margin-bottom: 20rpx;
+}
+
+.verify-email-label {
+  font-size: 22rpx;
+  color: var(--muted);
+}
+
+.verify-email-val {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--lake);
+  font-family: var(--font-data);
+  word-break: break-all;
+}
+
+.verify-email-hint {
+  font-size: 20rpx;
+  color: var(--muted);
+}
+
 /* 发送验证码按钮 */
 .verify-send-btn {
   display: flex;

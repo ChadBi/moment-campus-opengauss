@@ -69,6 +69,19 @@
   - `/locations` 地点列表正常、点击地点弹出详情、深链 `?location=8` 自动打开教学楼A区详情
 - [x] 任务报告：[AIwork/用户系统四大功能调整_一对一绑定_邮箱验证_学校切换_地图整合_任务报告.md](AIwork/用户系统四大功能调整_一对一绑定_邮箱验证_学校切换_地图整合_任务报告.md)
 
+### 登录与校园认证统一教育邮箱（2026-08-06 完成）
+
+依据 `.trae/documents/登录与校园认证统一教育邮箱_实施计划.md`，消除"登录邮箱 ≠ 认证邮箱"的割裂体验，让**教育邮箱贯穿注册 → 登录 → 认证全流程**（统一心智：登录邮箱 = 教育邮箱 = 认证邮箱）。
+
+- [x] **后端字段收敛**：删除 `users.campus_email`、`users.student_id` 两列（Alembic 迁移 `a1b2c3d4e5f6_unify_edu_email_drop_campus_fields.py`），保留 `campus_verified`/`campus_verified_at`；`school_switch.py` 随之删除对已删字段的重置逻辑
+- [x] **认证接口收敛**：`send_campus_verify` 去掉 `student_id`/`campus_email` 入参，直接用 `current_user.email` 校验允许域名并发码；`confirm_campus_verify` 同理仅需 `token`/`code`，认证成功仅写 `campus_verified=true`
+- [x] **Web 端收窄教育邮箱**：注册页邮箱域名须命中目标学校允许域名否则提示"请使用学校官方邮箱注册"；`CampusVerifyCard` 移除学号输入框，认证邮箱只读展示当前登录邮箱 + "发送验证码"
+- [x] **小程序端收敛**：我自己页认证 UI 移除学号/校园邮箱输入框，改为只读展示登录邮箱 + "向我的邮箱发送验证码"；`services/auth.ts`、`types/index.ts` 移除 `student_id`/`campus_email`；注册模式邮箱保持选填（微信首登可先建号，认证时要求登录邮箱为教育邮箱——依据用户决策）
+- [x] **seed 演示数据适配**：演示账号改教育邮箱并加 example 域名（`user1@example.jiangnan.edu.cn` 等），各校 `addl_domains` 追加 example 域使演示账号能过域名校验、但 example 域不真实发邮
+- [x] **测试适配**：`test_campus_verify.py` 认证请求去掉 `student_id`/`campus_email`，改用登录邮箱；8 项认证用例全部通过
+- [x] **质量门禁**：认证测试 `pytest tests/test_campus_verify.py -v` 8 passed；前端 `npm run build` 通过；小程序 `npm run typecheck` 通过（用户要求不做全量回归测试）
+- [x] 任务报告：[AIwork/登录与校园认证统一教育邮箱_任务报告.md](AIwork/登录与校园认证统一教育邮箱_任务报告.md)
+
 ### 导师反馈完善方案：附近与设施评分 + 实名认证 + 小程序落地（2026-08-05 完成）
 
 依据 [`docs/..trae/documents/导师反馈完善方案_附近与设施评分_实名认证_小程序落地.md`](.trae/documents/导师反馈完善方案_附近与设施评分_实名认证_小程序落地.md) 与 [`tasks.md`](.trae/documents/tasks.md)，按 A→B→C→D→Q 顺序完成两位导师的锐评回应：

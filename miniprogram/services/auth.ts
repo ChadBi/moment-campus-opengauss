@@ -99,18 +99,13 @@ export async function logoutAll(): Promise<{ message: string; revoked_count: num
   return http.post('/auth/wechat/logout-all')
 }
 
-// ============== 校园身份认证（B-01/B-06） ==============
+// ============== 校园身份认证（B-01/B-06，统一教育邮箱） ==============
 
-export async function sendCampusVerify(params: {
-  student_id: string
-  campus_email: string
-}): Promise<{ message: string; code?: string }> {
-  return http.post<{ message: string; code?: string }>('/users/me/verify-campus/send', params)
+export async function sendCampusVerify(): Promise<{ message: string; code?: string }> {
+  return http.post<{ message: string; code?: string }>('/users/me/verify-campus/send')
 }
 
 export async function confirmCampusVerify(params: {
-  student_id: string
-  campus_email: string
   code: string
 }): Promise<{ message: string; campus_verified: boolean }> {
   return http.post<{ message: string; campus_verified: boolean }>(

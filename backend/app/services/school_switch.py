@@ -62,8 +62,6 @@ async def switch_school(
 
     # 4. 重置校园认证（D5：认证状态在 User 全局字段，切校即失效）
     user.campus_verified = False
-    user.student_id = None
-    user.campus_email = None
     user.campus_verified_at = None
 
     # 5. 失效未使用的认证 token（防止旧校 token 复用）

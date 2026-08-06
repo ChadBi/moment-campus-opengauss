@@ -82,6 +82,19 @@ const RegisterPage: React.FC = () => {
       return;
     }
 
+    // B-01': 产品收窄为教育邮箱：邮箱域名须命中所选学校的允许域名
+    const emailDomain = formData.email.split('@')[1]?.toLowerCase();
+    const allowedDomains = (selectedSchool?.domains ?? []).map((d) => d.toLowerCase());
+    if (allowedDomains.length > 0) {
+      if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+        setError(
+          `请使用 ${selectedSchool?.name ?? '该校'} 的学校官方邮箱注册` +
+            (allowedDomains[0] ? `（如 xxx@${allowedDomains[0]}）` : '')
+        );
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const response = await authApi.register({
@@ -154,12 +167,12 @@ const RegisterPage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="邮箱"
+              label="教育邮箱"
               name="email"
               type="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="请输入邮箱"
+              placeholder="name@学校官方域名"
               icon={<Mail size={16} />}
               required
             />

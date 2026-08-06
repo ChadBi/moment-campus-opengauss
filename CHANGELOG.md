@@ -7,6 +7,16 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.1.12] - 2026-08-06
+
+### 变更
+
+- `auth` **统一教育邮箱**：登录邮箱 = 教育邮箱 = 认证邮箱（同一字段 `email`），消除"登录邮箱 ≠ 认证邮箱"的割裂体验。删除 `users.campus_email`、`users.student_id` 字段（Alembic 迁移 `a1b2c3d4e5f6`），认证改为向当前登录邮箱发码验证，无需单独提交学号/认证邮箱
+- `auth` 校园认证接口收敛：`POST /users/me/verify-campus/send` 去掉 `student_id`/`campus_email` 入参，直接用登录邮箱校验域名并发码；`confirm` 同理仅需 `token`/`code`
+- `auth` 演示账号改为教育邮箱并加 example 域名：`user1@example.jiangnan.edu.cn`（fudan→`example.fudan.edu.cn`、zju→`example.zju.edu.cn`），各校 `addl_domains` 追加 example 域使演示账号能过域名校验但 example 域不会真实发邮
+- `web` 注册页收窄为教育邮箱：邮箱域名须命中目标学校允许域名，否则提示"请使用学校官方邮箱注册"；`CampusVerifyCard` 移除学号输入框，认证邮箱只读展示当前登录邮箱
+- `miniprogram` 我的页校园认证 UI 收敛：移除学号/校园邮箱输入框，改为只读展示登录邮箱 + "向我的邮箱发送验证码"，与 Web 端一致；注册模式邮箱保持选填（微信首登可先建号，认证时要求教育邮箱）
+
 ## [2.1.11] - 2026-08-06
 
 ### 移除

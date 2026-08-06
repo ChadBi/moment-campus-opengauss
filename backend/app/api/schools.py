@@ -53,6 +53,8 @@ class SchoolBrief(BaseModel):
     center_lng: Optional[float] = None
     map_zoom: Optional[int] = None
     is_active: bool
+    # B-01': 学校允许的认证域名（公开返回，供注册页校验教育邮箱）
+    domains: list[str] = Field(default_factory=list, description="该校允许的校园域名列表")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -145,10 +147,27 @@ async def list_schools(
     """
     result = await db.execute(
         select(School)
+        .options(selectinload(School.domains))
         .where(School.is_active == True)  # noqa: E712
         .order_by(School.id.asc())
     )
-    return result.scalars().all()
+    schools = result.scalars().all()
+    return [
+        SchoolBrief(
+            id=s.id,
+            code=s.code,
+            name=s.name,
+            logo_url=s.logo_url,
+            province=s.province,
+            city=s.city,
+            center_lat=s.center_lat,
+            center_lng=s.center_lng,
+            map_zoom=s.map_zoom,
+            is_active=s.is_active,
+            domains=[d.domain for d in s.domains],
+        )
+        for s in schools
+    ]
 
 
 @schools_router.get(

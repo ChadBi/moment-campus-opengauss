@@ -29,6 +29,8 @@ export interface SchoolSummary {
   center_lng?: number | null;
   map_zoom?: number | null;
   is_active?: boolean;
+  /** B-01': 学校允许的认证域名（公开目录返回，供注册页校验教育邮箱） */
+  domains?: string[];
 }
 
 export interface MembershipSchoolBrief {
