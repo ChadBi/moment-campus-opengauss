@@ -10,11 +10,14 @@
     bindmarkertap="onMarkerTap"
   ></map>
 
-  <!-- 顶部信息栏 -->
+  <!-- 顶部信息栏 + 学校切换 -->
   <view class="map-header">
-    <view class="school-info">
-      <text class="school-name">{{schoolName}}</text>
-      <text class="school-subtitle">校园地图</text>
+    <view class="school-info" bindtap="goToSchoolSelect" hover-class="school-info-hover" hover-stay-time="120">
+      <view class="school-name-row">
+        <text class="school-name">{{schoolName}}</text>
+        <icon name="chevron-down" size="24rpx" color="#174d5e" />
+      </view>
+      <text class="school-subtitle">点击切换学校</text>
     </view>
   </view>
 

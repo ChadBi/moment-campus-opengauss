@@ -50,7 +50,7 @@
       <view class="author-row">
         <image
           class="author-avatar"
-          src="{{post.author_avatar || '/assets/default-avatar.png'}}"
+          src="{{post.author_avatar}}"
           mode="aspectFill"
         />
         <view class="author-meta">
@@ -220,7 +220,7 @@
       <view wx:for="{{comments}}" wx:key="id" class="comment-item">
         <image
           class="comment-avatar"
-          src="{{item.author_avatar || '/assets/default-avatar.png'}}"
+          src="{{item.author_avatar}}"
           mode="aspectFill"
         />
         <view class="comment-body">

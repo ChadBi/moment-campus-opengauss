@@ -55,6 +55,9 @@ Page({
   },
 
   async onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 1 })
+    }
     this.loadLocations()
   },
 
@@ -113,5 +116,9 @@ Page({
     const loc = this.data.selectedLocation
     if (!loc) return
     wx.navigateTo({ url: `/subpackages/pages/locations/locations?id=${loc.id}` })
+  },
+
+  goToSchoolSelect() {
+    wx.navigateTo({ url: '/subpackages/pages/school-select/school-select' })
   },
 })

@@ -5,7 +5,7 @@
       <view class="avatar-wrap">
         <image
           class="avatar"
-          src="{{avatarUrl || '/assets/default-avatar.png'}}"
+          src="{{avatarUrl}}"
           mode="aspectFill"
         />
         <view class="avatar-edit" bindtap="onAvatarTap">
@@ -691,44 +691,5 @@
         </view>
       </block>
     </view>
-  </view>
-</view>
-
-<!-- ============== 底部 tab bar（对齐 Web MobileNav: 4 项均分 grid + bg-lake/95 + 激活态 bg-paper text-lake） ============== -->
-<view class="tab-bar">
-  <view
-    class="bar-tab {{activeTab === 'home' ? 'active' : ''}}"
-    bindtap="goToHome"
-    hover-class="bar-tab-hover"
-    hover-stay-time="120"
-  >
-    <icon name="home" size="40rpx" color="{{activeTab === 'home' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
-    <text class="bar-label">首页</text>
-  </view>
-  <view
-    class="bar-tab {{activeTab === 'map' ? 'active' : ''}}"
-    bindtap="goToMap"
-    hover-class="bar-tab-hover"
-    hover-stay-time="120"
-  >
-    <icon name="map" size="40rpx" color="{{activeTab === 'map' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
-    <text class="bar-label">地图</text>
-  </view>
-  <view
-    class="bar-tab {{activeTab === 'publish' ? 'active' : ''}}"
-    bindtap="goToPublish"
-    hover-class="bar-tab-hover"
-    hover-stay-time="120"
-  >
-    <icon name="plus-circle" size="40rpx" color="{{activeTab === 'publish' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
-    <text class="bar-label">发布</text>
-  </view>
-  <view
-    class="bar-tab {{activeTab === 'profile' ? 'active' : ''}}"
-    hover-class="bar-tab-hover"
-    hover-stay-time="120"
-  >
-    <icon name="user" size="40rpx" color="{{activeTab === 'profile' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
-    <text class="bar-label">我的</text>
   </view>
 </view>

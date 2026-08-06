@@ -65,6 +65,9 @@ Page({
   },
 
   onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 3 })
+    }
     // 发布页是纯写操作，进入前就提醒登录（避免填半天表单才发现不能提交）
     guardPageLogin('请先登录后再发布帖子')
   },

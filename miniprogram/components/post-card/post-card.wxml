@@ -1,6 +1,6 @@
 <view class="post-card" bindtap="onTap" hover-class="post-card-hover" hover-stay-time="120">
   <view class="card-header">
-    <image class="author-avatar" src="{{authorAvatar || '/assets/default-avatar.png'}}" mode="aspectFill" lazy-load/>
+    <image class="author-avatar" src="{{authorAvatar}}" mode="aspectFill" lazy-load/>
     <view class="header-info">
       <view class="author-row">
         <text class="author-name">{{authorName}}</text>

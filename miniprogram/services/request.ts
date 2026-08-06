@@ -57,6 +57,21 @@ export function resolveImageUrl(url: string | undefined): string {
   return url
 }
 
+// 水墨风默认头像（纯蓝灰SVG，兼容小程序 data:image 显示）
+const DEFAULT_AVATAR_SVG = `data:image/svg+xml;utf8,` + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2d6270"/><stop offset="100%" stop-color="#174d5e"/></linearGradient></defs><rect width="64" height="64" rx="32" fill="url(#g)"/><circle cx="32" cy="26" r="10" fill="#fafcfb" opacity="0.9"/><path d="M12 54c4-10 14-16 20-16s16 6 20 16" fill="#fafcfb" opacity="0.9"/></svg>`
+)
+
+export function defaultAvatar(): string {
+  return DEFAULT_AVATAR_SVG
+}
+
+export function resolveAvatar(url: string | undefined): string {
+  const resolved = resolveImageUrl(url)
+  if (resolved) return resolved
+  return DEFAULT_AVATAR_SVG
+}
+
 function getSchoolCode(): string {
   return wx.getStorageSync('school_code') || 'jiangnan'
 }

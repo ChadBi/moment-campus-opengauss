@@ -1,5 +1,5 @@
 import { formatDate, formatCount } from '../../utils/format'
-import { resolveImageUrl } from '../../services/request'
+import { resolveImageUrl, resolveAvatar, defaultAvatar } from '../../services/request'
 
 /**
  * 分类名映射到分类色板 CSS 类名
@@ -28,7 +28,7 @@ Component({
 
   data: {
     displayImages: [] as string[],
-    authorAvatar: '',
+    authorAvatar: defaultAvatar(),
     authorName: '匿名用户',
     formattedTime: '',
     formattedViews: '0',
@@ -54,7 +54,7 @@ Component({
         displayImages: rawImages
           .map((img: string) => resolveImageUrl(img))
           .slice(0, 3),
-        authorAvatar: resolveImageUrl(authorAvatar),
+        authorAvatar: resolveAvatar(authorAvatar),
         authorName,
         verified,
         formattedTime: formatDate(post.created_at),

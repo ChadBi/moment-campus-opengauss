@@ -162,7 +162,7 @@
       <view class="post-header">
         <image
           class="author-avatar"
-          src="{{item.author_avatar || '/assets/default-avatar.png'}}"
+          src="{{item.author_avatar}}"
           mode="aspectFill"
           lazy-load
         />

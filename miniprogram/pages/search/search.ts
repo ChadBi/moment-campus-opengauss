@@ -1,5 +1,5 @@
 import { searchPosts, aiSearch, getHotTags } from '../../services/search'
-import { resolveImageUrl } from '../../services/request'
+import { resolveImageUrl, resolveAvatar } from '../../services/request'
 import { formatDate, formatCount, truncateText, getRemainingTime } from '../../utils/format'
 import { campusStore } from '../../store/campus'
 
@@ -42,6 +42,12 @@ Page({
   onLoad() {
     this.loadHistory()
     this.loadHotTags()
+  },
+
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 2 })
+    }
   },
 
   // ============== 历史与热门标签 ==============
@@ -243,7 +249,7 @@ Page({
       images,
       cover: images[0] || '',
       author_nickname: p.author_nickname || author.nickname || '匿名用户',
-      author_avatar: resolveImageUrl(p.author_avatar || author.avatar_url),
+      author_avatar: resolveAvatar(p.author_avatar || author.avatar_url),
       is_verified: !!p.is_verified || !!author.is_verified,
       created_at_text: formatDate(p.created_at),
       remaining_text: p.expires_at ? getRemainingTime(p.expires_at) : '',

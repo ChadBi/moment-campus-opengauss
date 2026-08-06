@@ -7,6 +7,17 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.1.11] - 2026-08-06
+
+### 移除
+
+- `miniprogram` 从 `app.json` 路由注册中移除 `pages/topics/topics` 与分包 `topic-detail/topic-detail` 两个专题页；同步删除首页 `home.wxml` 专题入口按钮与对应样式、`goToTopics` 方法，满足用户"早就说已经删除了专题和收藏功能"的要求（订阅管理 bookmark 图标属正常订阅功能，予以保留）
+
+### 变更
+
+- `miniprogram(tabbar)` 底部 tabBar 由原生样式升级为自定义 `custom-tab-bar` 组件：深湖蓝浮动胶囊底色 + 毛玻璃 backdrop-filter + 柔阴影 + 安全区适配，发布按钮高亮为橙色圆形主操作；五个 tab 页 `onShow` 时同步 selected 索引修复高亮不同步
+- `miniprogram(avatar)` 新增 `resolveAvatar()` 与 `defaultAvatar()` 默认头像工具，使用内联 SVG data:image（蓝灰渐变圆形 + 白色人形剪影）替代不存在的 `/assets/default-avatar.png`；覆盖 `post-card`、`profile`、`post-detail`、`search` 四页的作者/评论作者头像显示
+
 ## [2.1.10] - 2026-08-06
 
 ### 新增

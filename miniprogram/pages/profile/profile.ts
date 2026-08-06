@@ -1,4 +1,4 @@
-import { http, resolveImageUrl } from '../../services/request'
+import { http, resolveImageUrl, resolveAvatar, defaultAvatar } from '../../services/request'
 import { authStore } from '../../store/auth'
 import { campusStore } from '../../store/campus'
 import { formatDate, formatCount } from '../../utils/format'
@@ -28,13 +28,12 @@ const STATUS_LABELS: Record<string, string> = {
 
 Page({
   data: {
-    activeTab: 'profile',
     schoolName: '',
     isLoggedIn: false,
 
     // 用户信息
     user: null as any,
-    avatarUrl: '',
+    avatarUrl: defaultAvatar(),
     nickname: '',
     bio: '',
     email: '',
@@ -124,6 +123,9 @@ Page({
   },
 
   async onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 4 })
+    }
     // 游客访问「我的」时引导登录（Task 6），不打断浏览上下文
     if (!guardPageLogin('请先登录后查看个人中心')) {
       return
@@ -142,7 +144,7 @@ Page({
     if (!user) return
     this.setData({
       user,
-      avatarUrl: resolveImageUrl(user.avatar_url),
+      avatarUrl: resolveAvatar(user.avatar_url),
       nickname: user.nickname || '',
       bio: user.bio || '',
       email: user.email || '',
@@ -789,7 +791,7 @@ Page({
   },
 
   goToPublish() {
-    wx.navigateTo({ url: '/pages/publish/publish' })
+    wx.switchTab({ url: '/pages/publish/publish' })
   },
 
   goToSearch() {

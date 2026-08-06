@@ -4,13 +4,41 @@
     "pages/map/map",
     "pages/search/search",
     "pages/publish/publish",
-    "pages/post-detail/post-detail",
     "pages/profile/profile",
+    "pages/post-detail/post-detail",
     "pages/notifications/notifications",
     "pages/subscriptions/subscriptions",
-    "pages/login/login",
-    "pages/topics/topics"
+    "pages/login/login"
   ],
+  "tabBar": {
+    "custom": true,
+    "color": "rgba(255,255,255,0.7)",
+    "selectedColor": "#174d5e",
+    "backgroundColor": "#174d5e",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/map/map",
+        "text": "地图"
+      },
+      {
+        "pagePath": "pages/search/search",
+        "text": "搜索"
+      },
+      {
+        "pagePath": "pages/publish/publish",
+        "text": "发布"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
   "window": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "此刻校园",
@@ -52,7 +80,6 @@
         "school-select/school-select",
         "bind-account/bind-account",
         "edit-post/edit-post",
-        "topic-detail/topic-detail",
         "locations/locations",
         "about/about"
       ]

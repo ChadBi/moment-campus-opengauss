@@ -1,5 +1,5 @@
 <view class="home-page page-fade-in">
-  <!-- 顶部栏：校名 + Slogan + 搜索入口 + 专题入口 -->
+  <!-- 顶部栏：校名 + Slogan + 搜索入口 -->
   <view class="top-bar">
     <view class="school-info">
       <icon name="school" size="36rpx" color="#174d5e" />
@@ -11,10 +11,6 @@
     <view class="search-entry" bindtap="goToSearch" hover-class="search-entry-hover" hover-stay-time="120">
       <icon name="search" size="28rpx" color="#6a7d81" />
       <text class="search-text">搜索校园信息...</text>
-    </view>
-    <view class="topics-entry" bindtap="goToTopics" hover-class="topics-entry-hover" hover-stay-time="120">
-      <icon name="bookmark" size="36rpx" color="#174d5e" />
-      <text class="topics-label">专题</text>
     </view>
   </view>
 
@@ -94,27 +90,5 @@
     <view class="no-more-line"></view>
     <text>没有更多了</text>
     <view class="no-more-line"></view>
-  </view>
-</view>
-
-<!-- 底部导航：首页 / 地图 / 发布 / 我的 -->
-<view class="tab-bar">
-  <view class="bar-tab {{activeTab === 'home' ? 'active' : ''}}" bindtap="goToHome" hover-class="bar-tab-hover" hover-stay-time="120">
-    <icon name="home" size="44rpx" color="{{activeTab === 'home' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
-    <text class="bar-label">首页</text>
-  </view>
-  <view class="bar-tab {{activeTab === 'map' ? 'active' : ''}}" bindtap="goToMap" hover-class="bar-tab-hover" hover-stay-time="120">
-    <icon name="map" size="44rpx" color="{{activeTab === 'map' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
-    <text class="bar-label">地图</text>
-  </view>
-  <view class="bar-tab bar-publish" bindtap="goToPublish" hover-class="bar-tab-hover" hover-stay-time="120">
-    <view class="publish-btn">
-      <icon name="plus-circle" size="56rpx" color="#ffffff" />
-    </view>
-    <text class="bar-label publish-label">发布</text>
-  </view>
-  <view class="bar-tab {{activeTab === 'profile' ? 'active' : ''}}" bindtap="goToProfile" hover-class="bar-tab-hover" hover-stay-time="120">
-    <icon name="user" size="44rpx" color="{{activeTab === 'profile' ? '#174d5e' : 'rgba(255,255,255,0.7)'}}" />
-    <text class="bar-label">我的</text>
   </view>
 </view>

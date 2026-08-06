@@ -19,7 +19,6 @@ Page({
     totalPosts: 0,
     formattedTotal: '0',
     formattedRefreshTime: '',
-    activeTab: 'home',
   },
 
   onLoad() {
@@ -35,6 +34,9 @@ Page({
   },
 
   async onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 0 })
+    }
     await this.refreshPosts()
   },
 
@@ -128,20 +130,12 @@ Page({
     wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${id}` })
   },
 
-  goToHome() {
-    wx.pageScrollTo({ scrollTop: 0, duration: 300 })
-  },
-
   goToSearch() {
-    wx.navigateTo({ url: '/pages/search/search' })
-  },
-
-  goToTopics() {
-    wx.navigateTo({ url: '/pages/topics/topics' })
+    wx.switchTab({ url: '/pages/search/search' })
   },
 
   goToMap() {
-    wx.navigateTo({ url: '/pages/map/map' })
+    wx.switchTab({ url: '/pages/map/map' })
   },
 
   goToLocations() {
@@ -149,10 +143,10 @@ Page({
   },
 
   goToPublish() {
-    wx.navigateTo({ url: '/pages/publish/publish' })
+    wx.switchTab({ url: '/pages/publish/publish' })
   },
 
   goToProfile() {
-    wx.navigateTo({ url: '/pages/profile/profile' })
+    wx.switchTab({ url: '/pages/profile/profile' })
   },
 })

@@ -80,29 +80,6 @@
   color: var(--muted);
 }
 
-/* === 专题入口 === */
-.topics-entry {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4rpx;
-  padding: 4rpx 10rpx;
-  transition: opacity 200ms;
-}
-
-.topics-entry-hover {
-  opacity: 0.7;
-}
-
-.topics-label {
-  font-size: 22rpx;
-  color: var(--lake);
-  font-weight: 600;
-  letter-spacing: 1rpx;
-}
-
 /* === 分类 Tab === */
 .category-tabs {
   white-space: nowrap;
@@ -264,92 +241,9 @@
   background: var(--ink-divider);
 }
 
-/* ============================================================
- * 底部导航 - 浮动胶囊式（对齐 Web MobileNav）
- * ============================================================ */
-.tab-bar {
-  position: fixed;
-  bottom: 12rpx;
-  left: 12rpx;
-  right: 12rpx;
-  height: 108rpx;
-  background: rgba(23, 77, 94, 0.95);
-  border-radius: var(--radius-lg);
-  border: 1rpx solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 16rpx 64rpx rgba(20, 55, 63, 0.25);
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  align-items: center;
-  z-index: 100;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.bar-tab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  margin: 8rpx;
-  border-radius: var(--radius-sm);
-  transition: background 0.2s, transform 0.2s;
-  gap: 4rpx;
-}
-
-.bar-tab-hover {
-  transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.bar-label {
-  font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.7);
-  letter-spacing: 1rpx;
-}
-
-.bar-tab.active {
-  background: var(--paper);
-}
-
-.bar-tab.active .bar-label {
-  color: var(--lake);
-  font-weight: 700;
-}
-
-/* === 发布按钮（中间凸起） === */
-.bar-publish {
-  position: relative;
-}
-
-.publish-btn {
-  width: 80rpx;
-  height: 80rpx;
-  background: var(--lamp);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: -36rpx;
-  box-shadow: var(--shadow-lamp);
-  border: 2rpx solid rgba(255, 255, 255, 0.15);
-  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.bar-tab-hover .publish-btn {
-  transform: scale(0.95);
-}
-
-.publish-label {
-  margin-top: 4rpx;
-  color: rgba(255, 255, 255, 0.9);
-}
-
 /* === reduced motion 降级 === */
 @media (prefers-reduced-motion: reduce) {
-  .bar-tab,
-  .publish-btn,
-  .search-entry,
-  .topics-entry {
+  .search-entry {
     transition: none;
   }
   .loading-dot {

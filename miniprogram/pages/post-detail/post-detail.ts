@@ -1,4 +1,4 @@
-import { http, resolveImageUrl } from '../../services/request'
+import { http, resolveImageUrl, resolveAvatar } from '../../services/request'
 import { formatDate, formatCount, getRemainingTime } from '../../utils/format'
 import {
   likePost,
@@ -131,7 +131,7 @@ Page({
       location_name: post.location_name || location.name || '',
       location_address: locationParts.join(' · '),
       author_nickname: post.author_nickname || author.nickname || '匿名用户',
-      author_avatar: resolveImageUrl(post.author_avatar || author.avatar_url),
+      author_avatar: resolveAvatar(post.author_avatar || author.avatar_url),
       is_verified: !!post.is_verified || !!author.is_verified,
       created_at_text: formatDate(post.created_at),
       likes_count_text: formatCount(post.likes_count || 0),
