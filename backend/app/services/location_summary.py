@@ -240,7 +240,6 @@ def _normalise_output(parsed: Any, snapshot: dict[str, Any]) -> tuple[dict[str, 
                 raise ValueError("摘要引用了不在输入快照中的来源")
             clean = {"source_type": ref["source_type"], "source_id": int(ref["source_id"])}
             normal_refs.append(clean)
-            all_refs[key] = clean
         unique_refs = {(r["source_type"], r["source_id"]) for r in normal_refs}
         dynamic_items = [
             candidates[_source_key(ref["source_type"], ref["source_id"])]
@@ -257,6 +256,8 @@ def _normalise_output(parsed: Any, snapshot: dict[str, Any]) -> tuple[dict[str, 
             continue
         if not dynamic_items and len(unique_refs) < 1:
             continue
+        for ref in normal_refs:
+            all_refs[_source_key(ref["source_type"], ref["source_id"])] = ref
         valid_claims.append({
             "claim_id": str(claim.get("claim_id") or f"claim-{len(valid_claims) + 1}"),
             "text": str(claim.get("text") or "").strip()[:300],
