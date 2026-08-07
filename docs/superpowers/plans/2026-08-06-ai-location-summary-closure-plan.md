@@ -6,67 +6,81 @@
 >
 > **Architecture:** 采用“迁移修复 → 空库迁移+种子 → 集成测试 → 全量 pytest 分批 → Web E2E → 小程序验证 → 文档与提交”的串行顺序。所有代码改动遵循现有 ORM 与 async 测试风格；AI 调用在测试中使用 monkeypatch，不依赖真实网络；真实 E2E 若 AI 服务不可用，仍通过 API 写入可控的待审版本并走完审核展示链路。
 >
-> **Tech Stack:** Python 3.11 + `backend/.venv`、FastAPI + SQLAlchemy async、openGauss 7.0.0-RC3（Docker 本镜像，pull_policy: never）、Alembic、pytest-asyncio、React + Vite Web、TypeScript 微信小程序、Integrated Browser MCP、wechatide-skill。
+> **Tech Stack:** Python 3.11 + `backend/.venv`、FastAPI + SQLAlchemy async、openGauss 7.0.0-RC3（Docker 本镜像，pull\_policy: never）、Alembic、pytest-asyncio、React + Vite Web、TypeScript 微信小程序、Integrated Browser MCP、wechatide-skill。
 
----
+***
 
 ## 文件结构与职责
 
 ### 修改/新增文件总览
 
-- Alembic 迁移目录
-  - 修改：`backend/alembic/versions/a1b2c3d4e5f6_unify_edu_email_drop_campus_fields.py`（换唯一 revision 号）
-  - 重命名：`backend/alembic/versions/a6b7c8d9e0f1_location_knowledge.py` → `b8c9d0e1f2a3_location_knowledge.py`
-  - 新增：`backend/alembic/versions/n2o3p4q5r6s7_merge_drop_publisher_and_location_knowledge.py`（空 merge，仅合并分支）
-  - 必要时修改：`backend/alembic/versions/d6e7f8a9b0c1_rev_01_location_reviews.py` 等后续迁移，确保 down_revision 正确指向唯一 head 链末端
+* Alembic 迁移目录
 
-- 后端测试
-  - 新增：`backend/tests/test_location_summary_flow.py`（8 类集成场景：A~E 主链路 + F~H worker）
+  * 修改：`backend/alembic/versions/a1b2c3d4e5f6_unify_edu_email_drop_campus_fields.py`（换唯一 revision 号）
 
-- 文档与交付
-  - 修改：`docs/此刻校园_评委反馈与产品优化方案.md` §1.2 口径
-  - 修改：`TODO.md` 当前执行任务与补充验收
-  - 修改：`CHANGELOG.md` 新增版本条目
-  - 修改：`AIwork/AI地点摘要实施方案落地_任务报告.md` 第 3、7 节补本次完成
-  - 新增：`AIwork/AI地点摘要完整闭环补齐_任务报告.md`（本次专项）
+  * 重命名：`backend/alembic/versions/a6b7c8d9e0f1_location_knowledge.py` → `b8c9d0e1f2a3_location_knowledge.py`
 
----
+  * 新增：`backend/alembic/versions/n2o3p4q5r6s7_merge_drop_publisher_and_location_knowledge.py`（空 merge，仅合并分支）
+
+  * 必要时修改：`backend/alembic/versions/d6e7f8a9b0c1_rev_01_location_reviews.py` 等后续迁移，确保 down\_revision 正确指向唯一 head 链末端
+
+* 后端测试
+
+  * 新增：`backend/tests/test_location_summary_flow.py`（8 类集成场景：A\~E 主链路 + F\~H worker）
+
+* 文档与交付
+
+  * 修改：`docs/此刻校园_评委反馈与产品优化方案.md` §1.2 口径
+
+  * 修改：`TODO.md` 当前执行任务与补充验收
+
+  * 修改：`CHANGELOG.md` 新增版本条目
+
+  * 修改：`AIwork/AI地点摘要实施方案落地_任务报告.md` 第 3、7 节补本次完成
+
+  * 新增：`AIwork/AI地点摘要完整闭环补齐_任务报告.md`（本次专项）
+
+***
 
 ## Task 1：审计并修正 Alembic 迁移图（形成唯一 head）
 
 **Files:**
-- Modify: `backend/alembic/versions/a1b2c3d4e5f6_unify_edu_email_drop_campus_fields.py:1-20`
-- Rename: `backend/alembic/versions/a6b7c8d9e0f1_location_knowledge.py` → `backend/alembic/versions/b8c9d0e1f2a3_location_knowledge.py`
-- Create: `backend/alembic/versions/n2o3p4q5r6s7_merge_drop_publisher_and_location_knowledge.py`
-- Modify (if needed): `backend/alembic/versions/d6e7f8a9b0c1_rev_01_location_reviews.py:20-22` 及其他后续迁移 down_revision
 
-### Step 1.1：给 unify_edu_email 迁移分配全新 revision
+* Modify: `backend/alembic/versions/a1b2c3d4e5f6_unify_edu_email_drop_campus_fields.py:1-20`
 
-打开 `backend/alembic/versions/a1b2c3d4e5f6_unify_edu_email_drop_campus_fields.py`，把第 17 行的 revision 改为 `m1n2o3p4q5r6`（确保全局唯一，不与其他 12 位串重复）。down_revision 保持 `f4b5c6d7a8b9`。
+* Rename: `backend/alembic/versions/a6b7c8d9e0f1_location_knowledge.py` → `backend/alembic/versions/b8c9d0e1f2a3_location_knowledge.py`
+
+* Create: `backend/alembic/versions/n2o3p4q5r6s7_merge_drop_publisher_and_location_knowledge.py`
+
+* Modify (if needed): `backend/alembic/versions/d6e7f8a9b0c1_rev_01_location_reviews.py:20-22` 及其他后续迁移 down\_revision
+
+### Step 1.1：给 unify\_edu\_email 迁移分配全新 revision
+
+打开 `backend/alembic/versions/a1b2c3d4e5f6_unify_edu_email_drop_campus_fields.py`，把第 17 行的 revision 改为 `m1n2o3p4q5r6`（确保全局唯一，不与其他 12 位串重复）。down\_revision 保持 `f4b5c6d7a8b9`。
 
 ```python
 revision: str = "m1n2o3p4q5r6"
 down_revision: Union[str, None] = "f4b5c6d7a8b9"
 ```
 
-- [ ] **Step 1.1：修改 `a1b2c3d4e5f6_unify_edu_email_drop_campus_fields.py` revision 为 `m1n2o3p4q5r6`**
+* [ ] **Step 1.1：修改** **`a1b2c3d4e5f6_unify_edu_email_drop_campus_fields.py`** **revision 为** **`m1n2o3p4q5r6`**
 
-### Step 1.2：确保 t7_post_embeddings 的下游继续正确指向它
+### Step 1.2：确保 t7\_post\_embeddings 的下游继续正确指向它
 
-`b6c7d8e9f0a1_embedding_dim_512.py` 的 down_revision 目前是 `a1b2c3d4e5f6`，它应该指向 `t7_post_embeddings` 这个迁移（原 `a1b2c3d4e5f6_t7_post_embeddings.py`，保留其 revision 为 `a1b2c3d4e5f6`）。由于我们只把 unify_edu_email 那一份换号，这一步无需改动，但要在核对时确认。
+`b6c7d8e9f0a1_embedding_dim_512.py` 的 down\_revision 目前是 `a1b2c3d4e5f6`，它应该指向 `t7_post_embeddings` 这个迁移（原 `a1b2c3d4e5f6_t7_post_embeddings.py`，保留其 revision 为 `a1b2c3d4e5f6`）。由于我们只把 unify\_edu\_email 那一份换号，这一步无需改动，但要在核对时确认。
 
-- [ ] **Step 1.2：核对 `b6c7d8e9f0a1` down_revision 仍为 `a1b2c3d4e5f6`，对应 t7_post_embeddings**
+* [ ] **Step 1.2：核对** **`b6c7d8e9f0a1`** **down\_revision 仍为** **`a1b2c3d4e5f6`，对应 t7\_post\_embeddings**
 
 ### Step 1.3：把地点知识迁移文件名与内部 revision 对齐
 
-将 `backend/alembic/versions/a6b7c8d9e0f1_location_knowledge.py` 重命名为 `backend/alembic/versions/b8c9d0e1f2a3_location_knowledge.py`，文件内部第 9~12 行保持：
+将 `backend/alembic/versions/a6b7c8d9e0f1_location_knowledge.py` 重命名为 `backend/alembic/versions/b8c9d0e1f2a3_location_knowledge.py`，文件内部第 9\~12 行保持：
 
 ```python
 revision: str = "b8c9d0e1f2a3"
 down_revision: Union[str, None] = "z5e6f7g8h9i0"
 ```
 
-- [ ] **Step 1.3：文件重命名**
+* [ ] **Step 1.3：文件重命名**
 
 ### Step 1.4：新增 merge migration 合并 drop-publisher 与 location-knowledge 两分支
 
@@ -101,13 +115,13 @@ def downgrade() -> None:
     pass
 ```
 
-- [ ] **Step 1.4：新增空 merge migration `n2o3p4q5r6s7`**
+* [ ] **Step 1.4：新增空 merge migration** **`n2o3p4q5r6s7`**
 
-### Step 1.5：修正最新迁移的 down_revision，使唯一 head 成立
+### Step 1.5：修正最新迁移的 down\_revision，使唯一 head 成立
 
 核对以下文件的 `down_revision`，若它们指向 merge 之前或错误分支，则改为：
 
-- `d6e7f8a9b0c1_rev_01_location_reviews.py`（它目前依赖 `d5e6f7a8b9c1`，再往上是 `b6c7d8e9f0a1`→`a1b2c3d4e5f6_t7`→`0898a6eeb570` 分支）。这是独立的一条主链，它与 `y4d5e6f7g8h9→z5` 分支的汇合点需要从现有历史中核查；若当前没有 merge，则以实际 `alembic heads` 输出为准，缺哪个补哪个 merge。
+* `d6e7f8a9b0c1_rev_01_location_reviews.py`（它目前依赖 `d5e6f7a8b9c1`，再往上是 `b6c7d8e9f0a1`→`a1b2c3d4e5f6_t7`→`0898a6eeb570` 分支）。这是独立的一条主链，它与 `y4d5e6f7g8h9→z5` 分支的汇合点需要从现有历史中核查；若当前没有 merge，则以实际 `alembic heads` 输出为准，缺哪个补哪个 merge。
 
 **执行命令（Windows PowerShell，backend/.venv）：**
 
@@ -121,7 +135,7 @@ $env:APP_ENV="opengauss"
 预期执行前：head 数量 >1，且/或出现 duplicate revision 报错。
 预期修复后：head 数量 =1，`history -v` 无异常。
 
-- [ ] **Step 1.5：运行 `alembic heads` 与 `history -v`，若仍多 head 则追加对应 merge migration 直至唯一 head**
+* [ ] **Step 1.5：运行** **`alembic heads`** **与** **`history -v`，若仍多 head 则追加对应 merge migration 直至唯一 head**
 
 ### Step 1.6：提交 Alembic 图修复
 
@@ -130,15 +144,17 @@ git add backend/alembic/versions
 git commit -m "fix(migrations): 修复 Alembic 重复 revision 与缺失 merge，形成唯一 head"
 ```
 
-- [ ] **Step 1.6：提交迁移修复 commit**
+* [ ] **Step 1.6：提交迁移修复 commit**
 
----
+***
 
 ## Task 2：重建 openGauss，迁移 + 种子数据成功
 
 **Files:**
-- Verify: `docker-compose.yml:2-24`
-- Run: `backend/scripts/seed_data.py`
+
+* Verify: `docker-compose.yml:2-24`
+
+* Run: `backend/scripts/seed_data.py`
 
 ### Step 2.1：停止并删除现有 openGauss 数据卷（按项目约定）
 
@@ -150,7 +166,7 @@ docker compose up -d opengauss
 Start-Sleep 10
 ```
 
-- [ ] **Step 2.1：`docker compose down -v opengauss` 并重启容器**
+* [ ] **Step 2.1：`docker compose down -v opengauss`** **并重启容器**
 
 ### Step 2.2：在 backend/.venv 执行迁移到 head
 
@@ -174,7 +190,7 @@ asyncio.run(main())"
 
 预期：locations 列包含 `current_summary_id`、`summary_dirty_at`；三张新表都出现。
 
-- [ ] **Step 2.2：`alembic upgrade head` 成功并确认新列/新表存在**
+* [ ] **Step 2.2：`alembic upgrade head`** **成功并确认新列/新表存在**
 
 ### Step 2.3：执行种子数据脚本
 
@@ -186,15 +202,17 @@ $env:APP_ENV="opengauss"
 
 预期：脚本输出三校数据，无 `relation does not exist` 错误。
 
-- [ ] **Step 2.3：种子数据脚本成功执行**
+* [ ] **Step 2.3：种子数据脚本成功执行**
 
----
+***
 
 ## Task 3：补齐摘要主链路与 worker 集成测试
 
 **Files:**
-- Create: `backend/tests/test_location_summary_flow.py`
-- Test: `backend/tests/test_location_knowledge.py`、`test_location_summary_unit.py`、`test_location_reviews.py`、`test_nearby.py`
+
+* Create: `backend/tests/test_location_summary_flow.py`
+
+* Test: `backend/tests/test_location_knowledge.py`、`test_location_summary_unit.py`、`test_location_reviews.py`、`test_nearby.py`
 
 ### Step 3.1：先写失败测试再实现修复（TDD）
 
@@ -581,7 +599,7 @@ async def test_scenario_h_worker_counters_and_lock_path(
     assert isinstance(stats["failed"], int)
 ```
 
-- [ ] **Step 3.1：写入 `backend/tests/test_location_summary_flow.py` 完整文件**
+* [ ] **Step 3.1：写入** **`backend/tests/test_location_summary_flow.py`** **完整文件**
 
 ### Step 3.2：运行专项测试，定位失败并修复真实接口/服务行为
 
@@ -591,20 +609,23 @@ $env:APP_ENV="opengauss"
 .\.venv\Scripts\python.exe -m pytest tests/test_location_knowledge.py tests/test_location_summary_unit.py tests/test_location_reviews.py tests/test_location_summary_flow.py tests/test_nearby.py -v
 ```
 
-- 若出现 fixture 缺失（如 `two_school_users`），按现有 `conftest.py` 实际 fixture 调整测试（推荐在 `backend/tests/conftest.py` 中就地追加缺失 fixture，不破坏现有用例）。
-- 若 `build_location_snapshot / _invoke_ai / run_location_summary_job` 实际导出位置或签名不同，依据实际代码调整 monkeypatch 点与 import 路径。
-- 若 `run_location_summary_job` 需要 app 上下文或 async engine，按现有 job_run_records 风格对齐调用签名。
+* 若出现 fixture 缺失（如 `two_school_users`），按现有 `conftest.py` 实际 fixture 调整测试（推荐在 `backend/tests/conftest.py` 中就地追加缺失 fixture，不破坏现有用例）。
+
+* 若 `build_location_snapshot / _invoke_ai / run_location_summary_job` 实际导出位置或签名不同，依据实际代码调整 monkeypatch 点与 import 路径。
+
+* 若 `run_location_summary_job` 需要 app 上下文或 async engine，按现有 job\_run\_records 风格对齐调用签名。
 
 **迭代要求：** 本步必须做到专项测试全部 PASSED，不能跳过失败。
 
-- [ ] **Step 3.2：专项测试全部通过并记录数量**
+* [ ] **Step 3.2：专项测试全部通过并记录数量**
 
----
+***
 
 ## Task 4：分批执行全量 pytest，记录每批结果
 
 **Files:**
-- All: `backend/tests/`
+
+* All: `backend/tests/`
 
 ### Step 4.1：先收集测试，按目录/文件拆分成 5 批
 
@@ -616,11 +637,15 @@ $env:APP_ENV="opengauss"
 
 根据收集结果分成以下 5 批（可按实际文件名调整，保证互不重叠、覆盖整个 tests/）：
 
-- **Batch 1（用户/认证/租户）**：`test_auth*.py test_users*.py test_tenant*.py test_schools*.py test_campus*.py test_permissions*.py`
-- **Batch 2（帖子/评论/互动/治理）**：`test_posts*.py test_comments*.py test_interactions*.py test_governance*.py test_val*.py test_reports*.py`
-- **Batch 3（搜索/AI/日志/个人中心/通知）**：`test_search*.py test_ai*.py test_audit*.py test_notif*.py test_personal*.py test_prf*.py test_rec*.py test_sub*.py`
-- **Batch 4（管理员/统计/套餐）**：`test_admin*.py test_stat*.py test_plan*.py test_org*.py test_*.py`（剩余未归类，取文件列表作差）
-- **Batch 5（慢测试/重 DB 初始化）**：若 Batch 1-4 中某文件明显慢，单独移到这一批；否则留空
+* **Batch 1（用户/认证/租户）**：`test_auth*.py test_users*.py test_tenant*.py test_schools*.py test_campus*.py test_permissions*.py`
+
+* **Batch 2（帖子/评论/互动/治理）**：`test_posts*.py test_comments*.py test_interactions*.py test_governance*.py test_val*.py test_reports*.py`
+
+* **Batch 3（搜索/AI/日志/个人中心/通知）**：`test_search*.py test_ai*.py test_audit*.py test_notif*.py test_personal*.py test_prf*.py test_rec*.py test_sub*.py`
+
+* **Batch 4（管理员/统计/套餐）**：`test_admin*.py test_stat*.py test_plan*.py test_org*.py test_*.py`（剩余未归类，取文件列表作差）
+
+* **Batch 5（慢测试/重 DB 初始化）**：若 Batch 1-4 中某文件明显慢，单独移到这一批；否则留空
 
 ### Step 4.2：逐批执行并记录成功
 
@@ -634,21 +659,25 @@ $env:APP_ENV="opengauss"
 .\.venv\Scripts\python.exe -m pytest tests/test_admin*.py -v --tb=short
 ```
 
-- 若某批失败，先定位是迁移/数据/隔离问题还是功能 Bug；迁移问题回到 Task 1/2 追加修复；功能 Bug 修复后重跑对应批次。
-- 若某批 >10 分钟仍在跑，拆分该文件到子批次，避免整体超时。
+* 若某批失败，先定位是迁移/数据/隔离问题还是功能 Bug；迁移问题回到 Task 1/2 追加修复；功能 Bug 修复后重跑对应批次。
+
+* 若某批 >10 分钟仍在跑，拆分该文件到子批次，避免整体超时。
 
 **验收：** 每一批所有用例最终状态均为 PASSED。记录批次名、用例数、耗时与结果，写入新任务报告 §7。
 
-- [ ] **Step 4.1：收集并拆分批次**
-- [ ] **Step 4.2：逐批执行，全部批次通过**
+* [ ] **Step 4.1：收集并拆分批次**
 
----
+* [ ] **Step 4.2：逐批执行，全部批次通过**
+
+***
 
 ## Task 5：Web 端 7 步完整 E2E（真实前后端 + Integrated Browser MCP）
 
 **Files:**
-- Run: backend uvicorn、frontend `npm run dev`
-- Operate: Integrated Browser MCP 节点 `run_mcp` 调用 `browser_navigate / browser_snapshot / browser_click / browser_type / browser_take_screenshot / browser_console_messages / browser_network_requests / browser_wait_for`
+
+* Run: backend uvicorn、frontend `npm run dev`
+
+* Operate: Integrated Browser MCP 节点 `run_mcp` 调用 `browser_navigate / browser_snapshot / browser_click / browser_type / browser_take_screenshot / browser_console_messages / browser_network_requests / browser_wait_for`
 
 ### Step 5.1：启动后端与前端（后台，记录命令 ID）
 
@@ -667,119 +696,152 @@ Set-Location e:\Project\moment-campus\frontend
 npm run dev -- --port 5173
 ```
 
-- [ ] **Step 5.1：确认 `http://127.0.0.1:8000/docs` 与 `http://127.0.0.1:5173/` 可访问**
+* [ ] **Step 5.1：确认** **`http://127.0.0.1:8000/docs`** **与** **`http://127.0.0.1:5173/`** **可访问**
 
 ### Step 5.2：调用 Integrated Browser MCP 执行 7 步链路
 
 前置：先读取 MCP 工具描述（`browser_navigate.json`、`browser_click.json`、`browser_type.json` 等），再调用。
 
 步骤（按浏览器自动化写执行记录）：
+
 1. 访问 `http://127.0.0.1:5173/login` → 填 `user1@example.jiangnan.edu.cn / pass123` 登录。
-2. 打开任意江南大学地点详情页（若首页有入口则点击；否则直接访问 `/locations/:id`），找到“补充地点资料”按钮，提交营业时间（fact_key=`normal_hours`，label=`营业时间`，value=`工作日 08:00-18:00`）与服务说明（fact_key=`services`，label=`服务说明`，value=`支持校园卡支付，提供休息区`），reason 填“现场核对”。
+2. 打开任意江南大学地点详情页（若首页有入口则点击；否则直接访问 `/locations/:id`），找到“补充地点资料”按钮，提交营业时间（fact\_key=`normal_hours`，label=`营业时间`，value=`工作日 08:00-18:00`）与服务说明（fact\_key=`services`，label=`服务说明`，value=`支持校园卡支付，提供休息区`），reason 填“现场核对”。
 3. 退出，用 `admin@momentcampus.com / pass123` 登录管理后台，进入“地点资料待审”队列，批准该提议，记录批准后响应状态或 UI 提示。
 4. 手动触发一次 worker（后端直接运行 `scripts/location_summary_worker.py` 或通过管理端手动刷新接口），使该地点产生一条 `pending_review` 摘要版本。
-   - 若真实 AI_KEY 不可用导致 worker 生成失败：改为直接通过 POST 管理员“手动刷新摘要”接口，并在 monkeypatch 或测试模式下写入合法 `pending_review` 记录；不得伪造“真实 AI 调用成功”。
+
+   * 若真实 AI\_KEY 不可用导致 worker 生成失败：改为直接通过 POST 管理员“手动刷新摘要”接口，并在 monkeypatch 或测试模式下写入合法 `pending_review` 记录；不得伪造“真实 AI 调用成功”。
 5. 管理员进入“AI 摘要待审”队列，打开刚生成的摘要版本，查看正文、来源数量、至少一条 claim 与来源卡片，然后点击“批准”。
 6. 退出管理员账号，切回普通用户，重新进入同一地点详情页：
-   - 看到“此刻摘要”卡片、至少一条结论、`来源数 ≥ 2`；
-   - 稳定资料区显示刚批准的营业时间与服务说明；
-   - 可点开一条来源卡片（若为帖子/评价），原始链接或内容能展开。
+
+   * 看到“此刻摘要”卡片、至少一条结论、`来源数 ≥ 2`；
+
+   * 稳定资料区显示刚批准的营业时间与服务说明；
+
+   * 可点开一条来源卡片（若为帖子/评价），原始链接或内容能展开。
 7. 记录页面截图、browser console messages 与 network 请求中的 5xx/4xx 异常：如有，先修复再重跑。
 
-- [ ] **Step 5.2：完成 7 步链路，并至少保存 3 张截图（登录提交、管理员批准摘要、用户查看摘要+资料）**
+* [ ] **Step 5.2：完成 7 步链路，并至少保存 3 张截图（登录提交、管理员批准摘要、用户查看摘要+资料）**
 
----
+***
 
 ## Task 6：小程序门禁 + 编译 + 地点详情走查
 
 **Files:**
-- Run: `wechatide-skill`（根入口），按其场景化流程进入 initializer/compiler/previewer/automator
+
+* Run: `wechatide-skill`（根入口），按其场景化流程进入 initializer/compiler/previewer/automator
 
 ### Step 6.1：先调用 wechatide-skill 做门禁与项目打开
 
 1. 根据技能内说明，先执行 `check_wechatide_status`。
 2. 按项目路径 `e:\Project\moment-campus\miniprogram` 打开 `project.config.json`。
 
-- [ ] **Step 6.1：门禁通过且项目正常打开**
+* [ ] **Step 6.1：门禁通过且项目正常打开**
 
 ### Step 6.2：触发编译并校验错误
 
 调用 wechatide-skill 的 compiler 场景，要求输出：
-- 编译成功/失败；
-- 若失败，错误列表与修复路径；
-- 若成功，给出 `appid/project` 校验结果。
 
-- [ ] **Step 6.2：编译成功**
+* 编译成功/失败；
+
+* 若失败，错误列表与修复路径；
+
+* 若成功，给出 `appid/project` 校验结果。
+
+* [ ] **Step 6.2：编译成功**
 
 ### Step 6.3：打开地点详情页做自动化走查
 
 进入 automator 场景：
-- 打开地点详情页（按项目路由，如 `subpackages/pages/locations/locations` 或对应带参数）。
-- 断言：
-  - 存在“稳定资料”区块；
-  - 若该地点无已批准摘要：展示“暂无足够近期信息”或 equivalent 空状态文案；
-  - 若有：展示“此刻摘要”与来源数字段；
-  - 切换到已认证用户（或测试账号）时，页面存在“补充地点资料”入口按钮。
-- 截图至少 2 张：空态或摘要态；认证用户入口可见态。
 
-- [ ] **Step 6.3：地点详情页走完并记录结果**
+* 打开地点详情页（按项目路由，如 `subpackages/pages/locations/locations` 或对应带参数）。
 
----
+* 断言：
+
+  * 存在“稳定资料”区块；
+
+  * 若该地点无已批准摘要：展示“暂无足够近期信息”或 equivalent 空状态文案；
+
+  * 若有：展示“此刻摘要”与来源数字段；
+
+  * 切换到已认证用户（或测试账号）时，页面存在“补充地点资料”入口按钮。
+
+* 截图至少 2 张：空态或摘要态；认证用户入口可见态。
+
+* [ ] **Step 6.3：地点详情页走完并记录结果**
+
+***
 
 ## Task 7：统一文档口径、更新 TODO/CHANGELOG/任务报告并提交
 
 **Files:**
-- Modify: `docs/此刻校园_评委反馈与产品优化方案.md` §1.2
-- Modify: `TODO.md` §当前执行任务 & §本轮验收补充
-- Modify: `CHANGELOG.md`
-- Modify: `AIwork/AI地点摘要实施方案落地_任务报告.md` §3 + §7
-- Create: `AIwork/AI地点摘要完整闭环补齐_任务报告.md`
+
+* Modify: `docs/此刻校园_评委反馈与产品优化方案.md` §1.2
+
+* Modify: `TODO.md` §当前执行任务 & §本轮验收补充
+
+* Modify: `CHANGELOG.md`
+
+* Modify: `AIwork/AI地点摘要实施方案落地_任务报告.md` §3 + §7
+
+* Create: `AIwork/AI地点摘要完整闭环补齐_任务报告.md`
 
 ### Step 7.1：修正方案文档 §1.2 口径
 
 把 §1.2 表格两行：
-- `地点稳定资料`：由 `本轮开发` 改为 `已实现（2026-08-06）`，口径写“认证用户提议 + 管理员审核后写入 facts 表”
-- `AI 地点摘要`：由 `待开发` 改为 `已实现（2026-08-06）`，口径写“近期动态归纳 + 双作者证据门槛 + 待审/批准/驳回/失败 + 来源追溯；地图与首页预览为后续设想”
 
-- [ ] **Step 7.1：方案文档口径完成**
+* `地点稳定资料`：由 `本轮开发` 改为 `已实现（2026-08-06）`，口径写“认证用户提议 + 管理员审核后写入 facts 表”
+
+* `AI 地点摘要`：由 `待开发` 改为 `已实现（2026-08-06）`，口径写“近期动态归纳 + 双作者证据门槛 + 待审/批准/驳回/失败 + 来源追溯；地图与首页预览为后续设想”
+
+* [ ] **Step 7.1：方案文档口径完成**
 
 ### Step 7.2：更新 TODO.md
 
 把第 19 行的未完成项打勾，并把括号里的“阻塞”原因更新成具体的执行记录（如“已唯一 head、空库迁移成功、分 5 批 pytest 通过、Web 7 步 E2E 完成、小程序门禁+编译+地点页走查完成”）。
-把第 26~28 行补充验收同步更新，若某条目因真实 AI 调用未启用则明确写“AI 失败路径通过接口注入完成审核闭环，真实 AI 生成待上线环境另验”。
+把第 26\~28 行补充验收同步更新，若某条目因真实 AI 调用未启用则明确写“AI 失败路径通过接口注入完成审核闭环，真实 AI 生成待上线环境另验”。
 
-- [ ] **Step 7.2：TODO.md 完成**
+* [ ] **Step 7.2：TODO.md 完成**
 
 ### Step 7.3：新增 CHANGELOG 版本
 
 按 Keep a Changelog 格式增加版本号（如 `[2.2.5] - 2026-08-06`）：
-- `fix(migrations)`：Alembic 重复 revision + 缺失 merge，形成唯一 head；空库可正常 `alembic upgrade head`
-- `test(location_summary)`：新增 8 类集成测试，专项通过；全量 pytest 分 5 批通过
-- `test(e2e)`：Web 7 步真实 E2E、小程序门禁+编译+地点详情走查
-- `docs`：方案 §1.2、TODO、两份任务报告口径对齐
 
-- [ ] **Step 7.3：CHANGELOG.md 完成**
+* `fix(migrations)`：Alembic 重复 revision + 缺失 merge，形成唯一 head；空库可正常 `alembic upgrade head`
+
+* `test(location_summary)`：新增 8 类集成测试，专项通过；全量 pytest 分 5 批通过
+
+* `test(e2e)`：Web 7 步真实 E2E、小程序门禁+编译+地点详情走查
+
+* `docs`：方案 §1.2、TODO、两份任务报告口径对齐
+
+* [ ] **Step 7.3：CHANGELOG.md 完成**
 
 ### Step 7.4：更新原任务报告 + 新增本次任务报告
 
 在 `AIwork/AI地点摘要实施方案落地_任务报告.md` §3“未完成内容”下逐项划掉并注明“本次补齐完成”，并在 §7 测试与验证下追加本次各步骤命令与结果（含 5 批 pytest 数量与结果、Web E2E 截图文件名、小程序编译结果）。
 在 `AIwork/` 下新建 `AI地点摘要完整闭环补齐_任务报告.md`，按模板 8 节写完整的本次任务报告。
 
-- [ ] **Step 7.4：两份任务报告均完成**
+* [ ] **Step 7.4：两份任务报告均完成**
 
 ### Step 7.5：调用 `git-commit` 技能生成 Conventional Commit 提交
 
-- 提交范围包含：Alembic 修复、新增测试、（若有）小的业务修复、文档、任务报告、TODO/CHANGELOG。
-- 提交信息需按 Conventional Commits + 中文祈使句，内容对应本次完成：修复迁移、补集成测试、跑通 E2E、更新文档。
-- 按 AGENTS.md：每次更新 TODO.md 都必须提交 Git。
+* 提交范围包含：Alembic 修复、新增测试、（若有）小的业务修复、文档、任务报告、TODO/CHANGELOG。
 
-- [ ] **Step 7.5：最终 Git 提交已完成**
+* 提交信息需按 Conventional Commits + 中文祈使句，内容对应本次完成：修复迁移、补集成测试、跑通 E2E、更新文档。
 
----
+* 按 AGENTS.md：每次更新 TODO.md 都必须提交 Git。
+
+* [ ] **Step 7.5：最终 Git 提交已完成**
+
+***
 
 ## Plan Self-Review（编写计划后自检）
 
-- Spec 覆盖度：对照 `2026-08-06-ai-location-summary-closure-design.md` §1.2 的 5 条未完成内容，Task 1 对应迁移；Task 2 对应迁移应用；Task 3 对应测试；Task 4 对应全量 pytest；Task 5 对应 Web E2E；Task 6 对应小程序；Task 7 对应文档口径与提交。无遗漏。
-- Placeholder 扫描：所有步骤给出具体文件、命令、代码片段；`two_school_users` 缺失时给出兜底处理（按 conftest 调整 fixture 或 skip）；AI 失败路径明确不能伪造真实 AI 成功。
-- 类型一致性：`LocationSummaryVersion`、`Location.current_summary_id/summary_dirty_at`、`run_location_summary_job`、`build_location_snapshot` 等名称与现有 `app/models/location_summary.py` / `app/jobs/location_summary_worker.py` / `app/services/location_summary.py` 一致；`n2o3p4q5r6s7` merge revision 与 `m1n2o3p4q5r6` 的迁移 id 唯一且未在现有集合中出现。
-- 命令路径：Windows PowerShell（`backend\.venv\Scripts\python.exe`）、`docker compose down -v opengauss` 符合 AGENTS.md 约定；小程序强制走 `wechatide-skill`；浏览器自动化明确走 `integrated_browser` MCP。
+* Spec 覆盖度：对照 `2026-08-06-ai-location-summary-closure-design.md` §1.2 的 5 条未完成内容，Task 1 对应迁移；Task 2 对应迁移应用；Task 3 对应测试；Task 4 对应全量 pytest；Task 5 对应 Web E2E；Task 6 对应小程序；Task 7 对应文档口径与提交。无遗漏。
+
+* Placeholder 扫描：所有步骤给出具体文件、命令、代码片段；`two_school_users` 缺失时给出兜底处理（按 conftest 调整 fixture 或 skip）；AI 失败路径明确不能伪造真实 AI 成功。
+
+* 类型一致性：`LocationSummaryVersion`、`Location.current_summary_id/summary_dirty_at`、`run_location_summary_job`、`build_location_snapshot` 等名称与现有 `app/models/location_summary.py` / `app/jobs/location_summary_worker.py` / `app/services/location_summary.py` 一致；`n2o3p4q5r6s7` merge revision 与 `m1n2o3p4q5r6` 的迁移 id 唯一且未在现有集合中出现。
+
+* 命令路径：Windows PowerShell（`backend\.venv\Scripts\python.exe`）、`docker compose down -v opengauss` 符合 AGENTS.md 约定；小程序强制走 `wechatide-skill`；浏览器自动化明确走 `integrated_browser` MCP。
+
