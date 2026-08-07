@@ -25,6 +25,7 @@
 - `routes.tsx` + `Sidebar.tsx` + `MobileNav.tsx`：**地图升级为主页**——导航顺序从「首页→地图→地点…」改为「地图→首页→地点…」；默认路由 `/` 改为 `<Navigate to="/map" replace />` 重定向，原 HomePage 改挂 `/home`；Sidebar 顶部 Logo 方块 `to="/map"`（不再 `/`）；`commonRouteLoaders` 预加载顺序 `loadMapPage` 移至首位（用户最常打开的页面优先准备）
 - `Header.tsx`：**页头新增当前学校名称徽章**——Logo「此刻校园」右侧新增 ≥sm 可见的学校徽章（`School` 图标 + 校名，`bg-lake/8` 浅湖蓝底胶囊 + `text-lake` 湖蓝字 + 1px 湖蓝描边）；数据取自 `useCampusStore().currentSchoolName`，未选校/游客态 `&&` 短路不渲染；避免旧 `<SchoolSwitcher />` 移除后用户「不知道自己在看哪个学校」的上下文缺失问题
 - `PostDetailPage.tsx`：**修复点击证实/证伪后整页闪一下的感知 Bug**——原 `handleValidate()` 成功后 `void loadPost(true)` 会在 `loadPost` 里触发 `setLoading(true)`，进而命中 L391 `if (loading) return <LoadingState />` 整页骨架屏 Early Return，用户感知为「页面重新加载」；修复方案：给 `loadPost()` 新增第 2 参 `silent=false`（为 true 时跳过 `setLoading` 切换），`handleValidate()` 改为 `loadPost(true, true)` 静默刷新 governance 数据；首屏加载 / ErrorState onRetry 仍保持 `silent=false`（需显示骨架屏加载态）
+- `Sidebar.tsx` + `MobileNav.tsx`：**「首页」菜单项重命名为「帖子」**——因地图已升级为主页（`/` → `/map`），原首页 `/home`（帖子信息流 + 话题聚合页）继续叫「首页」语义歧义，改为更贴切的「帖子」；两处导航的 `path` 同步从 `/` 改为 `/home`，与 `routes.tsx` 路由定义保持一致，避免走 `/` → `/map` 的重定向链路
 
 ## [2.2.5] - 2026-08-06
 

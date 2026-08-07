@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-07（Post 详情页证实/证伪按钮闪屏修复：loadPost 加 silent 参数避免 setLoading 触发整页 Early Return）
+> 最后更新：2026-08-07（原「首页」菜单项重命名为「帖子」：Sidebar + MobileNav 两处 label 和 path 同步调整，直接命中 /home 路由不再经过根路径重定向）
 
 ## 当前执行任务：UI 体验精简调整（2026-08-07）
 
@@ -15,6 +15,7 @@
 - [x] **地图升级为主页**：侧边栏 `Sidebar` + 底部 `MobileNav` 导航顺序调整（地图 / 首页 / 地点 / 搜索 / 通知 / 我的）；路由 `/` 改为 `<Navigate to="/map" replace />` 301 式重定向，HomePage 移到 `/home`；Sidebar 顶部 Logo 方块 `to="/"` 同步改为 `to="/map"`；`commonRouteLoaders` 预加载顺序 `loadMapPage` 排第一
 - [x] **Header 顶端显式显示当前学校名称**：Logo「此刻校园」右侧新增学校徽章（School 图标 + 名称，圆角 8px / `bg-lake/8` 浅湖蓝底 + `text-lake` 字色 + 1px 湖蓝描边，≥sm 显示）；数据来自 `useCampusStore().currentSchoolName`（由 `useSchoolSync` 五阶段 bootstrap 稳定注入）；`currentSchoolName` 为空（游客/尚未切校）时不渲染空壳徽章
 - [x] **修复 Post 详情页证实/证伪按钮闪屏**：点击证实/证伪后调用 `loadPost()` 会 `setLoading(true)` 触发整页骨架屏 Early Return，用户感知为「整个页面闪一下像重新加载」；给 `loadPost` 新增第 2 参 `silent=false`，静默刷新时不切 loading 态；`handleValidate()` 改为 `loadPost(true, true)`；首屏加载/ErrorState 重试仍走默认 `silent=false` 显示 Loading
+- [x] **原「首页」菜单项重命名为「帖子」**：因 `/` 已重定向到 `/map`（地图为主页），原 HomePage（帖子信息流 + 话题聚合）挂在 `/home` 下继续叫「首页」语义冲突；Sidebar 与 MobileNav 两处 label 改为「帖子」，path 从 `/` 改为 `/home`（直接命中路由，不再经过 `/` → `/map` 重定向）
 - [x] **地图弹窗评价/评分内嵌**：MapPage 的地点侧滑面板（`<aside>`）的 `{review_count} 条评价` 改为可点击展开/收起评价列表；内嵌评分表单（5 星点击 + 500 字可选正文 + 提交/撤回），与 LocationPage 表现一致；打开面板时并行拉取 reviews + my_review + detail；提交/撤回后自动回写 avg_score / rating_count / review_count；`ScoreStars` 组件就地实现（含半星）
 - [x] **移除「我的订阅」模块**：ProfilePage 删除 `<SubscriptionsCard />` 引用与 import（订阅功能已下线，避免误导用户）
 - [x] **地点页面加搜索栏**：LocationPage 页头下方、列表容器（`bg-paper rounded-[16px]`）之前加入搜索框；按 `名称/描述/楼栋/楼层` 四个字段做前端过滤；空搜索时显示全量；有搜索词且无匹配时 EmptyState 提示；支持一键清空

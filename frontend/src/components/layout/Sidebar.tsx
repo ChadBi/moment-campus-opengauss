@@ -14,7 +14,8 @@ interface SidebarProps {
 
 const navItems = [
   { path: '/map', label: '地图', icon: Map },
-  { path: '/', label: '首页', icon: Home },
+  // /home 为原帖子信息流与话题聚合页（原首页，因地图升级为主页后改叫「帖子」）
+  { path: '/home', label: '帖子', icon: Home },
   // A-05: 校园地点（设施资料、AI 摘要与评分评价）
   { path: '/locations', label: '地点', icon: MapPin },
   { path: '/search', label: '搜索', icon: Search },
