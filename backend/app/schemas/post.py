@@ -133,7 +133,7 @@ class PostUpdate(BaseModel):
 # 信息响应（包含关联数据）
 class PostResponse(BaseModel):
     id: int
-    user_id: int
+    user_id: Optional[int] = Field(None, description="作者ID（匿名帖对外返回 null，本人/管理员豁免可见真实ID）")
     school_id: int
     category_id: int
     location_id: Optional[int] = None
@@ -173,7 +173,7 @@ class PostResponse(BaseModel):
 # 信息列表响应（简化版，用于列表展示）
 class PostListResponse(BaseModel):
     id: int
-    user_id: int
+    user_id: Optional[int] = Field(None, description="作者ID（匿名帖对外返回 null，本人/管理员豁免可见真实ID）")
     title: str
     content: str = Field(description="内容（完整内容，前端用 CSS line-clamp 控制显示行数）")
     is_anonymous: bool = False

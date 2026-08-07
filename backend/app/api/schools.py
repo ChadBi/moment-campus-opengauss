@@ -127,6 +127,18 @@ class SetDefaultSchoolResponse(BaseModel):
     membership: MembershipResponse
 
 
+class CurrentSchoolSettingsResponse(BaseModel):
+    """当前学校对普通用户/游客可见的公共设置（不包含任何敏感运营字段）"""
+    allow_anonymous: bool = Field(
+        True, description="学校是否允许匿名发布；关闭时 PostForm 的匿名 checkbox 应禁用"
+    )
+    allow_comments: bool = Field(True, description="是否允许评论；关闭时全局禁止评论按钮")
+    publish_frequency: int = Field(10, description="每日发布上限（0 表示不限）")
+    image_limit: int = Field(9, description="单帖图片上限")
+    default_validity_days: int = Field(30, description="默认信息有效天数")
+    require_review: bool = Field(True, description="发布后是否需要管理员审核（pending 态）")
+
+
 # ============================================================
 # 公开学校目录
 # ============================================================
@@ -215,6 +227,35 @@ async def get_current_school(
         site_name=settings.site_name if settings else None,
         description=settings.description if settings else None,
         brand_color=settings.brand_color if settings else None,
+    )
+
+
+@schools_router.get(
+    "/current/settings",
+    response_model=CurrentSchoolSettingsResponse,
+    summary="当前学校公共设置（匿名开关/评论开关/发布限额等）",
+)
+async def get_current_school_settings(
+    tenant: TenantContext = Depends(get_tenant_context),
+    db: AsyncSession = Depends(get_db),
+):
+    """当前学校对普通用户/游客可见的公共设置。
+
+    **公开端点**：游客也能访问，用于前端在加载发布页时决定是否禁用匿名 checkbox。
+    返回字段：allow_anonymous / allow_comments / publish_frequency / image_limit /
+    default_validity_days / require_review。
+    """
+    from app.models.school_settings import SchoolSettings
+    settings = await db.scalar(
+        select(SchoolSettings).where(SchoolSettings.school_id == tenant.school_id)
+    )
+    return CurrentSchoolSettingsResponse(
+        allow_anonymous=settings.allow_anonymous if settings else True,
+        allow_comments=settings.allow_comments if settings else True,
+        publish_frequency=settings.publish_frequency if settings else 10,
+        image_limit=settings.image_limit if settings else 9,
+        default_validity_days=settings.default_validity_days if settings else 30,
+        require_review=settings.require_review if settings else True,
     )
 
 

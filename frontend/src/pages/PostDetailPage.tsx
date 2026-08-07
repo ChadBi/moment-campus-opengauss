@@ -474,6 +474,11 @@ const PostDetailPage: React.FC = () => {
               <div className="text-sm font-medium text-ink flex items-center gap-1.5">
                 {post.author?.nickname || '匿名用户'}
                 {post.author?.is_verified && <VerifiedBadge />}
+                {post.is_anonymous && (
+                  <span className="bg-neutral-100 text-neutral-500 text-[10px] px-2 py-0.5 rounded-full border border-neutral-200">
+                    匿名
+                  </span>
+                )}
               </div>
               <div className="text-xs text-ink-muted flex items-center gap-1">
                 <MapPin size={11} />
@@ -872,6 +877,11 @@ const PostDetailPage: React.FC = () => {
                         <span className="font-medium text-ink text-sm flex items-center gap-1">
                           {comment.author?.nickname || '匿名用户'}
                           {comment.author?.is_verified && <VerifiedBadge />}
+                          {comment.is_anonymous && (
+                            <span className="bg-neutral-100 text-neutral-500 text-[10px] px-2 py-0.5 rounded-full border border-neutral-200">
+                              匿名
+                            </span>
+                          )}
                         </span>
                         <span className="text-xs text-ink-muted font-data">
                           {formatDate(comment.created_at)}
@@ -939,6 +949,11 @@ const PostDetailPage: React.FC = () => {
                                   <span className="font-medium text-ink text-[13px] flex items-center gap-1">
                                     {reply.author?.nickname || '匿名用户'}
                                     {reply.author?.is_verified && <VerifiedBadge />}
+                                    {reply.is_anonymous && (
+                                      <span className="bg-neutral-100 text-neutral-500 text-[10px] px-2 py-0.5 rounded-full border border-neutral-200">
+                                        匿名
+                                      </span>
+                                    )}
                                   </span>
                                   {reply.reply_to_user && reply.reply_to_user.id !== reply.user_id && (
                                     <span className="text-xs text-ink-muted">

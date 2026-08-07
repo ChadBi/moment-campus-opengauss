@@ -16,6 +16,7 @@ from app.ai.provider import AIInvokeOptions, AIProvider
 from app.ai.service import invoke_ai
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.core.tenant import TenantContext, check_resource_in_tenant
+from app.core.identity_mask import should_reveal_identity
 from app.models.location import Location
 from app.models.location_fact import LocationFact
 from app.models.location_summary import LocationSummaryVersion
@@ -465,7 +466,10 @@ async def reject_location_summary(
 
 
 async def load_summary_sources(
-    db: AsyncSession, summary: LocationSummaryVersion, tenant: TenantContext
+    db: AsyncSession,
+    summary: LocationSummaryVersion,
+    tenant: TenantContext,
+    current_user: Optional[User] = None,
 ) -> list[dict[str, Any]]:
     check_resource_in_tenant(summary.school_id, tenant)
     refs = summary.source_refs_json or []
@@ -497,10 +501,12 @@ async def load_summary_sources(
             )
             if post is None:
                 continue
+            # 匿名本人/管理员豁免显示真实昵称
+            reveal_author = should_reveal_identity(bool(post.is_anonymous), post.user_id, current_user)
             result.append({
                 "source_type": "post", "source_id": post.id, "title": post.title,
                 "snippet": post.content[:240], "created_at": post.created_at,
-                "author_name": None if post.is_anonymous else (post.user.nickname if post.user else None),
+                "author_name": (post.user.nickname if (post.user and reveal_author) else None),
                 "confirmation_count": post.valid_count, "refutation_count": post.invalid_count,
             })
         elif source_type == "review":
@@ -514,10 +520,11 @@ async def load_summary_sources(
             )
             if review is None:
                 continue
+            reveal_author = should_reveal_identity(bool(review.is_anonymous), review.user_id, current_user)
             result.append({
                 "source_type": "review", "source_id": review.id,
                 "snippet": review.content, "created_at": review.created_at,
-                "author_name": None if review.is_anonymous else (review.user.nickname if review.user else None),
+                "author_name": (review.user.nickname if (review.user and reveal_author) else None),
                 "score": review.score,
             })
         elif source_type == "fact":

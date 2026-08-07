@@ -16,29 +16,23 @@ from app.schemas.common import PaginatedResponse
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.core.permissions import require_campus_verified
+from app.core.identity_mask import apply_author_mask
+from app.dependencies import get_current_user_optional
 
 router = APIRouter(tags=["评论"])
 
 
-def _build_comment_response(comment: Comment, include_replies: bool = False) -> CommentResponse:
+def _build_comment_response(
+    comment: Comment,
+    include_replies: bool,
+    current_user: Optional[User],
+) -> CommentResponse:
     """DSC-02.1: 手动构造 CommentResponse，避免 model_validate 递归触发未加载关系的 lazy load
 
     - include_replies=True 时，递归构造 replies（仅一层，避免无限递归）
     - include_replies=False 时，replies 恒为 None（用于回复本身，不再嵌套）
+    - 匿名评论：author=None + user_id=None（本人/管理员豁免可见真实身份）
     """
-    author = None
-    if comment.user:
-        if comment.is_anonymous:
-            # UC-01: 用户离校后评论匿名化——作者显示「已离校用户」，移除认证徽标
-            author = {
-                "id": comment.user.id,
-                "nickname": "已离校用户",
-                "avatar_url": None,
-                "is_verified": False,
-            }
-        else:
-            author = {"id": comment.user.id, "nickname": comment.user.nickname, "avatar_url": comment.user.avatar_url, "is_verified": comment.user.campus_verified}
-
     reply_to_user = None
     if comment.reply_to_user:
         reply_to_user = {"id": comment.reply_to_user.id, "nickname": comment.reply_to_user.nickname, "avatar_url": comment.reply_to_user.avatar_url}
@@ -49,10 +43,10 @@ def _build_comment_response(comment: Comment, include_replies: bool = False) -> 
         for reply in comment.replies:
             if reply.is_deleted:
                 continue
-            replies.append(_build_comment_response(reply, include_replies=False))
+            replies.append(_build_comment_response(reply, include_replies=False, current_user=current_user))
             reply_count += 1
 
-    return CommentResponse(
+    response = CommentResponse(
         id=comment.id,
         post_id=comment.post_id,
         user_id=comment.user_id,
@@ -63,11 +57,14 @@ def _build_comment_response(comment: Comment, include_replies: bool = False) -> 
         status=comment.status,
         created_at=comment.created_at,
         updated_at=comment.updated_at,
-        author=author,
+        author=None,
         reply_to_user=reply_to_user,
         replies=replies if include_replies else None,
         reply_count=reply_count,
     )
+    # 匿名身份脱敏：本人/管理员豁免可见真实身份，其余 author=None + user_id=None
+    apply_author_mask(response, comment, current_user)
+    return response
 
 
 @router.get("/posts/{post_id}/comments", response_model=PaginatedResponse[CommentResponse], summary="获取评论列表")
@@ -77,6 +74,7 @@ async def get_post_comments(
     page_size: int = Query(default=20, ge=1, le=100, description="每页数量"),
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """获取评论列表，支持分页，包含子评论
 
@@ -130,7 +128,7 @@ async def get_post_comments(
     # DSC-02.1: 手动构造 CommentResponse，避免 model_validate 递归触发未加载关系的 lazy load
     items = []
     for comment in comments:
-        comment_data = _build_comment_response(comment, include_replies=True)
+        comment_data = _build_comment_response(comment, include_replies=True, current_user=current_user)
         items.append(comment_data)
 
     return PaginatedResponse.create(
@@ -234,7 +232,8 @@ async def create_comment(
     comment = result.unique().scalar_one()
 
     # DSC-02.1: 手动构造响应，避免 model_validate 递归触发 lazy load
-    return _build_comment_response(comment, include_replies=False)
+    # 创建评论的 current_user = comment.user_id（本人） → 匿名豁免生效，本人可立刻看到自己真实昵称，便于确认
+    return _build_comment_response(comment, include_replies=False, current_user=current_user)
 
 
 @router.delete("/comments/{comment_id}", summary="删除评论",

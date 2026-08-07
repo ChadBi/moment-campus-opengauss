@@ -16,7 +16,7 @@ class CommentCreate(BaseModel):
 class CommentResponse(BaseModel):
     id: int
     post_id: int
-    user_id: int
+    user_id: Optional[int] = Field(None, description="评论者ID（匿名评论对外返回 null，本人/管理员豁免可见真实ID）")
     parent_id: Optional[int] = None
     reply_to_user_id: Optional[int] = None
     content: str
@@ -24,6 +24,7 @@ class CommentResponse(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+    is_anonymous: bool = Field(False, description="是否匿名评论（本人/管理员可看到 author，但 UI 可显示「匿名」徽章提醒这条内容对外匿名）")
 
     # 关联数据
     author: Optional[UserBrief] = None

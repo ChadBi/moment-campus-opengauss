@@ -40,7 +40,13 @@ export function useSchoolSync(): void {
     setLoadingSchools,
     setLoadingMemberships,
     loadingMemberships,
+    init,
   } = useCampusStore();
+
+  useEffect(() => {
+    init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { isAuthenticated, user } = useAuthStore();
   const prevSchoolIdRef = useRef<number | null>(currentSchoolId);
   const hasBootstrappedRef = useRef(false);

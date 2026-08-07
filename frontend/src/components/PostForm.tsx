@@ -261,8 +261,12 @@ const PostForm: React.FC<PostFormProps> = ({
   editPostId,
 }) => {
   const currentSchoolId = useCampusStore((s) => s.currentSchoolId);
+  const allowAnonymous = useCampusStore((s) => s.publicSettings?.allow_anonymous ?? true);
   const { user } = useAuthStore();
   const { showToast } = useUIStore();
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const canAnonymous = allowAnonymous || isAdmin;
 
   // PUB-02: 编辑模式标志与按钮文案（编辑草稿时"存为草稿"语义为保存修改）
   const isEditMode = editPostId != null;
@@ -379,6 +383,18 @@ const PostForm: React.FC<PostFormProps> = ({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSchoolId]);
+
+  // 当 !canAnonymous 时，强制 is_anonymous=false（切校/设置变更的边界兜底）
+  useEffect(() => {
+    if (!canAnonymous) {
+      setFormData((prev) => {
+        if (prev.is_anonymous) {
+          return { ...prev, is_anonymous: false };
+        }
+        return prev;
+      });
+    }
+  }, [canAnonymous]);
 
   // PUB-02: 编辑模式 — 加载已有帖子并预填表单（作者可见自己所有状态，含草稿）
   useEffect(() => {
@@ -1375,18 +1391,29 @@ const PostForm: React.FC<PostFormProps> = ({
         ) : null}
 
         {/* 匿名 */}
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="is_anonymous"
-            name="is_anonymous"
-            checked={formData.is_anonymous}
-            onChange={(e) => handleFieldChange('is_anonymous', e.target.checked)}
-            className="w-4 h-4 text-lake border-line rounded focus:ring-lamp/40"
-          />
-          <label htmlFor="is_anonymous" className="text-sm text-ink cursor-pointer">
-            匿名发布
-          </label>
+        <div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="is_anonymous"
+              name="is_anonymous"
+              checked={formData.is_anonymous}
+              onChange={(e) => handleFieldChange('is_anonymous', e.target.checked)}
+              disabled={!canAnonymous}
+              className="w-4 h-4 text-lake border-line rounded focus:ring-lamp/40 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+            <label
+              htmlFor="is_anonymous"
+              className={`text-sm text-ink ${canAnonymous ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'}`}
+            >
+              匿名发布
+            </label>
+          </div>
+          {!canAnonymous && (
+            <p className="text-xs text-ink-muted mt-1 ml-6">
+              当前学校已关闭匿名发布
+            </p>
+          )}
         </div>
 
         {/* 提示 */}

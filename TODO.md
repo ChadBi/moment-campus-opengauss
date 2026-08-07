@@ -2,9 +2,22 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-07（原「首页」菜单项重命名为「帖子」：Sidebar + MobileNav 两处 label 和 path 同步调整，直接命中 /home 路由不再经过根路径重定向）
+> 最后更新：2026-08-08（匿名发布漏洞修复与产品体验完善：后端统一脱敏 + 学校设置校验 + 前端徽章 + 发布页禁用控制）
 
-## 当前执行任务：UI 体验精简调整（2026-08-07）
+## 当前执行任务：匿名发布漏洞修复与产品体验完善（2026-08-08）
+
+- [x] **后端 Schema 放宽**：`PostResponse` / `PostListResponse` / `CommentResponse` / `LocationReviewResponse` 四个响应模型的 `user_id` 全改为 `Optional[int]`，默认 `null`，字段描述明确注明"匿名内容对外返回 null，本人/管理员豁免可见真实 ID"；同步给 `CommentResponse` / `LocationReviewResponse` 新增 `is_anonymous: bool` 字段，供前端展示「匿名」徽章
+- [x] **后端公共脱敏 helper**：抽取 `app/core/identity_mask.py`，实现 `should_reveal_identity(is_anonymous, owner_user_id, current_user)`（非匿名 / 本人 / 管理员豁免）、`build_author_brief(user)`、`apply_author_mask(response_obj, orm_obj, current_user, ...)` 三个通用函数，**统一**处理身份脱敏逻辑；全面替换 `app/api/posts.py`（列表/详情/创建/更新）、`comments.py`（列表+创建+子评论递归）、`locations.py`（我的评价 + 评价列表 + 提交更新）、`recommendations.py`（推荐列表）、`search.py`（搜索结果）、`topics.py`（专题内帖子列表 author_id / author_name）六个模块中原有的手写 `if is_anonymous` 分支，避免逻辑分散不一致
+- [x] **后端学校匿名开关校验**：在 `POST /api/v1/posts` 创建帖子与 `PUT /api/v1/posts/{id}` 更新帖子两处写入点，当 `is_anonymous=True` 时读取 `school_settings.allow_anonymous`，学校关闭匿名发布时返回 400（管理员 / `super_admin` 豁免，便于发布匿名演示帖）
+- [x] **后端新增公开 settings 接口**：`GET /api/v1/schools/current/settings`（对游客开放，无需登录），返回普通用户可见的学校公共设置：`allow_anonymous / allow_comments / publish_frequency / image_limit / default_validity_days / require_review`，供前端发布页做禁用控制和限额提醒
+- [x] **后端 location summary AI 证据卡片匿名豁免**：`load_summary_sources()` 新增 `current_user: Optional[User]` 参数，对摘要来源卡片的 `author_name` 应用本人/管理员豁免——普通用户看不到匿名作者的真实昵称（已由 `post.is_anonymous → author_name=None` 保障），本人和管理员可看到真实昵称，与帖子详情页脱敏口径一致
+- [x] **前端匿名徽章显示**：`HomePage.tsx`（推荐列表 + 卡片列表）和 `PostDetailPage.tsx`（帖子作者行 / 顶级评论作者行 / 子评论作者行）共 5 处，当 `item / post / comment / reply` 的 `is_anonymous=true` 时，在 `VerifiedBadge` 旁新增一枚浅灰胶囊「匿名」徽章（`bg-neutral-100 text-neutral-500 text-[10px] px-2 py-0.5 rounded-full border border-neutral-200`），作者本人和管理员可见真名时能明确知道：这条内容对外是匿名的
+- [x] **前端 useCampusStore 增加 publicSettings 缓存**：新增 `PublicSettings` 接口 / `publicSettings` 状态 / `fetchPublicSettings()` 方法；学校切换（setCurrentSchool / setCurrentSchoolById）、初始化（init）、fallback 分支都会清空并重新拉取 `GET /api/v1/schools/current/settings`；`publicSettings` 不做持久化（设置会变，每次刷新/切校重拉）；暴露 `allowAnonymousSelector`（缺省 `true`，避免接口失败误禁用）
+- [x] **前端 PostForm 匿名 checkbox 禁用控制**：当 `useCampusStore` 缓存的 `allow_anonymous=false` 且当前登录用户不是 admin / super_admin 时，`is_anonymous` 复选框 `disabled`，并在下方显示灰色小字「当前学校已关闭匿名发布」；同时新增 `useEffect` 兜底：设置变更或切校时，如果权限不允许匿名则强制把 `formData.is_anonymous` 回退为 `false`
+- [ ] 后端 pytest 全量回归（未执行：本地环境未启动独立 openGauss 测试库，未设置 `TEST_DATABASE_URL` 环境变量，`conftest.py` 会主动抛出 RuntimeError 防止误伤开发库；建议在 CI 或真实测试环境按 5 批次执行：auth/users/schools/posts/locations）
+- [ ] MCP integrated_browser 端到端真实用户操作链路测试（未执行：前后端启动环境不完整，无法跑 E2E；需 `uvicorn app.main:app --reload` + `npm run dev` 启动后，执行登录→发布匿名帖→切账号浏览→管理员看豁免身份→学校关闭匿名→发布页 checkbox disabled 5 步验证）
+
+## 上一轮执行任务：UI 体验精简调整（2026-08-07）
 
 - [x] **评分表单常态防误触：`LocationPage` + `MapPage` 两处评分区，当已有 myReview 时常态默认只读摘要卡片展示「我已提交的那条评价（星级 + 时间 + 认证徽标 + 正文）+ 「更新评价」按钮」，点击按钮后才展开星星选择器 + 文本框 + 撤回/取消编辑/更新按钮；提交/撤回成功后自动关闭编辑态，避免常态裸露编辑器导致误点撤回/更新
 - [x] **常态「我的评价」卡片布局紧凑化重构：从「外层 border 卡片 + 内层 bg-mist/40 border 嵌套卡片 + 标题独立一行 + 更新按钮另一行（4 层堆叠）」重构为「单层 border 卡片，标题与「更新评价」按钮同排左右对齐 + 我/认证/星级/评分横向合并用 1px 竖线分隔 + 正文直接平铺（3 行搞定，去掉内层嵌套盒子）」；MapPage padding 从 p-3 → p-2.5，LocationPage p-4 → p-3.5；编辑态/未登录态保持原排版不变

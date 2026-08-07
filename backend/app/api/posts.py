@@ -32,6 +32,7 @@ from app.core.post_status import (
 )
 from app.core.permissions import is_admin, require_campus_verified
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
+from app.core.identity_mask import apply_author_mask
 from app.services.ai_publish import execute_publish_suggestion
 from app.services.embedding_service import generate_post_embedding
 from app.services.location_summary import mark_location_summary_dirty
@@ -185,11 +186,8 @@ async def get_posts(
     items = []
     for post in posts:
         post_data = PostListResponse.model_validate(post)
-        # 设置作者信息（is_anonymous 时隐藏真实身份）
-        if post.is_anonymous:
-            post_data.author = None
-        elif post.user:
-            post_data.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url, "is_verified": post.user.campus_verified}
+        # 身份脱敏：非匿名显示作者；匿名则本人/管理员豁免可见，其余 author=None + user_id=None
+        apply_author_mask(post_data, post, current_user)
         # 设置封面图片
         if post.post_images:
             post_data.cover_image = post.post_images[0].image_url if post.post_images else None
@@ -296,11 +294,8 @@ async def get_post(
     if tenant.is_guest:
         response.contact_info = None
 
-    # 设置作者信息（匿名时隐藏）
-    if post.is_anonymous:
-        response.author = None
-    elif post.user:
-        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url, "is_verified": post.user.campus_verified}
+    # 身份脱敏：匿名帖本人 / 管理员豁免可见真实身份，其余 author=None + user_id=None
+    apply_author_mask(response, post, current_user)
 
     # DSC-02.1: 设置图片列表（按 sort_order 排序，前端轮播依赖）
     # post_images 关系已通过 selectinload 预加载
@@ -392,6 +387,16 @@ async def create_post(
     """
     # TEN-02.1: 强制使用 tenant.school_id（忽略 body 里的 school_id 字段）
     school_id = tenant.school_id
+
+    # 匿名开关校验：学校关闭匿名发布时，禁止创建匿名帖
+    # （管理员/super_admin 豁免，运营账号仍可发匿名示例帖用于产品演示）
+    if post_data.is_anonymous and not is_admin(current_user):
+        from app.models.school_settings import SchoolSettings
+        settings = await db.scalar(
+            select(SchoolSettings).where(SchoolSettings.school_id == school_id)
+        )
+        if settings is not None and not settings.allow_anonymous:
+            raise BadRequestException(detail="学校已关闭匿名发布功能")
 
     # TEN-02.3: 校验分类属于当前学校（跨校分类 → 404，不泄露存在性）
     cat_result = await db.execute(
@@ -495,10 +500,9 @@ async def create_post(
     post = result.unique().scalar_one()
 
     response = PostResponse.model_validate(post)
-    if post.is_anonymous:
-        response.author = None
-    elif post.user:
-        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url, "is_verified": post.user.campus_verified}
+    # 身份脱敏：匿名帖作者本人/管理员豁免，其余 author=None + user_id=None
+    # （创建接口的 current_user 一定是本人 → 豁免生效，作者能立刻看到自己的真名，便于确认）
+    apply_author_mask(response, post, current_user)
 
     return response
 
@@ -541,8 +545,17 @@ async def update_post(
     # TEN-02.3: 资源级租户校验——跨校对象统一 404
     check_resource_in_tenant(post.school_id, tenant)
 
-    # TEN-02.3: 若修改 category_id，校验新分类属于当前学校
+    # 匿名开关校验：请求要改 is_anonymous=True 时，必须学校允许匿名（管理员豁免）
     update_data = post_data.model_dump(exclude_unset=True)
+    if update_data.get("is_anonymous") and not is_admin(current_user):
+        from app.models.school_settings import SchoolSettings
+        settings = await db.scalar(
+            select(SchoolSettings).where(SchoolSettings.school_id == post.school_id)
+        )
+        if settings is not None and not settings.allow_anonymous:
+            raise BadRequestException(detail="学校已关闭匿名发布功能")
+
+    # TEN-02.3: 若修改 category_id，校验新分类属于当前学校
     if "category_id" in update_data and update_data["category_id"] is not None:
         cat_result = await db.execute(
             select(Category).where(Category.id == update_data["category_id"])
@@ -680,10 +693,9 @@ async def update_post(
     post = result.unique().scalar_one()
 
     response = PostResponse.model_validate(post)
-    if post.is_anonymous:
-        response.author = None
-    elif post.user:
-        response.author = {"id": post.user.id, "nickname": post.user.nickname, "avatar_url": post.user.avatar_url, "is_verified": post.user.campus_verified}
+    # 身份脱敏：update 接口 current_user 一定等于 post.user_id（前面所有权校验已通过），
+    # 匿名帖本人豁免显示真名，便于在「我的发布」里识别自己的内容。
+    apply_author_mask(response, post, current_user)
 
     return response
 

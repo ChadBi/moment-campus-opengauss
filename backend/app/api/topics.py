@@ -20,6 +20,9 @@ from app.schemas.common import PaginatedResponse
 from app.core.exceptions import NotFoundException
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.core.post_status import PostStatus
+from app.core.identity_mask import should_reveal_identity
+from app.dependencies import get_current_user_optional
+from app.models.user import User
 
 router = APIRouter(prefix="/topics", tags=["专题"])
 
@@ -85,6 +88,7 @@ async def get_topic_detail(
     topic_id: int,
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """获取专题详情，含关联帖子列表（按 sort_order 升序）
 
@@ -128,7 +132,8 @@ async def get_topic_detail(
     for tcp, post in rows.unique().all():
         # 取帖子第一张图作为封面
         cover_image_url: Optional[str] = None
-        # 延迟查询首图，避免 N+1：使用单独 select
+        # 身份可见性：匿名时本人/管理员豁免，其余对外不显示作者
+        reveal = should_reveal_identity(bool(post.is_anonymous), post.user_id, current_user)
         posts_list.append(TopicPostItem(
             id=post.id,
             title=post.title,
@@ -139,8 +144,8 @@ async def get_topic_detail(
             comment_count=post.comment_count,
             category_id=post.category_id,
             category_name=post.category.name if post.category else None,
-            author_id=post.user_id if not post.is_anonymous else None,
-            author_name=post.user.nickname if (post.user and not post.is_anonymous) else None,
+            author_id=post.user_id if reveal else None,
+            author_name=post.user.nickname if (post.user and reveal) else None,
             cover_image_url=cover_image_url,
             sort_order=tcp.sort_order,
             created_at=post.created_at,

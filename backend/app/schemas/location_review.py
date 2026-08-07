@@ -35,11 +35,12 @@ class LocationReviewCreate(BaseModel):
 class LocationReviewResponse(BaseModel):
     id: int
     location_id: int
-    user_id: int
+    user_id: Optional[int] = Field(None, description="评价者ID（匿名评价对外返回 null，本人/管理员豁免可见真实ID）")
     score: int
     content: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    is_anonymous: bool = Field(False, description="是否匿名评价（本人/管理员可见真名+徽章，其余用户 author=null）")
     author: Optional[UserBrief] = None
 
     model_config = ConfigDict(from_attributes=True)

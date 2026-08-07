@@ -7,6 +7,26 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.7] - 2026-08-08
+
+### 修复
+
+- **匿名发布身份泄露漏洞**：原实现中，匿名帖子/评论的 `user_id` 仍为真实作者 ID（仅 `author` 对象置空），前端若直接读取 `user_id` 可唯一反查作者身份；本次将 `PostResponse` / `PostListResponse` / `CommentResponse` / `LocationReviewResponse` 的 `user_id` 全改为 `Optional[int]`，匿名时统一返回 `null`；引入 `app/core/identity_mask.py` 工具模块，`should_reveal_identity` / `build_author_brief` / `apply_author_mask` 三个函数统一处理脱敏口径——**非匿名 / 本人 / 管理员**三类情形豁免显示真实身份，其余一律 `author=null + user_id=null`；替换 `posts/comments/locations/recommendations/search/topics` 六个模块内分散的手写 `if is_anonymous` 分支，避免不同接口口径不一致
+- **location summary AI 证据卡片口径不一致**：原 `load_summary_sources()` 对摘要证据来源卡片的 `author_name` 匿名一刀切隐藏，管理员与本人无法看到真实昵称；本次新增 `current_user` 参数与 `should_reveal_identity()` 豁免判断，与帖子详情页脱敏口径对齐
+
+### 新增
+
+- **学校设置级匿名发布开关校验（写入侧）**：`POST /api/v1/posts` 创建帖子与 `PUT /api/v1/posts/{id}` 更新帖子两处写入口，当请求 `is_anonymous=true` 时读取 `school_settings.allow_anonymous`；学校关闭匿名发布时返回 400（管理员 / `super_admin` 豁免，便于发布匿名演示帖）
+- **公开学校 settings 接口**：`GET /api/v1/schools/current/settings`（对游客开放，无需登录），返回对普通用户可见的学校公共设置（`allow_anonymous` / `allow_comments` / `publish_frequency` / `image_limit` / `default_validity_days` / `require_review`），供前端发布页做禁用控制和限额提醒
+- **前端匿名徽章（Badge）**：`HomePage`（推荐列表 + 卡片列表）和 `PostDetailPage`（帖子作者行 / 顶级评论 / 子评论）共 5 处，`is_anonymous=true` 时在认证徽标旁显示浅灰胶囊「匿名」徽章，作者本人和管理员（豁免看到真名的人）可明确知道：「这条内容对外是匿名的，别人看不到作者身份」
+- **useCampusStore publicSettings 缓存**：新增 `PublicSettings` 状态 / `fetchPublicSettings()` 方法；初始化（init）、切校（setCurrentSchool / setCurrentSchoolById）、fallback 分支都会清空并重新拉取 `GET /api/v1/schools/current/settings`；`publicSettings` 不做持久化（设置会变，每次刷新/切校重拉）；暴露 `allowAnonymousSelector`（缺省 `true`，避免接口失败误禁用）
+- **PostForm 匿名 checkbox 禁用控制**：当学校 `allow_anonymous=false` 且当前登录用户不是 admin / super_admin 时，`is_anonymous` 复选框 disabled + 下方显示灰色小字「当前学校已关闭匿名发布」；同时新增 `useEffect` 兜底：切校或设置变更时，不允许匿名的环境下自动把 `formData.is_anonymous` 回退为 `false`
+
+### 校验
+
+- 后端所有修改模块的静态 import 检查通过（identity_mask + schemas + 6 个 API 模块 + services/location_summary，全部 `__import__` 正常）
+- 前端 TypeScript 类型检查通过（`npx tsc -p tsconfig.json --noEmit`，0 错误）
+
 ## [2.2.6] - 2026-08-07
 
 ### 变更

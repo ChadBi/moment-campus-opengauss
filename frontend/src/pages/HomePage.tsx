@@ -136,6 +136,11 @@ const HomePage: React.FC = () => {
                   <span className="font-medium text-ink text-sm flex items-center gap-1">
                     {item.author?.nickname || '匿名用户'}
                     {item.author?.is_verified && <VerifiedBadge />}
+                    {item.is_anonymous && (
+                      <span className="bg-neutral-100 text-neutral-500 text-[10px] px-2 py-0.5 rounded-full border border-neutral-200">
+                        匿名
+                      </span>
+                    )}
                   </span>
                   <Badge
                     style={{
@@ -199,6 +204,11 @@ const HomePage: React.FC = () => {
                 <span className="font-medium text-ink text-sm flex items-center gap-1">
                   {post.author?.nickname || '匿名用户'}
                   {post.author?.is_verified && <VerifiedBadge />}
+                  {post.is_anonymous && (
+                    <span className="bg-neutral-100 text-neutral-500 text-[10px] px-2 py-0.5 rounded-full border border-neutral-200">
+                      匿名
+                    </span>
+                  )}
                 </span>
                 <Badge
                   style={{ backgroundColor: getCategoryVisual(post.category?.code).background, color: getCategoryVisual(post.category?.code).text }}

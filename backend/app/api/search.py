@@ -18,6 +18,7 @@ from app.schemas.common import PaginatedResponse
 from app.schemas.search import AISearchRequest, AISearchResponse
 from app.core.exceptions import NotFoundException
 from app.core.tenant import TenantContext, get_tenant_context
+from app.core.identity_mask import apply_author_mask
 from app.services.ai_search import execute_ai_search
 
 router = APIRouter(tags=["搜索"])
@@ -151,15 +152,8 @@ async def search_posts(
     items = []
     for post in posts:
         post_data = PostListResponse.model_validate(post)
-        # 设置作者信息（is_anonymous 时隐藏真实身份）
-        if post.is_anonymous:
-            post_data.author = None
-        elif post.user:
-            post_data.author = {
-                "id": post.user.id,
-                "nickname": post.user.nickname,
-                "avatar_url": post.user.avatar_url,
-            }
+        # 身份脱敏：匿名本人/管理员豁免，其余 author=None + user_id=None
+        apply_author_mask(post_data, post, current_user)
         # 设置封面图片（取第一张）
         if post.post_images:
             post_data.cover_image = post.post_images[0].image_url

@@ -25,6 +25,7 @@ from app.models.user import User
 from app.schemas.common import PaginatedResponse, MessageResponse
 from app.schemas.post import PostListResponse
 from app.core.tenant import TenantContext, get_tenant_context
+from app.core.identity_mask import apply_author_mask
 from app.services.recommender import (
     get_recommendations,
     get_preference,
@@ -109,15 +110,8 @@ async def get_recommendation_feed(
         # 先用 model_validate 从 Post 构建基础字段（PostListResponse 部分），
         # 再注入 reason / score（避免 required 字段校验失败）
         item = RecommendationItem.model_validate(post)
-        # 作者脱敏（匿名时隐藏真实身份）
-        if post.is_anonymous:
-            item.author = None
-        elif post.user:
-            item.author = {
-                "id": post.user.id,
-                "nickname": post.user.nickname,
-                "avatar_url": post.user.avatar_url,
-            }
+        # 身份脱敏：匿名本人/管理员豁免可见真实作者
+        apply_author_mask(item, post, current_user)
         # 封面图（取第一张）
         if post.post_images:
             item.cover_image = post.post_images[0].image_url

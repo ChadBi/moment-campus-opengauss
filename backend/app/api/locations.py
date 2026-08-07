@@ -21,6 +21,7 @@ from app.schemas.post import UserBrief
 from app.core.exceptions import NotFoundException, ForbiddenException, BadRequestException
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.core.permissions import require_campus_verified
+from app.core.identity_mask import apply_author_mask
 from app.services.location_summary import (
     load_current_summary,
     load_location_facts,
@@ -50,26 +51,8 @@ def _location_response(location: Location) -> LocationResponse:
     )
 
 
-def _review_response(review: LocationReview) -> LocationReviewResponse:
-    author = None
-    if review.user:
-        # campus_verified 字段由工作流 B（校园认证）新增；此处防御性读取
-        if review.is_anonymous:
-            # UC-01: 用户离校后评价匿名化——作者显示「已离校用户」，移除认证徽标
-            author = UserBrief(
-                id=review.user.id,
-                nickname="已离校用户",
-                avatar_url=None,
-                is_verified=False,
-            )
-        else:
-            author = UserBrief(
-                id=review.user.id,
-                nickname=review.user.nickname,
-                avatar_url=review.user.avatar_url,
-                is_verified=bool(getattr(review.user, "campus_verified", False)),
-            )
-    return LocationReviewResponse(
+def _review_response(review: LocationReview, current_user: Optional[User]) -> LocationReviewResponse:
+    response = LocationReviewResponse(
         id=review.id,
         location_id=review.location_id,
         user_id=review.user_id,
@@ -77,8 +60,11 @@ def _review_response(review: LocationReview) -> LocationReviewResponse:
         content=review.content,
         created_at=review.created_at,
         updated_at=review.updated_at,
-        author=author,
+        author=None,
     )
+    # 匿名身份脱敏：本人/管理员豁免可见真实身份，其余 author=None + user_id=None
+    apply_author_mask(response, review, current_user)
+    return response
 
 
 async def _recalc_location_rating(db: AsyncSession, location: Location) -> None:
@@ -127,11 +113,14 @@ async def get_location(
         )
         review = rr.scalar_one_or_none()
         if review is not None:
-            my_review = _review_response(review)
+            my_review = _review_response(review, current_user)
 
     facts = await load_location_facts(db, location.id, tenant.school_id)
     current_summary = await load_current_summary(db, location)
-    sources = await load_summary_sources(db, current_summary, tenant) if current_summary else []
+    sources = (
+        await load_summary_sources(db, current_summary, tenant, current_user)
+        if current_summary else []
+    )
     return LocationDetailResponse(
         location=_location_response(location),
         my_review=my_review,
@@ -147,6 +136,7 @@ async def list_location_reviews(
     page_size: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     # 校验地点存在且属于当前学校
     lr = await db.execute(
@@ -170,7 +160,7 @@ async def list_location_reviews(
         .limit(page_size)
     )
     reviews = (await db.execute(query)).scalars().all()
-    items = [_review_response(r) for r in reviews]
+    items = [_review_response(r, current_user) for r in reviews]
     return PaginatedResponse.create(items=items, page=page, page_size=page_size, total=total)
 
 
@@ -225,7 +215,8 @@ async def upsert_location_review(
         select(LocationReview).options(joinedload(LocationReview.user))
         .where(LocationReview.id == review.id)
     )).scalar_one()
-    return _review_response(fresh)
+    # 提交/更新本人评价：current_user = review.user_id → 匿名豁免，本人可看到真实昵称，便于确认
+    return _review_response(fresh, current_user)
 
 
 @router.delete("/locations/{location_id}/reviews", summary="撤回我的地点评价",

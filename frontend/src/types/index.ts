@@ -83,7 +83,7 @@ export interface User {
 /** 帖子详情（后端 PostResponse） */
 export interface Post {
   id: number;
-  user_id: number;
+  user_id: number | null;
   school_id: number;
   category_id: number;
   location_id?: number;
@@ -117,7 +117,7 @@ export interface Post {
 /** 帖子列表项（后端 PostListResponse） */
 export interface PostListItem {
   id: number;
-  user_id: number;
+  user_id: number | null;
   title: string;
   content: string;
   is_anonymous: boolean;
@@ -141,7 +141,7 @@ export interface PostListItem {
 export interface Comment {
   id: number;
   post_id: number;
-  user_id: number;
+  user_id: number | null;
   parent_id?: number;
   reply_to_user_id?: number;
   content: string;
@@ -149,6 +149,8 @@ export interface Comment {
   status: string;
   created_at: string;
   updated_at?: string;
+  /** 是否匿名评论（本人/管理员可看到 author，其余用户 author=null） */
+  is_anonymous?: boolean;
   // 关联数据
   author?: Author;
   reply_to_user?: Author;
