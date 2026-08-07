@@ -187,8 +187,8 @@ function getVariantStyles(variant: 'page' | 'panel') {
       label: 'block text-sm font-medium text-ink mb-1.5',
       textarea:
         'w-full px-3.5 py-2.5 bg-white/78 border border-line rounded-md text-sm text-ink placeholder:text-ink-muted/70 focus:outline-none focus:bg-white focus:border-lake transition-all resize-none',
-      select:
-        'w-full px-3.5 py-2.5 bg-white/78 border border-line rounded-md text-sm text-ink focus:outline-none focus:bg-white focus:border-lake transition-all',
+      // 2026-08-07 统一 select 美化：改走全局 .select-nice-sm（紧凑尺寸）
+      select: 'select-nice-sm',
       catChip: 'flex items-center gap-1 px-2 py-1.5 rounded-md text-[11px] font-medium transition-all',
       catChipActive: 'bg-lake text-white shadow-lake',
       catChipInactive: 'bg-mist text-ink-sub hover:bg-line',
@@ -203,8 +203,8 @@ function getVariantStyles(variant: 'page' | 'panel') {
     label: 'block text-sm font-medium text-ink mb-1.5 font-sans',
     textarea:
       'w-full px-3.5 py-3 bg-paper border border-line rounded-[10px] text-sm text-ink placeholder:text-ink-muted/60 focus:outline-none focus:border-lake transition-colors resize-none',
-    select:
-      'w-full h-10 px-3 bg-paper border border-line rounded-[10px] text-sm text-ink focus:outline-none focus:border-lake',
+    // 2026-08-07 统一 select 美化：改走全局 .select-nice（标准 40px）
+    select: 'select-nice',
     catChip: 'flex items-center gap-1.5 px-3 py-2 rounded-[10px] text-xs font-medium transition-all',
     catChipActive: 'bg-lake text-white shadow-sm',
     catChipInactive: 'bg-paper-hover text-ink-sub hover:bg-line',

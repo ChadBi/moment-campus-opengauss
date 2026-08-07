@@ -289,7 +289,7 @@ const PlatformPlansPage: React.FC = () => {
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
-              className="h-9 px-3 bg-paper border border-line rounded-[10px] text-sm text-ink focus:outline-none focus:border-lake"
+              className="select-nice-sm w-auto"
             >
               <option value="">全部状态</option>
               <option value="active">已激活</option>
@@ -448,7 +448,7 @@ const PlatformPlansPage: React.FC = () => {
                 setFormData({ ...formData, plan_code: e.target.value })
               }
               disabled={!!editingSub}
-              className="w-full h-10 px-3.5 bg-paper border border-line rounded-[10px] text-sm text-ink focus:outline-none focus:border-lake disabled:opacity-60"
+              className="select-nice disabled:opacity-60"
             >
               {plans.map((p) => (
                 <option key={p.id} value={p.code}>
@@ -468,7 +468,7 @@ const PlatformPlansPage: React.FC = () => {
                 onChange={(e) =>
                   setFormData({ ...formData, status: e.target.value })
                 }
-                className="w-full h-10 px-3.5 bg-paper border border-line rounded-[10px] text-sm text-ink focus:outline-none focus:border-lake"
+                className="select-nice"
               >
                 <option value="active">已激活</option>
                 <option value="suspended">已暂停</option>

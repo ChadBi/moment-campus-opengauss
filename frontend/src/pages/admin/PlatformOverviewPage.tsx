@@ -313,7 +313,7 @@ const PlatformOverviewPage: React.FC = () => {
                 <select
                   value={analyticsWindowDays}
                   onChange={(e) => setAnalyticsWindowDays(Number(e.target.value))}
-                  className="text-sm border border-line rounded-md px-2 py-1 bg-paper focus:outline-none focus:ring-2 focus:ring-lake"
+                  className="select-nice-sm w-auto"
                   aria-label="分析时间窗口"
                 >
                   <option value={7}>近 7 天</option>

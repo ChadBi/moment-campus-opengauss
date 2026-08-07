@@ -622,7 +622,7 @@ const AdminTopicsPage: React.FC = () => {
                   setFormData({ ...formData, status: e.target.value as 'draft' | 'published' })
                 }
                 disabled={editingId !== null}
-                className="w-full px-3 py-2 border border-line rounded-md text-sm text-ink bg-paper focus:outline-none focus:ring-2 focus:ring-lake/30 focus:border-lake disabled:bg-mist/50 disabled:text-ink-muted"
+                className="select-nice"
               >
                 <option value="draft">草稿（保存后不可见）</option>
                 <option value="published">直接发布（用户端可见）</option>

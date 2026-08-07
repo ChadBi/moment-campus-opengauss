@@ -316,7 +316,7 @@ const SchoolImportPage: React.FC = () => {
               e.target.value ? parseInt(e.target.value, 10) : null
             )
           }
-          className="w-full md:w-80 h-10 px-3.5 bg-paper border border-line rounded-[10px] text-sm text-ink focus:outline-none focus:border-lake"
+          className="select-nice md:w-80"
         >
           <option value="">请选择学校</option>
           {schools?.items.map((s) => (

@@ -259,6 +259,102 @@ img {
   will-change: transform;
 }
 
+/* ============================================================
+ * 统一美化原生 <select>（解决「默认框框太丑」问题）
+ * - 用法：<select className="select-nice">  或  select-nice-sm / select-nice-md
+ * - 三种尺寸（对应紧凑/普通/宽松），默认 select-nice = md
+ * - 去掉浏览器默认箭头，统一渲染 水墨 ChevronDown SVG
+ * - 高度/圆角/边框/焦点环 与 Input / Button 组件风格一致
+ * ============================================================ */
+.select-nice,
+.select-nice-md {
+  width: 100%;
+  display: block;
+  height: 40px;                             /* h-10 */
+  padding: 0 3rem 0 0.875rem;               /* pr-12（给右侧图标留空） + px-3.5 */
+  background-color: var(--paper);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23566a6e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.875rem center;   /* 图标右 14px 居中 */
+  background-size: 1rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;                         /* rounded-[10px] */
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.4;
+  font-family: inherit;
+  transition: background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+}
+
+.select-nice-sm {
+  width: 100%;
+  display: block;
+  height: 36px;                             /* h-9，紧凑尺寸（admin 列表筛选） */
+  padding: 0 2.75rem 0 0.625rem;
+  background-color: var(--paper);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%23566a6e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  background-size: 0.9rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;                          /* rounded-md 紧凑 */
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.4;
+  font-family: inherit;
+  transition: background-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  cursor: pointer;
+}
+
+.select-nice:hover,
+.select-nice-md:hover,
+.select-nice-sm:hover {
+  border-color: #c1cfd2;
+}
+
+.select-nice:focus,
+.select-nice-md:focus,
+.select-nice-sm:focus {
+  outline: none;
+  border-color: var(--lake);
+  box-shadow: 0 0 0 3px rgba(23, 77, 94, 0.12);  /* focus:ring-2 ring-lake/30 等校视觉 */
+}
+
+.select-nice:disabled,
+.select-nice-md:disabled,
+.select-nice-sm:disabled {
+  background-color: rgba(244, 247, 246, 0.5);    /* bg-mist/50 */
+  color: var(--muted);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 选中的 option 保持深色（避免 placeholder 色污染） */
+.select-nice option,
+.select-nice-md option,
+.select-nice-sm option {
+  color: var(--ink);
+  background-color: var(--paper);
+}
+
+/* 可选：空值占位符灰字效果 */
+.select-nice.is-placeholder,
+.select-nice-md.is-placeholder,
+.select-nice-sm.is-placeholder {
+  color: rgba(86, 106, 110, 0.6);
+}
+
 .maplibregl-canvas-container,
 .maplibregl-canvas-container * {
   transition: none !important;

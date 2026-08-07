@@ -206,7 +206,7 @@ const AnalyticsPage: React.FC = () => {
             <select
               value={windowDays}
               onChange={(e) => setWindowDays(Number(e.target.value))}
-              className="text-sm border border-line rounded-md px-2 py-1 bg-paper focus:outline-none focus:ring-2 focus:ring-lake"
+              className="select-nice-sm w-auto"
               aria-label="时间窗口"
             >
               <option value={1}>近 1 天</option>

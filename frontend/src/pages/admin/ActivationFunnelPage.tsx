@@ -250,7 +250,7 @@ const ActivationFunnelPage: React.FC = () => {
           <select
             value={activeFilter}
             onChange={(e) => setActiveFilter(e.target.value)}
-            className="h-9 px-3 bg-paper border border-line rounded-[10px] text-sm text-ink focus:outline-none focus:border-lake"
+            className="select-nice-sm w-auto"
           >
             <option value="">全部</option>
             <option value="true">已激活</option>

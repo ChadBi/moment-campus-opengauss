@@ -622,7 +622,7 @@ const LocationPage: React.FC = () => {
                       <select
                         value={factKey}
                         onChange={(e) => setFactKey(e.target.value)}
-                        className="rounded-[10px] border border-line bg-paper px-3 py-2 text-sm text-ink"
+                        className="select-nice"
                       >
                         <option value="normal_hours">营业时间</option>
                         <option value="services">服务内容</option>

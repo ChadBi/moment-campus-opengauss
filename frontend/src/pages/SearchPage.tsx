@@ -938,22 +938,19 @@ const SearchPage: React.FC = () => {
             {/* 分类 */}
             <div>
               <label className="block text-xs font-medium text-ink-sub mb-1">分类</label>
-              <div className="relative">
-                <select
-                  value={categoryId ?? ''}
-                  onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
-                  disabled={categoriesLoading || categoriesError}
-                  className="w-full appearance-none px-3 py-2 pr-8 bg-white/78 border border-line rounded-md text-sm text-ink focus:outline-none focus:border-lake transition-all"
-                >
-                  <option value="">{categoriesLoading ? '分类加载中...' : categoriesError ? '分类加载失败' : '全部分类'}</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.icon} {c.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" />
-              </div>
+              <select
+                value={categoryId ?? ''}
+                onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : null)}
+                disabled={categoriesLoading || categoriesError}
+                className="select-nice-sm"
+              >
+                <option value="">{categoriesLoading ? '分类加载中...' : categoriesError ? '分类加载失败' : '全部分类'}</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.icon} {c.name}
+                  </option>
+                ))}
+              </select>
               {categoriesError && (
                 <button type="button" onClick={() => {
                   setCategoryState({ schoolId: currentSchoolId, items: [], loading: true, error: false });
@@ -968,22 +965,19 @@ const SearchPage: React.FC = () => {
             {/* 地点 */}
             <div>
               <label className="block text-xs font-medium text-ink-sub mb-1">地点</label>
-              <div className="relative">
-                <select
-                  value={locationId ?? ''}
-                  onChange={(e) => setLocationId(e.target.value ? Number(e.target.value) : null)}
-                  disabled={locationsLoading || locationsError}
-                  className="w-full appearance-none px-3 py-2 pr-8 bg-white/78 border border-line rounded-md text-sm text-ink focus:outline-none focus:border-lake transition-all"
-                >
-                  <option value="">{locationsLoading ? '地点加载中...' : locationsError ? '地点加载失败' : '全部地点'}</option>
-                  {locations.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name}{l.is_verified ? '' : '（未核验）'}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" />
-              </div>
+              <select
+                value={locationId ?? ''}
+                onChange={(e) => setLocationId(e.target.value ? Number(e.target.value) : null)}
+                disabled={locationsLoading || locationsError}
+                className="select-nice-sm"
+              >
+                <option value="">{locationsLoading ? '地点加载中...' : locationsError ? '地点加载失败' : '全部地点'}</option>
+                {locations.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}{l.is_verified ? '' : '（未核验）'}
+                  </option>
+                ))}
+              </select>
               {locationsError && (
                 <button type="button" onClick={() => {
                   setLocationState({ schoolId: currentSchoolId, items: [], loading: true, error: false });
@@ -998,20 +992,17 @@ const SearchPage: React.FC = () => {
             {/* 状态 */}
             <div>
               <label className="block text-xs font-medium text-ink-sub mb-1">有效状态</label>
-              <div className="relative">
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as SearchStatusFilter)}
-                  className="w-full appearance-none px-3 py-2 pr-8 bg-white/78 border border-line rounded-md text-sm text-ink focus:outline-none focus:border-lake transition-all"
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" />
-              </div>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as SearchStatusFilter)}
+                className="select-nice-sm"
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* 起始时间 */}

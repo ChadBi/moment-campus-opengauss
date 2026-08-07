@@ -739,7 +739,7 @@ const AssignPlanModal: React.FC<AssignPlanModalProps> = ({
           <select
             value={planCode}
             onChange={(e) => onPlanCodeChange(e.target.value)}
-            className="w-full h-10 px-3.5 bg-paper border border-line rounded-[10px] text-sm text-ink focus:outline-none focus:border-lake"
+            className="select-nice"
           >
             <option value="">请选择套餐</option>
             {plans.map((p) => (

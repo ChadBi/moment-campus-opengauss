@@ -245,7 +245,7 @@ const AdminLogsPage: React.FC = () => {
               <select
                 value={filterAction}
                 onChange={(e) => setFilterAction(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-line rounded-md text-sm text-ink bg-paper focus:outline-none focus:ring-2 focus:ring-lake/30 focus:border-lake"
+                className="select-nice-sm"
               >
                 <option value="">全部</option>
                 {Object.entries(ACTION_LABELS).map(([k, v]) => (
@@ -261,7 +261,7 @@ const AdminLogsPage: React.FC = () => {
               <select
                 value={filterTargetType}
                 onChange={(e) => setFilterTargetType(e.target.value)}
-                className="w-full px-2.5 py-1.5 border border-line rounded-md text-sm text-ink bg-paper focus:outline-none focus:ring-2 focus:ring-lake/30 focus:border-lake"
+                className="select-nice-sm"
               >
                 <option value="">全部</option>
                 {Object.entries(TARGET_TYPE_LABELS).map(([k, v]) => (
