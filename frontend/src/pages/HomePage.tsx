@@ -106,6 +106,55 @@ const HomePage: React.FC = () => {
 
   const modeHint = getModeHint();
 
+  const hotSection = (
+    /* 近 7 天浏览量热榜：横向预览，点击标题进入完整榜单 */
+    (hotLoading || hotError || hotItems.length > 0) && (
+      <section className="mb-6 rounded-[18px] border border-[#cf947e]/30 bg-gradient-to-br from-[#fff1e8] to-paper shadow-sm overflow-hidden">
+        <button
+          type="button"
+          className="w-full px-5 pt-4 pb-3 flex items-center justify-between text-left hover:bg-white/30 transition-colors"
+          onClick={() => navigate('/hot-ranking')}
+        >
+          <span className="flex items-center gap-2">
+            <span className="w-8 h-8 rounded-[11px] bg-[#e67340] text-white flex items-center justify-center shadow-sm">
+              <Flame size={17} />
+            </span>
+            <span>
+              <span className="block font-display font-bold text-[17px] text-[#9e422b]">校园热榜</span>
+              <span className="block mt-0.5 text-[11px] text-[#a36b5b]">近 7 天浏览量 Top10</span>
+            </span>
+          </span>
+          <span className="flex items-center gap-0.5 text-xs text-[#b65335]">查看榜单 <ChevronRight size={14} /></span>
+        </button>
+
+        {hotLoading ? (
+          <div className="px-5 pb-4 space-y-2"><div className="h-4 rounded-full bg-[#e67340]/15 animate-pulse" /><div className="h-4 w-2/3 rounded-full bg-[#e67340]/10 animate-pulse" /></div>
+        ) : hotError ? (
+          <button type="button" className="px-5 pb-4 text-sm text-[#b65335]" onClick={() => void refetchHot()}>热榜暂时走丢了，点击重试</button>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto px-5 pb-4 snap-x">
+            {hotItems.map((item, index) => (
+              <article
+                key={item.id}
+                className="relative min-w-[250px] snap-start rounded-[15px] border border-[#cf947e]/20 bg-white/90 p-3.5 cursor-pointer hover:-translate-y-0.5 transition-transform"
+                onClick={() => handlePostClick(item.id)}
+              >
+                <div className="flex items-start gap-2.5">
+                  <span className={`w-7 h-7 rounded-[10px] flex items-center justify-center flex-shrink-0 text-xs font-bold font-data ${index < 3 ? 'bg-[#ffd34e] text-[#8f581e]' : 'bg-[#edf1f2] text-ink-muted'}`}>{index + 1}</span>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-ink line-clamp-2 leading-[1.45]">{item.title}</h3>
+                    <div className="flex items-center gap-2 mt-2 text-[11px] text-ink-muted font-data"><span className="text-[#b65335]">{item.view_count || 0} 浏览</span><span>{item.comment_count || 0} 评论</span></div>
+                  </div>
+                </div>
+                {item.category?.name && <span className="inline-block mt-2 rounded-full bg-[#fff0e7] px-2 py-0.5 text-[10px] text-[#b65335]">{item.category.name}</span>}
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    )
+  );
+
   return (
     <div className="max-w-2xl mx-auto py-4">
       <header className="mb-6 px-1">
@@ -114,6 +163,8 @@ const HomePage: React.FC = () => {
         </h1>
         <p className="text-ink-muted text-sm mt-1">把会消失的校园经验留下来</p>
       </header>
+
+      {hotSection}
 
       {/* REC-01.1: 为你推荐区块 */}
       {recLoading ? (
@@ -209,53 +260,6 @@ const HomePage: React.FC = () => {
           </div>
         </section>
       ) : null}
-
-      {/* 近 7 天浏览量热榜：横向预览，点击标题进入完整榜单 */}
-      {(hotLoading || hotError || hotItems.length > 0) && (
-        <section className="mb-6 rounded-[18px] border border-[#cf947e]/30 bg-gradient-to-br from-[#fff1e8] to-paper shadow-sm overflow-hidden">
-          <button
-            type="button"
-            className="w-full px-5 pt-4 pb-3 flex items-center justify-between text-left hover:bg-white/30 transition-colors"
-            onClick={() => navigate('/hot-ranking')}
-          >
-            <span className="flex items-center gap-2">
-              <span className="w-8 h-8 rounded-[11px] bg-[#e67340] text-white flex items-center justify-center shadow-sm">
-                <Flame size={17} />
-              </span>
-              <span>
-                <span className="block font-display font-bold text-[17px] text-[#9e422b]">校园热榜</span>
-                <span className="block mt-0.5 text-[11px] text-[#a36b5b]">近 7 天浏览量 Top10</span>
-              </span>
-            </span>
-            <span className="flex items-center gap-0.5 text-xs text-[#b65335]">查看榜单 <ChevronRight size={14} /></span>
-          </button>
-
-          {hotLoading ? (
-            <div className="px-5 pb-4 space-y-2"><div className="h-4 rounded-full bg-[#e67340]/15 animate-pulse" /><div className="h-4 w-2/3 rounded-full bg-[#e67340]/10 animate-pulse" /></div>
-          ) : hotError ? (
-            <button type="button" className="px-5 pb-4 text-sm text-[#b65335]" onClick={() => void refetchHot()}>热榜暂时走丢了，点击重试</button>
-          ) : (
-            <div className="flex gap-3 overflow-x-auto px-5 pb-4 snap-x">
-              {hotItems.map((item, index) => (
-                <article
-                  key={item.id}
-                  className="relative min-w-[250px] snap-start rounded-[15px] border border-[#cf947e]/20 bg-white/90 p-3.5 cursor-pointer hover:-translate-y-0.5 transition-transform"
-                  onClick={() => handlePostClick(item.id)}
-                >
-                  <div className="flex items-start gap-2.5">
-                    <span className={`w-7 h-7 rounded-[10px] flex items-center justify-center flex-shrink-0 text-xs font-bold font-data ${index < 3 ? 'bg-[#ffd34e] text-[#8f581e]' : 'bg-[#edf1f2] text-ink-muted'}`}>{index + 1}</span>
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-semibold text-ink line-clamp-2 leading-[1.45]">{item.title}</h3>
-                      <div className="flex items-center gap-2 mt-2 text-[11px] text-ink-muted font-data"><span className="text-[#b65335]">{item.view_count || 0} 浏览</span><span>{item.comment_count || 0} 评论</span></div>
-                    </div>
-                  </div>
-                  {item.category?.name && <span className="inline-block mt-2 rounded-full bg-[#fff0e7] px-2 py-0.5 text-[10px] text-[#b65335]">{item.category.name}</span>}
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
 
       {/* 普通信息流（最新/最热/...） */}
       <div className="space-y-0">

@@ -24,6 +24,39 @@
     <icon name="chevron-right" size="32rpx" color="#174d5e" />
   </view>
 
+  <view wx:if="{{hotLoading || hotPosts.length > 0 || hotError}}" class="hot-section">
+    <view class="hot-heading" bindtap="goToHotRanking" hover-class="hot-heading-hover" hover-stay-time="120">
+      <view class="hot-heading-title">
+        <view class="hot-flame"><text>火</text></view>
+        <view>
+          <text class="hot-title">校园热榜</text>
+          <text class="hot-subtitle">近 7 天浏览量 Top10</text>
+        </view>
+      </view>
+      <view class="hot-more"><text>查看榜单</text><icon name="chevron-right" size="26rpx" color="#b65335" /></view>
+    </view>
+
+    <view wx:if="{{hotLoading}}" class="hot-loading"><view class="hot-loading-bar"></view><view class="hot-loading-bar short"></view></view>
+    <view wx:elif="{{hotError}}" class="hot-error" bindtap="retryHotPosts">
+      <icon name="refresh-cw" size="24rpx" color="#b65335" />
+      <text>热榜暂时走丢了，点击重试</text>
+    </view>
+    <scroll-view wx:elif="{{hotPosts.length > 0}}" class="hot-scroll" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
+      <view wx:for="{{hotPosts}}" wx:key="id" class="hot-item" data-id="{{item.id}}" bindtap="onHotPostTap" hover-class="hot-item-hover" hover-stay-time="120">
+        <view class="hot-rank {{index < 3 ? 'hot-rank-top' : ''}}"><text>{{index + 1}}</text></view>
+        <view class="hot-item-body">
+          <text class="hot-item-title">{{item.title}}</text>
+          <view class="hot-item-meta">
+            <text wx:if="{{item.category && item.category.name}}" class="hot-item-category">{{item.category.name}}</text>
+            <text>{{item.view_count}} 浏览</text>
+            <text>{{item.comment_count}} 评论</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+    <view wx:elif="{{!hotLoading && !hotError}}" class="hot-empty">近 7 天还没有形成热榜</view>
+  </view>
+
   <view wx:if="{{recommendationLoading || recommendations.length > 0 || recommendationError}}" class="recommendation-section">
     <view class="section-heading">
       <view class="section-heading-title">
@@ -56,39 +89,6 @@
         <text wx:if="{{featuredRecommendation.recommend_reason}}" class="recommendation-featured-reason">{{featuredRecommendation.recommend_reason}}</text>
       </view>
     </view>
-  </view>
-
-  <view wx:if="{{hotLoading || hotPosts.length > 0 || hotError}}" class="hot-section">
-    <view class="hot-heading" bindtap="goToHotRanking" hover-class="hot-heading-hover" hover-stay-time="120">
-      <view class="hot-heading-title">
-        <view class="hot-flame"><text>火</text></view>
-        <view>
-          <text class="hot-title">校园热榜</text>
-          <text class="hot-subtitle">近 7 天浏览量 Top10</text>
-        </view>
-      </view>
-      <view class="hot-more"><text>查看榜单</text><icon name="chevron-right" size="26rpx" color="#b65335" /></view>
-    </view>
-
-    <view wx:if="{{hotLoading}}" class="hot-loading"><view class="hot-loading-bar"></view><view class="hot-loading-bar short"></view></view>
-    <view wx:elif="{{hotError}}" class="hot-error" bindtap="retryHotPosts">
-      <icon name="refresh-cw" size="24rpx" color="#b65335" />
-      <text>热榜暂时走丢了，点击重试</text>
-    </view>
-    <scroll-view wx:elif="{{hotPosts.length > 0}}" class="hot-scroll" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
-      <view wx:for="{{hotPosts}}" wx:key="id" class="hot-item" data-id="{{item.id}}" bindtap="onHotPostTap" hover-class="hot-item-hover" hover-stay-time="120">
-        <view class="hot-rank {{index < 3 ? 'hot-rank-top' : ''}}"><text>{{index + 1}}</text></view>
-        <view class="hot-item-body">
-          <text class="hot-item-title">{{item.title}}</text>
-          <view class="hot-item-meta">
-            <text wx:if="{{item.category && item.category.name}}" class="hot-item-category">{{item.category.name}}</text>
-            <text>{{item.view_count}} 浏览</text>
-            <text>{{item.comment_count}} 评论</text>
-          </view>
-        </view>
-      </view>
-    </scroll-view>
-    <view wx:elif="{{!hotLoading && !hotError}}" class="hot-empty">近 7 天还没有形成热榜</view>
   </view>
 
   <view class="feed-section">
