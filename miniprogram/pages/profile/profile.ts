@@ -7,6 +7,7 @@ import { listMemberships } from '../../services/schools'
 import { logout } from '../../services/auth'
 import { sendCampusVerify, confirmCampusVerify } from '../../services/auth'
 import { guardPageLogin } from '../../utils/auth-guard'
+import { uploadAvatar } from '../../services/upload'
 
 const STATUS_TABS = [
   { key: 'all', label: '全部' },
@@ -35,6 +36,7 @@ Page({
     // 用户信息
     user: null as any,
     avatarUrl: defaultAvatar(),
+    avatarUploading: false,
     nickname: '',
     bio: '',
     email: '',
@@ -139,6 +141,35 @@ Page({
       email: user.email || '',
       campusVerified: !!user.campus_verified,
       createdAtText: user.created_at ? formatDate(user.created_at, 'datetime') : '',
+    })
+  },
+
+  onAvatarTap() {
+    if (!this.data.isLoggedIn || this.data.avatarUploading) return
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      sizeType: ['compressed'],
+      success: async res => {
+        const file = res.tempFiles && res.tempFiles[0]
+        if (!file || !file.tempFilePath) return
+        this.setData({ avatarUploading: true })
+        try {
+          const avatarUrl = await uploadAvatar(file.tempFilePath)
+          const user = this.data.user ? { ...this.data.user, avatar_url: avatarUrl } : null
+          this.setData({ avatarUrl })
+          if (user) {
+            authStore.setUser(user)
+            this.setData({ user })
+          }
+          wx.showToast({ title: '头像已更新', icon: 'success' })
+        } catch (e: any) {
+          wx.showToast({ title: e.message || '头像上传失败', icon: 'none' })
+        } finally {
+          this.setData({ avatarUploading: false })
+        }
+      },
     })
   },
 

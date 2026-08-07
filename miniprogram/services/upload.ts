@@ -28,6 +28,41 @@ export async function uploadImage(filePath: string): Promise<{ url: string; thum
   })
 }
 
+export async function uploadAvatar(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const token = getAccessToken()
+    const schoolCode = wx.getStorageSync('school_code') || 'jiangnan'
+
+    wx.uploadFile({
+      url: `${BASE_URL}/users/me/avatar`,
+      filePath,
+      name: 'file',
+      header: {
+        Authorization: token ? `Bearer ${token}` : '',
+        'X-School-Code': schoolCode,
+      },
+      success: res => {
+        try {
+          const data = JSON.parse(res.data)
+          if (res.statusCode < 200 || res.statusCode >= 300) {
+            reject(new Error(data.detail || data.message || '头像上传失败'))
+            return
+          }
+          const avatarUrl = data.data?.avatar_url || data.avatar_url
+          if (!avatarUrl) {
+            reject(new Error('头像上传响应缺少地址'))
+            return
+          }
+          resolve(resolveImageUrl(avatarUrl))
+        } catch {
+          reject(new Error('头像上传响应解析失败'))
+        }
+      },
+      fail: err => reject(err),
+    })
+  })
+}
+
 export async function chooseAndUploadImage(count: number = 1): Promise<Array<{ image_url: string; thumbnail_url?: string }>> {
   // 与后端校验一致：单张 ≤5MB、仅 jpg/png/gif、总张数上限 9
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024

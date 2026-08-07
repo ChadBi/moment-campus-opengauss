@@ -9,9 +9,9 @@
   padding-bottom: 220rpx;
 }
 
-/* ============== 用户信息卡片（对齐 Web ProfilePage: bg-gradient-to-br from-lake to-lake-light） ============== */
+/* ============== 用户信息卡片（稳定墨青底色，保证白字可读） ============== */
 .user-card {
-  background: linear-gradient(135deg, var(--lake) 0%, var(--lake-light) 100%);
+  background: var(--lake);
   padding: 40rpx 30rpx 50rpx;
   color: #ffffff;
   position: relative;
@@ -22,6 +22,13 @@
   align-items: flex-start;
 }
 
+.avatar-wrap {
+  position: relative;
+  width: 140rpx;
+  height: 140rpx;
+  flex: 0 0 140rpx;
+}
+
 .avatar {
   width: 140rpx;
   height: 140rpx;
@@ -29,6 +36,31 @@
   border: 6rpx solid rgba(255, 255, 255, 0.3);
   background: var(--lake-dark);
   flex-shrink: 0;
+}
+
+/* 相机按钮用于更换头像，固定贴在头像右下角，不再单独掉到下一行。 */
+.avatar-edit {
+  position: absolute;
+  right: -4rpx;
+  bottom: -4rpx;
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 4rpx solid var(--lake);
+  border-radius: 50%;
+  background: var(--lake-dark);
+  box-shadow: 0 6rpx 14rpx rgba(15, 58, 71, 0.28);
+  z-index: 1;
+}
+
+.avatar-edit.uploading {
+  opacity: 0.7;
+}
+
+.avatar-edit-hover {
+  background: var(--lake-2);
 }
 
 .user-meta {
@@ -81,9 +113,24 @@
 }
 
 .meta-line {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
   margin-top: 14rpx;
+  min-height: 28rpx;
   font-size: 22rpx;
   color: rgba(255, 255, 255, 0.8);
+}
+
+.meta-line icon {
+  display: flex;
+  flex: 0 0 20rpx;
+  align-items: center;
+  justify-content: center;
+}
+
+.meta-text {
+  line-height: 1.3;
 }
 
 .meta-label {
@@ -209,6 +256,17 @@
   align-items: center;
 }
 
+.section-icon-badge {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 48rpx;
+  border-radius: 14rpx;
+  background: var(--lake-light);
+}
+
 .section-title {
   font-size: 30rpx;
   font-weight: 700;
@@ -260,10 +318,12 @@
 }
 
 .membership-card.current {
-  background: linear-gradient(90deg, var(--lake-light) 0%, transparent 100%);
-  margin: 0 -30rpx;
-  padding: 24rpx 30rpx;
+  margin: 14rpx 20rpx 20rpx;
+  padding: 22rpx 20rpx;
   align-items: flex-start;
+  border: 1rpx solid rgba(47, 127, 143, 0.14);
+  border-radius: var(--radius-md);
+  background: var(--lake-light);
 }
 
 .membership-info {
@@ -857,6 +917,18 @@
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
+
+.rec-section .section-header {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 30rpx 18rpx;
+  border-bottom: 1rpx solid var(--ink-divider);
+}
+
+.rec-section .section-title-wrap {
+  gap: 0;
+}
+
 .rec-item {
   display: flex;
   align-items: center;
@@ -869,6 +941,7 @@
 }
 .rec-info {
   flex: 1;
+  min-width: 0;
   margin-right: 24rpx;
 }
 .rec-label {
@@ -893,6 +966,7 @@
   color: var(--danger);
   font-size: 26rpx;
   font-weight: 600;
+  flex-shrink: 0;
 }
 .rec-clear-btn:active {
   background: #f6d8d5;

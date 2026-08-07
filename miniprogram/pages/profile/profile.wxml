@@ -8,8 +8,8 @@
           src="{{avatarUrl}}"
           mode="aspectFill"
         />
-        <view class="avatar-edit" bindtap="onAvatarTap">
-          <icon name="camera" size="36rpx" color="#fff" />
+        <view class="avatar-edit {{avatarUploading ? 'uploading' : ''}}" bindtap="onAvatarTap" hover-class="avatar-edit-hover" hover-stay-time="120">
+          <icon name="{{avatarUploading ? 'refresh-cw' : 'camera'}}" size="28rpx" color="#fff" />
         </view>
       </view>
       <view class="user-meta">
@@ -79,7 +79,9 @@
   <view class="schools-section">
     <view class="section-header">
       <view class="section-title-wrap">
-        <icon name="school" size="32rpx" color="#174d5e" />
+        <view class="section-icon-badge">
+          <icon name="school" size="28rpx" color="#174d5e" />
+        </view>
         <text class="section-title">当前学校</text>
       </view>
       <text class="section-count">{{schoolName}}</text>
@@ -99,7 +101,9 @@
   <view class="verify-section">
     <view class="section-header">
       <view class="section-title-wrap">
-        <icon name="shield" size="32rpx" color="#174d5e" />
+        <view class="section-icon-badge">
+          <icon name="shield" size="28rpx" color="#174d5e" />
+        </view>
         <text class="section-title">校园身份认证</text>
       </view>
       <text wx:if="{{campusVerified}}" class="verify-card-badge">已认证</text>
@@ -380,7 +384,9 @@
   <view class="rec-section">
     <view class="section-header">
       <view class="section-title-wrap">
-        <icon name="sparkles" size="32rpx" color="#174d5e" />
+        <view class="section-icon-badge">
+          <icon name="sparkles" size="28rpx" color="#174d5e" />
+        </view>
         <text class="section-title">推荐隐私</text>
       </view>
     </view>
