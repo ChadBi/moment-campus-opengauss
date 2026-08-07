@@ -4,6 +4,14 @@
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
 > 最后更新：2026-08-07（历史帖子 thumbnail_url 补写脚本 + seed_data 优化升级 v2.2.10，与 v2.2.9 入库修复形成完整闭环）
 
+## 2026-08-07 执行任务：Web/小程序一致性重构 P0-P1
+
+- [x] 小程序 `listPosts` 支持 `location_id`、`status`、`sort`，帖子状态/匿名/联系方式/失物类型字段完成归一化，新增状态流转 service
+- [x] 首页拆分“为你推荐”与普通信息流，推荐接口失败不阻塞普通帖子；分类筛选仅作用于普通信息流
+- [x] 帖子卡片改读嵌套 `category` 和标准统计字段，增加匿名徽章
+- [x] 小程序 `npm run typecheck`、`npm run test:format` 通过
+- [ ] 发帖/编辑流程与地图地点面板仍待完成
+
 ## 2026-08-07 执行任务：历史帖子 thumbnail_url 补写 + seed_data 优化升级（v2.2.10）
 
 - [x] **seed_data.py 主函数解耦 + 新增补写 helper**：新增顶层 `async def fix_missing_thumbnails(session: AsyncSession, *, dry_run=False) -> int`，与 seed_data 其他 seed 函数平级，可被其他脚本直接 import 复用；支持 dry_run 只 COUNT 不 UPDATE，幂等（仅改 `thumbnail_url IS NULL`），安全（4 重 WHERE 过滤：IS NULL / LIKE '/uploads/%' / char_length > 10 / SUBSTRING basename 非空）

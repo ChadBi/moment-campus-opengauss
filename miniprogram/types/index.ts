@@ -84,6 +84,9 @@ export interface Post {
   location_lng?: number
   category_id: number
   status: 'draft' | 'pending' | 'published' | 'expired' | 'conflict' | 'archived'
+  is_anonymous?: boolean
+  contact_info?: string | null
+  lost_type?: string | null
   school_id: number
   school_name?: string
   author: PostAuthor
@@ -111,6 +114,10 @@ export interface PostListResponse {
   page_size: number
   has_more: boolean
   total_pages?: number
+  mode?: {
+    personalized?: boolean
+    reason_code?: string
+  } | null
 }
 
 export interface CommentAuthor {

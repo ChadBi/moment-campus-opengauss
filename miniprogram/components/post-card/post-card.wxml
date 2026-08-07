@@ -5,11 +5,12 @@
       <view class="author-row">
         <text class="author-name">{{authorName}}</text>
         <text wx:if="{{verified}}" class="verified-badge">已认证</text>
+        <text wx:if="{{post.is_anonymous}}" class="anonymous-badge">匿名</text>
       </view>
       <text class="post-time">{{formattedTime}}</text>
     </view>
-    <view wx:if="{{post.category_name}}" class="category-tag cat-{{categoryClass}}">
-      <text>{{post.category_name}}</text>
+    <view wx:if="{{post.category && post.category.name}}" class="category-tag cat-{{categoryClass}}">
+      <text>{{post.category.name}}</text>
     </view>
   </view>
 

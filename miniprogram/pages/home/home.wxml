@@ -1,5 +1,4 @@
 <view class="home-page page-fade-in">
-  <!-- 顶部栏：校名 + Slogan + 搜索入口 -->
   <view class="top-bar">
     <view class="school-info">
       <icon name="school" size="36rpx" color="#174d5e" />
@@ -14,19 +13,6 @@
     </view>
   </view>
 
-  <!-- 分类 Tab 横向滚动 -->
-  <scroll-view class="category-tabs" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
-    <view
-      wx:for="{{categories}}"
-      wx:key="id"
-      class="cat-tab {{activeCategoryId === item.id ? 'active' : ''}}"
-      data-id="{{item.id}}"
-      bindtap="onCategoryTap">
-      <text>{{item.name}}</text>
-    </view>
-  </scroll-view>
-
-  <!-- 校园地点入口 -->
   <view class="locations-entry" bindtap="goToLocations" hover-class="locations-entry-hover" hover-stay-time="120">
     <view class="locations-entry-icon">
       <icon name="map-pin" size="40rpx" color="#ffffff" />
@@ -38,48 +24,78 @@
     <icon name="chevron-right" size="32rpx" color="#174d5e" />
   </view>
 
-  <!-- 内容概要 -->
-  <view wx:if="{{totalPosts > 0}}" class="content-summary">
-    <icon name="file-text" size="22rpx" color="#6a7d81" />
-    <text>共 {{formattedTotal}} 条内容 · {{formattedRefreshTime}}更新</text>
+  <view wx:if="{{recommendationLoading || recommendations.length > 0 || recommendationError}}" class="recommendation-section">
+    <view class="section-heading">
+      <view class="section-heading-title">
+        <icon name="sparkles" size="28rpx" color="#174d5e" />
+        <text>为你推荐</text>
+      </view>
+      <text wx:if="{{recommendationMode && recommendationMode.personalized}}" class="personalized-badge">个性化</text>
+    </view>
+    <text wx:if="{{recommendationMode && recommendationMode.reason_code === 'cold_start_guest'}}" class="section-hint">登录后开启个性化推荐</text>
+    <text wx:elif="{{recommendationMode && recommendationMode.reason_code === 'cold_start_no_history'}}" class="section-hint">多浏览帖子，推荐会越来越贴近你的兴趣</text>
+    <view wx:if="{{recommendationLoading}}" class="recommendation-loading">
+      <skeleton variant="post-card" />
+    </view>
+    <view wx:elif="{{recommendationError}}" class="recommendation-error" bindtap="retryRecommendations">
+      <icon name="alert-circle" size="28rpx" color="#cc5f30" />
+      <text>推荐暂时走丢了，点击重试</text>
+    </view>
+    <view wx:elif="{{recommendations.length > 0}}" class="recommendation-list">
+      <post-card
+        wx:for="{{recommendations}}"
+        wx:key="id"
+        post="{{item}}"
+        class="stagger-card"
+        style="animation-delay: {{index * 40}}ms;"
+        bind:tap="onPostTap" />
+    </view>
   </view>
 
-  <!-- 帖子列表 -->
-  <view class="post-list">
-    <!-- 推荐区块标题（仅推荐 Tab 显示） -->
-    <view wx:if="{{activeCategoryId === 0 && posts.length > 0}}" class="recommend-header">
-      <icon name="sparkles" size="28rpx" color="#174d5e" />
-      <text class="recommend-title">为你推荐</text>
+  <view class="feed-section">
+    <view class="feed-heading">
+      <view>
+        <text class="feed-title">校园信息流</text>
+        <text wx:if="{{totalPosts > 0}}" class="feed-summary">共 {{formattedTotal}} 条 · {{formattedRefreshTime}}更新</text>
+      </view>
     </view>
 
-    <!-- 加载中：骨架屏（首次加载时显示 3 张骨架卡片） -->
-    <block wx:if="{{loading}}">
-      <skeleton variant="post-card" />
-      <skeleton variant="post-card" />
-      <skeleton variant="post-card" />
-    </block>
+    <scroll-view class="category-tabs" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
+      <view
+        wx:for="{{categories}}"
+        wx:key="id"
+        class="cat-tab {{activeCategoryId === item.id ? 'active' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="onCategoryTap">
+        <text>{{item.name}}</text>
+      </view>
+    </scroll-view>
 
-    <!-- 空状态 -->
-    <empty-state
-      wx:if="{{posts.length === 0 && !loading}}"
-      icon="file-text"
-      title="暂无内容"
-      hint="来发布第一条校园经验吧"
-      action-text="去发布"
-      bind:action="goToPublish"
-    />
+    <view class="post-list">
+      <block wx:if="{{loading}}">
+        <skeleton variant="post-card" />
+        <skeleton variant="post-card" />
+        <skeleton variant="post-card" />
+      </block>
 
-    <!-- post-card 组件渲染帖子 -->
-    <post-card
-      wx:for="{{posts}}"
-      wx:key="id"
-      post="{{item}}"
-      class="stagger-card"
-      style="animation-delay: {{index * 40}}ms;"
-      bind:tap="onPostTap"/>
+      <empty-state
+        wx:if="{{posts.length === 0 && !loading}}"
+        icon="file-text"
+        title="暂无内容"
+        hint="来发布第一条校园经验吧"
+        action-text="去发布"
+        bind:action="goToPublish" />
+
+      <post-card
+        wx:for="{{posts}}"
+        wx:key="id"
+        post="{{item}}"
+        class="stagger-card"
+        style="animation-delay: {{index * 40}}ms;"
+        bind:tap="onPostTap" />
+    </view>
   </view>
 
-  <!-- 底部加载状态 -->
   <view wx:if="{{loadingMore}}" class="loading-more">
     <view class="loading-dot"></view>
     <view class="loading-dot"></view>

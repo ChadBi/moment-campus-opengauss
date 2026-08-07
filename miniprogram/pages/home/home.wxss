@@ -191,6 +191,102 @@
   letter-spacing: 2rpx;
 }
 
+/* === 推荐区与普通信息流分层 === */
+.recommendation-section {
+  margin: 20rpx 24rpx 0;
+  padding: 24rpx 20rpx 16rpx;
+  background: var(--paper);
+  border: 1rpx solid rgba(47, 127, 143, 0.28);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.section-heading,
+.feed-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.section-heading-title {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  color: var(--lake);
+  font-family: var(--font-display);
+  font-size: 30rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.personalized-badge {
+  padding: 6rpx 12rpx;
+  border-radius: 999rpx;
+  background: rgba(47, 127, 143, 0.1);
+  color: var(--lake);
+  font-size: 20rpx;
+}
+
+.section-hint {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--muted);
+  font-size: 22rpx;
+}
+
+.recommendation-list {
+  margin-top: 12rpx;
+}
+
+.recommendation-list .post-card {
+  margin-bottom: 12rpx;
+}
+
+.recommendation-list .post-card:last-child {
+  margin-bottom: 0;
+}
+
+.recommendation-loading {
+  margin-top: 12rpx;
+}
+
+.recommendation-error {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-top: 14rpx;
+  padding: 20rpx;
+  border-radius: var(--radius-md);
+  background: rgba(204, 95, 48, 0.08);
+  color: var(--danger);
+  font-size: 24rpx;
+}
+
+.feed-section {
+  margin-top: 28rpx;
+}
+
+.feed-heading {
+  padding: 0 30rpx 12rpx;
+}
+
+.feed-title {
+  display: block;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.feed-summary {
+  display: block;
+  margin-top: 4rpx;
+  color: var(--muted);
+  font-family: var(--font-data);
+  font-size: 20rpx;
+}
+
 /* === 加载更多 === */
 .loading-more {
   display: flex;

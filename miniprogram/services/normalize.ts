@@ -97,6 +97,9 @@ export function normalizePost(raw: any): Post {
     location_lng: raw?.location_lng ?? locationRaw?.longitude,
     category_id: numberOr(raw?.category_id || categoryRaw?.id, 0),
     status: raw?.status || 'published',
+    is_anonymous: raw?.is_anonymous === true,
+    contact_info: raw?.contact_info ?? null,
+    lost_type: raw?.lost_type ?? null,
     school_id: numberOr(raw?.school_id, 0),
     school_name: raw?.school_name,
     author: {
@@ -135,7 +138,7 @@ export function normalizePost(raw: any): Post {
   }
 }
 
-export function normalizePostList(raw: any): { items: Post[]; total: number; page: number; page_size: number; has_more: boolean; total_pages?: number } {
+export function normalizePostList(raw: any): { items: Post[]; total: number; page: number; page_size: number; has_more: boolean; total_pages?: number; mode?: { personalized?: boolean; reason_code?: string } | null } {
   const items = Array.isArray(raw) ? raw : (Array.isArray(raw?.items) ? raw.items : [])
   return {
     items: items.map(normalizePost),
@@ -144,6 +147,7 @@ export function normalizePostList(raw: any): { items: Post[]; total: number; pag
     page_size: numberOr(raw?.page_size, items.length || 20),
     has_more: raw?.has_more === true,
     total_pages: raw?.total_pages,
+    mode: raw?.mode || null,
   }
 }
 

@@ -7,7 +7,9 @@ export async function listPosts(params?: {
   page?: number
   page_size?: number
   category_id?: number
+  location_id?: number
   status?: string
+  sort?: 'latest' | 'hottest' | 'active'
   keyword?: string
 }): Promise<PostListResponse> {
   const query = buildQuery(params)
@@ -26,9 +28,11 @@ export interface CreatePostRequest {
   location_name?: string
   location_lat?: number
   location_lng?: number
+  is_anonymous?: boolean
+  contact_info?: string
+  lost_type?: 'lost' | 'found' | string
   images?: Array<{ image_url: string; thumbnail_url?: string }>
   expire_at?: string
-  is_anonymous?: boolean
   status?: 'draft' | 'pending'
 }
 
@@ -38,6 +42,16 @@ export async function createPost(data: CreatePostRequest): Promise<Post> {
 
 export async function updatePost(id: number, data: Partial<CreatePostRequest>): Promise<Post> {
   return normalizePost(await http.put<any>(`/posts/${id}`, data))
+}
+
+export type PostTransitionStatus = 'draft' | 'pending' | 'published' | 'expired' | 'conflict' | 'archived'
+
+export async function transitionPost(id: number, targetStatus: PostTransitionStatus, reason?: string): Promise<Post> {
+  await http.post(`/posts/${id}/transition`, {
+    target_status: targetStatus,
+    ...(reason ? { reason } : {}),
+  })
+  return getPost(id)
 }
 
 export async function deletePost(id: number): Promise<void> {
