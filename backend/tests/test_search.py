@@ -8,6 +8,7 @@
 import pytest
 import pytest_asyncio
 from datetime import datetime, timedelta
+from urllib.parse import quote
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -178,6 +179,14 @@ async def search_setup(db_session: AsyncSession) -> dict:
         "待审核图书馆失物", "待审核内容", PostStatus.PENDING,
         location_id=loc_a.id, like_count=0, created_at=base_time + timedelta(hours=5),
     )
+
+    # 热榜排序测试数据：浏览量与点赞量分开，确保接口确实按 view_count 排序。
+    p1.view_count = 12
+    p2.view_count = 36
+    p3.view_count = 58
+    p4.view_count = 4
+    p5.view_count = 80
+    p6.view_count = 99
 
     # 给 p1 添加封面图
     await _add_image(db_session, p1.id, "https://example.com/p1.jpg", 0)
@@ -669,6 +678,36 @@ class TestPostsListNoNPlusOne:
         post_ids = {p["id"] for p in resp.json()["items"]}
         assert search_setup["posts"]["p5"].id not in post_ids  # expired
         assert search_setup["posts"]["p1"].id in post_ids
+
+    @pytest.mark.asyncio
+    async def test_posts_list_sort_by_views(
+        self, client: AsyncClient, search_setup: dict
+    ):
+        """GET /posts?sort=views 按浏览量降序，且 status=published 排除过期帖。"""
+        resp = await client.get(
+            "/api/v1/posts?status=published&sort=views",
+            headers=_school(search_setup["school"]["code"]),
+        )
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        assert items[0]["id"] == search_setup["posts"]["p3"].id
+        assert search_setup["posts"]["p5"].id not in {item["id"] for item in items}
+
+    @pytest.mark.asyncio
+    async def test_posts_list_accepts_timezone_date_filter(
+        self, client: AsyncClient, search_setup: dict
+    ):
+        """带时区的 ISO 时间也能筛选 timestamp without time zone 列，不返回 500。"""
+        base = search_setup["base_time"] + timedelta(hours=2)
+        aware = base.replace(tzinfo=datetime.now().astimezone().tzinfo).isoformat()
+        resp = await client.get(
+            f"/api/v1/posts?date_from={quote(aware, safe='')}",
+            headers=_school(search_setup["school"]["code"]),
+        )
+        assert resp.status_code == 200
+        post_ids = {item["id"] for item in resp.json()["items"]}
+        assert search_setup["posts"]["p3"].id in post_ids
+        assert search_setup["posts"]["p1"].id not in post_ids
 
     @pytest.mark.asyncio
     async def test_posts_list_no_n_plus_one(

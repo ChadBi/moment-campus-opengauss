@@ -107,8 +107,8 @@ async def get_posts(
     date_to: Optional[datetime] = Query(default=None, description="截止时间（created_at <=）"),
     sort: str = Query(
         default="latest",
-        pattern="^(latest|hottest|active)$",
-        description="排序方式: latest（最新）/ hottest（最热）/ active（综合活动）",
+        pattern="^(latest|hottest|active|views)$",
+        description="排序方式: latest（最新）/ hottest（按点赞）/ active（综合活动）/ views（按浏览量）",
     ),
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
@@ -147,6 +147,13 @@ async def get_posts(
         query = query.where(Post.category_id == category_id)
     if location_id is not None:
         query = query.where(Post.location_id == location_id)
+    # Post.created_at 使用 timestamp without time zone（由服务端 datetime.now 写入）。
+    # 兼容 Web/小程序传入带时区的 ISO 字符串，先转换为服务端本地墙上时间，
+    # 避免 asyncpg 以 aware datetime 比较无时区列而直接返回 500。
+    if date_from is not None and date_from.tzinfo is not None:
+        date_from = date_from.astimezone().replace(tzinfo=None)
+    if date_to is not None and date_to.tzinfo is not None:
+        date_to = date_to.astimezone().replace(tzinfo=None)
     if date_from is not None:
         query = query.where(Post.created_at >= date_from)
     if date_to is not None:
@@ -160,6 +167,10 @@ async def get_posts(
     elif sort == "active":
         # DSC-01.1: 最近活动 = 评论+点赞+浏览综合活跃度，按 updated_at 优先
         query = query.order_by(Post.updated_at.desc(), Post.created_at.desc())
+    elif sort == "views":
+        # 首页校园热榜：调用方应同时传入 date_from=date-7d，
+        # 服务端只负责稳定地按浏览量排序并以发布时间兜底。
+        query = query.order_by(Post.view_count.desc(), Post.created_at.desc())
     else:
         query = query.order_by(Post.created_at.desc())
 

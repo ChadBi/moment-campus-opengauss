@@ -9,11 +9,33 @@ export async function listPosts(params?: {
   category_id?: number
   location_id?: number
   status?: string
-  sort?: 'latest' | 'hottest' | 'active'
+  sort?: 'latest' | 'hottest' | 'active' | 'views'
+  date_from?: string
+  date_to?: string
   keyword?: string
 }): Promise<PostListResponse> {
   const query = buildQuery(params)
   return normalizePostList(await http.get<any>(`/posts${query ? `?${query}` : ''}`))
+}
+
+/**
+ * 校园热榜：近 7 天按浏览量排序的已发布帖子。
+ * 时间窗口和排序都在后端完成，避免客户端只取一页后再排序造成榜单失真。
+ */
+export async function listHotPosts(days = 7, pageSize = 10): Promise<PostListResponse> {
+  const date = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+  const pad = (value: number) => String(value).padStart(2, '0')
+  // Post.created_at 是后端无时区时间戳；传本地墙上时间，避免 asyncpg
+  // 将带 Z 的 aware datetime 与 timestamp without time zone 比较时报 500。
+  const dateFrom = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+    + `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  return listPosts({
+    page: 1,
+    page_size: pageSize,
+    status: 'published',
+    sort: 'views',
+    date_from: dateFrom,
+  })
 }
 
 export async function getPost(id: number): Promise<Post> {

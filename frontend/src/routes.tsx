@@ -15,6 +15,7 @@ function buildLoginRedirect(): string {
 
 // Lazy load pages
 const loadHomePage = () => import('./pages/HomePage');
+const loadHotRankingPage = () => import('./pages/HotRankingPage');
 const loadMapPage = () => import('./pages/MapPage');
 const loadSearchPage = () => import('./pages/SearchPage');
 const loadPostDetailPage = () => import('./pages/PostDetailPage');
@@ -34,6 +35,7 @@ const loadLocationPage = () => import('./pages/LocationPage');
 const loadVerifyLinkPage = () => import('./pages/VerifyLinkPage');
 
 const HomePage = lazy(loadHomePage);
+const HotRankingPage = lazy(loadHotRankingPage);
 const MapPage = lazy(loadMapPage);
 const SearchPage = lazy(loadSearchPage);
 const PostDetailPage = lazy(loadPostDetailPage);
@@ -220,6 +222,7 @@ const AnimatedRoutes: React.FC = () => {
           {/* 默认路由重定向到地图：让地图成为主页 */}
           <Route path="/" element={<Navigate to="/map" replace />} />
           <Route path="/home" element={<HomePage />} />
+          <Route path="/hot-ranking" element={<HotRankingPage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/posts/:id" element={<PostDetailPage />} />

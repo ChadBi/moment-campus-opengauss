@@ -3,7 +3,7 @@ import { authStore } from '../../store/auth'
 import { campusStore } from '../../store/campus'
 import { cachedFetch } from '../../utils/cache'
 import { getRecommendations } from '../../services/schools'
-import { listCategories, listPosts } from '../../services/posts'
+import { listCategories, listHotPosts, listPosts } from '../../services/posts'
 import type { Category, Post } from '../../types'
 
 Page({
@@ -13,9 +13,13 @@ Page({
     categories: [{ id: 0, name: '全部' }] as Array<{ id: number; name: string }>,
     activeCategoryId: 0,
     recommendations: [] as Post[],
+    featuredRecommendation: null as Post | null,
     recommendationMode: null as any,
     recommendationLoading: false,
     recommendationError: false,
+    hotPosts: [] as Post[],
+    hotLoading: false,
+    hotError: false,
     posts: [] as Post[],
     loading: false,
     loadingMore: false,
@@ -64,7 +68,7 @@ Page({
 
   async refreshHome() {
     this.setData({ page: 1, hasMore: true, posts: [] })
-    await Promise.all([this.loadRecommendations(), this.loadFeed()])
+    await Promise.all([this.loadRecommendations(), this.loadHotPosts(), this.loadFeed()])
   },
 
   async loadRecommendations() {
@@ -73,13 +77,27 @@ Page({
       const result = await getRecommendations({ page: 1, page_size: 5 })
       this.setData({
         recommendations: result.items,
+        featuredRecommendation: result.items[0] || null,
         recommendationMode: result.mode || null,
       })
     } catch (e) {
       console.error('加载推荐失败', e)
-      this.setData({ recommendations: [], recommendationMode: null, recommendationError: true })
+      this.setData({ recommendations: [], featuredRecommendation: null, recommendationMode: null, recommendationError: true })
     } finally {
       this.setData({ recommendationLoading: false })
+    }
+  },
+
+  async loadHotPosts() {
+    this.setData({ hotLoading: true, hotError: false })
+    try {
+      const result = await listHotPosts(7, 10)
+      this.setData({ hotPosts: result.items })
+    } catch (e) {
+      console.error('加载校园热榜失败', e)
+      this.setData({ hotPosts: [], hotError: true })
+    } finally {
+      this.setData({ hotLoading: false })
     }
   },
 
@@ -116,6 +134,10 @@ Page({
     void this.loadRecommendations()
   },
 
+  retryHotPosts() {
+    void this.loadHotPosts()
+  },
+
   onCategoryTap(e: any) {
     const id = Number(e.currentTarget.dataset.id)
     if (id === this.data.activeCategoryId) return
@@ -136,6 +158,20 @@ Page({
   onPostTap(e: any) {
     const id = e.detail.id
     wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${id}` })
+  },
+
+  onRecommendationTap(e: any) {
+    const id = Number(e.currentTarget.dataset.id)
+    if (id) wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${id}` })
+  },
+
+  onHotPostTap(e: any) {
+    const id = Number(e.currentTarget.dataset.id)
+    if (id) wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${id}` })
+  },
+
+  goToHotRanking() {
+    wx.navigateTo({ url: '/subpackages/pages/hot-ranking/hot-ranking' })
   },
 
   goToSearch() {

@@ -1,0 +1,67 @@
+<view class="hot-page page-fade-in">
+  <view class="hot-hero">
+    <view class="hero-nav">
+      <view class="hero-back" bindtap="goBack" hover-class="hero-back-hover" hover-stay-time="120">
+        <icon name="chevron-left" size="34rpx" color="#fff" />
+      </view>
+      <text class="hero-nav-title">{{schoolName}}</text>
+      <view class="hero-nav-placeholder"></view>
+    </view>
+    <view class="hero-decoration hero-decoration-one">+</view>
+    <view class="hero-decoration hero-decoration-two">榜</view>
+    <view class="hero-title-row">
+      <text class="hero-title">大榜单</text>
+      <text class="hero-title-mark">校园热榜</text>
+    </view>
+    <text class="hero-subtitle">近 7 天浏览量最高的 10 条校园动态</text>
+    <view class="hero-rule"><view></view><text>实时更新</text><view></view></view>
+  </view>
+
+  <view class="ranking-content">
+    <view wx:if="{{loading}}" class="ranking-state">
+      <view class="state-pulse"></view>
+      <view class="state-pulse short"></view>
+      <text>正在翻阅校园热度</text>
+    </view>
+    <view wx:elif="{{error}}" class="ranking-state ranking-error" bindtap="retry">
+      <icon name="refresh-cw" size="30rpx" color="#b65335" />
+      <text>{{error}}，点击重试</text>
+    </view>
+    <view wx:elif="{{hotPosts.length === 0}}" class="ranking-state">
+      <text>近 7 天还没有形成热榜</text>
+    </view>
+
+    <block wx:else>
+      <view class="ranking-caption">
+        <view class="caption-dot"></view>
+        <text>按浏览量排序</text>
+        <text class="caption-count">共 {{hotPosts.length}} 条</text>
+      </view>
+      <view wx:for="{{hotPosts}}" wx:key="id" class="ranking-card" data-id="{{item.id}}" bindtap="onPostTap" hover-class="ranking-card-hover" hover-stay-time="120">
+        <view class="ranking-head">
+          <view class="rank-medal rank-{{item.rank}}"><text>{{item.rankLabel}}</text></view>
+          <image class="ranking-avatar" src="{{item.author.avatar_url}}" mode="aspectFill" lazy-load />
+          <view class="ranking-author">
+            <view class="ranking-author-line">
+              <text class="ranking-author-name">{{item.author.nickname}}</text>
+              <text wx:if="{{item.author.is_verified}}" class="ranking-verified">已认证</text>
+            </view>
+            <text class="ranking-time">{{item.timeText}}</text>
+          </view>
+          <text wx:if="{{item.category && item.category.name}}" class="ranking-category">#{{item.category.name}}</text>
+        </view>
+        <text class="ranking-title">{{item.title}}</text>
+        <text class="ranking-summary">{{item.contentPreview}}</text>
+        <view class="ranking-footer">
+          <text wx:if="{{item.location_name}}" class="ranking-location">{{item.location_name}}</text>
+          <view class="ranking-metrics">
+            <text class="metric-hot">{{item.viewText}} 浏览</text>
+            <text>{{item.likeText}} 赞</text>
+            <text>{{item.commentText}} 评论</text>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+</view>
+

@@ -39,7 +39,7 @@ interface CreatePostRequest {
  * DSC-01.1: 帖子列表筛选参数（与后端 app/api/posts.py 对齐）
  */
 export type PostListStatusFilter = 'published' | 'expired' | 'valid';
-export type PostListSort = 'latest' | 'hottest' | 'active';
+export type PostListSort = 'latest' | 'hottest' | 'active' | 'views';
 
 interface PostFilters {
   page?: number;
@@ -53,7 +53,7 @@ interface PostFilters {
   date_from?: string;
   /** DSC-01.1: 截止时间（ISO 字符串，created_at <= date_to） */
   date_to?: string;
-  /** DSC-01.1: 排序方式（latest / hottest / active） */
+  /** DSC-01.1: 排序方式（latest / hottest / active / views） */
   sort?: PostListSort;
 }
 
