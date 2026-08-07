@@ -444,44 +444,84 @@ const LocationPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 我的评价：常态只读摘要卡片 + 「更新评价」展开；避免常态裸露编辑表单误触 */}
-            <div className="border border-line/60 rounded-[12px] p-4">
-              <h3 className="font-semibold text-ink text-sm mb-3">
-                {myReview ? '我的评价' : '给这个地点打个分'}
-              </h3>
-              {!isAuthenticated ? (
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm text-ink-muted">登录后即可为校园设施评分评价</p>
-                  <Button variant="primary" size="sm" icon={<LogIn size={14} />} onClick={() => navigate('/login')}>
-                    去登录
-                  </Button>
-                </div>
-              ) : myReview && !editingReview ? (
-                /* 常态（已有评价 + 不在编辑）：只读展示我那条评价 + 「更新评价」按钮展开编辑 */
-                <div className="space-y-3">
-                  <div className="rounded-[10px] bg-mist/40 border border-line/60 p-3">
+            {/* 我的评价：常态紧凑单层布局（标题+更新按钮同排，不做内层卡片嵌套）；避免常态裸露编辑表单误触 */}
+            <div className="border border-line/60 rounded-[12px] p-3.5">
+              {!myReview || editingReview ? (
+                /* 未评价 / 编辑态：标题 + 编辑控件 */
+                <>
+                  <h3 className="font-semibold text-ink text-sm mb-3">
+                    {myReview ? '我的评价' : '给这个地点打个分'}
+                  </h3>
+                  {!isAuthenticated ? (
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="font-medium text-ink text-sm truncate">我</span>
-                        {myReview.author?.is_verified && (
-                          <BadgeCheck size={13} className="text-lake flex-shrink-0" aria-label="已认证" />
-                        )}
+                      <p className="text-sm text-ink-muted">登录后即可为校园设施评分评价</p>
+                      <Button variant="primary" size="sm" icon={<LogIn size={14} />} onClick={() => navigate('/login')}>
+                        去登录
+                      </Button>
+                    </div>
+                  ) : (
+                    /* D4: 编辑态 / 尚未评价：评分 + 文本 + 提交/撤回表单，VerifyGate 保护校园身份认证 */
+                    <VerifyGate compact message="完成校园身份认证后即可评分评价">
+                      <div className="space-y-3">
+                      <div className="flex items-center gap-1" role="radiogroup" aria-label="评分">
+                        {[1, 2, 3, 4, 5].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setScore(value)}
+                            aria-label={`${value} 星`}
+                            aria-checked={score === value}
+                            role="radio"
+                            className="p-0.5"
+                          >
+                            <Star
+                              size={24}
+                              className={value <= score ? 'fill-current text-lamp' : 'text-line'}
+                            />
+                          </button>
+                        ))}
+                        <span className="ml-2 text-sm font-semibold text-ink">{score}.0 分</span>
                       </div>
-                      <span className="text-[11px] text-ink-muted flex-shrink-0">
-                        {formatRelativeTime(myReview.created_at)}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      <ScoreStars score={myReview.score} size={13} />
-                      <span className="text-xs text-ink-sub font-semibold">{myReview.score}.0</span>
-                    </div>
-                    {myReview.content && (
-                      <p className="text-sm text-ink-sub mt-2 leading-relaxed whitespace-pre-wrap">
-                        {myReview.content}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-end gap-2">
+                      <textarea
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        maxLength={500}
+                        rows={3}
+                        placeholder="分享你的体验，如排队情况、价格、营业时间等（最多 500 字）"
+                        className="w-full rounded-[10px] border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-lake/30 resize-none"
+                      />
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        {myReview && editingReview && (
+                          <Button
+                            variant="text"
+                            size="sm"
+                            onClick={() => setEditingReview(false)}
+                          >
+                            取消编辑
+                          </Button>
+                        )}
+                        <div className="flex items-center justify-end gap-2 ml-auto">
+                          {myReview && (
+                            <Button variant="text" size="sm" loading={submitting} onClick={() => void handleWithdrawReview()}>
+                              撤回评价
+                            </Button>
+                          )}
+                          <Button variant="primary" size="sm" loading={submitting} onClick={() => void handleSubmitReview()} icon={<Check size={14} />}>
+                            {myReview ? '更新评价' : '提交评价'}
+                          </Button>
+                        </div>
+                      </div>
+                      </div>
+                    </VerifyGate>
+                  )}
+                </>
+              ) : (
+                /* 常态（已有评价 + 不在编辑）：单层紧凑布局，标题与「更新评价」同排；不嵌套内层卡片 */
+                <>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <h3 className="font-semibold text-ink text-[13px] leading-none">
+                      我的评价
+                    </h3>
                     <Button
                       variant="primary"
                       size="sm"
@@ -495,61 +535,26 @@ const LocationPage: React.FC = () => {
                       更新评价
                     </Button>
                   </div>
-                </div>
-              ) : (
-                /* D4: 编辑态 / 尚未评价：评分 + 文本 + 提交/撤回表单，VerifyGate 保护校园身份认证 */
-                <VerifyGate compact message="完成校园身份认证后即可评分评价">
-                  <div className="space-y-3">
-                  <div className="flex items-center gap-1" role="radiogroup" aria-label="评分">
-                    {[1, 2, 3, 4, 5].map((value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setScore(value)}
-                        aria-label={`${value} 星`}
-                        aria-checked={score === value}
-                        role="radio"
-                        className="p-0.5"
-                      >
-                        <Star
-                          size={24}
-                          className={value <= score ? 'fill-current text-lamp' : 'text-line'}
-                        />
-                      </button>
-                    ))}
-                    <span className="ml-2 text-sm font-semibold text-ink">{score}.0 分</span>
-                  </div>
-                  <textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    maxLength={500}
-                    rows={3}
-                    placeholder="分享你的体验，如排队情况、价格、营业时间等（最多 500 字）"
-                    className="w-full rounded-[10px] border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-lake/30 resize-none"
-                  />
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    {myReview && editingReview && (
-                      <Button
-                        variant="text"
-                        size="sm"
-                        onClick={() => setEditingReview(false)}
-                      >
-                        取消编辑
-                      </Button>
-                    )}
-                    <div className="flex items-center justify-end gap-2 ml-auto">
-                      {myReview && (
-                        <Button variant="text" size="sm" loading={submitting} onClick={() => void handleWithdrawReview()}>
-                          撤回评价
-                        </Button>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-medium text-ink text-[13px] truncate">我</span>
+                      {myReview.author?.is_verified && (
+                        <BadgeCheck size={13} className="text-lake flex-shrink-0" aria-label="已认证" />
                       )}
-                      <Button variant="primary" size="sm" loading={submitting} onClick={() => void handleSubmitReview()} icon={<Check size={14} />}>
-                        {myReview ? '更新评价' : '提交评价'}
-                      </Button>
+                      <span className="mx-1.5 h-3.5 w-px bg-line/60" aria-hidden="true" />
+                      <ScoreStars score={myReview.score} size={13} />
+                      <span className="text-xs text-ink-sub font-semibold">{myReview.score}.0</span>
                     </div>
+                    <span className="text-[11px] text-ink-muted flex-shrink-0">
+                      {formatRelativeTime(myReview.created_at)}
+                    </span>
                   </div>
-                  </div>
-                </VerifyGate>
+                  {myReview.content && (
+                    <p className="text-[13px] text-ink-sub mt-2 leading-relaxed whitespace-pre-wrap">
+                      {myReview.content}
+                    </p>
+                  )}
+                </>
               )}
             </div>
 

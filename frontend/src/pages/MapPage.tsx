@@ -619,51 +619,105 @@ const MapPage: React.FC = () => {
                 </div>
               )}
 
-              {/* 评分/评价表单：常态只读摘要 + 「更新评价」展开编辑；与 LocationPage 一致 */}
-              <div className="border border-line/60 rounded-[10px] p-3">
-                <h4 className="font-semibold text-ink text-xs mb-2">
-                  {locationMyReview ? '我的评价' : '给这个地点打个分'}
-                </h4>
-                {!isAuthenticated ? (
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] text-ink-muted">登录后即可评分评价</p>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      icon={<LogIn size={12} />}
-                      onClick={() => navigate('/login')}
-                    >
-                      去登录
-                    </Button>
-                  </div>
-                ) : locationMyReview && !locationEditingReview ? (
-                  /* 常态（已有评价 + 不在编辑）：只读显示我的那条评价 + 「更新评价」按钮才展开编辑 */
-                  <div className="space-y-2">
-                    <div className="rounded-[8px] bg-mist/40 border border-line/60 p-2.5">
+              {/* 评分/评价表单：常态只读摘要 + 「更新评价」展开编辑；紧凑单层布局，不做卡片嵌套 */}
+              <div className="border border-line/60 rounded-[10px] p-2.5">
+                {!locationMyReview || locationEditingReview ? (
+                  /* 未评价 / 编辑态：标题 + 编辑控件 */
+                  <>
+                    <h4 className="font-semibold text-ink text-xs mb-2">
+                      {locationMyReview ? '我的评价' : '给这个地点打个分'}
+                    </h4>
+                    {!isAuthenticated ? (
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-medium text-ink text-[12px] truncate">我</span>
-                          {locationMyReview.author?.is_verified && (
-                            <BadgeCheck size={11} className="text-lake flex-shrink-0" aria-label="已认证" />
-                          )}
+                        <p className="text-[11px] text-ink-muted">登录后即可评分评价</p>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          icon={<LogIn size={12} />}
+                          onClick={() => navigate('/login')}
+                        >
+                          去登录
+                        </Button>
+                      </div>
+                    ) : (
+                      <VerifyGate compact message="完成校园身份认证后即可评分评价">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1" role="radiogroup" aria-label="评分">
+                            {[1, 2, 3, 4, 5].map((value) => (
+                              <button
+                                key={value}
+                                type="button"
+                                onClick={() => setLocationScore(value)}
+                                aria-label={`${value} 星`}
+                                aria-checked={locationScore === value}
+                                role="radio"
+                                className="p-0.5"
+                              >
+                                <Star
+                                  size={18}
+                                  className={
+                                    value <= locationScore
+                                      ? 'fill-current text-lamp'
+                                      : 'text-line'
+                                  }
+                                />
+                              </button>
+                            ))}
+                            <span className="ml-2 text-xs font-semibold text-ink">
+                              {locationScore}.0 分
+                            </span>
+                          </div>
+                          <textarea
+                            value={locationReviewContent}
+                            onChange={(e) => setLocationReviewContent(e.target.value)}
+                            maxLength={500}
+                            rows={2}
+                            placeholder="分享你的体验（最多 500 字，可选）"
+                            className="w-full rounded-[8px] border border-line bg-paper px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-lake/30 resize-none"
+                          />
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            {locationMyReview && locationEditingReview && (
+                              <Button
+                                variant="text"
+                                size="sm"
+                                onClick={() => setLocationEditingReview(false)}
+                              >
+                                取消编辑
+                              </Button>
+                            )}
+                            <div className="flex items-center justify-end gap-2 ml-auto">
+                              {locationMyReview && (
+                                <Button
+                                  variant="text"
+                                  size="sm"
+                                  loading={locationReviewSubmitting}
+                                  onClick={() => void handleLocationWithdrawReview()}
+                                >
+                                  撤回
+                                </Button>
+                              )}
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                loading={locationReviewSubmitting}
+                                onClick={() => void handleLocationSubmitReview()}
+                                icon={<Check size={12} />}
+                              >
+                                {locationMyReview ? '更新' : '提交'}
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <span className="text-[10px] text-ink-muted flex-shrink-0">
-                          {formatRelativeTime(locationMyReview.created_at)}
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-1.5">
-                        <ScoreStars score={locationMyReview.score} size={11} />
-                        <span className="text-[11px] text-ink-sub font-semibold">
-                          {locationMyReview.score}.0
-                        </span>
-                      </div>
-                      {locationMyReview.content && (
-                        <p className="text-[12px] text-ink-sub mt-1.5 leading-relaxed whitespace-pre-wrap line-clamp-4">
-                          {locationMyReview.content}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center justify-end gap-2">
+                      </VerifyGate>
+                    )}
+                  </>
+                ) : (
+                  /* 常态（已有评价 + 不在编辑）：紧凑单层布局，标题行与更新按钮同排；取消内层 bg-mist 嵌套卡片 */
+                  <>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <h4 className="font-semibold text-ink text-[11px] leading-none">
+                        我的评价
+                      </h4>
                       <Button
                         variant="primary"
                         size="sm"
@@ -677,77 +731,28 @@ const MapPage: React.FC = () => {
                         更新评价
                       </Button>
                     </div>
-                  </div>
-                ) : (
-                  <VerifyGate compact message="完成校园身份认证后即可评分评价">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-1" role="radiogroup" aria-label="评分">
-                        {[1, 2, 3, 4, 5].map((value) => (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() => setLocationScore(value)}
-                            aria-label={`${value} 星`}
-                            aria-checked={locationScore === value}
-                            role="radio"
-                            className="p-0.5"
-                          >
-                            <Star
-                              size={18}
-                              className={
-                                value <= locationScore
-                                  ? 'fill-current text-lamp'
-                                  : 'text-line'
-                              }
-                            />
-                          </button>
-                        ))}
-                        <span className="ml-2 text-xs font-semibold text-ink">
-                          {locationScore}.0 分
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-medium text-ink text-[12px] truncate">我</span>
+                        {locationMyReview.author?.is_verified && (
+                          <BadgeCheck size={12} className="text-lake flex-shrink-0" aria-label="已认证" />
+                        )}
+                        <span className="mx-1 h-3 w-px bg-line/60" aria-hidden="true" />
+                        <ScoreStars score={locationMyReview.score} size={12} />
+                        <span className="text-[11px] text-ink-sub font-semibold">
+                          {locationMyReview.score}.0
                         </span>
                       </div>
-                      <textarea
-                        value={locationReviewContent}
-                        onChange={(e) => setLocationReviewContent(e.target.value)}
-                        maxLength={500}
-                        rows={2}
-                        placeholder="分享你的体验（最多 500 字，可选）"
-                        className="w-full rounded-[8px] border border-line bg-paper px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-lake/30 resize-none"
-                      />
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        {locationMyReview && locationEditingReview && (
-                          <Button
-                            variant="text"
-                            size="sm"
-                            onClick={() => setLocationEditingReview(false)}
-                          >
-                            取消编辑
-                          </Button>
-                        )}
-                        <div className="flex items-center justify-end gap-2 ml-auto">
-                          {locationMyReview && (
-                            <Button
-                              variant="text"
-                              size="sm"
-                              loading={locationReviewSubmitting}
-                              onClick={() => void handleLocationWithdrawReview()}
-                            >
-                              撤回
-                            </Button>
-                          )}
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            loading={locationReviewSubmitting}
-                            onClick={() => void handleLocationSubmitReview()}
-                            icon={<Check size={12} />}
-                          >
-                            {locationMyReview ? '更新' : '提交'}
-                          </Button>
-                        </div>
-                      </div>
+                      <span className="text-[10px] text-ink-muted flex-shrink-0">
+                        {formatRelativeTime(locationMyReview.created_at)}
+                      </span>
                     </div>
-                  </VerifyGate>
+                    {locationMyReview.content && (
+                      <p className="text-[12px] text-ink-sub mt-1.5 leading-relaxed whitespace-pre-wrap line-clamp-4">
+                        {locationMyReview.content}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
 
