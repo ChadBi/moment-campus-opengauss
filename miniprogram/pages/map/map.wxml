@@ -53,10 +53,13 @@
       class="sheet-scroll"
       scroll-y="{{sheetExpanded}}"
       enhanced="true"
+      bounces="{{false}}"
       show-scrollbar="{{false}}"
+      bindscroll="onSheetScroll"
       catchtouchstart="onSheetTouchStart"
       catchtouchmove="onSheetTouchMove"
       catchtouchend="onSheetTouchEnd"
+      catchtouchcancel="onSheetTouchEnd"
     >
       <view class="sheet-drag-area">
         <view class="sheet-handle"></view>

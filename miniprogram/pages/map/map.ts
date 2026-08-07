@@ -75,11 +75,13 @@ Page({
     ;(this as any)._locationRequestVersion = 0
     ;(this as any)._selectedRequestVersion = 0
     ;(this as any)._hasLoadedLocations = false
+    ;(this as any)._sheetScrollTop = 0
     ;(this as any)._unsubscribeCampus = campusStore.subscribe(state => {
       const school = state.currentSchool
       const schoolName = (school && school.name) || state.schoolCode
       const version = ((this as any)._locationRequestVersion || 0) + 1
       ;(this as any)._locationRequestVersion = version
+      ;(this as any)._sheetScrollTop = 0
       this.setData({
         schoolName,
         latitude: school?.center_lat || DEFAULT_LAT,
@@ -146,6 +148,7 @@ Page({
 
     const requestVersion = ((this as any)._selectedRequestVersion || 0) + 1
     ;(this as any)._selectedRequestVersion = requestVersion
+    ;(this as any)._sheetScrollTop = 0
     this.selectMarker(location.id)
     this.setData({
       selectedLocation: {
@@ -204,6 +207,7 @@ Page({
 
   closeLocationCard() {
     ;(this as any)._selectedRequestVersion += 1
+    ;(this as any)._sheetScrollTop = 0
     this.setData({
       selectedLocation: null,
       sheetExpanded: false,
@@ -213,21 +217,58 @@ Page({
     })
   },
 
+  onSheetScroll(e: any) {
+    ;(this as any)._sheetScrollTop = Math.max(0, Number(e.detail?.scrollTop || 0))
+  },
+
   onSheetTouchStart(e: any) {
-    if (this.data.sheetExpanded) return
     const touch = e.touches && e.touches[0]
     if (!touch) return
-    ;(this as any)._sheetTouchStartY = touch.clientY ?? touch.pageY
+    const startY = touch.clientY ?? touch.pageY
+    const expanded = this.data.sheetExpanded
+    ;(this as any)._sheetTouchStartY = startY
+    ;(this as any)._sheetTouchLastY = startY
     ;(this as any)._sheetTouchStartOffset = Number(this.data.sheetDragOffset || 0)
-    this.setData({ sheetDragging: true })
+    ;(this as any)._sheetTouchMode = expanded ? 'expanded' : 'half'
+    ;(this as any)._sheetPullFromExpanded = expanded && Number((this as any)._sheetScrollTop || 0) <= 1
+    if (!expanded) this.setData({ sheetDragging: true })
   },
 
   onSheetTouchMove(e: any) {
-    if (this.data.sheetExpanded) return
     const touch = e.touches && e.touches[0]
     const startY = (this as any)._sheetTouchStartY
     if (!touch || typeof startY !== 'number') return
     const currentY = touch.clientY ?? touch.pageY
+    const lastY = Number((this as any)._sheetTouchLastY ?? startY)
+    ;(this as any)._sheetTouchLastY = currentY
+
+    if ((this as any)._sheetTouchMode === 'expanded') {
+      const scrollTop = Number((this as any)._sheetScrollTop || 0)
+      const movingDown = currentY > lastY
+
+      // 内容未回到顶部时保持原生滚动；到达顶部后，下一段下拉接管整张抽屉。
+      if (scrollTop > 1) {
+        ;(this as any)._sheetPullFromExpanded = false
+        return
+      }
+      if (!(this as any)._sheetPullFromExpanded) {
+        if (!movingDown) return
+        ;(this as any)._sheetPullFromExpanded = true
+        ;(this as any)._sheetTouchStartY = currentY
+        return
+      }
+
+      const pullDelta = currentY - Number((this as any)._sheetTouchStartY)
+      const maxDrag = this.getSheetMaxDrag()
+      const offset = Math.max(0, Math.min(maxDrag, pullDelta))
+      if (offset === 0 && !this.data.sheetDragging) return
+      this.setData({
+        sheetDragging: true,
+        sheetDragOffset: offset,
+      })
+      return
+    }
+
     const deltaY = currentY - startY
     const startOffset = Number((this as any)._sheetTouchStartOffset || 0)
     const maxDrag = this.getSheetMaxDrag()
@@ -237,18 +278,34 @@ Page({
   },
 
   onSheetTouchEnd(e: any) {
-    if (this.data.sheetExpanded) return
     const touch = e.changedTouches && e.changedTouches[0]
     const startY = (this as any)._sheetTouchStartY
-    if (!touch || typeof startY !== 'number') {
+    const touchMode = (this as any)._sheetTouchMode
+    if (typeof startY !== 'number') {
       this.setData({ sheetDragging: false, sheetDragOffset: 0 })
       return
     }
-    const endY = touch.clientY ?? touch.pageY
+    const offset = Number(this.data.sheetDragOffset || 0)
+    const endY = touch ? (touch.clientY ?? touch.pageY) : startY + offset
     const deltaY = endY - startY
     ;(this as any)._sheetTouchStartY = undefined
-    const offset = Number(this.data.sheetDragOffset || 0)
+    ;(this as any)._sheetTouchLastY = undefined
+    ;(this as any)._sheetTouchMode = undefined
+    ;(this as any)._sheetPullFromExpanded = false
     const maxDrag = this.getSheetMaxDrag()
+
+    if (touchMode === 'expanded') {
+      if (!this.data.sheetDragging) return
+      this.setData({ sheetDragging: false })
+      if (offset >= Math.max(72, maxDrag * 0.18) || deltaY >= 72) {
+        ;(this as any)._sheetScrollTop = 0
+        this.setData({ sheetExpanded: false, sheetDragOffset: 0 })
+        return
+      }
+      this.setData({ sheetDragOffset: 0 })
+      return
+    }
+
     this.setData({ sheetDragging: false })
 
     if (offset <= -Math.max(72, maxDrag * 0.22) || deltaY <= -72) {
