@@ -49,10 +49,10 @@ async def unverified_auth_headers(
 
 
 @pytest.mark.asyncio
-async def test_send_returns_code_and_link_in_dev(
+async def test_send_returns_six_digit_code_without_link_in_dev(
     client, unverified_auth_headers, test_school_domain: dict
 ):
-    """dev 模式：登录邮箱命中允许域名 → 发送返回验证凭证与验证链接。"""
+    """dev 模式：登录邮箱命中允许域名 → 发送返回 6 位数字验证码，不返回链接。"""
     resp = await client.post(
         "/api/v1/users/me/verify-campus/send",
         headers=unverified_auth_headers,
@@ -61,8 +61,9 @@ async def test_send_returns_code_and_link_in_dev(
     body = resp.json()
     assert body["message"]
     assert body["code"] is not None
-    assert body["verify_link"] is not None
-    assert "token=" in body["verify_link"]
+    assert len(body["code"]) == 6
+    assert body["code"].isdigit()
+    assert body.get("verify_link") is None
 
 
 @pytest.mark.asyncio
@@ -100,19 +101,19 @@ async def test_confirm_success_marks_verified(
 
 
 @pytest.mark.asyncio
-async def test_confirm_with_token_credential(
+async def test_confirm_with_six_digit_code(
     client, unverified_auth_headers, test_school_domain: dict
 ):
-    """token 凭证（验证链接中的值）确认同样生效。"""
+    """6 位数字验证码确认生效。"""
     send = (await client.post(
         "/api/v1/users/me/verify-campus/send",
         headers=unverified_auth_headers,
     )).json()
-    token = send["code"]  # code 与 token 为同一凭证（双通道）
+    code = send["code"]
 
     confirm = await client.post(
         "/api/v1/users/me/verify-campus/confirm",
-        json={"token": token},
+        json={"code": code},
         headers=unverified_auth_headers,
     )
     assert confirm.status_code == 200

@@ -31,8 +31,6 @@ const loadTopicListPage = () => import('./pages/TopicListPage');
 const loadTopicDetailPage = () => import('./pages/TopicDetailPage');
 // A-05: 校园地点页（设施资料、AI 摘要与评分评价）
 const loadLocationPage = () => import('./pages/LocationPage');
-// B-01: 校园身份认证验证链接落地页
-const loadVerifyLinkPage = () => import('./pages/VerifyLinkPage');
 
 const HomePage = lazy(loadHomePage);
 const HotRankingPage = lazy(loadHotRankingPage);
@@ -49,7 +47,6 @@ const NotFoundPage = lazy(loadNotFoundPage);
 const TopicListPage = lazy(loadTopicListPage);
 const TopicDetailPage = lazy(loadTopicDetailPage);
 const LocationPage = lazy(loadLocationPage);
-const VerifyLinkPage = lazy(loadVerifyLinkPage);
 
 // Admin pages
 const loadAdminDashboard = () => import('./pages/admin/AdminDashboard');
@@ -214,9 +211,6 @@ const AnimatedRoutes: React.FC = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        {/* B-01: 校园身份认证验证链接落地页（无需登录） */}
-        <Route path="/verify-campus" element={<VerifyLinkPage />} />
-
         {/* Protected Routes with MainLayout */}
         <Route element={<MainLayout />}>
           {/* 默认路由重定向到地图：让地图成为主页 */}

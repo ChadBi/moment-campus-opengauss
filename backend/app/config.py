@@ -100,14 +100,14 @@ class Settings(BaseSettings):
     # ============================================================
     # B-01: SMTP 邮件配置（校园身份认证验证邮件）
     # 授权码仅存服务端 .env.opengauss，不进文档/Git（与 AI_API_KEY 同规则）。
-    # 未配置时 send 端点回退为 dev 直接返回验证链接/验证码。
+    # 未配置时 send 端点回退为 dev 直接返回 6 位验证码。
     # ============================================================
     SMTP_HOST: str = ""
     SMTP_PORT: int = 465
     SMTP_USER: str = ""
     SMTP_PASS: str = ""
     SMTP_FROM: str = ""
-    # 验证链接域名（如 https://campus.chaina1.com）；未配置时退化为 API 本机地址
+    # 预留的应用外部地址配置（校园认证当前仅使用数字验证码）。
     APP_BASE_URL: str = ""
 
 settings = Settings()

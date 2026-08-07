@@ -247,8 +247,8 @@ Page({
       return
     }
     const code = (this.data.verifyCode || '').trim()
-    if (!code) {
-      wx.showToast({ title: '请输入验证凭证', icon: 'none' })
+    if (!/^\d{6}$/.test(code)) {
+      wx.showToast({ title: '请输入6位数字验证码', icon: 'none' })
       return
     }
     if (this.data.verifyConfirming) return

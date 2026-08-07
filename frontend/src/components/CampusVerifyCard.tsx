@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { BadgeCheck, Shield, Link as LinkIcon, Copy, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { BadgeCheck, Shield } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { usersApi } from '../services/users';
 import { Card } from './ui/Card';
@@ -14,9 +14,8 @@ type ToastState = {
 
 /**
  * B-01: 校园身份认证卡片（个人中心）。
- * 未认证：填写学号 + 校园邮箱 → 发送验证（本地环境响应携带 code / verify_link）→ 确认。
+ * 未认证：向当前登录教育邮箱发送 6 位数字验证码 → 输入并确认。
  * 已认证：展示「已认证」徽标与说明。
- * UC-01：从验证链接落地页（/verify-campus?token=）带来的 token 自动填入确认框。
  */
 export const CampusVerifyCard: React.FC = () => {
   const { user, updateUser } = useAuthStore();
@@ -25,29 +24,14 @@ export const CampusVerifyCard: React.FC = () => {
   const [step, setStep] = useState<'form' | 'code'>('form');
   const [code, setCode] = useState('');
   const [devCode, setDevCode] = useState<string | null>(null);
-  const [verifyLink, setVerifyLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
-
-  // UC-01: 从验证链接落地页带过来的 token（sessionStorage）
-  useEffect(() => {
-    void Promise.resolve().then(() => {
-      const pending = sessionStorage.getItem('pending_verify_token');
-      if (pending) {
-        sessionStorage.removeItem('pending_verify_token');
-        setCode(pending);
-        setStep('code');
-      }
-    });
-  }, []);
 
   const handleSend = async () => {
     setLoading(true);
     try {
       const res = await usersApi.sendCampusVerify();
       setDevCode(res.code ?? null);
-      setVerifyLink(res.verify_link ?? null);
       setStep('code');
       setToast({ message: res.message, type: 'success' });
     } catch (error) {
@@ -60,8 +44,8 @@ export const CampusVerifyCard: React.FC = () => {
 
   const handleConfirm = async () => {
     const credential = code.trim();
-    if (!credential) {
-      setToast({ message: '请输入验证凭证（验证链接中的 token 或验证码）', type: 'error' });
+    if (!/^\d{6}$/.test(credential)) {
+      setToast({ message: '请输入 6 位数字验证码', type: 'error' });
       return;
     }
     setLoading(true);
@@ -74,17 +58,6 @@ export const CampusVerifyCard: React.FC = () => {
       setToast({ message: e?.response?.data?.detail || '认证失败，请重试', type: 'error' });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCopyLink = async () => {
-    if (!verifyLink) return;
-    try {
-      await navigator.clipboard.writeText(verifyLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      setToast({ message: '复制失败，请手动选择复制', type: 'error' });
     }
   };
 
@@ -136,38 +109,20 @@ export const CampusVerifyCard: React.FC = () => {
           ) : (
             <>
               <label className="block">
-                <span className="text-xs text-ink-sub">验证凭证（token 或验证码）</span>
+                <span className="text-xs text-ink-sub">6 位数字验证码</span>
                 <input
                   type="text"
+                  inputMode="numeric"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  maxLength={128}
-                  placeholder="粘贴验证链接中的 token 或验证码"
+                  maxLength={6}
+                  placeholder="请输入邮箱中的 6 位验证码"
                   className="mt-1 w-full px-3 py-2 rounded-[10px] border border-line/60 focus:border-lake focus:outline-none text-sm"
                 />
               </label>
-              {verifyLink && (
-                <div className="rounded-[8px] bg-lake/5 border border-lake/20 px-3 py-2 text-xs text-lake">
-                  <div className="flex items-center gap-2">
-                    <LinkIcon size={12} />
-                    <span className="font-medium">验证链接：</span>
-                    <button
-                      type="button"
-                      onClick={handleCopyLink}
-                      className="inline-flex items-center gap-1 text-lake font-medium hover:underline"
-                    >
-                      {copied ? <Check size={12} /> : <Copy size={12} />}
-                      {copied ? '已复制' : '复制链接'}
-                    </button>
-                  </div>
-                  <span className="block text-[10px] text-ink-muted mt-1 break-all">
-                    正式环境该链接将发送至你的校园邮箱
-                  </span>
-                </div>
-              )}
               {devCode && (
                 <div className="rounded-[8px] bg-lake/5 border border-lake/20 px-3 py-2 text-xs text-lake">
-                  👇 演示环境验证凭证：
+                  👇 演示环境验证码：
                   <span className="font-data font-bold tracking-wide break-all">{devCode}</span>
                   <span className="block text-[10px] text-ink-muted mt-0.5">
                     直接复制到上方输入框即可完成认证

@@ -123,7 +123,7 @@
           <view class="verify-email-box">
             <text class="verify-email-label">认证邮箱</text>
             <text class="verify-email-val">{{email}}</text>
-            <text class="verify-email-hint">验证凭证将发送至该邮箱</text>
+            <text class="verify-email-hint">6 位数字验证码将发送至该邮箱</text>
           </view>
           <view
             class="verify-send-btn {{verifySending ? 'disabled' : ''}}"

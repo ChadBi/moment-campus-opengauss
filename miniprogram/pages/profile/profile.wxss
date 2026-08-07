@@ -263,6 +263,7 @@
   background: linear-gradient(90deg, var(--lake-light) 0%, transparent 100%);
   margin: 0 -30rpx;
   padding: 24rpx 30rpx;
+  align-items: flex-start;
 }
 
 .membership-info {
@@ -278,10 +279,10 @@
 }
 
 .membership-name {
+  display: block;
   font-size: 30rpx;
   font-weight: 600;
   color: var(--ink);
-  margin-right: 16rpx;
 }
 
 .default-badge,
@@ -305,8 +306,11 @@
 }
 
 .membership-meta {
+  display: block;
+  margin-top: 6rpx;
   font-size: 22rpx;
   color: var(--muted);
+  line-height: 1.45;
 }
 
 .membership-actions {
@@ -314,6 +318,7 @@
   align-items: center;
   flex-shrink: 0;
   margin-left: 16rpx;
+  padding-top: 2rpx;
 }
 
 .action-switch,

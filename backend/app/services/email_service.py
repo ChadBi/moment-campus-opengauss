@@ -1,10 +1,10 @@
 """B-01: SMTP 邮件发送服务（校园身份认证验证邮件）
 
 配置（仅存 .env.opengauss，不进文档/Git）：
-    SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS（QQ 邮箱授权码）/ SMTP_FROM / APP_BASE_URL
+    SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS（QQ 邮箱授权码）/ SMTP_FROM
 
 未配置 SMTP_HOST 时视为"无邮件能力"：send_verification_email 返回 False，
-由调用方（verify-campus/send）回退为 dev 直接返回验证链接/验证码（演示闭环）。
+由调用方（verify-campus/send）回退为 dev 直接返回验证码（演示闭环）。
 """
 import smtplib
 import ssl
@@ -22,9 +22,8 @@ def smtp_configured() -> bool:
 
 def build_verification_email(
     to_email: str,
-    verify_link: str,
     school_name: str,
-    code: str | None = None,
+    code: str,
 ) -> MIMEMultipart:
     """构造校园身份认证验证邮件（HTML）。"""
     msg = MIMEMultipart("alternative")
@@ -33,29 +32,18 @@ def build_verification_email(
     msg["To"] = to_email
     msg["Subject"] = f"【此刻校园】{school_name} 校园身份认证"
 
-    code_block = ""
-    if code:
-        code_block = (
-            f'<p style="margin:8px 0;">或使用验证码：<b style="font-size:20px;'
-            f'letter-spacing:2px;">{code}</b>（10 分钟内有效）</p>'
-        )
-
     html = f"""<div style="font-family:'PingFang SC','Microsoft YaHei',sans-serif;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
   <h2 style="color:#1B4332;margin:0 0 16px;">此刻校园 · 校园身份认证</h2>
   <p style="color:#374151;line-height:1.7;">你好：</p>
   <p style="color:#374151;line-height:1.7;">
     你正在为 <b>{school_name}</b> 的账号完成校园身份认证。
-    请点击下方按钮完成验证（链接 10 分钟内有效）：
+    请在此刻校园个人中心输入下面的 6 位验证码完成认证（10 分钟内有效）：
   </p>
-  <p style="text-align:center;margin:24px 0;">
-    <a href="{verify_link}" style="display:inline-block;background:#1B4332;color:#ffffff;padding:12px 32px;border-radius:8px;text-decoration:none;font-size:15px;">
-      完成校园身份认证
-    </a>
+  <p style="text-align:center;margin:24px 0;font-size:32px;font-weight:700;letter-spacing:8px;color:#1B4332;">
+    {code}
   </p>
-  {code_block}
   <p style="color:#6b7280;font-size:13px;line-height:1.7;">
-    如果按钮无法点击，请复制以下链接到浏览器打开：<br/>
-    <a href="{verify_link}" style="color:#1B4332;word-break:break-all;">{verify_link}</a>
+    如果不是本人操作，请忽略此邮件。验证码使用一次后立即失效。
   </p>
   <p style="color:#9ca3af;font-size:12px;margin-top:24px;">
     此邮件由系统自动发送，请勿回复。若非本人操作，请忽略本邮件。
@@ -67,18 +55,17 @@ def build_verification_email(
 
 def send_verification_email(
     to_email: str,
-    verify_link: str,
     school_name: str,
-    code: str | None = None,
+    code: str,
 ) -> bool:
-    """发送验证邮件；未配置 SMTP 时返回 False（调用方回退 dev 展示）。
+    """发送只包含 6 位验证码的验证邮件；未配置 SMTP 时返回 False。
 
     使用 smtplib.SMTP_SSL（QQ 邮箱 smtp.qq.com:465）。超时 15s。
     """
     if not smtp_configured():
         return False
 
-    msg = build_verification_email(to_email, verify_link, school_name, code)
+    msg = build_verification_email(to_email, school_name, code)
     from_addr = settings.SMTP_FROM or settings.SMTP_USER
 
     try:
@@ -90,5 +77,5 @@ def send_verification_email(
             server.sendmail(from_addr, [to_email], msg.as_string())
         return True
     except Exception:
-        # 邮件发送失败不阻塞认证主流程：调用方回退 dev 展示验证链接
+        # 邮件发送失败不阻塞认证主流程：调用方回退 dev 展示验证码
         return False
