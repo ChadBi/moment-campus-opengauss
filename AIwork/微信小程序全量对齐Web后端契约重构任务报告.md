@@ -19,7 +19,7 @@
 ## 3. 未完成内容
 
 - 完整后端 `pytest backend/tests/ -v` 在 604 秒工具窗口内仍未结束并被超时终止，未得到全量汇总；针对本次契约影响模块的 79 项测试已全部通过（1 条既有 Pydantic serializer warning）。
-- 微信自动化运行时在登录弹窗/个人中心流程偶发超时，尚未完成“微信注册、登录、我的切校、发布、详情、通知、订阅、地点摘要”完整 E2E。
+- 微信自动化连接已恢复并完成邮箱登录 → “我的” → 选择浙江大学 → 地图/地点列表校验：本地 `school_code=zju`，地图数据为 `30.30485, 120.0817`，学校名与地点标记已更新；仍未完成微信注册、发布、详情互动、通知、订阅和地点摘要审核等完整 E2E。
 - 管理端摘要审核队列属于 Web/后端既有能力，本次只接入小程序已批准摘要展示，没有新增管理端页面。
 
 ## 4. 实现思路
@@ -43,7 +43,7 @@
 - 微信开发者工具：`check_wechatide_status` 已登录且版本匹配；`simulator_refresh` 通过；关键 9 个 WXML 文件 `compile_wxml` 通过；console grep 未发现 error/warn/fail；地图截图显示江南大学校区中心，未出现定位授权。
 - Web：`frontend/npm run build` 通过。
 - 后端：`test_schools_api.py`、`test_posts.py`、`test_interactions.py`、`test_notifications.py`、`test_subscriptions.py`、`test_location_summary_unit.py` 共 79 项通过；全量命令运行 604 秒后因超过执行窗口中止，未将其误报为完成。
-- 自动化：地图页 `automation_runtime_info` 可读取；个人中心因游客登录提示弹窗导致 `automation_page_action` 超时，完整 E2E 留待登录态自动化连接稳定后执行。
+- 自动化：`check_wechatide_status` 登录态与版本匹配；邮箱登录后 `isLoggedIn=true`，学校切换事务完成后 `wx.getStorageSync('school_code')=zju`，地图页读取到 `latitude=30.30485`、`longitude=120.0817`、`schoolName=浙江大学`，地点列表加载到浙大静态地点；未出现定位授权弹窗。完整写操作 E2E 仍待继续。
 
 ## 8. 后续建议
 
