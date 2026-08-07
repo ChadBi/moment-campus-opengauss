@@ -72,7 +72,7 @@ const HotRankingPage: React.FC = () => {
                   </div>
                   {post.category?.name && <span className="max-w-[120px] truncate rounded-full bg-[#fff0e7] px-2 py-0.5 text-[10px] text-[#b65335]">#{post.category.name}</span>}
                 </div>
-                <h2 className="mt-4 line-clamp-2 text-[16px] font-bold leading-[1.5] text-ink">{post.title}</h2>
+                <h2 className="mt-4 h-[48px] line-clamp-2 text-[16px] font-bold leading-[1.5] text-ink">{post.title}</h2>
                 <p className="mt-1 line-clamp-2 text-sm leading-[1.65] text-ink-sub">{post.content}</p>
                 <div className="mt-3 flex items-center justify-between border-t border-[#cf947e]/15 pt-2.5 text-[11px] text-ink-muted font-data">
                   <span className="truncate max-w-[180px]">{post.location?.name || '校园动态'}</span>

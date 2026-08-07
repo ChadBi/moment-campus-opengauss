@@ -1,7 +1,7 @@
-import { listHotPosts } from '../../../services/posts'
-import { campusStore } from '../../../store/campus'
-import { formatCount, formatDate, truncateText } from '../../../utils/format'
-import type { Post } from '../../../types'
+import { listHotPosts } from '../../services/posts'
+import { campusStore } from '../../store/campus'
+import { formatCount, formatDate, truncateText } from '../../utils/format'
+import type { Post } from '../../types'
 
 interface HotPostView extends Post {
   rank: number
@@ -85,4 +85,3 @@ Page({
     wx.navigateBack({ delta: 1 })
   },
 })
-

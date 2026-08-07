@@ -142,7 +142,7 @@ const HomePage: React.FC = () => {
                 <div className="flex items-start gap-2.5">
                   <span className={`w-7 h-7 rounded-[10px] flex items-center justify-center flex-shrink-0 text-xs font-bold font-data ${index < 3 ? 'bg-[#ffd34e] text-[#8f581e]' : 'bg-[#edf1f2] text-ink-muted'}`}>{index + 1}</span>
                   <div className="min-w-0">
-                    <h3 className="text-sm font-semibold text-ink line-clamp-2 leading-[1.45]">{item.title}</h3>
+                    <h3 className="h-[42px] text-sm font-semibold text-ink line-clamp-2 leading-[1.45]">{item.title}</h3>
                     <div className="flex items-center gap-2 mt-2 text-[11px] text-ink-muted font-data"><span className="text-[#b65335]">{item.view_count || 0} 浏览</span><span>{item.comment_count || 0} 评论</span></div>
                   </div>
                 </div>

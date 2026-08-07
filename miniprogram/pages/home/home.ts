@@ -171,7 +171,21 @@ Page({
   },
 
   goToHotRanking() {
-    wx.navigateTo({ url: '/subpackages/pages/hot-ranking/hot-ranking' })
+    const url = '/pages/hot-ranking/hot-ranking'
+    wx.navigateTo({
+      url,
+      fail: error => {
+        console.error('打开校园热榜失败', error)
+        // 页面栈已满时用 redirectTo 兜底，避免点击后完全没有反馈。
+        wx.redirectTo({
+          url,
+          fail: redirectError => {
+            console.error('重定向校园热榜失败', redirectError)
+            wx.showToast({ title: '热榜页面暂时打不开', icon: 'none' })
+          },
+        })
+      },
+    })
   },
 
   goToSearch() {

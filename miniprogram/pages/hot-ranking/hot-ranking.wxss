@@ -281,6 +281,7 @@
 
 .ranking-title {
   display: -webkit-box;
+  height: 90rpx;
   margin-top: 18rpx;
   color: var(--ink);
   font-size: 30rpx;
@@ -370,4 +371,3 @@
   0%, 100% { opacity: 0.45; }
   50% { opacity: 1; }
 }
-

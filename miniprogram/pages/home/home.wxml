@@ -33,7 +33,7 @@
           <text class="hot-subtitle">近 7 天浏览量 Top10</text>
         </view>
       </view>
-      <view class="hot-more"><text>查看榜单</text><icon name="chevron-right" size="26rpx" color="#b65335" /></view>
+      <view class="hot-more" catchtap="goToHotRanking"><text>查看榜单</text><icon name="chevron-right" size="26rpx" color="#b65335" /></view>
     </view>
 
     <view wx:if="{{hotLoading}}" class="hot-loading"><view class="hot-loading-bar"></view><view class="hot-loading-bar short"></view></view>

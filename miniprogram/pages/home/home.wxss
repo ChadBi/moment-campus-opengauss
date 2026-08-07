@@ -468,6 +468,7 @@
 
 .hot-item-title {
   display: -webkit-box;
+  height: 72rpx;
   color: var(--ink);
   font-size: 25rpx;
   font-weight: 650;

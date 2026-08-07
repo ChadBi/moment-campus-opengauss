@@ -6,6 +6,7 @@
     "pages/publish/publish",
     "pages/profile/profile",
     "pages/post-detail/post-detail",
+    "pages/hot-ranking/hot-ranking",
     "pages/notifications/notifications",
     "pages/subscriptions/subscriptions",
     "pages/login/login"
@@ -72,7 +73,6 @@
         "bind-account/bind-account",
         "edit-post/edit-post",
         "locations/locations",
-        "hot-ranking/hot-ranking",
         "about/about"
       ]
     },
