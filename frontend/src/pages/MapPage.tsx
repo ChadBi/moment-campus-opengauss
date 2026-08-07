@@ -86,6 +86,8 @@ const MapPage: React.FC = () => {
   const [locationScore, setLocationScore] = useState(5);
   const [locationReviewContent, setLocationReviewContent] = useState('');
   const [locationReviewSubmitting, setLocationReviewSubmitting] = useState(false);
+  // 常态不展开编辑表单：已有评价时，点「更新评价」才进入编辑态
+  const [locationEditingReview, setLocationEditingReview] = useState(false);
 
   // D-04: 地点面板相关帖子（GET /posts?location_id=）
   const [locationPosts, setLocationPosts] = useState<Post[]>([]);
@@ -130,6 +132,7 @@ const MapPage: React.FC = () => {
         rating_count: detail.location.rating_count,
         review_count: detail.location.review_count,
       });
+      setLocationEditingReview(false);
       showToast('评价已提交', 'success');
     } catch (err: unknown) {
       logger.error('提交评价失败:', err);
@@ -149,6 +152,7 @@ const MapPage: React.FC = () => {
       setLocationMyReview(null);
       setLocationScore(5);
       setLocationReviewContent('');
+      setLocationEditingReview(false);
       const reviewsRes = await locationsApi.getReviews(locationPanel.id, 1, 20);
       setLocationReviews(reviewsRes.items);
       const detail = await locationsApi.getDetail(locationPanel.id);
@@ -178,6 +182,7 @@ const MapPage: React.FC = () => {
         setLocationMyReview(null);
         setLocationScore(5);
         setLocationReviewContent('');
+        setLocationEditingReview(false);
       });
       return;
     }
@@ -614,10 +619,10 @@ const MapPage: React.FC = () => {
                 </div>
               )}
 
-              {/* 评分/评价表单：内嵌在面板中，与地点详情页一致 */}
+              {/* 评分/评价表单：常态只读摘要 + 「更新评价」展开编辑；与 LocationPage 一致 */}
               <div className="border border-line/60 rounded-[10px] p-3">
                 <h4 className="font-semibold text-ink text-xs mb-2">
-                  {locationMyReview ? '我的评价（可更新）' : '给这个地点打个分'}
+                  {locationMyReview ? '我的评价' : '给这个地点打个分'}
                 </h4>
                 {!isAuthenticated ? (
                   <div className="flex items-center justify-between gap-2">
@@ -630,6 +635,48 @@ const MapPage: React.FC = () => {
                     >
                       去登录
                     </Button>
+                  </div>
+                ) : locationMyReview && !locationEditingReview ? (
+                  /* 常态（已有评价 + 不在编辑）：只读显示我的那条评价 + 「更新评价」按钮才展开编辑 */
+                  <div className="space-y-2">
+                    <div className="rounded-[8px] bg-mist/40 border border-line/60 p-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-medium text-ink text-[12px] truncate">我</span>
+                          {locationMyReview.author?.is_verified && (
+                            <BadgeCheck size={11} className="text-lake flex-shrink-0" aria-label="已认证" />
+                          )}
+                        </div>
+                        <span className="text-[10px] text-ink-muted flex-shrink-0">
+                          {formatRelativeTime(locationMyReview.created_at)}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-1.5">
+                        <ScoreStars score={locationMyReview.score} size={11} />
+                        <span className="text-[11px] text-ink-sub font-semibold">
+                          {locationMyReview.score}.0
+                        </span>
+                      </div>
+                      {locationMyReview.content && (
+                        <p className="text-[12px] text-ink-sub mt-1.5 leading-relaxed whitespace-pre-wrap line-clamp-4">
+                          {locationMyReview.content}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => {
+                          setLocationScore(locationMyReview.score);
+                          setLocationReviewContent(locationMyReview.content ?? '');
+                          setLocationEditingReview(true);
+                        }}
+                        icon={<Edit3 size={12} />}
+                      >
+                        更新评价
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <VerifyGate compact message="完成校园身份认证后即可评分评价">
@@ -667,26 +714,37 @@ const MapPage: React.FC = () => {
                         placeholder="分享你的体验（最多 500 字，可选）"
                         className="w-full rounded-[8px] border border-line bg-paper px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-lake/30 resize-none"
                       />
-                      <div className="flex items-center justify-end gap-2">
-                        {locationMyReview && (
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        {locationMyReview && locationEditingReview && (
                           <Button
                             variant="text"
                             size="sm"
-                            loading={locationReviewSubmitting}
-                            onClick={() => void handleLocationWithdrawReview()}
+                            onClick={() => setLocationEditingReview(false)}
                           >
-                            撤回
+                            取消编辑
                           </Button>
                         )}
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          loading={locationReviewSubmitting}
-                          onClick={() => void handleLocationSubmitReview()}
-                          icon={<Check size={12} />}
-                        >
-                          {locationMyReview ? '更新' : '提交'}
-                        </Button>
+                        <div className="flex items-center justify-end gap-2 ml-auto">
+                          {locationMyReview && (
+                            <Button
+                              variant="text"
+                              size="sm"
+                              loading={locationReviewSubmitting}
+                              onClick={() => void handleLocationWithdrawReview()}
+                            >
+                              撤回
+                            </Button>
+                          )}
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            loading={locationReviewSubmitting}
+                            onClick={() => void handleLocationSubmitReview()}
+                            icon={<Check size={12} />}
+                          >
+                            {locationMyReview ? '更新' : '提交'}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </VerifyGate>

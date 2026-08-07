@@ -11,6 +11,7 @@ import {
   BadgeCheck,
   Search,
   X,
+  Edit3,
 } from 'lucide-react';
 import {
   locationsApi,
@@ -75,6 +76,8 @@ const LocationPage: React.FC = () => {
   const [factValue, setFactValue] = useState('');
   const [factReason, setFactReason] = useState('');
   const [submittingProposal, setSubmittingProposal] = useState(false);
+  // 常态不展开编辑表单：已有 myReview 时，点击「更新评价」才进入编辑态
+  const [editingReview, setEditingReview] = useState(false);
 
   // 地点列表搜索栏：按名称/描述/建筑/楼层过滤
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -193,6 +196,7 @@ const LocationPage: React.FC = () => {
       ]);
       setDetail({ ...d, reviews: reviews.items });
       setMyReview(review);
+      setEditingReview(false);
       showToast('评价已提交', 'success');
     } catch (err: unknown) {
       logger.error('提交评价失败:', err);
@@ -216,6 +220,7 @@ const LocationPage: React.FC = () => {
       setMyReview(null);
       setScore(5);
       setContent('');
+      setEditingReview(false);
       showToast('评价已撤回', 'success');
     } catch (err: unknown) {
       logger.error('撤回评价失败:', err);
@@ -439,7 +444,7 @@ const LocationPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 我的评价 */}
+            {/* 我的评价：常态只读摘要卡片 + 「更新评价」展开；避免常态裸露编辑表单误触 */}
             <div className="border border-line/60 rounded-[12px] p-4">
               <h3 className="font-semibold text-ink text-sm mb-3">
                 {myReview ? '我的评价' : '给这个地点打个分'}
@@ -451,8 +456,48 @@ const LocationPage: React.FC = () => {
                     去登录
                   </Button>
                 </div>
+              ) : myReview && !editingReview ? (
+                /* 常态（已有评价 + 不在编辑）：只读展示我那条评价 + 「更新评价」按钮展开编辑 */
+                <div className="space-y-3">
+                  <div className="rounded-[10px] bg-mist/40 border border-line/60 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-medium text-ink text-sm truncate">我</span>
+                        {myReview.author?.is_verified && (
+                          <BadgeCheck size={13} className="text-lake flex-shrink-0" aria-label="已认证" />
+                        )}
+                      </div>
+                      <span className="text-[11px] text-ink-muted flex-shrink-0">
+                        {formatRelativeTime(myReview.created_at)}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <ScoreStars score={myReview.score} size={13} />
+                      <span className="text-xs text-ink-sub font-semibold">{myReview.score}.0</span>
+                    </div>
+                    {myReview.content && (
+                      <p className="text-sm text-ink-sub mt-2 leading-relaxed whitespace-pre-wrap">
+                        {myReview.content}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        setScore(myReview.score);
+                        setContent(myReview.content ?? '');
+                        setEditingReview(true);
+                      }}
+                      icon={<Edit3 size={14} />}
+                    >
+                      更新评价
+                    </Button>
+                  </div>
+                </div>
               ) : (
-                /* D4: 已登录未认证用户仅只读——评分评价需先完成校园身份认证 */
+                /* D4: 编辑态 / 尚未评价：评分 + 文本 + 提交/撤回表单，VerifyGate 保护校园身份认证 */
                 <VerifyGate compact message="完成校园身份认证后即可评分评价">
                   <div className="space-y-3">
                   <div className="flex items-center gap-1" role="radiogroup" aria-label="评分">
@@ -482,15 +527,26 @@ const LocationPage: React.FC = () => {
                     placeholder="分享你的体验，如排队情况、价格、营业时间等（最多 500 字）"
                     className="w-full rounded-[10px] border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-lake/30 resize-none"
                   />
-                  <div className="flex items-center justify-end gap-2">
-                    {myReview && (
-                      <Button variant="text" size="sm" loading={submitting} onClick={() => void handleWithdrawReview()}>
-                        撤回评价
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    {myReview && editingReview && (
+                      <Button
+                        variant="text"
+                        size="sm"
+                        onClick={() => setEditingReview(false)}
+                      >
+                        取消编辑
                       </Button>
                     )}
-                    <Button variant="primary" size="sm" loading={submitting} onClick={() => void handleSubmitReview()} icon={<Check size={14} />}>
-                      {myReview ? '更新评价' : '提交评价'}
-                    </Button>
+                    <div className="flex items-center justify-end gap-2 ml-auto">
+                      {myReview && (
+                        <Button variant="text" size="sm" loading={submitting} onClick={() => void handleWithdrawReview()}>
+                          撤回评价
+                        </Button>
+                      )}
+                      <Button variant="primary" size="sm" loading={submitting} onClick={() => void handleSubmitReview()} icon={<Check size={14} />}>
+                        {myReview ? '更新评价' : '提交评价'}
+                      </Button>
+                    </div>
                   </div>
                   </div>
                 </VerifyGate>
