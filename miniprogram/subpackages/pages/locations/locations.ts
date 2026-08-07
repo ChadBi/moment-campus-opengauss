@@ -18,6 +18,9 @@ Page({
     isLoggedIn: false,
     campusVerified: false,
     schoolName: '',
+    mode: '' as string,
+    searchKeyword: '',
+    allLocations: [] as any[],
     // 列表
     locations: [] as any[],
     loading: false,
@@ -43,6 +46,7 @@ Page({
   },
 
   onLoad(options: Record<string, string | undefined>) {
+    this.setData({ mode: options?.mode || '' })
     authStore.subscribe(state => {
       this.setData({ isLoggedIn: state.isLoggedIn, campusVerified: !!state.user?.campus_verified })
     })
@@ -67,7 +71,7 @@ Page({
     this.setData({ loading: true, error: '' })
     try {
       const items = (await getLocations()).map(loc => this.normalizeLocation(loc))
-      this.setData({ locations: items, loading: false })
+      this.setData({ locations: items, allLocations: items, loading: false })
     } catch (e: any) {
       this.setData({ loading: false, error: e.message || '加载地点失败' })
     }
@@ -75,6 +79,14 @@ Page({
 
   retryList() {
     this.loadLocations()
+  },
+
+  onKeywordInput(e: any) {
+    const keyword = String(e.detail.value || '').trim().toLowerCase()
+    const all = this.data.allLocations || []
+    const locations = !keyword ? all : all.filter((item: any) => [item.name, item.description, item.building, item.floor]
+      .filter(Boolean).some((value: any) => String(value).toLowerCase().includes(keyword)))
+    this.setData({ searchKeyword: e.detail.value || '', locations })
   },
 
   normalizeLocation(loc: LocationItem): any {
@@ -96,6 +108,14 @@ Page({
   // ============== 详情弹层 ==============
   onCardTap(e: any) {
     const id = Number(e.currentTarget.dataset.id)
+    if (this.data.mode === 'select') {
+      const selected = (this.data.allLocations || []).find((item: any) => item.id === id)
+      if (selected) {
+        wx.setStorageSync('selected_location', selected)
+        wx.navigateBack({ delta: 1 })
+      }
+      return
+    }
     if (id) this.openDetail(id)
   },
 

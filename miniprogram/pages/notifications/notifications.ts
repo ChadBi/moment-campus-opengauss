@@ -1,6 +1,5 @@
-import { http } from '../../services/request'
 import { formatDate } from '../../utils/format'
-import { listNotifications, markAsRead, markAllAsRead, deleteNotification, getUnreadCount } from '../../services/notifications'
+import { listNotifications, markAsRead, markAllAsRead, getUnreadCount } from '../../services/notifications'
 import { guardPageLogin } from '../../utils/auth-guard'
 import { authStore } from '../../store/auth'
 
@@ -75,8 +74,7 @@ Page({
         params.type = activeType
       }
       const res: any = await listNotifications(params)
-      const items = (res.items || res.notifications || []) as any[]
-      const list = items.map((n: any) => this.normalizeNotification(n))
+      const list = (res.items || []).map((n: any) => this.normalizeNotification(n))
       this.setData({
         notifications: [...this.data.notifications, ...list],
         hasMore: res.has_more !== undefined ? !!res.has_more : list.length >= pageSize,
@@ -103,7 +101,7 @@ Page({
   async loadUnreadCount() {
     try {
       const res: any = await getUnreadCount()
-      this.setData({ unreadCount: Number(res.count || 0) })
+      this.setData({ unreadCount: Number(res.unread_count || 0) })
     } catch (e) {
       // 静默
     }
@@ -136,8 +134,8 @@ Page({
     }
 
     // 跳转相关帖子
-    if (item && item.related_post_id) {
-      wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${item.related_post_id}` })
+    if (item && item.target_type === 'post' && item.target_id) {
+      wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${item.target_id}` })
     }
   },
 
@@ -159,27 +157,6 @@ Page({
     } finally {
       this.setData({ markingAllRead: false })
     }
-  },
-
-  // ============== 删除通知 ==============
-  onDeleteNotification(e: any) {
-    const id = e.currentTarget.dataset.id
-    if (!id) return
-    wx.showModal({
-      title: '提示',
-      content: '确定要删除该通知吗？',
-      success: async r => {
-        if (!r.confirm) return
-        try {
-          await deleteNotification(Number(id))
-          const list = this.data.notifications.filter((n: any) => n.id !== id)
-          this.setData({ notifications: list })
-          wx.showToast({ title: '已删除', icon: 'success' })
-        } catch (err: any) {
-          wx.showToast({ title: err.message || '删除失败', icon: 'none' })
-        }
-      },
-    })
   },
 
   // ============== 工具方法 ==============

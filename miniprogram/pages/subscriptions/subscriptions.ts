@@ -1,19 +1,17 @@
-import { http } from '../../services/request'
 import { formatDate } from '../../utils/format'
 import { guardPageLogin } from '../../utils/auth-guard'
+import { listSubscriptions, createSubscription, removeSubscription } from '../../services/subscriptions'
 
 const TYPE_ICONS: Record<string, string> = {
   category: 'file-text',
-  user: 'user',
-  tag: 'bookmark',
   location: 'map-pin',
+  topic: 'bookmark',
 }
 
 const TYPE_LABELS: Record<string, string> = {
   category: '分类',
-  user: '用户',
-  tag: '标签',
   location: '地点',
+  topic: '专题',
 }
 
 Page({
@@ -60,11 +58,9 @@ Page({
   async loadSubscriptions() {
     this.setData({ loadingSubscriptions: true })
     try {
-      const res: any = await http.get('/subscriptions')
-      const items = (res.items || res.subscriptions || res || []) as any[]
-      const list = items.map((s: any) => this.normalizeSubscription(s))
+      const list = (await listSubscriptions()).map((s: any) => this.normalizeSubscription(s))
       const categoryIds = list
-        .filter((s: any) => s.subscription_type === 'category')
+        .filter((s: any) => s.target_type === 'category')
         .map((s: any) => Number(s.target_id))
       this.setData({
         subscriptions: list,
@@ -91,10 +87,10 @@ Page({
 
   normalizeSubscription(s: any): any {
     if (!s) return s
-    const type = s.subscription_type || s.type || 'category'
+    const type = s.target_type || 'category'
     return {
       ...s,
-      subscription_type: type,
+      target_type: type,
       type_icon: TYPE_ICONS[type] || 'bell',
       type_label: TYPE_LABELS[type] || type,
       target_name: s.target_name || s.name || '未知',
@@ -111,11 +107,11 @@ Page({
       success: async r => {
         if (!r.confirm) return
         try {
-          await http.delete(`/subscriptions/${id}`)
+          await removeSubscription(Number(id))
           wx.showToast({ title: '已取消', icon: 'success' })
           const list = this.data.subscriptions.filter((s: any) => s.id !== id)
           const categoryIds = list
-            .filter((s: any) => s.subscription_type === 'category')
+            .filter((s: any) => s.target_type === 'category')
             .map((s: any) => Number(s.target_id))
           this.setData({ subscriptions: list, subscribedCategoryIds: categoryIds })
           this.applySubscribedToCategories()
@@ -130,8 +126,8 @@ Page({
   async loadCategories() {
     this.setData({ loadingCategories: true })
     try {
-      const res: any = await http.get('/categories')
-      const items = (res.items || res.categories || res || []) as any[]
+      const res: any = await import('../../services/request').then(m => m.http.get('/categories'))
+      const items = (Array.isArray(res) ? res : (res.items || res.data || [])) as any[]
       const ids = this.data.subscribedCategoryIds
       const list = items.map((c: any) => ({
         ...c,
@@ -164,19 +160,18 @@ Page({
     if (subscribed) {
       // 取消订阅：找到对应的订阅记录 id
       const sub = this.data.subscriptions.find(
-        (s: any) => s.subscription_type === 'category' && Number(s.target_id) === id
+        (s: any) => s.target_type === 'category' && Number(s.target_id) === id
       )
       if (!sub) {
         this.setData({ togglingId: 0 })
         return
       }
-      http
-        .delete(`/subscriptions/${sub.id}`)
+      removeSubscription(sub.id)
         .then(() => {
           wx.showToast({ title: '已取消订阅', icon: 'success' })
           const list = this.data.subscriptions.filter((s: any) => s.id !== sub.id)
           const categoryIds = list
-            .filter((s: any) => s.subscription_type === 'category')
+            .filter((s: any) => s.target_type === 'category')
             .map((s: any) => Number(s.target_id))
           this.setData({ subscriptions: list, subscribedCategoryIds: categoryIds })
           this.applySubscribedToCategories()
@@ -189,20 +184,13 @@ Page({
         })
     } else {
       // 添加订阅
-      http
-        .post('/subscriptions', { type: 'category', target_id: id })
-        .then((res: any) => {
+      createSubscription('category', id)
+        .then((newSub: any) => {
           wx.showToast({ title: '订阅成功', icon: 'success' })
-          const newSub = this.normalizeSubscription(res.subscription || res || {
-            id: res.id,
-            subscription_type: 'category',
-            target_id: id,
-            target_name: category.name,
-            created_at: new Date().toISOString(),
-          })
+          newSub = this.normalizeSubscription({ ...newSub, target_name: newSub.target_name || category.name })
           const list = [...this.data.subscriptions, newSub]
           const categoryIds = list
-            .filter((s: any) => s.subscription_type === 'category')
+            .filter((s: any) => s.target_type === 'category')
             .map((s: any) => Number(s.target_id))
           this.setData({ subscriptions: list, subscribedCategoryIds: categoryIds })
           this.applySubscribedToCategories()

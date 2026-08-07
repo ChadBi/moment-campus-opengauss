@@ -1,5 +1,6 @@
 import { http } from './request'
 import type { Post, PostListResponse, Topic, Category } from '../types'
+import { normalizePost, normalizePostList, normalizeTopic } from './normalize'
 
 export async function listPosts(params?: {
   page?: number
@@ -14,28 +15,33 @@ export async function listPosts(params?: {
       if (v !== undefined) query.append(k, String(v))
     })
   }
-  return http.get<PostListResponse>(`/posts?${query.toString()}`)
+  return normalizePostList(await http.get<any>(`/posts?${query.toString()}`))
 }
 
 export async function getPost(id: number): Promise<Post> {
-  return http.get<Post>(`/posts/${id}`)
+  return normalizePost(await http.get<any>(`/posts/${id}`))
 }
 
-export async function createPost(data: {
+export interface CreatePostRequest {
   title: string
   content: string
   category_id: number
+  location_id?: number
   location_name?: string
-  latitude?: number
-  longitude?: number
-  images?: string[]
-  expires_at?: string
-}): Promise<Post> {
-  return http.post<Post>('/posts', data)
+  location_lat?: number
+  location_lng?: number
+  images?: Array<{ image_url: string; thumbnail_url?: string }>
+  expire_at?: string
+  is_anonymous?: boolean
+  status?: 'draft' | 'pending'
 }
 
-export async function updatePost(id: number, data: Partial<Post>): Promise<Post> {
-  return http.put<Post>(`/posts/${id}`, data)
+export async function createPost(data: CreatePostRequest): Promise<Post> {
+  return normalizePost(await http.post<any>('/posts', data))
+}
+
+export async function updatePost(id: number, data: Partial<CreatePostRequest>): Promise<Post> {
+  return normalizePost(await http.put<any>(`/posts/${id}`, data))
 }
 
 export async function deletePost(id: number): Promise<void> {
@@ -44,17 +50,21 @@ export async function deletePost(id: number): Promise<void> {
 
 export async function listMyPosts(status?: string): Promise<PostListResponse> {
   const query = status ? `?status=${status}` : ''
-  return http.get<PostListResponse>(`/users/me/posts${query}`)
+  return normalizePostList(await http.get<any>(`/users/me/posts${query}`))
 }
 
-export async function listTopics(): Promise<{ topics: Topic[] }> {
-  return http.get('/topics')
+export async function listTopics(): Promise<Topic[]> {
+  const raw = await http.get<any>('/topics')
+  const items = Array.isArray(raw) ? raw : (raw?.items || [])
+  return items.map(normalizeTopic)
 }
 
 export async function getTopic(id: number): Promise<Topic & { posts: Post[] }> {
-  return http.get(`/topics/${id}`)
+  const raw = await http.get<any>(`/topics/${id}`)
+  return { ...normalizeTopic(raw), posts: (raw?.posts || []).map(normalizePost) }
 }
 
-export async function listCategories(): Promise<{ categories: Category[] }> {
-  return http.get('/categories')
+export async function listCategories(): Promise<Category[]> {
+  const raw = await http.get<any>('/categories')
+  return Array.isArray(raw) ? raw : (raw?.items || [])
 }

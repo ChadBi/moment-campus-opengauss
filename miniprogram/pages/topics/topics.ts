@@ -1,5 +1,6 @@
-import { http, resolveImageUrl } from '../../services/request'
+import { http } from '../../services/request'
 import { formatDate } from '../../utils/format'
+import { normalizeTopic } from '../../services/normalize'
 
 Page({
   data: {
@@ -32,14 +33,12 @@ Page({
     try {
       const { page, pageSize } = this.data
       const res: any = await http.get(`/topics?page=${page}&page_size=${pageSize}`)
-      const items = res.items || res.topics || []
-      // 预处理专题数据：封面图 URL + 时间格式化
-      // 后端字段为 cover_url；兼容 cover_image 写法
+      const items = res.items || []
       const processed = items.map((t: any) => ({
-        ...t,
-        cover_image: resolveImageUrl(t.cover_url || t.cover_image),
+        ...normalizeTopic(t),
+        cover_image: normalizeTopic(t).cover_url || '',
         created_at_text: formatDate(t.published_at || t.created_at),
-        post_count_text: t.post_count || 0,
+        post_count_text: normalizeTopic(t).post_count || 0,
       }))
       const total = res.total !== undefined
         ? res.total

@@ -1,4 +1,4 @@
-import { http, resolveImageUrl, resolveAvatar } from '../../services/request'
+import { getPost } from '../../services/posts'
 import { formatDate, formatCount, getRemainingTime } from '../../utils/format'
 import {
   likePost,
@@ -9,6 +9,8 @@ import {
   listComments,
 } from '../../services/interactions'
 import { requireLogin } from '../../utils/auth-guard'
+import { normalizeComment } from '../../services/normalize'
+import type { PostImage } from '../../types'
 
 // 举报类型与后端 ReportType 枚举对齐（backend/app/schemas/enums.py 六类）
 const REPORT_REASONS = [
@@ -40,7 +42,7 @@ Page({
     postId: 0,
     loading: true,
     post: null as any,
-    images: [] as string[],
+    images: [] as PostImage[],
     swiperCurrent: 0,
 
     // 互动
@@ -101,7 +103,6 @@ Page({
     try {
       await Promise.all([
         this.loadPost(),
-        this.loadInteractions(),
         this.loadValidationStats(),
         this.loadComments(1),
       ])
@@ -114,52 +115,35 @@ Page({
 
   // ============== 加载详情 ==============
   async loadPost() {
-    const res: any = await http.get(`/posts/${this.data.postId}`)
-    const post = res || {}
-    const images = Array.isArray(post.images)
-      ? post.images.map((u: string) => resolveImageUrl(u))
-      : []
-    const author = post.author || {}
-    const location = post.location || {}
+    const post = await getPost(this.data.postId)
+    const images = post.images || []
+    const location: any = post.location || {}
     const locationParts: string[] = []
     if (location.name) locationParts.push(location.name)
     if (location.building) locationParts.push(location.building)
     if (location.floor) locationParts.push(`${location.floor} 层`)
     const normalized = {
       ...post,
-      images,
       location_name: post.location_name || location.name || '',
       location_address: locationParts.join(' · '),
-      author_nickname: post.author_nickname || author.nickname || '匿名用户',
-      author_avatar: resolveAvatar(post.author_avatar || author.avatar_url),
-      is_verified: !!post.is_verified || !!author.is_verified,
+      author_nickname: post.author?.nickname || '匿名用户',
+      author_avatar: post.author?.avatar_url || '',
       created_at_text: formatDate(post.created_at),
-      likes_count_text: formatCount(post.likes_count || 0),
-      comments_count_text: formatCount(post.comments_count || 0),
-      validations_count_text: formatCount(post.validations_count || 0),
-      views_count_text: formatCount(post.views_count || 0),
+      like_count_text: formatCount(post.like_count || 0),
+      comment_count_text: formatCount(post.comment_count || 0),
+      valid_count_text: formatCount(post.valid_count || 0),
+      view_count_text: formatCount(post.view_count || 0),
     }
-    const categoryName = post.category_name || (post.category && post.category.name) || ''
+    const categoryName = post.category?.name || ''
     this.setData({
       post: normalized,
       images,
+      isLiked: !!post.is_liked,
+      likesCount: post.like_count || 0,
+      commentsCount: post.comment_count || 0,
       categoryClass: mapCategoryToClass(categoryName),
     })
-    this.startCountdown(post.expires_at)
-  },
-
-  // ============== 互动状态 ==============
-  async loadInteractions() {
-    try {
-      const res: any = await http.get(`/posts/${this.data.postId}/interactions`)
-      this.setData({
-        isLiked: !!res.is_liked,
-        likesCount: res.likes_count !== undefined ? res.likes_count : ((this.data.post && this.data.post.likes_count) !== undefined ? (this.data.post && this.data.post.likes_count) : 0),
-        commentsCount: res.comments_count !== undefined ? res.comments_count : ((this.data.post && this.data.post.comments_count) !== undefined ? (this.data.post && this.data.post.comments_count) : 0),
-      })
-    } catch {
-      // 游客或失败时静默
-    }
+    this.startCountdown(post.expire_at || undefined)
   },
 
   // ============== 验证统计 ==============
@@ -184,17 +168,13 @@ Page({
     this.setData({ commentLoading: true })
     try {
       const res: any = await listComments(this.data.postId, page)
-      const items = (res && (res.items || res.comments || res.data)) || []
-      const list = items.map((c: any) => {
-        const author = c.author || {}
-        return {
-          ...c,
-          author_nickname: c.author_nickname || author.nickname || '匿名',
-          author_avatar: resolveImageUrl(c.author_avatar || author.avatar_url),
-          is_verified: !!c.is_verified || !!author.is_verified,
-          created_at_text: formatDate(c.created_at),
-        }
-      })
+      const list = (res?.items || []).map((c: any) => ({
+        ...normalizeComment(c),
+        author_nickname: c.author?.nickname || '匿名',
+        author_avatar: c.author?.avatar_url || '',
+        is_verified: !!c.author?.is_verified,
+        created_at_text: formatDate(c.created_at),
+      }))
       this.setData({
         comments: page === 1 ? list : [...this.data.comments, ...list],
         commentPage: page,
@@ -215,8 +195,9 @@ Page({
   onReplyComment(e: any) {
     const id = e.currentTarget.dataset.id
     const nickname = e.currentTarget.dataset.nickname
+    const userId = Number(e.currentTarget.dataset.userId) || undefined
     this.setData({
-      replyingTo: { id, nickname },
+      replyingTo: { id, nickname, userId },
       commentInput: `@${nickname} `,
     })
   },
@@ -236,13 +217,13 @@ Page({
     this.setData({ submittingComment: true })
     try {
       const parentId = this.data.replyingTo ? this.data.replyingTo.id : undefined
-      const res: any = await createComment(this.data.postId, content, parentId)
-      const author = (res && res.author) || {}
+      const replyToUserId = this.data.replyingTo ? this.data.replyingTo.userId : undefined
+      const res: any = await createComment(this.data.postId, content, parentId, replyToUserId)
       const newComment = {
         ...(res || {}),
-        author_nickname: (res && (res.author_nickname || author.nickname)) || '匿名',
-        author_avatar: resolveImageUrl(res && (res.author_avatar || author.avatar_url)),
-        is_verified: !!(res && (res.is_verified || author.is_verified)),
+        author_nickname: res?.author?.nickname || '匿名',
+        author_avatar: res?.author?.avatar_url || '',
+        is_verified: !!res?.author?.is_verified,
         created_at_text: formatDate((res && res.created_at) || new Date()),
       }
       this.setData({
@@ -256,8 +237,8 @@ Page({
         this.setData({
           post: {
             ...this.data.post,
-            comments_count: (this.data.post.comments_count || 0) + 1,
-            comments_count_text: formatCount((this.data.post.comments_count || 0) + 1),
+            comment_count: (this.data.post.comment_count || 0) + 1,
+            comment_count_text: formatCount((this.data.post.comment_count || 0) + 1),
           },
         })
       }
@@ -280,10 +261,8 @@ Page({
     if (!this.data.post) return
     try {
       const res: any = await likePost(this.data.postId)
-      const liked = !!(res && res.liked !== undefined ? res.liked : !this.data.isLiked)
-      const count = (res && res.likes_count !== undefined)
-        ? res.likes_count
-        : (this.data.likesCount + (liked ? 1 : -1))
+      const liked = !!res.is_liked
+      const count = Number(res.like_count || 0)
       this.setData({
         isLiked: liked,
         likesCount: count,
@@ -292,8 +271,8 @@ Page({
         this.setData({
           post: {
             ...this.data.post,
-            likes_count: count,
-            likes_count_text: formatCount(count),
+            like_count: count,
+            like_count_text: formatCount(count),
           },
         })
       }
@@ -413,7 +392,7 @@ Page({
   onPreviewImage(e: any) {
     const url = e.currentTarget.dataset.url
     if (!url || this.data.images.length === 0) return
-    wx.previewImage({ current: url, urls: this.data.images })
+    wx.previewImage({ current: url, urls: this.data.images.map((item: PostImage) => item.image_url) })
   },
 
   // ============== 其他 ==============

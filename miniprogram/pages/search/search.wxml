@@ -206,19 +206,19 @@
       <view class="post-footer">
         <view class="stat-item">
           <icon name="heart" size="24rpx" color="#6a7d81" />
-          <text class="stat-num">{{item.likes_count_text}}</text>
+          <text class="stat-num">{{item.like_count_text}}</text>
         </view>
         <view class="stat-item">
           <icon name="message-circle" size="24rpx" color="#6a7d81" />
-          <text class="stat-num">{{item.comments_count_text}}</text>
+          <text class="stat-num">{{item.comment_count_text}}</text>
         </view>
         <view class="stat-item">
           <icon name="check-circle" size="24rpx" color="#6a7d81" />
-          <text class="stat-num">{{item.validations_count_text}}</text>
+          <text class="stat-num">{{item.valid_count_text}}</text>
         </view>
         <view class="stat-item">
           <icon name="eye" size="24rpx" color="#6a7d81" />
-          <text class="stat-num">{{item.views_count_text}}</text>
+          <text class="stat-num">{{item.view_count_text}}</text>
         </view>
       </view>
     </view>

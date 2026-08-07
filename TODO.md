@@ -1410,3 +1410,7 @@ R-14 飞书问卷提交（0.5 天，最终步骤，建议 2026-08-08 前完成�
 - [x] **MP-CONTRACT-P1-C** 微信注册恢复“exchange → bind/register”流程，注册选校仅写 `school_id`，不调用 join；补齐游客入口。
 - [ ] **MP-CONTRACT-P2~P5** 帖子、发布/编辑、互动、地点摘要、通知、订阅、专题、定位清理和完整 E2E 待继续。
 
+- [x] **MP-CONTRACT-P2** 帖子服务、图片上传、发布/编辑和详情互动改用 `images` 对象、`expire_at`、`location_id/location_lat/location_lng`、`is_liked/like_count` 与嵌套评论；删除帖子详情 `/interactions` 请求。
+- [x] **MP-CONTRACT-P3-A** 地图只消费 `/locations`，使用学校中心坐标；静态地点选择页替代 `wx.chooseLocation`，移除 `requiredPrivateInfos` 定位权限申请。
+- [x] **MP-CONTRACT-P4-A** 通知改为 `PUT /notifications/read-all` 与 `unread_count`；订阅改为 `target_type` 并新增统一 service；专题帖子和封面字段归一化。
+

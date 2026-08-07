@@ -75,49 +75,22 @@
     </block>
   </view>
 
-  <!-- ============== 加入的学校（对齐 Web ProfilePage D2） ============== -->
+  <!-- ============== 当前学校（普通用户一对一绑定） ============== -->
   <view class="schools-section">
     <view class="section-header">
       <view class="section-title-wrap">
         <icon name="school" size="32rpx" color="#174d5e" />
-        <text class="section-title">加入的学校</text>
+        <text class="section-title">当前学校</text>
       </view>
-      <text class="section-count">{{memberships.length}} 所</text>
+      <text class="section-count">{{schoolName}}</text>
     </view>
-    <view wx:if="{{memberships.length === 0}}" class="empty-membership">
-      <text class="empty-text">尚未加入任何学校</text>
-      <text class="empty-hint">可在页头切换器选择学校并自动加入</text>
-    </view>
-    <view wx:else class="membership-list">
-      <view
-        wx:for="{{memberships}}"
-        wx:key="id"
-        class="membership-card {{item.school_id === currentSchoolId ? 'current' : ''}}"
-      >
-        <view class="membership-info">
-          <view class="membership-name-row">
-            <text class="membership-name">{{item.school.name}}</text>
-            <text wx:if="{{item.is_default}}" class="default-badge">
-              <icon name="star" size="20rpx" color="#dbb352" /> 默认
-            </text>
-            <text wx:if="{{item.school_id === currentSchoolId}}" class="current-badge">当前</text>
-          </view>
-          <text class="membership-meta">角色：{{item.role === 'admin' ? '管理员' : '成员'}} · {{item.school.code}}</text>
-        </view>
-        <view class="membership-actions">
-          <text
-            wx:if="{{item.school_id !== currentSchoolId}}"
-            class="action-switch"
-            data-code="{{item.school.code}}"
-            bindtap="onSwitchSchool"
-          >切换</text>
-          <text
-            wx:if="{{!item.is_default}}"
-            class="action-default"
-            data-id="{{item.school_id}}"
-            bindtap="onSetDefaultSchool"
-          >设为默认</text>
-        </view>
+    <view class="membership-card current">
+      <view class="membership-info">
+        <text class="membership-name">{{schoolName || '加载中...'}}</text>
+        <text class="membership-meta">学校数据、地图与帖子会按当前学校隔离</text>
+      </view>
+      <view class="membership-actions" bindtap="goToSchoolSelect">
+        <text class="action-switch">切换学校</text>
       </view>
     </view>
   </view>
@@ -290,19 +263,19 @@
                 <view class="post-stats">
                   <view class="stat-pill">
                     <icon name="heart" size="22rpx" color="#6a7d81" />
-                    <text>{{item.likes_count_text}}</text>
+                    <text>{{item.like_count_text}}</text>
                   </view>
                   <view class="stat-pill">
                     <icon name="message-circle" size="22rpx" color="#6a7d81" />
-                    <text>{{item.comments_count_text}}</text>
+                    <text>{{item.comment_count_text}}</text>
                   </view>
                   <view class="stat-pill">
                     <icon name="check-circle" size="22rpx" color="#6a7d81" />
-                    <text>{{item.validations_count_text}}</text>
+                    <text>{{item.valid_count_text}}</text>
                   </view>
                   <view class="stat-pill">
                     <icon name="eye" size="22rpx" color="#6a7d81" />
-                    <text>{{item.views_count_text}}</text>
+                    <text>{{item.view_count_text}}</text>
                   </view>
                 </view>
               </view>

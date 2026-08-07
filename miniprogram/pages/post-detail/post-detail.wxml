@@ -24,12 +24,12 @@
         current="{{swiperCurrent}}"
         bindchange="onSwiperChange"
       >
-        <swiper-item wx:for="{{images}}" wx:key="*this">
+        <swiper-item wx:for="{{images}}" wx:key="image_url">
           <image
             class="swiper-image"
-            src="{{item}}"
+            src="{{item.image_url}}"
             mode="aspectFill"
-            data-url="{{item}}"
+            data-url="{{item.image_url}}"
             bindtap="onPreviewImage"
           />
         </swiper-item>
@@ -115,7 +115,7 @@
       <!-- 浏览数 -->
       <view class="views-row">
         <icon name="eye" size="24rpx" color="#6a7d81" />
-        <text>{{post.views_count_text}} 次浏览</text>
+        <text>{{post.view_count_text}} 次浏览</text>
       </view>
     </view>
 
@@ -127,15 +127,15 @@
           size="44rpx"
           color="{{isLiked ? '#e67340' : '#3d5458'}}"
         />
-        <text class="action-text">{{post.likes_count_text}}</text>
+        <text class="action-text">{{post.like_count_text}}</text>
       </view>
       <view class="action-item">
         <icon name="message-circle" size="44rpx" color="#3d5458" />
-        <text class="action-text">{{post.comments_count_text}}</text>
+        <text class="action-text">{{post.comment_count_text}}</text>
       </view>
       <view class="action-item">
         <icon name="check-circle" size="44rpx" color="#3d5458" />
-        <text class="action-text">{{post.validations_count_text}}</text>
+        <text class="action-text">{{post.valid_count_text}}</text>
       </view>
       <view class="action-item" bindtap="openReport" hover-class="action-item-hover" hover-stay-time="120">
         <icon name="alert-circle" size="44rpx" color="#3d5458" />
@@ -234,8 +234,12 @@
           <view class="comment-content">
             <text>{{item.content}}</text>
           </view>
-          <view class="comment-action" data-id="{{item.id}}" data-nickname="{{item.author_nickname}}" bindtap="onReplyComment">
+          <view class="comment-action" data-id="{{item.id}}" data-user-id="{{item.user_id}}" data-nickname="{{item.author_nickname}}" bindtap="onReplyComment">
             <text>回复</text>
+          </view>
+          <view wx:for="{{item.replies}}" wx:key="id" class="comment-reply">
+            <text class="comment-author">{{item.author.nickname || '匿名'}}</text>
+            <text>{{item.content}}</text>
           </view>
         </view>
       </view>

@@ -1,5 +1,5 @@
 import { formatDate, formatCount } from '../../utils/format'
-import { resolveImageUrl, resolveAvatar, defaultAvatar } from '../../services/request'
+import { resolveAvatar, defaultAvatar } from '../../services/request'
 
 /**
  * 分类名映射到分类色板 CSS 类名
@@ -45,24 +45,24 @@ Component({
     'post': function (post: any) {
       if (!post) return
       const rawImages = post.images || []
-      const categoryName = post.category_name || (post.category && post.category.name) || ''
+      const categoryName = (post.category && post.category.name) || ''
       // B-06: 归一化作者认证状态（页面已把 author.is_verified 归一化到 post.is_verified，兜底再查嵌套）
       const verified = !!post.is_verified || !!(post.author && post.author.is_verified)
-      const authorName = post.author_nickname || (post.author && post.author.nickname) || '匿名用户'
-      const authorAvatar = post.author_avatar || (post.author && post.author.avatar_url) || ''
+      const authorName = (post.author && post.author.nickname) || '匿名用户'
+      const authorAvatar = (post.author && post.author.avatar_url) || ''
       this.setData({
         displayImages: rawImages
-          .map((img: string) => resolveImageUrl(img))
+          .map((img: any) => img.thumbnail_url || img.image_url)
           .slice(0, 3),
         authorAvatar: resolveAvatar(authorAvatar),
         authorName,
         verified,
         formattedTime: formatDate(post.created_at),
-        formattedViews: formatCount(post.views_count || 0),
-        formattedLikes: formatCount(post.likes_count || 0),
-        formattedComments: formatCount(post.comments_count || 0),
-        formattedValidations: formatCount(post.validations_count || 0),
-        formattedRefutations: formatCount(post.refutations_count || 0),
+        formattedViews: formatCount(post.view_count || 0),
+        formattedLikes: formatCount(post.like_count || 0),
+        formattedComments: formatCount(post.comment_count || 0),
+        formattedValidations: formatCount(post.valid_count || 0),
+        formattedRefutations: formatCount(post.invalid_count || 0),
         categoryClass: mapCategoryToClass(categoryName),
         recommendReason: post.recommend_reason || '',
       })

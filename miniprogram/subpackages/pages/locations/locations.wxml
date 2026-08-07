@@ -7,6 +7,12 @@
     </view>
   </view>
 
+  <view wx:if="{{mode === 'select'}}" class="knowledge-note location-select-hint">请选择学校静态地点，不需要开启设备定位。</view>
+  <view class="location-search-wrap">
+    <icon name="search" size="28rpx" color="#6a7d81" />
+    <input value="{{searchKeyword}}" bindinput="onKeywordInput" placeholder="搜索地点名称、描述、楼栋或楼层" placeholder-class="ph" />
+  </view>
+
   <!-- 列表状态区 -->
   <view class="list-area">
     <!-- 加载中：骨架屏 -->
@@ -129,8 +135,17 @@
                 <text class="knowledge-note">依据 {{item.source_refs.length}} 条来源</text>
               </view>
             </view>
+            <view wx:if="{{detail.summary.sources.length}}" class="summary-sources">
+              <text class="knowledge-note">来源卡片</text>
+              <view wx:for="{{detail.summary.sources}}" wx:key="source_id" class="source-card">
+                <text class="source-title">{{item.title || item.source_type}}</text>
+                <text wx:if="{{item.snippet}}" class="source-snippet">{{item.snippet}}</text>
+                <text class="knowledge-note">{{item.author_name || '校园用户'}} · {{item.created_at}}</text>
+              </view>
+            </view>
             <view wx:if="{{detail.summary.conflicts.length}}" class="conflict-box">
-              <text>存在相互矛盾的信息：{{detail.summary.conflicts[0].text}}</text>
+              <text>存在相互矛盾的信息：</text>
+              <text wx:for="{{detail.summary.conflicts}}" wx:key="text" class="conflict-line">{{item.text}}</text>
             </view>
           </view>
 

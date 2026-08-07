@@ -1,7 +1,9 @@
-import { http, resolveImageUrl, resolveAvatar, defaultAvatar } from '../../services/request'
+import { http, resolveAvatar, defaultAvatar } from '../../services/request'
 import { authStore } from '../../store/auth'
 import { campusStore } from '../../store/campus'
 import { formatDate, formatCount } from '../../utils/format'
+import { normalizePost, normalizeMembership } from '../../services/normalize'
+import { listMemberships } from '../../services/schools'
 import { listIdentities, deleteIdentity, listSessions, revokeSession, logoutAll } from '../../services/auth'
 import { logout } from '../../services/auth'
 import { sendCampusVerify, confirmCampusVerify } from '../../services/auth'
@@ -194,11 +196,10 @@ Page({
   // ============== 加入的学校（D2） ==============
   async loadMemberships() {
     try {
-      const res: any = await http.get('/me/memberships')
-      const list = Array.isArray(res) ? res : (res.items || res.memberships || [])
+      const list = await listMemberships()
       const campusState = campusStore.getState()
       this.setData({
-        memberships: list,
+        memberships: list.map(normalizeMembership),
         currentSchoolId: (campusState.currentSchool && campusState.currentSchool.id) || 0,
       })
     } catch (e: any) {
@@ -206,54 +207,8 @@ Page({
     }
   },
 
-  onSwitchSchool(e: any) {
-    const code = e.currentTarget.dataset.code
-    if (!code) return
-    wx.showModal({
-      title: '提示',
-      content: `切换到该学校？相关数据将刷新。`,
-      success: async r => {
-        if (!r.confirm) return
-        try {
-          // 先获取学校信息
-          const schoolRes: any = await http.get(`/schools/${code}`)
-          const school = schoolRes.school || schoolRes
-          if (school && school.id) {
-            campusStore.setSchool(school)
-            this.setData({ currentSchoolId: school.id })
-            // 重新加载所有数据
-            await Promise.all([
-              this.loadUser(),
-              this.loadStats(),
-              this.refreshPosts(),
-              this.loadMemberships(),
-            ])
-            wx.showToast({ title: '已切换学校', icon: 'success' })
-          }
-        } catch (err: any) {
-          wx.showToast({ title: err.message || '切换失败', icon: 'none' })
-        }
-      },
-    })
-  },
-
-  onSetDefaultSchool(e: any) {
-    const schoolId = Number(e.currentTarget.dataset.id)
-    if (!schoolId) return
-    wx.showModal({
-      title: '提示',
-      content: '确定将该学校设为默认？',
-      success: async r => {
-        if (!r.confirm) return
-        try {
-          await http.put('/me/default-school', { school_id: schoolId })
-          wx.showToast({ title: '已设为默认', icon: 'success' })
-          await this.loadMemberships()
-        } catch (err: any) {
-          wx.showToast({ title: err.message || '操作失败', icon: 'none' })
-        }
-      },
-    })
+  goToSchoolSelect() {
+    wx.navigateTo({ url: '/subpackages/pages/school-select/school-select?mode=switch' })
   },
 
   // ============== 校园身份认证（B-06） ==============
@@ -332,7 +287,7 @@ Page({
         url += `&status=${activeStatus}`
       }
       const res: any = await http.get(url)
-      const items = (res.items || res.posts || []) as any[]
+      const items = (res.items || []) as any[]
       const list = items.map((p: any) => this.normalizePost(p))
       this.setData({
         posts: [...this.data.posts, ...list],
@@ -348,17 +303,18 @@ Page({
 
   normalizePost(p: any): any {
     if (!p) return p
-    const images = Array.isArray(p.images) ? p.images.map((u: string) => resolveImageUrl(u)) : []
+    const normalized = normalizePost(p)
+    const images = normalized.images || []
     return {
-      ...p,
+      ...normalized,
       images,
-      cover: images[0] || '',
-      status_label: STATUS_LABELS[p.status] || p.status,
-      created_at_text: formatDate(p.created_at),
-      likes_count_text: formatCount(p.likes_count || 0),
-      comments_count_text: formatCount(p.comments_count || 0),
-      validations_count_text: formatCount(p.validations_count || 0),
-      views_count_text: formatCount(p.views_count || 0),
+      cover: images[0]?.thumbnail_url || images[0]?.image_url || '',
+      status_label: STATUS_LABELS[normalized.status] || normalized.status,
+      created_at_text: formatDate(normalized.created_at),
+      like_count_text: formatCount(normalized.like_count || 0),
+      comment_count_text: formatCount(normalized.comment_count || 0),
+      valid_count_text: formatCount(normalized.valid_count || 0),
+      view_count_text: formatCount(normalized.view_count || 0),
     }
   },
 

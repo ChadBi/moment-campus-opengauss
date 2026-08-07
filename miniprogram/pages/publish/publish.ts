@@ -1,9 +1,9 @@
 import { http } from '../../services/request'
 import { chooseAndUploadImage } from '../../services/upload'
-import { resolveImageUrl } from '../../services/request'
 import { requireLogin, guardPageLogin } from '../../utils/auth-guard'
 import { cachedFetch } from '../../utils/cache'
 import { campusStore } from '../../store/campus'
+import type { PostImage } from '../../types'
 
 const DRAFT_KEY = 'publish_draft'
 
@@ -30,15 +30,16 @@ Page({
     selectedCategoryId: 0,
     title: '',
     content: '',
-    images: [] as string[],
-    maxImages: 5,
+    images: [] as PostImage[],
+    maxImages: 9,
     titleMaxLen: 50,
     contentMaxLen: 2000,
 
     // 位置
+    locationId: null as number | null,
     locationName: '',
-    latitude: 0,
-    longitude: 0,
+    locationLat: 0,
+    locationLng: 0,
     hasLocation: false,
 
     // 有效期
@@ -70,6 +71,7 @@ Page({
     }
     // 发布页是纯写操作，进入前就提醒登录（避免填半天表单才发现不能提交）
     guardPageLogin('请先登录后再发布帖子')
+    this.consumeSelectedLocation()
   },
 
   onUnload() {
@@ -84,7 +86,7 @@ Page({
       // 分类为低频数据，走本地缓存 + 过期刷新（Task 10）
       const schoolCode = campusStore.getState().schoolCode
       const res: any = await cachedFetch<any>('categories', () => http.get('/categories'), { schoolCode })
-      const list = (res && (res.categories || res.items || res.data)) || []
+      const list = Array.isArray(res) ? res : ((res && (res.items || res.data)) || [])
       const cats = list
         .filter((c: any) => c.is_active === undefined || c.is_active === true)
         .map((c: any) => ({ ...c, cls: mapCategoryToClass(c.name) }))
@@ -93,6 +95,13 @@ Page({
         selectedCategoryId = cats[0].id
       }
       this.setData({ categories: cats, selectedCategoryId, loadingCategories: false })
+      try {
+        const settings: any = await http.get('/schools/current/settings')
+        const limit = Number(settings?.image_limit)
+        if (Number.isFinite(limit) && limit > 0) this.setData({ maxImages: Math.min(limit, 9) })
+      } catch {
+        // 学校设置不可用时沿用后端默认 9 张。
+      }
     } catch (e: any) {
       this.setData({ loadingCategories: false })
       wx.showToast({ title: e.message || '分类加载失败', icon: 'none' })
@@ -128,8 +137,7 @@ Page({
     try {
       const urls = await chooseAndUploadImage(remain)
       if (urls && urls.length > 0) {
-        const normalized = urls.map((u: string) => resolveImageUrl(u))
-        this.setData({ images: [...this.data.images, ...normalized] })
+        this.setData({ images: [...this.data.images, ...urls] })
       }
     } catch (e: any) {
       const msg = (e && e.errMsg && e.errMsg.includes('cancel')) ? '' : (e.message || '图片上传失败')
@@ -150,32 +158,37 @@ Page({
   onPreviewImage(e: any) {
     const url = e.currentTarget.dataset.url
     if (!url || this.data.images.length === 0) return
-    wx.previewImage({ current: url, urls: this.data.images })
+    wx.previewImage({ current: url, urls: this.data.images.map((item: PostImage) => item.image_url) })
   },
 
   // ============== 位置 ==============
   onChooseLocation() {
-    wx.chooseLocation({
-      success: (res: any) => {
-        this.setData({
-          locationName: res.name || res.address || '已选位置',
-          latitude: res.latitude,
-          longitude: res.longitude,
-          hasLocation: true,
-        })
-      },
-      fail: (err: any) => {
-        if (err && err.errMsg && err.errMsg.includes('cancel')) return
-        wx.showToast({ title: '位置选择失败', icon: 'none' })
-      },
-    })
+    wx.navigateTo({ url: '/subpackages/pages/locations/locations?mode=select' })
+  },
+
+  consumeSelectedLocation() {
+    try {
+      const selected: any = wx.getStorageSync('selected_location')
+      if (!selected) return
+      wx.removeStorageSync('selected_location')
+      this.setData({
+        locationId: selected.id || null,
+        locationName: selected.name || '',
+        locationLat: Number(selected.latitude || 0),
+        locationLng: Number(selected.longitude || 0),
+        hasLocation: !!selected.id,
+      })
+    } catch {
+      // ignore malformed selection
+    }
   },
 
   onClearLocation() {
     this.setData({
       locationName: '',
-      latitude: 0,
-      longitude: 0,
+      locationId: null,
+      locationLat: 0,
+      locationLng: 0,
       hasLocation: false,
     })
   },
@@ -218,8 +231,9 @@ Page({
       selectedCategoryId: this.data.selectedCategoryId,
       images: this.data.images,
       locationName: this.data.locationName,
-      latitude: this.data.latitude,
-      longitude: this.data.longitude,
+      locationId: this.data.locationId,
+      locationLat: this.data.locationLat,
+      locationLng: this.data.locationLng,
       hasLocation: this.data.hasLocation,
       expiryIndex: this.data.expiryIndex,
       isCustomExpiry: this.data.isCustomExpiry,
@@ -259,10 +273,13 @@ Page({
         title: draft.title || '',
         content: draft.content || '',
         selectedCategoryId: draft.selectedCategoryId || this.data.selectedCategoryId,
-        images: Array.isArray(draft.images) ? draft.images : [],
+        images: Array.isArray(draft.images)
+          ? draft.images.map((item: any) => typeof item === 'string' ? { image_url: item } : item)
+          : [],
         locationName: draft.locationName || '',
-        latitude: draft.latitude || 0,
-        longitude: draft.longitude || 0,
+        locationId: draft.locationId || null,
+        locationLat: draft.locationLat || draft.latitude || 0,
+        locationLng: draft.locationLng || draft.longitude || 0,
         hasLocation: !!draft.hasLocation,
         expiryIndex: draft.expiryIndex || 0,
         isCustomExpiry: !!draft.isCustomExpiry,
@@ -290,8 +307,9 @@ Page({
           content: '',
           images: [],
           locationName: '',
-          latitude: 0,
-          longitude: 0,
+          locationId: null,
+          locationLat: 0,
+          locationLng: 0,
           hasLocation: false,
           expiryIndex: 0,
           isCustomExpiry: false,
@@ -307,6 +325,7 @@ Page({
   validate(): string | null {
     const title = this.data.title.trim()
     if (!title) return '请输入标题'
+    if (this.data.content.trim().length < 10) return '正文至少需要 10 个字'
     if (!this.data.selectedCategoryId) return '请选择分类'
     if (this.data.isCustomExpiry) {
       const days = parseInt(this.data.customDays, 10)
@@ -345,12 +364,14 @@ Page({
       category_id: this.data.selectedCategoryId,
     }
     if (this.data.images.length > 0) payload.images = this.data.images
-    if (this.data.hasLocation) {
+    if (this.data.hasLocation && this.data.locationId) {
+      payload.location_id = this.data.locationId
+    } else if (this.data.hasLocation) {
       payload.location_name = this.data.locationName
-      payload.latitude = this.data.latitude
-      payload.longitude = this.data.longitude
+      payload.location_lat = this.data.locationLat
+      payload.location_lng = this.data.locationLng
     }
-    if (expiresAt) payload.expires_at = expiresAt
+    if (expiresAt) payload.expire_at = expiresAt
 
     this.setData({ submitting: true })
     try {

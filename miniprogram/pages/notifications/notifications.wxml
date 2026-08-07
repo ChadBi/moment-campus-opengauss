@@ -72,14 +72,6 @@
           <text class="noti-time">{{item.created_at_text}}</text>
         </view>
       </view>
-      <view
-        class="noti-delete"
-        catchtap="onDeleteNotification"
-        data-id="{{item.id}}"
-        hover-class="noti-delete-hover"
-        hover-stay-time="120">
-        <icon name="x" size="28rpx" color="#6a7d81" />
-      </view>
     </view>
 
     <!-- 加载更多 -->

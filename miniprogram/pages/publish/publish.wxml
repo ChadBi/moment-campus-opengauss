@@ -71,13 +71,13 @@
     <view class="image-grid">
       <view
         wx:for="{{images}}"
-        wx:key="*this"
+        wx:key="image_url"
         class="image-item">
         <image
           class="preview-img"
-          src="{{item}}"
+          src="{{item.thumbnail_url || item.image_url}}"
           mode="aspectFill"
-          data-url="{{item}}"
+          data-url="{{item.image_url}}"
           bindtap="onPreviewImage" />
         <view
           class="remove-btn"

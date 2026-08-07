@@ -1,7 +1,9 @@
-import { http, resolveImageUrl } from '../../../services/request'
+import { http } from '../../../services/request'
 import { authStore } from '../../../store/auth'
 import { formatDate, formatCount } from '../../../utils/format'
 import { requireLogin } from '../../../utils/auth-guard'
+import { normalizePost, normalizeTopic } from '../../../services/normalize'
+import { createSubscription, removeSubscription, checkSubscription } from '../../../services/subscriptions'
 
 Page({
   data: {
@@ -34,31 +36,12 @@ Page({
     this.setData({ loading: true })
     try {
       const res: any = await http.get(`/topics/${this.data.topicId}`)
-      const topic = res || {}
-      // 预处理关联帖子：归一化字段以适配 post-card 组件
-      // 后端 TopicPostItem: cover_image_url/author_name/like_count/comment_count/view_count
-      // post-card 期望: images/author_nickname/likes_count/comments_count/views_count
-      const posts = Array.isArray(topic.posts)
-        ? topic.posts.map((p: any) => {
-            const cover = resolveImageUrl(p.cover_image_url || p.cover_image)
-            return {
-              ...p,
-              images: cover ? [cover] : (Array.isArray(p.images) ? p.images.map((u: string) => resolveImageUrl(u)) : []),
-              author_avatar: resolveImageUrl(p.author_avatar),
-              author_nickname: p.author_name || p.author_nickname,
-              is_verified: !!p.is_verified || !!(p.author && p.author.is_verified),
-              likes_count: p.like_count !== undefined ? p.like_count : (p.likes_count || 0),
-              comments_count: p.comment_count !== undefined ? p.comment_count : (p.comments_count || 0),
-              views_count: p.view_count !== undefined ? p.view_count : (p.views_count || 0),
-              created_at_text: formatDate(p.created_at),
-            }
-          })
-        : []
+      const topic = normalizeTopic(res || {})
+      const posts = Array.isArray(res?.posts) ? res.posts.map((p: any) => normalizePost(p)) : []
       this.setData({
         topic,
-        // 后端字段为 cover_url；兼容 cover_image 写法
-        coverImage: resolveImageUrl(topic.cover_url || topic.cover_image),
-        createdAtText: formatDate(topic.published_at || topic.created_at),
+        coverImage: topic.cover_url || '',
+        createdAtText: formatDate(res?.published_at || res?.created_at),
         postCountText: formatCount(topic.post_count || 0),
         viewCountText: formatCount(topic.view_count || 0),
         posts,
@@ -74,10 +57,7 @@ Page({
   async loadSubscriptionState() {
     if (!authStore.getState().isLoggedIn) return
     try {
-      const res: any = await http.get('/subscriptions/check', {
-        target_type: 'topic',
-        target_id: this.data.topicId,
-      })
+      const res = await checkSubscription('topic', this.data.topicId)
       if (res) {
         this.setData({
           isSubscribed: !!res.subscribed,
@@ -99,17 +79,14 @@ Page({
       if (this.data.isSubscribed) {
         // 已订阅 → 取消
         if (this.data.subscriptionId) {
-          await http.delete(`/subscriptions/${this.data.subscriptionId}`)
+          await removeSubscription(this.data.subscriptionId)
         }
         this.setData({ isSubscribed: false, subscriptionId: 0 })
         wx.showToast({ title: '已取消订阅', icon: 'none' })
       } else {
         // 未订阅 → 订阅
-        const res: any = await http.post('/subscriptions', {
-          target_type: 'topic',
-          target_id: this.data.topicId,
-        })
-        this.setData({ isSubscribed: true, subscriptionId: (res && res.id) || 0 })
+        const res: any = await createSubscription('topic', this.data.topicId)
+        this.setData({ isSubscribed: true, subscriptionId: res.id || 0 })
         wx.showToast({ title: '已订阅', icon: 'success' })
       }
     } catch (e: any) {

@@ -1,23 +1,32 @@
 import { http } from './request'
+import { normalizeComment } from './normalize'
+import type { Comment } from '../types'
 
-export async function likePost(postId: number): Promise<{ liked: boolean; likes_count: number }> {
-  return http.post(`/posts/${postId}/like`)
+export async function likePost(postId: number): Promise<{ is_liked: boolean; like_count: number }> {
+  const raw = await http.post<any>(`/posts/${postId}/like`)
+  return {
+    is_liked: raw?.is_liked === true,
+    like_count: Number(raw?.like_count || 0),
+  }
 }
 
-export async function getPostInteractions(postId: number): Promise<{
-  is_liked: boolean
-  likes_count: number
-  comments_count: number
-}> {
-  return http.get(`/posts/${postId}/interactions`)
+export async function createComment(postId: number, content: string, parentId?: number, replyToUserId?: number): Promise<Comment> {
+  return normalizeComment(await http.post<any>(`/posts/${postId}/comments`, {
+    content,
+    parent_id: parentId,
+    reply_to_user_id: replyToUserId,
+  }))
 }
 
-export async function createComment(postId: number, content: string, parentId?: number): Promise<any> {
-  return http.post(`/posts/${postId}/comments`, { content, parent_id: parentId })
-}
-
-export async function listComments(postId: number, page?: number): Promise<any> {
-  return http.get(`/posts/${postId}/comments?page=${page || 1}`)
+export async function listComments(postId: number, page?: number): Promise<{ items: Comment[]; total: number; page: number; page_size: number; has_more: boolean }> {
+  const raw = await http.get<any>(`/posts/${postId}/comments?page=${page || 1}&page_size=20`)
+  return {
+    items: (raw?.items || []).map(normalizeComment),
+    total: Number(raw?.total || 0),
+    page: Number(raw?.page || page || 1),
+    page_size: Number(raw?.page_size || 20),
+    has_more: raw?.has_more === true,
+  }
 }
 
 export async function deleteComment(commentId: number): Promise<void> {

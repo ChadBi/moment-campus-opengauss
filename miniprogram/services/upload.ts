@@ -1,7 +1,7 @@
 import { http, resolveImageUrl, getAccessToken } from './request'
 import { BASE_URL } from '../config/env'
 
-export async function uploadImage(filePath: string): Promise<{ url: string }> {
+export async function uploadImage(filePath: string): Promise<{ url: string; thumbnail_url?: string }> {
   return new Promise((resolve, reject) => {
     const token = getAccessToken()
     const schoolCode = wx.getStorageSync('school_code') || 'jiangnan'
@@ -18,7 +18,7 @@ export async function uploadImage(filePath: string): Promise<{ url: string }> {
         try {
           const data = JSON.parse(res.data)
           const url = data.url || data.path
-          resolve({ url: resolveImageUrl(url) })
+          resolve({ url: resolveImageUrl(url), thumbnail_url: data.thumbnail_url ? resolveImageUrl(data.thumbnail_url) : undefined })
         } catch {
           reject(new Error('上传响应解析失败'))
         }
@@ -28,11 +28,11 @@ export async function uploadImage(filePath: string): Promise<{ url: string }> {
   })
 }
 
-export async function chooseAndUploadImage(count: number = 1): Promise<string[]> {
-  // 与后端校验一致：单张 ≤5MB、仅 jpg/png/gif、总张数上限 5
+export async function chooseAndUploadImage(count: number = 1): Promise<Array<{ image_url: string; thumbnail_url?: string }>> {
+  // 与后端校验一致：单张 ≤5MB、仅 jpg/png/gif、总张数上限 9
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024
   const ALLOWED_IMAGE_TYPES = /\.(jpe?g|png|gif)$/i
-  const safeCount = Math.max(1, Math.min(Math.floor(count), 5))
+  const safeCount = Math.max(1, Math.min(Math.floor(count), 9))
 
   const res = await new Promise<any>((resolve, reject) => {
     wx.chooseMedia({
@@ -46,7 +46,7 @@ export async function chooseAndUploadImage(count: number = 1): Promise<string[]>
     })
   })
 
-  const urls: string[] = []
+  const images: Array<{ image_url: string; thumbnail_url?: string }> = []
   for (const file of res.tempFiles) {
     if (file.size > MAX_IMAGE_SIZE) {
       wx.showToast({ title: '图片不能超过5MB', icon: 'none' })
@@ -57,11 +57,11 @@ export async function chooseAndUploadImage(count: number = 1): Promise<string[]>
       continue
     }
     try {
-      const { url } = await uploadImage(file.tempFilePath)
-      urls.push(url)
+      const { url, thumbnail_url } = await uploadImage(file.tempFilePath)
+      images.push({ image_url: url, thumbnail_url })
     } catch (e) {
       console.error('图片上传失败', e)
     }
   }
-  return urls
+  return images
 }

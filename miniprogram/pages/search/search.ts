@@ -1,7 +1,7 @@
 import { searchPosts, aiSearch, getHotTags } from '../../services/search'
-import { resolveImageUrl, resolveAvatar } from '../../services/request'
 import { formatDate, formatCount, truncateText, getRemainingTime } from '../../utils/format'
 import { campusStore } from '../../store/campus'
+import { normalizePost } from '../../services/normalize'
 
 const HISTORY_PREFIX = 'search_history_'
 const MAX_HISTORY = 20
@@ -194,9 +194,7 @@ Page({
   // ============== 普通搜索 ==============
   async runNormalSearch(keyword: string, page: number) {
     const res: any = await searchPosts({ keyword, page, page_size: 20 })
-    // 后端 PaginatedResponse 返回 items；兼容旧字段 posts
-    const items = (res && (res.items || res.posts)) || []
-    const list = items.map((p: any) => this.normalizePost(p))
+    const list = (res.items || []).map((p: any) => this.normalizePost(p))
     this.setData({
       results: page === 1 ? list : [...this.data.results, ...list],
       total: (res && (res.total !== undefined ? res.total : res.total_count)) || list.length,
@@ -208,7 +206,7 @@ Page({
   // ============== AI 搜索 ==============
   async runAiSearch(query: string, page: number) {
     const res: any = await aiSearch({ query, page, page_size: 20 })
-    const items = (res && (res.items || res.posts)) || []
+    const items = res.items || []
     const matchReasons = (res && res.match_reasons) || {}
 
     // 将匹配理由直接嵌入到每条结果中，便于 WXML 直接访问
@@ -239,25 +237,21 @@ Page({
     })
   },
 
-  // 归一化帖子字段 + 处理图片 URL + 时间/文本格式化
+  // service 层已完成契约归一化，这里只添加页面展示字段
   normalizePost(p: any): any {
     if (!p) return p
-    const images = Array.isArray(p.images) ? p.images.map((u: string) => resolveImageUrl(u)) : []
-    const author = p.author || {}
+    const post = normalizePost(p)
+    const images = post.images || []
     return {
-      ...p,
-      images,
-      cover: images[0] || '',
-      author_nickname: p.author_nickname || author.nickname || '匿名用户',
-      author_avatar: resolveAvatar(p.author_avatar || author.avatar_url),
-      is_verified: !!p.is_verified || !!author.is_verified,
-      created_at_text: formatDate(p.created_at),
-      remaining_text: p.expires_at ? getRemainingTime(p.expires_at) : '',
-      content_brief: truncateText(p.content || '', 80),
-      likes_count_text: formatCount(p.likes_count || 0),
-      comments_count_text: formatCount(p.comments_count || 0),
-      validations_count_text: formatCount(p.validations_count || 0),
-      views_count_text: formatCount(p.views_count || 0),
+      ...post,
+      cover: images[0]?.thumbnail_url || images[0]?.image_url || '',
+      created_at_text: formatDate(post.created_at),
+      remaining_text: post.expire_at ? getRemainingTime(post.expire_at) : '',
+      content_brief: truncateText(post.content || '', 80),
+      like_count_text: formatCount(post.like_count || 0),
+      comment_count_text: formatCount(post.comment_count || 0),
+      valid_count_text: formatCount(post.valid_count || 0),
+      view_count_text: formatCount(post.view_count || 0),
     }
   },
 

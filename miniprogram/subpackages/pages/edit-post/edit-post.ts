@@ -1,5 +1,6 @@
-import { http, resolveImageUrl } from '../../../services/request'
+import { http } from '../../../services/request'
 import { chooseAndUploadImage } from '../../../services/upload'
+import type { PostImage } from '../../../types'
 
 const DAY_MS = 86400000
 const PRESET_DAYS = [1, 3, 7, 30]
@@ -29,16 +30,16 @@ Page({
     selectedCategoryId: 0,
     title: '',
     content: '',
-    images: [] as string[],
-    maxImages: 5,
+    images: [] as PostImage[],
+    maxImages: 9,
     titleMaxLen: 50,
     contentMaxLen: 2000,
 
     // 位置
     locationId: null as number | null,
     locationName: '',
-    latitude: 0,
-    longitude: 0,
+    locationLat: 0,
+    locationLng: 0,
     hasLocation: false,
 
     // 有效期
@@ -74,7 +75,7 @@ Page({
     this.setData({ loadingCategories: true })
     try {
       const res: any = await http.get('/categories')
-      const list = (res && (res.categories || res.items || res.data)) || []
+      const list = Array.isArray(res) ? res : ((res && (res.items || res.data)) || [])
       const cats = Array.isArray(list)
         ? list
             .filter((c: any) => c.is_active === undefined || c.is_active === true)
@@ -106,17 +107,20 @@ Page({
 
     // 图片：PostResponse.images 为 [{image_url, thumbnail_url, sort_order}]
     const rawImages = Array.isArray(post.images) ? post.images : []
-    const images = rawImages
-      .map((img: any) => resolveImageUrl(img.image_url || img.url || img))
-      .filter((u: string) => !!u)
+    const images: PostImage[] = rawImages
+      .map((img: any) => typeof img === 'string' ? { image_url: img } : {
+        image_url: img.image_url || img.url || '',
+        thumbnail_url: img.thumbnail_url,
+      })
+      .filter((item: PostImage) => !!item.image_url)
 
     // 位置：PostResponse.location 为 {id, name, latitude, longitude, ...}
     const loc = post.location
     const hasLocation = !!(loc && loc.id)
     const locationId = hasLocation ? loc.id : null
     const locationName = hasLocation ? (loc.name || '已选位置') : ''
-    const latitude = hasLocation ? (loc.latitude || 0) : 0
-    const longitude = hasLocation ? (loc.longitude || 0) : 0
+    const locationLat = hasLocation ? (loc.latitude || 0) : 0
+    const locationLng = hasLocation ? (loc.longitude || 0) : 0
 
     // 有效期：根据 created_at → expire_at 推算原始天数
     const { expiryIndex, isCustomExpiry, customDays } = this.computeExpiryFromPost(post)
@@ -128,8 +132,8 @@ Page({
       images,
       locationId,
       locationName,
-      latitude,
-      longitude,
+      locationLat,
+      locationLng,
       hasLocation,
       expiryIndex,
       isCustomExpiry,
@@ -184,8 +188,7 @@ Page({
     try {
       const urls = await chooseAndUploadImage(remain)
       if (urls && urls.length > 0) {
-        const normalized = urls.map((u: string) => resolveImageUrl(u))
-        this.setData({ images: [...this.data.images, ...normalized] })
+        this.setData({ images: [...this.data.images, ...urls] })
       }
     } catch (e: any) {
       const msg = (e && e.errMsg && e.errMsg.includes('cancel')) ? '' : (e.message || '图片上传失败')
@@ -206,34 +209,30 @@ Page({
   onPreviewImage(e: any) {
     const url = e.currentTarget.dataset.url
     if (!url || this.data.images.length === 0) return
-    wx.previewImage({ current: url, urls: this.data.images })
+    wx.previewImage({ current: url, urls: this.data.images.map((item: PostImage) => item.image_url) })
   },
 
   // ============== 位置 ==============
   onChooseLocation() {
-    wx.chooseLocation({
-      success: (res: any) => {
-        // 新位置尚未创建，locationId 置空，提交时再创建
-        this.setData({
-          locationName: res.name || res.address || '已选位置',
-          latitude: res.latitude,
-          longitude: res.longitude,
-          hasLocation: true,
-          locationId: null,
-        })
-      },
-      fail: (err: any) => {
-        if (err && err.errMsg && err.errMsg.includes('cancel')) return
-        wx.showToast({ title: '位置选择失败', icon: 'none' })
-      },
-    })
+    wx.navigateTo({ url: '/subpackages/pages/locations/locations?mode=select' })
+  },
+
+  onShow() {
+    try {
+      const selected: any = wx.getStorageSync('selected_location')
+      if (!selected) return
+      wx.removeStorageSync('selected_location')
+      this.setData({ locationId: selected.id || null, locationName: selected.name || '', locationLat: Number(selected.latitude || 0), locationLng: Number(selected.longitude || 0), hasLocation: !!selected.id })
+    } catch {
+      // ignore malformed selection
+    }
   },
 
   onClearLocation() {
     this.setData({
       locationName: '',
-      latitude: 0,
-      longitude: 0,
+      locationLat: 0,
+      locationLng: 0,
       hasLocation: false,
       locationId: null,
     })
@@ -304,22 +303,7 @@ Page({
 
     this.setData({ submitting: true })
     try {
-      // 若选择了新位置（尚未创建），先创建地点拿 location_id
       let locationId = this.data.locationId
-      if (this.data.hasLocation && !locationId) {
-        try {
-          const locRes: any = await http.post('/locations', {
-            name: this.data.locationName,
-            latitude: this.data.latitude,
-            longitude: this.data.longitude,
-          })
-          locationId = (locRes && locRes.id) || null
-        } catch (e: any) {
-          // 地点创建失败不阻断主流程，降级为不修改位置
-          locationId = null
-          wx.showToast({ title: e.message || '位置保存失败', icon: 'none' })
-        }
-      }
 
       const expiresAt = this.computeExpiresAt()
       const payload: any = {
@@ -327,13 +311,13 @@ Page({
         content: this.data.content.trim(),
         category_id: this.data.selectedCategoryId,
       }
-      if (this.data.images.length > 0) {
-        payload.image_urls = this.data.images
-      } else {
-        payload.image_urls = []
-      }
+      payload.images = this.data.images
       if (this.data.hasLocation && locationId) {
         payload.location_id = locationId
+      } else if (this.data.hasLocation) {
+        payload.location_name = this.data.locationName
+        payload.location_lat = this.data.locationLat
+        payload.location_lng = this.data.locationLng
       } else if (!this.data.hasLocation) {
         payload.location_id = null
       }

@@ -1,5 +1,6 @@
 import { http } from './request'
 import type { Notification, NotificationListResponse } from '../types'
+import { normalizeNotification } from './normalize'
 
 export async function listNotifications(params?: {
   page?: number
@@ -12,10 +13,18 @@ export async function listNotifications(params?: {
       if (v !== undefined) query.append(k, String(v))
     })
   }
-  return http.get<NotificationListResponse>(`/notifications?${query.toString()}`)
+  const raw = await http.get<any>(`/notifications?${query.toString()}`)
+  const items = Array.isArray(raw?.items) ? raw.items : []
+  return {
+    items: items.map(normalizeNotification),
+    total: Number(raw?.total || 0),
+    page: Number(raw?.page || params?.page || 1),
+    page_size: Number(raw?.page_size || params?.page_size || 20),
+    has_more: raw?.has_more === true,
+  }
 }
 
-export async function getUnreadCount(): Promise<{ count: number }> {
+export async function getUnreadCount(): Promise<{ unread_count: number; has_unread: boolean }> {
   return http.get('/notifications/unread-count')
 }
 
@@ -24,9 +33,5 @@ export async function markAsRead(id: number): Promise<void> {
 }
 
 export async function markAllAsRead(): Promise<void> {
-  return http.post('/notifications/mark-all-read')
-}
-
-export async function deleteNotification(id: number): Promise<void> {
-  return http.delete(`/notifications/${id}`)
+  return http.put('/notifications/read-all')
 }

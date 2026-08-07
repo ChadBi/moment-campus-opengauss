@@ -1,8 +1,9 @@
-import { http, resolveImageUrl } from '../../services/request'
+import { http } from '../../services/request'
 import { formatDate, formatCount } from '../../utils/format'
 import { authStore } from '../../store/auth'
 import { campusStore } from '../../store/campus'
 import { cachedFetch } from '../../utils/cache'
+import { normalizePost, normalizePostList } from '../../services/normalize'
 
 Page({
   data: {
@@ -45,7 +46,7 @@ Page({
       // 分类为低频数据，走本地缓存 + 过期刷新（Task 10）
       const schoolCode = campusStore.getState().schoolCode
       const res = await cachedFetch<any>('categories', () => http.get('/categories'), { schoolCode })
-      const cats = res.categories || res.items || []
+      const cats = Array.isArray(res) ? res : (res.items || [])
       this.setData({
         categories: [{ id: 0, name: '推荐' }, ...cats]
       })
@@ -71,31 +72,22 @@ Page({
       } else {
         res = await http.get(`/posts?category_id=${activeCategoryId}&page=${page}&page_size=${pageSize}`)
       }
-      const items = res.items || res.posts || []
-      // 预处理帖子数据：用 resolveImageUrl 处理图片 URL + 归一化嵌套 author 字段（B-06）
-      // activeCategoryId===0 为推荐模式：把接口返回的 reason/reason_code 归一化到 recommend_reason（普通分类不设置）
+      const list = normalizePostList(res)
       const isRecommend = activeCategoryId === 0
-      const processedPosts = items.map((post: any) => {
-        const author = post.author || {}
-        const normalized: any = {
-          ...post,
-          images: (post.images || []).map((img: string) => resolveImageUrl(img)),
-          author_nickname: post.author_nickname || author.nickname || '匿名用户',
-          author_avatar: resolveImageUrl(post.author_avatar || author.avatar_url),
-          is_verified: !!post.is_verified || !!author.is_verified,
-        }
+      const processedPosts = list.items.map((post: any) => {
+        const normalized: any = { ...post }
         if (isRecommend && (post.reason || post.reason_code)) {
           normalized.recommend_reason = post.reason || post.reason_code
         }
         return normalized
       })
 
-      const total = res.total !== undefined
-        ? res.total
+      const total = list.total !== undefined
+        ? list.total
         : (this.data.posts.length + processedPosts.length)
       this.setData({
         posts: [...this.data.posts, ...processedPosts],
-        hasMore: res.has_more !== undefined ? res.has_more : (processedPosts.length >= pageSize),
+        hasMore: list.has_more !== undefined ? list.has_more : (processedPosts.length >= pageSize),
         page: page + 1,
         totalPosts: total,
         formattedTotal: formatCount(total),
