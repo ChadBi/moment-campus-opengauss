@@ -2,7 +2,16 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-07（小程序地图地点链路排查与子包样式编译修复）
+> 最后更新：2026-08-07（小程序地图页点击修复 + 评分界面补齐）
+
+## 2026-08-07 执行任务：小程序地图页点击修复 + 评分界面补齐
+
+- [x] **帖子卡片与「查看完整详情」点击无反应根因定位**：`scroll-view` 使用 `catchtouchstart/move/end` 捕获全部触摸事件，内部 `bindtap`（帖子卡片、详情按钮等）无法触发；解决方案为改为 `bindtouch*` 并在 handler 中新增 `_sheetGestureBlocked` 状态判断——仅当手势确为面板拖拽时才做处理，其余点击事件正常冒泡
+- [x] **地图页地点详情顶部新增评分汇总卡片**（与 Web 端对齐）：顶行左侧显示星级评分 + 分数，右上角放置「查看完整详情」按钮（原底部按钮位置废弃）；下方展示评分人数/评价条数、地点描述、位置信息
+- [x] **地图页地点详情新增「我的评价」表单卡片**：与 Web 端布局对齐——顶行标题 + 主按钮同排（提交/更新评价放右上角），常态为只读紧凑摘要卡片，点击「更新评价」才展开编辑态（星级选择 + 文本框 + 底部「取消编辑/撤回评价」次要按钮）
+- [x] **补齐评分表单逻辑**：`onScoreTap`（星级选择）、`onContentInput`、`onStartEditReview`、`onCancelEditReview`、`submitReview`（提交/更新评价）、`withdrawReview`（撤回确认弹窗 + 重新拉取详情与评价列表）；提交前 requireLogin + 校园认证双校验；setData 路径统一使用 `'selectedLocation.scoreText'` 点号语法
+- [x] **微信开发者工具编译 & 运行态核验**：门禁 check_wechatide_status 通过（登录未过期）；open_project_window + simulator_refresh 成功；simulator_screenshot 显示地图页正常渲染（江南大学校徽 + 地图标记 + Header）；`get_simulator_console grep error` 返回空（无运行时异常）
+
 
 - [x] 移除小程序首页顶部搜索框，保留学校信息和校园地点入口，避免与底部搜索 Tab 重复
 - [x] 地图地点面板改为半屏底部抽屉，内容使用独立滚动区域；支持上滑展开、下滑收起和再次下滑关闭

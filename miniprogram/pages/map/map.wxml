@@ -56,10 +56,10 @@
       bounces="{{false}}"
       show-scrollbar="{{false}}"
       bindscroll="onSheetScroll"
-      catchtouchstart="onSheetTouchStart"
-      catchtouchmove="onSheetTouchMove"
-      catchtouchend="onSheetTouchEnd"
-      catchtouchcancel="onSheetTouchEnd"
+      bindtouchstart="onSheetTouchStart"
+      bindtouchmove="onSheetTouchMove"
+      bindtouchend="onSheetTouchEnd"
+      bindtouchcancel="onSheetTouchEnd"
     >
       <view class="sheet-drag-area">
         <view class="sheet-handle"></view>
@@ -77,7 +77,7 @@
               <text class="sheet-address">{{selectedLocation.location.building || '校园内'}}{{selectedLocation.location.floor ? ' · ' + selectedLocation.location.floor + '层' : ''}}</text>
             </view>
           </view>
-          <view class="info-close" catchtap="closeLocationCard" hover-class="info-close-hover" hover-stay-time="120">
+          <view class="info-close" bindtap="closeLocationCard" hover-class="info-close-hover" hover-stay-time="120">
             <icon name="x" size="32rpx" color="#6a7d81" />
           </view>
         </view>
@@ -95,7 +95,123 @@
         </view>
 
         <block wx:else>
-          <view class="sheet-meta">
+          <!-- 评分汇总 + 查看完整详情按钮（与Web端对齐：详情入口放顶行右上角） -->
+          <view class="rating-summary-card">
+            <view class="rating-summary-top">
+              <view class="rating-score-group">
+                <text class="rating-stars-lg">{{averageStarsText}}</text>
+                <text class="rating-score-lg">{{selectedLocation.scoreText}}</text>
+              </view>
+              <view class="goto-detail-btn" bindtap="goToLocationDetail" hover-class="goto-detail-btn-hover" hover-stay-time="120">
+                <text>查看完整详情</text>
+                <icon name="chevron-right" size="24rpx" color="#ffffff" />
+              </view>
+            </view>
+            <text class="rating-summary-meta">{{selectedLocation.location.rating_count}} 人评分 · {{selectedLocation.location.review_count}} 条评价</text>
+            <text wx:if="{{selectedLocation.location.description}}" class="rating-summary-desc">{{selectedLocation.location.description}}</text>
+            <view class="rating-summary-loc">
+              <icon name="map-pin" size="22rpx" color="#6a7d81" />
+              <text class="rating-summary-loc-text">{{selectedLocation.location.building || selectedLocation.location.floor || '校园内'}}</text>
+            </view>
+          </view>
+
+          <!-- 我的评价：顶行标题 + 主按钮同排；常态只读紧凑卡片，点击更新评价才展开编辑态 -->
+          <view class="my-review-card">
+            <view class="review-header-row">
+              <text class="review-section-title">{{myReview ? '我的评价' : '给这个地点打个分'}}</text>
+              <block wx:if="{{myReview && !editingReview}}">
+                <view
+                  class="review-main-btn"
+                  bindtap="onStartEditReview"
+                  hover-class="btn-hover"
+                  hover-stay-time="120">
+                  <icon name="edit-3" size="20rpx" color="#ffffff" />
+                  <text>更新评价</text>
+                </view>
+              </block>
+              <block wx:elif="{{isLoggedIn && (!myReview || editingReview)}}">
+                <view
+                  class="review-main-btn {{submitting ? 'disabled' : ''}}"
+                  bindtap="submitReview"
+                  hover-class="btn-hover"
+                  hover-stay-time="120">
+                  <text>{{submitting ? '提交中...' : (myReview ? '更新评价' : '提交评价')}}</text>
+                </view>
+              </block>
+            </view>
+
+            <block wx:if="{{!isLoggedIn}}">
+              <view class="review-login-row">
+                <text class="review-login-hint">登录后即可为校园设施评分评价</text>
+                <view class="review-login-btn" bindtap="goToLogin" hover-class="btn-hover" hover-stay-time="120">
+                  <text>去登录</text>
+                </view>
+              </view>
+            </block>
+
+            <block wx:elif="{{myReview && !editingReview}}">
+              <view class="my-review-summary">
+                <view class="review-author-row">
+                  <text class="review-author-name">我</text>
+                  <view class="rating-stars-inline my-review-stars">
+                    <text class="stars-sm">{{myReview.score >= 1 ? '★' : '☆'}}{{myReview.score >= 2 ? '★' : '☆'}}{{myReview.score >= 3 ? '★' : '☆'}}{{myReview.score >= 4 ? '★' : '☆'}}{{myReview.score >= 5 ? '★' : '☆'}}</text>
+                    <text class="score-sm">{{myReview.score}}.0</text>
+                  </view>
+                </view>
+                <text wx:if="{{myReview.content}}" class="my-review-content">{{myReview.content}}</text>
+                <text wx:else class="my-review-empty">（仅评分，未填写文字评价）</text>
+              </view>
+            </block>
+
+            <block wx:elif="{{!myReview || editingReview}}">
+              <block wx:if="{{!campusVerified}}">
+                <text class="review-gate-text">完成校园身份认证后即可评分评价</text>
+              </block>
+              <block wx:else>
+                <view class="star-selector-row">
+                  <view
+                    wx:for="{{starOptions}}"
+                    wx:key="*this"
+                    class="star-option {{score >= item ? 'active' : ''}}"
+                    data-score="{{item}}"
+                    bindtap="onScoreTap"
+                    hover-class="star-option-hover"
+                    hover-stay-time="120">
+                    <text class="star-char">{{score >= item ? '★' : '☆'}}</text>
+                  </view>
+                  <text class="score-preview">{{score}}.0 分</text>
+                </view>
+                <textarea
+                  class="review-textarea"
+                  value="{{content}}"
+                  maxlength="500"
+                  auto-height
+                  placeholder="分享你的体验，如排队情况、价格、营业时间等（最多 500 字）"
+                  placeholder-class="ph"
+                  bindinput="onContentInput" />
+                <view class="review-secondary-actions">
+                  <view
+                    wx:if="{{myReview && editingReview}}"
+                    class="review-text-btn"
+                    bindtap="onCancelEditReview"
+                    hover-class="btn-hover"
+                    hover-stay-time="120">
+                    取消编辑
+                  </view>
+                  <view
+                    wx:if="{{myReview}}"
+                    class="review-text-btn danger {{submitting ? 'disabled' : ''}}"
+                    bindtap="withdrawReview"
+                    hover-class="btn-hover"
+                    hover-stay-time="120">
+                    撤回评价
+                  </view>
+                </view>
+              </block>
+            </block>
+          </view>
+
+          <view class="sheet-meta sheet-meta-compact">
             <view class="score-block">
               <text class="score-stars">{{selectedLocation.location.avg_score > 0 ? '★' : '☆'}}</text>
               <text class="score-value">{{selectedLocation.scoreText}}</text>
@@ -143,13 +259,6 @@
             </view>
           </view>
         </block>
-
-        <view class="sheet-actions">
-          <view class="detail-action" bindtap="goToLocationDetail" hover-class="detail-action-hover" hover-stay-time="120">
-            <text>查看完整详情</text>
-            <icon name="chevron-right" size="28rpx" color="#ffffff" />
-          </view>
-        </view>
       </view>
     </scroll-view>
   </view>

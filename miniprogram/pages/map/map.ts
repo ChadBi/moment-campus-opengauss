@@ -1,7 +1,9 @@
 import { campusStore } from '../../store/campus'
-import { getLocations, getDetail, getReviews } from '../../services/locations'
+import { getLocations, getDetail, getReviews, submitReview, withdrawReview } from '../../services/locations'
 import { listPosts } from '../../services/posts'
-import type { LocationItem, MapLocationPanel, MapMarker } from '../../types'
+import { authStore } from '../../store/auth'
+import { requireLogin } from '../../utils/auth-guard'
+import type { LocationItem, LocationReview, MapLocationPanel, MapMarker } from '../../types'
 
 interface WxMarker extends MapMarker {
   width: number
@@ -24,6 +26,11 @@ const DEFAULT_ZOOM = 16
 const VERIFIED_MARKER = '/assets/map-marker-verified.svg'
 const UNVERIFIED_MARKER = '/assets/map-marker-unverified.svg'
 const SELECTED_MARKER = '/assets/map-marker-selected.svg'
+
+function formatStars(score: number): string {
+  const full = Math.max(0, Math.min(5, Math.round(score || 0)))
+  return '★'.repeat(full) + '☆'.repeat(5 - full)
+}
 
 function formatCallout(location: LocationItem): string {
   const score = location.avg_score > 0 ? location.avg_score.toFixed(1) : '暂无评分'
@@ -69,6 +76,15 @@ Page({
     sheetExpanded: false,
     sheetDragging: false,
     sheetDragOffset: 0,
+    isLoggedIn: false,
+    campusVerified: false,
+    myReview: null as LocationReview | null,
+    score: 5,
+    content: '',
+    submitting: false,
+    editingReview: false,
+    starOptions: [1, 2, 3, 4, 5],
+    averageStarsText: '☆☆☆☆☆',
   },
 
   onLoad() {
@@ -76,6 +92,9 @@ Page({
     ;(this as any)._selectedRequestVersion = 0
     ;(this as any)._hasLoadedLocations = false
     ;(this as any)._sheetScrollTop = 0
+    authStore.subscribe(state => {
+      this.setData({ isLoggedIn: state.isLoggedIn, campusVerified: !!state.user?.campus_verified })
+    })
     ;(this as any)._unsubscribeCampus = campusStore.subscribe(state => {
       const school = state.currentSchool
       const schoolName = (school && school.name) || state.schoolCode
@@ -159,6 +178,12 @@ Page({
         loading: true,
         postsLoading: true,
       },
+      averageStarsText: formatStars(location.avg_score || 0),
+      myReview: null,
+      score: 5,
+      content: '',
+      submitting: false,
+      editingReview: false,
       sheetExpanded: false,
       sheetDragging: false,
       sheetDragOffset: 0,
@@ -179,12 +204,12 @@ Page({
     ) return
 
     const detail = detailResult.status === 'fulfilled' ? detailResult.value : undefined
-    const reviews = reviewsResult.status === 'fulfilled' ? reviewsResult.value : undefined
     const postsResponse = postsResult.status === 'fulfilled' ? postsResult.value : undefined
     const posts = postsResponse ? postsResponse.items : []
     const detailError = detailResult.status === 'rejected' ? '地点详情加载失败' : undefined
     const postsError = postsResult.status === 'rejected' ? '相关帖子加载失败' : undefined
     const normalizedLocation = detail?.location || location
+    const myReview = detail?.my_review ?? null
 
     this.setData({
       selectedLocation: {
@@ -199,10 +224,12 @@ Page({
         error: detailError,
         postsError,
       },
+      averageStarsText: formatStars(normalizedLocation.avg_score || 0),
+      myReview,
+      score: myReview ? myReview.score : 5,
+      content: myReview ? (myReview.content || '') : '',
+      editingReview: false,
     })
-    if (reviews && reviews.total !== normalizedLocation.review_count) {
-      this.setData({ 'selectedLocation.location.review_count': reviews.total })
-    }
   },
 
   closeLocationCard() {
@@ -231,6 +258,7 @@ Page({
     ;(this as any)._sheetTouchStartOffset = Number(this.data.sheetDragOffset || 0)
     ;(this as any)._sheetTouchMode = expanded ? 'expanded' : 'half'
     ;(this as any)._sheetPullFromExpanded = expanded && Number((this as any)._sheetScrollTop || 0) <= 1
+    ;(this as any)._sheetGestureBlocked = false
     if (!expanded) this.setData({ sheetDragging: true })
   },
 
@@ -246,22 +274,30 @@ Page({
       const scrollTop = Number((this as any)._sheetScrollTop || 0)
       const movingDown = currentY > lastY
 
-      // 内容未回到顶部时保持原生滚动；到达顶部后，下一段下拉接管整张抽屉。
       if (scrollTop > 1) {
         ;(this as any)._sheetPullFromExpanded = false
+        ;(this as any)._sheetGestureBlocked = true
         return
       }
       if (!(this as any)._sheetPullFromExpanded) {
-        if (!movingDown) return
+        if (!movingDown) {
+          ;(this as any)._sheetGestureBlocked = true
+          return
+        }
         ;(this as any)._sheetPullFromExpanded = true
         ;(this as any)._sheetTouchStartY = currentY
+        ;(this as any)._sheetGestureBlocked = false
         return
       }
 
       const pullDelta = currentY - Number((this as any)._sheetTouchStartY)
       const maxDrag = this.getSheetMaxDrag()
       const offset = Math.max(0, Math.min(maxDrag, pullDelta))
-      if (offset === 0 && !this.data.sheetDragging) return
+      if (offset === 0 && !this.data.sheetDragging) {
+        ;(this as any)._sheetGestureBlocked = true
+        return
+      }
+      ;(this as any)._sheetGestureBlocked = false
       this.setData({
         sheetDragging: true,
         sheetDragOffset: offset,
@@ -272,8 +308,8 @@ Page({
     const deltaY = currentY - startY
     const startOffset = Number((this as any)._sheetTouchStartOffset || 0)
     const maxDrag = this.getSheetMaxDrag()
-    // 半屏状态下整张卡片随手指移动；向下最多露出一小段，松手后关闭。
     const offset = Math.max(-maxDrag, Math.min(150, startOffset + deltaY))
+    ;(this as any)._sheetGestureBlocked = startOffset === 0 && offset === 0 && Math.abs(deltaY) < 2
     this.setData({ sheetDragOffset: offset })
   },
 
@@ -281,6 +317,7 @@ Page({
     const touch = e.changedTouches && e.changedTouches[0]
     const startY = (this as any)._sheetTouchStartY
     const touchMode = (this as any)._sheetTouchMode
+    const blocked = !!(this as any)._sheetGestureBlocked
     if (typeof startY !== 'number') {
       this.setData({ sheetDragging: false, sheetDragOffset: 0 })
       return
@@ -292,7 +329,13 @@ Page({
     ;(this as any)._sheetTouchLastY = undefined
     ;(this as any)._sheetTouchMode = undefined
     ;(this as any)._sheetPullFromExpanded = false
+    ;(this as any)._sheetGestureBlocked = false
     const maxDrag = this.getSheetMaxDrag()
+
+    if (blocked) {
+      this.setData({ sheetDragging: false, sheetDragOffset: 0 })
+      return
+    }
 
     if (touchMode === 'expanded') {
       if (!this.data.sheetDragging) return
@@ -350,5 +393,111 @@ Page({
     const id = Number(e.detail.id)
     if (!id) return
     wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${id}` })
+  },
+
+  // ============== 评分表单 ==============
+  onScoreTap(e: any) {
+    const score = Number(e.currentTarget.dataset.score)
+    this.setData({ score })
+  },
+
+  onContentInput(e: any) {
+    this.setData({ content: e.detail.value || '' })
+  },
+
+  onStartEditReview() {
+    const review = this.data.myReview
+    if (review) {
+      this.setData({ score: review.score, content: review.content || '', editingReview: true })
+    }
+  },
+
+  onCancelEditReview() {
+    this.setData({ editingReview: false })
+  },
+
+  async submitReview() {
+    if (!requireLogin('登录后即可评价地点')) return
+    if (!this.data.campusVerified) {
+      wx.showToast({ title: '请先完成校园认证', icon: 'none' })
+      return
+    }
+    const panel = this.data.selectedLocation
+    const id = panel?.location.id
+    if (!id) return
+    if (!this.data.score) {
+      wx.showToast({ title: '请选择评分', icon: 'none' })
+      return
+    }
+    this.setData({ submitting: true })
+    try {
+      const review = await submitReview(id, {
+        score: this.data.score,
+        content: (this.data.content || '').trim() || undefined,
+      })
+      wx.showToast({ title: this.data.myReview ? '评价已更新' : '评价已提交', icon: 'success' })
+      const schoolCode = campusStore.getState().schoolCode
+      const [detailRes, reviewsRes] = await Promise.all([
+        getDetail(id, schoolCode),
+        getReviews(id, { page: 1, page_size: 20 }),
+      ])
+      const normalizedLocation = detailRes.location || panel.location
+      const totalReviews = reviewsRes.total ?? normalizedLocation.review_count
+      this.setData({
+        myReview: review,
+        editingReview: false,
+        'selectedLocation.location': normalizedLocation,
+        'selectedLocation.location.review_count': totalReviews,
+        'selectedLocation.scoreText': normalizedLocation.avg_score > 0 ? normalizedLocation.avg_score.toFixed(1) : '暂无',
+        averageStarsText: formatStars(normalizedLocation.avg_score || 0),
+      })
+    } catch (e: any) {
+      wx.showToast({ title: e.message || '提交失败', icon: 'none' })
+    } finally {
+      this.setData({ submitting: false })
+    }
+  },
+
+  withdrawReview() {
+    const panel = this.data.selectedLocation
+    const id = panel?.location.id
+    if (!id) return
+    wx.showModal({
+      title: '提示',
+      content: '确定撤回这条评价？',
+      success: async res => {
+        if (!res.confirm) return
+        this.setData({ submitting: true })
+        try {
+          await withdrawReview(id)
+          wx.showToast({ title: '评价已撤回', icon: 'success' })
+          const schoolCode = campusStore.getState().schoolCode
+          const [detailRes, reviewsRes] = await Promise.all([
+            getDetail(id, schoolCode),
+            getReviews(id, { page: 1, page_size: 20 }),
+          ])
+          const normalizedLocation = detailRes.location || panel.location
+          const totalReviews = reviewsRes.total ?? normalizedLocation.review_count
+          this.setData({
+            myReview: null,
+            editingReview: false,
+            score: 5,
+            content: '',
+            'selectedLocation.location': normalizedLocation,
+            'selectedLocation.location.review_count': totalReviews,
+            'selectedLocation.scoreText': normalizedLocation.avg_score > 0 ? normalizedLocation.avg_score.toFixed(1) : '暂无',
+            averageStarsText: formatStars(normalizedLocation.avg_score || 0),
+          })
+        } catch (e: any) {
+          wx.showToast({ title: e.message || '撤回失败', icon: 'none' })
+        } finally {
+          this.setData({ submitting: false })
+        }
+      },
+    })
+  },
+
+  goToLogin() {
+    wx.navigateTo({ url: '/pages/login/login' })
   },
 })

@@ -182,7 +182,6 @@
   z-index: 20;
   will-change: transform;
   transition: top 280ms cubic-bezier(0.16, 1, 0.3, 1), bottom 280ms cubic-bezier(0.16, 1, 0.3, 1), height 280ms cubic-bezier(0.16, 1, 0.3, 1), border-radius 280ms ease, transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
-  /* 入场动画只能控制透明度；若动画占用 transform，会覆盖跟手拖拽的内联位移。 */
   animation: sheet-in 180ms ease-out both;
 }
 
@@ -254,7 +253,9 @@
 }
 
 .sheet-name-row,
-.block-title-row {
+.block-title-row,
+.review-header-row,
+.rating-summary-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -335,7 +336,9 @@
 .sheet-meta,
 .facts-block,
 .summary-block,
-.posts-block {
+.posts-block,
+.rating-summary-card,
+.my-review-card {
   margin-bottom: 18rpx;
 }
 
@@ -356,6 +359,11 @@
   padding: 16rpx 18rpx;
   border-radius: 16rpx;
   background: var(--mist);
+}
+
+.sheet-meta-compact {
+  padding: 12rpx 16rpx;
+  margin-bottom: 14rpx;
 }
 
 .score-block {
@@ -463,27 +471,268 @@
 .loading-dot:nth-child(2) { animation-delay: 0.14s; }
 .loading-dot:nth-child(3) { animation-delay: 0.28s; }
 
-.sheet-actions {
-  padding: 14rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
-  border-top: 1rpx solid var(--ink-divider);
+/* ============ 评分汇总卡片 ============ */
+.rating-summary-card {
+  padding: 18rpx;
+  border-radius: 14rpx;
+  background: var(--mist);
 }
 
-.detail-action {
+.rating-score-group {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8rpx;
-  padding: 17rpx;
-  border-radius: 14rpx;
-  background: var(--lake);
-  color: #ffffff;
-  font-size: 25rpx;
-  font-weight: 700;
-  box-shadow: 0 10rpx 20rpx rgba(47, 127, 143, 0.25);
+  gap: 10rpx;
+  min-width: 0;
 }
 
-.detail-action-hover {
+.rating-stars-lg {
+  color: var(--lamp);
+  font-size: 32rpx;
+  line-height: 1;
+}
+
+.rating-score-lg {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 40rpx;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.goto-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 10rpx;
+  background: var(--lake);
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 700;
+  box-shadow: 0 8rpx 16rpx rgba(47, 127, 143, 0.22);
+  flex-shrink: 0;
+}
+
+.goto-detail-btn-hover {
   background: var(--lake-dark);
+}
+
+.rating-summary-meta {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--muted);
+  font-size: 21rpx;
+}
+
+.rating-summary-desc {
+  display: block;
+  margin-top: 10rpx;
+  color: var(--ink-2);
+  font-size: 23rpx;
+  line-height: 1.6;
+}
+
+.rating-summary-loc {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  margin-top: 10rpx;
+}
+
+.rating-summary-loc-text {
+  color: var(--muted);
+  font-size: 21rpx;
+}
+
+/* ============ 我的评价卡片 ============ */
+.my-review-card {
+  padding: 16rpx 18rpx;
+  border: 1rpx solid var(--ink-divider);
+  border-radius: 14rpx;
+  background: #fefefe;
+}
+
+.review-section-title {
+  color: var(--ink);
+  font-size: 25rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.review-main-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5rpx;
+  height: 52rpx;
+  padding: 0 22rpx;
+  border-radius: 10rpx;
+  background: var(--lake);
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 700;
+  box-shadow: 0 6rpx 14rpx rgba(47, 127, 143, 0.2);
+}
+
+.review-main-btn.disabled {
+  opacity: 0.55;
+}
+
+.btn-hover {
+  opacity: 0.85;
+}
+
+.review-login-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-top: 10rpx;
+}
+
+.review-login-hint {
+  color: var(--muted);
+  font-size: 22rpx;
+  flex: 1;
+}
+
+.review-login-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 50rpx;
+  padding: 0 20rpx;
+  border-radius: 10rpx;
+  background: var(--lake);
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.my-review-summary {
+  margin-top: 10rpx;
+}
+
+.review-author-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.review-author-name {
+  color: var(--ink);
+  font-size: 23rpx;
+  font-weight: 600;
+}
+
+.rating-stars-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.stars-sm {
+  color: var(--lamp);
+  font-size: 22rpx;
+  line-height: 1;
+}
+
+.score-sm {
+  color: var(--ink-sub);
+  font-size: 21rpx;
+  font-weight: 600;
+}
+
+.my-review-content,
+.my-review-empty {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--ink-2);
+  font-size: 23rpx;
+  line-height: 1.6;
+}
+
+.my-review-empty {
+  color: var(--muted);
+}
+
+.review-gate-text {
+  display: block;
+  margin-top: 10rpx;
+  color: var(--muted);
+  font-size: 22rpx;
+}
+
+.star-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 12rpx;
+}
+
+.star-option {
+  padding: 4rpx;
+  line-height: 1;
+}
+
+.star-option-hover {
+  transform: scale(1.08);
+}
+
+.star-char {
+  color: var(--line);
+  font-size: 40rpx;
+  line-height: 1;
+}
+
+.star-option.active .star-char {
+  color: var(--lamp);
+}
+
+.score-preview {
+  margin-left: 8rpx;
+  color: var(--ink);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.review-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 12rpx;
+  padding: 14rpx 16rpx;
+  border: 1rpx solid var(--ink-divider);
+  border-radius: 12rpx;
+  background: #fafcfb;
+  color: var(--ink);
+  font-size: 23rpx;
+  line-height: 1.6;
+}
+
+.review-textarea::placeholder {
+  color: #9aa4a8;
+}
+
+.review-secondary-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16rpx;
+  margin-top: 10rpx;
+}
+
+.review-text-btn {
+  color: var(--lake);
+  font-size: 22rpx;
+  font-weight: 600;
+  padding: 6rpx 4rpx;
+}
+
+.review-text-btn.danger {
+  color: var(--danger);
+}
+
+.review-text-btn.disabled {
+  opacity: 0.55;
 }
 
 @keyframes sheet-in {

@@ -7,6 +7,31 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.11] - 2026-08-07
+
+### 修复
+
+- **小程序地图页地点详情弹层点击全部无反应**：根本原因是外层 `scroll-view` 绑定了 `catchtouchstart/catchtouchmove/catchtouchend`，以 `catch` 前缀捕获型事件阻止了所有内部元素的 `bindtap` 事件冒泡（包括 `post-card` 帖子卡片、`goto-detail-btn`「查看完整详情」按钮、星级评分、提交/撤回按钮等所有可交互元素）。修复方式：
+  1. 改为 `bindtouch*`（冒泡型），不再无条件吞掉触摸事件
+  2. 手势处理函数新增 `_sheetGestureBlocked` 状态变量，仅当用户确实在进行面板拖拽时才处理，其余点击/轻触正常放行
+  3. expanded 态新增 `_sheetPullFromExpanded` 下拉判定逻辑，已滚动时不误触发面板收起
+
+### 新增
+
+- **小程序地图页地点详情补齐评分界面（与 Web 端 LocationPage 对齐）**
+  - **评分汇总卡片**（详情最顶部）：顶行左侧大星级 + 评分分数，右上角放置「查看完整详情」主按钮；下方展示评分人数/评价条数、地点描述、位置标签
+  - **我的评价卡片**：遵循 Web 端统一布局约束——
+    - 常态只读：显示作者「我」+ 星级 + 评分 + 文字评价，顶行右上角为「更新评价」主按钮
+    - 编辑态展开：星级选择器（5 档可选）+ 文本输入（最多 500 字）+ 提交主按钮（顶行右上角），底部右对齐放置「取消编辑/撤回评价」次要按钮
+    - 未登录态：显示登录引导 + 「去登录」按钮；未校园认证态：显示提示文案并禁用提交（与 Web 权限口径一致）
+  - **逻辑层补齐**：`submitReview` / `withdrawReview` 在提交/撤回成功后自动并行重新拉取地点详情与评价列表，就地刷新 `selectedLocation.location`、`scoreText`、`averageStarsText`、`myReview`
+
+### 校验
+
+- 微信开发者工具：`check_wechatide_status` 通过（登录未过期），`open_project_window` 复用既有窗口，`simulator_refresh` 编译成功
+- `get_simulator_console grep -i -E 'error|fail|warn'` 返回空字符串，无运行时异常
+- 地图页 simulator_screenshot 验证：Header 显示「江南大学」+「已更新」，地图标记正常渲染，TabBar 选中「地图」
+
 ## [2.2.10] - 2026-08-07
 
 ### 新增
