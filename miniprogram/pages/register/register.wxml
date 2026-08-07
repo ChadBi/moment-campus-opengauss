@@ -5,7 +5,7 @@
       <icon name="{{mode === 'bind' ? 'log-in' : 'user'}}" size="56rpx" color="#174d5e" />
     </view>
     <text class="page-title">{{mode === 'bind' ? '绑定已有账号' : '注册新账号'}}</text>
-    <text class="page-subtitle">{{mode === 'bind' ? '使用已有账号密码完成微信绑定' : '创建新账号并绑定微信'}}</text>
+    <text class="page-subtitle">{{mode === 'bind' ? '使用已有账号密码完成微信绑定' : '使用教育邮箱完成注册并绑定微信'}}</text>
   </view>
 
   <!-- 注册模式：昵称 + 学校 -->
@@ -42,11 +42,11 @@
     <view class="form-item">
       <view class="label-row">
         <icon name="mail" size="24rpx" color="#6a7d81" />
-        <text class="label">邮箱</text>
+        <text class="label">{{mode === 'bind' ? '邮箱' : '教育邮箱'}}</text>
       </view>
       <input
         type="text"
-        placeholder="{{mode === 'bind' ? '请输入邮箱' : '选填'}}"
+        placeholder="{{mode === 'bind' ? '请输入邮箱' : '请输入学校官方邮箱'}}"
         placeholder-class="ph"
         value="{{email}}"
         bindinput="onEmailInput"
@@ -67,6 +67,23 @@
     </view>
   </view>
 
+  <!-- 注册模式：确认密码 -->
+  <view class="form-section" wx:if="{{mode === 'register'}}">
+    <view class="form-item">
+      <view class="label-row">
+        <icon name="lock" size="24rpx" color="#6a7d81" />
+        <text class="label">确认密码</text>
+      </view>
+      <input
+        type="password"
+        placeholder="请再次输入密码"
+        placeholder-class="ph"
+        value="{{confirmPassword}}"
+        bindinput="onConfirmPasswordInput"
+        class="input"/>
+    </view>
+  </view>
+
   <!-- 错误提示 -->
   <view wx:if="{{errorMsg}}" class="error-msg">
     <icon name="alert-circle" size="28rpx" color="#cd5852" />
@@ -80,5 +97,15 @@
     hover-class="{{loading ? '' : 'submit-btn-hover'}}"
     hover-stay-time="120">
     <text>{{loading ? '处理中...' : (mode === 'bind' ? '绑定并登录' : '注册并登录')}}</text>
+  </view>
+
+  <view class="mode-switch">
+    <text class="mode-switch-label">{{mode === 'bind' ? '还没有账号？' : '已有此刻校园账号？'}}</text>
+    <text
+      class="mode-switch-link"
+      bindtap="switchMode"
+      data-mode="{{mode === 'bind' ? 'register' : 'bind'}}">
+      {{mode === 'bind' ? '注册新账号' : '绑定并登录'}}
+    </text>
   </view>
 </view>

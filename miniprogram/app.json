@@ -12,7 +12,8 @@
     "pages/agreement/agreement",
     "pages/privacy/privacy",
     "pages/about/about",
-    "pages/login/login"
+    "pages/login/login",
+    "pages/register/register"
   ],
   "tabBar": {
     "custom": true,
@@ -69,7 +70,6 @@
       "pages": [
         "forgot-password/forgot-password",
         "school-select/school-select",
-        "bind-account/bind-account",
         "edit-post/edit-post",
         "locations/locations"
       ]

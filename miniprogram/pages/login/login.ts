@@ -54,8 +54,10 @@ Page({
         wx.showToast({ title: '登录成功', icon: 'success' })
         setTimeout(() => wx.switchTab({ url: '/pages/home/home' }), 500)
       } else if (exchangeRes.status === 'binding_required') {
+        // 首次微信登录直接进入与普通注册一致的邮箱注册表单，
+        // 不再默认落到“绑定已有账号”的密码表单。
         wx.navigateTo({
-          url: `/subpackages/pages/bind-account/bind-account?ticket=${exchangeRes.binding_ticket}`,
+          url: `/pages/register/register?ticket=${exchangeRes.binding_ticket}`,
         })
       }
     } catch (e: any) {
@@ -96,7 +98,7 @@ Page({
     }).then(code => wechatExchange(code)).then(res => {
       if (res.status !== 'binding_required') throw new Error('该微信已绑定账号，请直接登录')
       wx.navigateTo({
-        url: `/subpackages/pages/bind-account/bind-account?ticket=${res.binding_ticket}&mode=register`,
+        url: `/pages/register/register?ticket=${res.binding_ticket}`,
       })
     }).catch((e: any) => {
       this.setData({ errorMsg: e.message || '注册入口打开失败' })
@@ -104,7 +106,22 @@ Page({
   },
 
   goToHome() {
-    wx.switchTab({ url: '/pages/home/home' })
+    const url = '/pages/home/home'
+    // 登录页可能是通过 reLaunch/navigateTo 打开的，部分开发者工具版本
+    // 对此时的 switchTab 不回调；失败时用 reLaunch 保证游客入口可用。
+    wx.switchTab({
+      url,
+      fail: err => {
+        console.warn('游客入口切换首页失败，改用重启导航', err)
+        wx.reLaunch({
+          url,
+          fail: relaunchError => {
+            console.error('游客入口导航失败', relaunchError)
+            wx.showToast({ title: '首页打开失败，请重试', icon: 'none' })
+          },
+        })
+      },
+    })
   },
 
   goToForgotPassword() {

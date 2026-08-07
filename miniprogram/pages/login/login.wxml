@@ -27,7 +27,7 @@
         <text>{{loading ? '登录中...' : '使用微信登录'}}</text>
       </view>
       <view class="login-tip">
-        <text>首次登录需要绑定或注册账号</text>
+        <text>首次登录需要完成邮箱注册</text>
       </view>
     </view>
 
