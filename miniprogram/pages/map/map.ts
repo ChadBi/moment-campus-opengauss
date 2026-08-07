@@ -147,6 +147,7 @@ Page({
       selectedLocation: {
         location,
         scoreText: location.avg_score > 0 ? location.avg_score.toFixed(1) : '暂无',
+        relatedPostCount: Number(location.post_count || 0),
         relatedPosts: [],
         loading: true,
         postsLoading: true,
@@ -170,7 +171,8 @@ Page({
 
     const detail = detailResult.status === 'fulfilled' ? detailResult.value : undefined
     const reviews = reviewsResult.status === 'fulfilled' ? reviewsResult.value : undefined
-    const posts = postsResult.status === 'fulfilled' ? postsResult.value.items : []
+    const postsResponse = postsResult.status === 'fulfilled' ? postsResult.value : undefined
+    const posts = postsResponse ? postsResponse.items : []
     const detailError = detailResult.status === 'rejected' ? '地点详情加载失败' : undefined
     const postsError = postsResult.status === 'rejected' ? '相关帖子加载失败' : undefined
     const normalizedLocation = detail?.location || location
@@ -179,6 +181,7 @@ Page({
       selectedLocation: {
         location: normalizedLocation,
         scoreText: normalizedLocation.avg_score > 0 ? normalizedLocation.avg_score.toFixed(1) : '暂无',
+        relatedPostCount: postsResponse ? postsResponse.total : Number(normalizedLocation.post_count || 0),
         detail,
         relatedPosts: posts,
         loading: false,

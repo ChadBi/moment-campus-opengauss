@@ -351,6 +351,11 @@ export interface LocationDetail {
 export interface MapLocationPanel {
   location: LocationItem
   scoreText: string
+  /**
+   * 当前地点查询实际返回的已发布帖子总数。
+   * 不直接使用 Location.post_count：该字段是地点缓存字段，可能尚未随帖子状态变化刷新。
+   */
+  relatedPostCount: number
   detail?: LocationDetail
   relatedPosts: Post[]
   loading: boolean

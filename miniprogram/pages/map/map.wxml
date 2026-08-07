@@ -115,7 +115,7 @@
           <view class="posts-block">
             <view class="block-title-row">
               <text class="block-title">相关帖子</text>
-              <text class="source-count">{{selectedLocation.location.post_count}} 条</text>
+              <text class="source-count">{{selectedLocation.relatedPostCount}} 条</text>
             </view>
             <view wx:if="{{selectedLocation.postsLoading}}" class="posts-loading">
               <view class="loading-dot"></view>
