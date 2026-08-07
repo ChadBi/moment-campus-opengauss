@@ -160,7 +160,13 @@ export async function request<T = any>(options: RequestOptions): Promise<T> {
   const headers: Record<string, string> = { ...header }
 
   if (!authUrl) {
-    const token = getAccessToken()
+    // access_token 只保存在内存；小程序冷启动或开发者工具重新打开页面时，
+    // 先用持久化的 refresh_token 恢复一次会话，避免私有草稿详情等接口在
+    // 没有 Authorization 时直接返回 404，导致用户被误判为“信息不存在”。
+    let token = getAccessToken()
+    if (!token && getRefreshToken()) {
+      token = await refreshToken() || ''
+    }
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
