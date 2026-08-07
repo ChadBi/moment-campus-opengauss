@@ -20,7 +20,9 @@ interface CreatePostRequest {
   location_lat?: number;
   location_lng?: number;
   is_anonymous?: boolean;
-  /** PUB-01.2: 图片 URL 列表（最多 9 张，由 upload/image 接口先上传获得） */
+  /** 【新版推荐】一张图片的两个 URL（原图 + 缩略图），同时携带让详情页缩略带宽优化真正生效 */
+  images?: Array<{ image_url: string; thumbnail_url?: string }>;
+  /** 【旧版兼容】仅原图 URL 数组；建议迁移到新版 images，后端已同时兼容两种写法 */
   image_urls?: string[];
   /** PUB-01.2: 信息截止时间（ISO 字符串），未传则后端按分类默认有效期计算 */
   expire_at?: string;

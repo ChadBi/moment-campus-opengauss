@@ -7,6 +7,28 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.9] - 2026-08-07
+
+### 修复
+
+- **thumbnail_url 永远为 null 导致缩略带宽优化未生效的 Bug**：上传接口 `POST /upload/image` 已返回 `{url, thumbnail_url}` 两个 URL，但之前从「前端表单 → 后端 Schema → 写入 DB」整条链路只传递了 `image_url`（原图），导致 `PostImage.thumbnail_url` 列一直为 NULL，详情页缩略图缩略即使代码层面写了「优先 thumbnail_url」实际仍回退加载原图（浪费 90% 带宽）。本次彻底打通全链路：
+
+  1. **后端 Schema 升级兼容两种输入**：新增 `app/schemas/post.py PostImageInput(image_url, thumbnail_url?)` 数据结构；`PostCreate` / `PostUpdate` 同时保留旧 `image_urls: string[]` + 新 `images: PostImageInput[]` 两字段，通过 `@model_validator(mode='after') normalize_images_fields` 自动把旧版字符串数组归一化为新版对象数组（images 优先，避免冲突），对旧前端和 API 调用方 100% 向后兼容
+  2. **后端写入双字段入库**：`create_post` 遍历 `post_data.images[]` 同时写入 `PostImage.image_url + PostImage.thumbnail_url`；`update_post` 兼容三种输入（`string[]` 旧前端 / `PostImageInput[]` 新 Schema / `dict[]` 极端场景）全删后按 idx 顺序重建，保证新前端传的 thumbnail_url 不丢
+  3. **前端 services**：`CreatePostRequest` 新增 `images: Array<{image_url,thumbnail_url?}>`，同时保留 `image_urls` 做兼容，`updatePost` 复用同一 Partial 类型
+  4. **前端 PostForm 表单全链路升级**：① `PublishFormState.image_urls → images[]`（带 thumbnail_url）；② `handleImageChange` 上传成功后 push `{image_url: resp.url, thumbnail_url: resp.thumbnail_url}` 对象数组；③ 编辑态回显保留 DB 里已有的 thumbnail_url；④ 提交 payload 传新版 images 字段；⑤ 预览条缩略图缩略优先用 thumbnail_url，预览加载更流畅；⑥ `DRAFT-MIGRATION-1`：旧本地草稿只有旧 image_urls 数组时，`loadDraft` 自动迁移到新结构并删除旧字段，用户再次打开发布页草稿无缝过渡
+
+### 一致性保证（不破坏旧版本）
+
+- 旧前端（仍传 `image_urls` 字符串数组）：后端 validator 自动转 images[]，**发布/编辑正常无任何报错**，但由于旧前端不传 thumbnail_url，PostImage.thumbnail_url 仍为 NULL（回退加载原图），是"安全降级"不是 Bug
+- 新版前端：整条链路 thumbnail_url 完整传递，详情页缩略图缩略加载 thumb_xxx.jpg（约 30-80KB/张 vs 原图 2-5MB/张），**9 张缩略节省约 20-40MB 单次访问流量**
+
+### 校验
+
+- 后端 `import app.api.posts / schemas.post` 静态通过
+- `PostCreate.model_validate(旧 image_urls=)` / `(新 images=)` / `PostUpdate.model_validate(旧/新)` 4 组样例归一化后 images 长度与原始输入一致
+- 前端 `npx tsc -p tsconfig.json --noEmit` 0 错误
+
 ## [2.2.8] - 2026-08-07
 
 ### 修复

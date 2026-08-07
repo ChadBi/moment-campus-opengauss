@@ -2,9 +2,20 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-07（帖子图片上传-入库-渲染链路静态检查 + 2 处问题修复：列表 cover_image sort_order 对齐、PostDetail 缩略图优先后端 thumbnail_url + 加载失败 fallback）
+> 最后更新：2026-08-07（thumbnail_url 入库端到端打通：上传响应 → 前端表单 → 后端写入 → 详情页缩略图真正省 90% 带宽）
 
-## 2026-08-07 执行任务：帖子图片上传→入库→渲染链路检查与修复
+## 2026-08-07 执行任务：thumbnail_url 端到端入库修复（缩略带宽优化生效）
+
+- [x] **后端 schemas**：新增 `app/schemas/post.py` `PostImageInput`（`image_url + thumbnail_url | None`）；`PostCreate` / `PostUpdate` 同步新增 `images: List[PostImageInput]` + 保留旧 `image_urls: string[]` 字段做兼容；新增 `@model_validator(mode='after') normalize_images_fields` 统一把旧版字符串数组自动转成 images 对象数组（images 优先 / 两者冲突时忽略 image_urls），确保 posts.py 写入侧只需要关心一个字段，不考虑前端版本
+- [x] **后端写入 create**：`app/api/posts.py` `create_post` 创建帖子时，读取 `post_data.images`（validator 已归一化），遍历写入 `PostImage(post_id, image_url, thumbnail_url, sort_order=idx)`，不再只写 image_url
+- [x] **后端写入 update**：`app/api/posts.py` `update_post` 更新帖子时，图片字段改为 `images` / `image_urls` 两个 key 都先 pop 出来，缺的再用 `post_data.images` 兜底（兼容 `exclude_unset=True` 下 model_validator 后 fields 不一定出现在 update_data 的场景）；内部兼容三种输入（旧版 `string[]` / 新版 `PostImageInput[]` schema 对象 / 极端 `dict[]`），删除旧图后按 idx 顺序重建写库
+- [x] **前端 types + services**：`frontend/src/services/posts.ts` `CreatePostRequest` 新增 `images?: Array<{image_url, thumbnail_url?}>`，同时保留 `image_urls?: string[]` 做兼容；`updatePost(data: Partial<CreatePostRequest>)` 复用同一类型，无需改签名
+- [x] **前端 PostForm 全链路升级**：① `PublishFormState.image_urls: string[]` → `images: {image_url, thumbnail_url?}[]` + `INITIAL_FORM` 同步改；② `handleImageChange` 上传成功后 push 对象数组（带 resp.thumbnail_url），写入 `formData.images`；③ `handleRemoveImage` 按 `image_url` 过滤保留；④ 编辑态回显把 `post.images[]` 的 `(img.image_url, img.thumbnail_url)` 一起保留；⑤ 提交 payload 用 `images: formData.images.length>0 ? formData.images : undefined`；⑥ 预览条渲染 `formData.images.map(img)`，`img src` 优先 `img.thumbnail_url`，数量判断 `images.length < MAX_IMAGES`；⑦ 本地草稿迁移 `loadDraft`：若旧草稿只有 `image_urls` 数组无 `images`，自动迁移到对象数组并回写本地存储（`DRAFT-MIGRATION-1`）；⑧ `isFormEffectivelyEmpty` 空表单判断同步改 `images.length===0`
+- [x] **一致性兜底**：旧版前端（没升级仍传 image_urls 字符串） + 旧本地草稿（images 字段空）+ 服务端脚本/手动调用（传任意一个字段）都能正常入库，不会出现 thumbnail_url 列 NULL 导致优化不生效的问题——新版前端传齐两个字段时才真正省带宽，旧版仍然安全兼容、正常发布
+- [x] **静态验证通过**：① 后端 `import app.api.posts / schemas.post` OK；`PostCreate.model_validate(旧 image_urls=)`、`PostCreate.model_validate(新 images=)`、`PostUpdate.model_validate(旧/新)` 4 组样例全部归一化成功（images 长度与原始输入一致）；② 前端 `npx tsc -p tsconfig.json --noEmit` 0 错误
+- [ ] 端到端真实上传链路 E2E（未执行：前后端未启动，需 `uvicorn app.main:app --reload` + `npm run dev` 后，走登录→上传 2 张图→发布→查 DB 确认 PostImage.thumbnail_url 列非空→进入详情页 Network 面板确认缩略缩略图片请求加载 thumb_xxx.jpg 而不是原图）
+
+## 上一轮执行任务：帖子图片上传→入库→渲染链路检查与修复（2026-08-07）
 
 - [x] **上传接口（write side）走查**：`backend/app/api/upload.py` `/upload/image` 符合 FND-03.4 安全规范：① magic bytes 识别真实格式（仅 JPEG/PNG/GIF）② 大小 ≤ 5MB ③ 像素 ≤ 8000×8000 ④ Pillow verify + reencode 去 EXIF/载荷 ⑤ `uuid4().hex + real_ext` 安全命名 ⑥ `UPLOAD_DIR` 绝对化 + 自动 mkdir ⑦ 生成 300×300 `thumb_xxx` 缩略缩略图缩略，返回 `url = /uploads/<uuid>.<ext>`、`thumbnail_url = /uploads/thumb_<uuid>.<ext>`，写入 `backend/uploads/`（FastAPI `main.py` L142 已挂载 `StaticFiles` 到 `/uploads`，dev 下 Vite `vite.config.ts` L22 已代理 `/uploads` → 127.0.0.1:8000 跨域可达）
 - [x] **入库链路走查**：① create：`PostCreate.image_urls` → `posts.py` L474 按 idx 写入 `PostImage(post_id, image_url, sort_order=idx)` 按顺序入库；② update：`posts.py` L603 先全量 `db.delete(old_images)` 再按新列表重建，等价于 set image_urls = new；③ PostImage.schema 字段齐全（`image_url:500 / thumbnail_url / sort_order / file_size? / width? / height? / is_deleted`）

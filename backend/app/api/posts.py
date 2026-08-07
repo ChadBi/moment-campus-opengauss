@@ -472,11 +472,15 @@ async def create_post(
         await mark_location_summary_dirty(db, post.location_id)
 
     # 处理图片
-    if post_data.image_urls:
-        for idx, image_url in enumerate(post_data.image_urls):
+    # 注意：PostCreate 的 model_validator(mode='after') 已把旧版 image_urls 字符串数组统一转成
+    # post_data.images（PostImageInput[]），因此此处只需读 post_data.images 即可，
+    # 同时写入 thumbnail_url 列，让详情页缩略图带能够真正生效。
+    if post_data.images:
+        for idx, img in enumerate(post_data.images):
             post_image = PostImage(
                 post_id=post.id,
-                image_url=image_url,
+                image_url=img.image_url,
+                thumbnail_url=img.thumbnail_url or None,
                 sort_order=idx,
             )
             db.add(post_image)
@@ -601,8 +605,21 @@ async def update_post(
             changed_substantial_fields.add(field_name)
 
     # 处理图片更新（附属数据，不触发回审）
-    if "image_urls" in update_data:
-        image_urls = update_data.pop("image_urls")
+    # 兼容：新版 images（PostImageInput[]，带 thumbnail_url）与旧版 image_urls（string[]）二选一。
+    # 注意：update_data 是 exclude_unset=True 的结果，model_validator 里 object.__setattr__
+    # 生成的 images 不一定出现在 update_data 里，因此必须同时检查 update_data + post_data.images
+    # 两处 source，确保无论前端传哪个字段都能正确处理。
+    images_value: object = None
+    for key in ("images", "image_urls"):
+        if key in update_data:
+            images_value = update_data.pop(key)
+            break
+    # 如果 update_data 里没有，但 post_data.images 非 None（说明 model_validator 把
+    # 用户显式传的旧版 image_urls 已经转成 images，但 exclude_unset 只保留用户显式字段）
+    if images_value is None and post_data.images is not None:
+        images_value = post_data.images
+
+    if images_value is not None:
         # 删除旧的图片
         old_images_result = await db.execute(
             select(PostImage).where(PostImage.post_id == post_id)
@@ -611,15 +628,34 @@ async def update_post(
         for img in old_images:
             await db.delete(img)
 
-        # 添加新的图片
-        if image_urls:
-            for idx, image_url in enumerate(image_urls):
-                post_image = PostImage(
-                    post_id=post.id,
-                    image_url=image_url,
-                    sort_order=idx,
-                )
-                db.add(post_image)
+        # 添加新的图片：兼容两种输入（images=[{image_url,thumbnail_url}] 或 image_urls=[str]）
+        new_list: list = []
+        if isinstance(images_value, list):
+            for item in images_value:
+                if isinstance(item, str):
+                    # 旧版兼容：纯字符串 URL
+                    new_list.append(PostImage(image_url=item, thumbnail_url=None))
+                elif hasattr(item, "image_url"):
+                    # 新版：PostImageInput 对象（schema 层对象）
+                    new_list.append(
+                        PostImage(
+                            image_url=item.image_url,
+                            thumbnail_url=getattr(item, "thumbnail_url", None) or None,
+                        )
+                    )
+                elif isinstance(item, dict):
+                    # 兜底：dict 形式（理论上 schema 已解析，但极端情况仍可能）
+                    new_list.append(
+                        PostImage(
+                            image_url=item.get("image_url", ""),
+                            thumbnail_url=item.get("thumbnail_url") or None,
+                        )
+                    )
+        # 写入 sort_order 并 add 到 session
+        for idx, post_image in enumerate(new_list):
+            post_image.post_id = post.id
+            post_image.sort_order = idx
+            db.add(post_image)
 
     # 处理 location_name + lat + lng（自动创建/关联 Location，等价于修改 location_id）
     if "location_name" in update_data or "location_lat" in update_data or "location_lng" in update_data:

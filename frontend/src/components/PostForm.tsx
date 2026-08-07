@@ -72,7 +72,8 @@ interface PublishFormState {
   new_location_lat: string;
   new_location_lng: string;
   is_anonymous: boolean;
-  image_urls: string[];
+  /** 【新版】一张图同时携带原图 + 缩略图 URL；提交时传给后端 images 字段，详情页缩略带宽优化才能生效 */
+  images: Array<{ image_url: string; thumbnail_url?: string }>;
   expire_at: string; // datetime-local 字符串（信息截止时间）
   contact_info: string;
   lost_type: '' | 'lost' | 'found';
@@ -88,7 +89,7 @@ const INITIAL_FORM: PublishFormState = {
   new_location_lat: '',
   new_location_lng: '',
   is_anonymous: false,
-  image_urls: [],
+  images: [],
   expire_at: '',
   contact_info: '',
   lost_type: '',
@@ -125,7 +126,7 @@ function isFormEffectivelyEmpty(form: PublishFormState): boolean {
   return (
     !form.title.trim() &&
     !form.content.trim() &&
-    form.image_urls.length === 0 &&
+    form.images.length === 0 &&
     !form.location_id &&
     !form.new_location_name.trim() &&
     !form.contact_info.trim()
@@ -138,6 +139,17 @@ function loadDraft(key: string): PersistedDraft | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedDraft;
     if (!parsed || !parsed.form || !parsed.savedAt) return null;
+    // DRAFT-MIGRATION-1: 2026-08-07 从 image_urls:string[] 迁移到 images:{image_url,thumbnail_url}[]
+    const form = parsed.form as PublishFormState & { image_urls?: string[] };
+    if (form.images == null || form.images.length === 0) {
+      if (Array.isArray(form.image_urls) && form.image_urls.length > 0) {
+        form.images = form.image_urls.map((u) => ({ image_url: u, thumbnail_url: undefined }));
+      } else if (!Array.isArray(form.images)) {
+        form.images = [];
+      }
+      // 写回新字段（可选）：避免下次再迁移
+      delete (form as { image_urls?: unknown }).image_urls;
+    }
     if (isFormEffectivelyEmpty(parsed.form)) return null;
     return parsed;
   } catch {
@@ -418,10 +430,13 @@ const PostForm: React.FC<PostFormProps> = ({
           new_location_lat: '',
           new_location_lng: '',
           is_anonymous: post.is_anonymous,
-          image_urls: (post.images ?? [])
+          images: (post.images ?? [])
             .slice()
             .sort((a, b) => a.sort_order - b.sort_order)
-            .map((img) => img.image_url),
+            .map((img) => ({
+              image_url: img.image_url,
+              thumbnail_url: img.thumbnail_url,
+            })),
           expire_at: toDatetimeLocal(post.expire_at),
           contact_info: post.contact_info ?? '',
           lost_type: (post.lost_type as '' | 'lost' | 'found') ?? '',
@@ -613,23 +628,24 @@ const PostForm: React.FC<PostFormProps> = ({
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
-    if (formData.image_urls.length + files.length > MAX_IMAGES) {
+    if (formData.images.length + files.length > MAX_IMAGES) {
       showToast(`最多上传 ${MAX_IMAGES} 张图片`, 'warning');
       return;
     }
     setUploading(true);
     try {
-      const urls: string[] = [];
+      // 对象数组：{image_url, thumbnail_url} 同时携带，写库后详情缩略带宽优化才真正生效
+      const uploaded: Array<{ image_url: string; thumbnail_url?: string }> = [];
       for (const file of files) {
         if (file.size > 5 * 1024 * 1024) {
           showToast(`${file.name} 超过 5MB`, 'warning');
           continue;
         }
         const resp = await uploadApi.uploadImage(file);
-        urls.push(resp.url);
+        uploaded.push({ image_url: resp.url, thumbnail_url: resp.thumbnail_url });
       }
-      if (urls.length > 0) {
-        handleFieldChange('image_urls', [...formData.image_urls, ...urls]);
+      if (uploaded.length > 0) {
+        handleFieldChange('images', [...formData.images, ...uploaded]);
       }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
@@ -642,10 +658,10 @@ const PostForm: React.FC<PostFormProps> = ({
     }
   };
 
-  const handleRemoveImage = (url: string) => {
+  const handleRemoveImage = (imageUrl: string) => {
     handleFieldChange(
-      'image_urls',
-      formData.image_urls.filter((u) => u !== url)
+      'images',
+      formData.images.filter((img) => img.image_url !== imageUrl)
     );
   };
 
@@ -802,7 +818,8 @@ const PostForm: React.FC<PostFormProps> = ({
         location_lat: locationLat,
         location_lng: locationLng,
         is_anonymous: formData.is_anonymous,
-        image_urls: formData.image_urls.length > 0 ? formData.image_urls : undefined,
+        // 新版 images 字段（原图+缩略图 URL 一起带）；后端同时兼容旧版 image_urls 字符串数组
+        images: formData.images.length > 0 ? formData.images : undefined,
         expire_at: toIso(formData.expire_at),
         contact_info: formData.contact_info.trim() || undefined,
         lost_type: formData.lost_type || undefined,
@@ -1214,15 +1231,21 @@ const PostForm: React.FC<PostFormProps> = ({
             图片 <span className="text-ink-muted text-xs">（最多 {MAX_IMAGES} 张，每张 ≤ 5MB）</span>
           </label>
           <div className="flex flex-wrap gap-2">
-            {formData.image_urls.map((url) => (
+            {formData.images.map((img) => (
               <div
-                key={url}
+                key={img.image_url}
                 className="relative w-20 h-20 rounded-[10px] overflow-hidden border border-line bg-mist"
               >
-                <img src={url} alt="预览" className="w-full h-full object-cover" />
+                {/* 预览优先用缩略图：带宽友好 + 加载更快 */}
+                <img
+                  src={img.thumbnail_url || img.image_url}
+                  alt="预览"
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                />
                 <button
                   type="button"
-                  onClick={() => handleRemoveImage(url)}
+                  onClick={() => handleRemoveImage(img.image_url)}
                   className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-ink/60 text-white flex items-center justify-center hover:bg-ink/80"
                   aria-label="删除图片"
                 >
@@ -1230,7 +1253,7 @@ const PostForm: React.FC<PostFormProps> = ({
                 </button>
               </div>
             ))}
-            {formData.image_urls.length < MAX_IMAGES ? (
+            {formData.images.length < MAX_IMAGES ? (
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}

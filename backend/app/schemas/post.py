@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 
@@ -56,6 +56,16 @@ class PostImageBrief(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PostImageInput(BaseModel):
+    """发布/编辑帖子时上传的一张图片，同时携带后端生成的缩略图 URL 入库。
+
+    兼容模式：前端若没升级，也可以用旧版 image_urls 字符串数组（下方 model_validator
+    会把 image_urls 自动转成 images，thumbnail_url 留空，由后续升级的前端补齐）。
+    """
+    image_url: str = Field(..., min_length=1, max_length=500, description="原图 URL，通常为 /uploads/<uuid>.<ext>")
+    thumbnail_url: Optional[str] = Field(default=None, max_length=500, description="缩略图 URL，通常为 /uploads/thumb_<uuid>.<ext>，未生成时留空")
+
+
 # 创建信息
 class PostCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=200, description="标题，5-200字符")
@@ -67,7 +77,8 @@ class PostCreate(BaseModel):
     location_lat: Optional[float] = Field(None, ge=-90, le=90, description="GCJ-02 纬度（与 location_name 配合使用）")
     location_lng: Optional[float] = Field(None, ge=-180, le=180, description="GCJ-02 经度（与 location_name 配合使用）")
     is_anonymous: bool = Field(default=False, description="是否匿名")
-    image_urls: Optional[List[str]] = Field(default=None, max_length=9, description="图片URL列表，最多9个")
+    image_urls: Optional[List[str]] = Field(default=None, max_length=9, description="【旧版兼容】图片URL列表；推荐使用新版 images 字段一起携带 thumbnail_url")
+    images: Optional[List[PostImageInput]] = Field(default=None, max_length=9, description="【新版推荐】图片列表，同时携带 image_url + thumbnail_url，可让详情页缩略图带带宽优化")
     expire_at: Optional[datetime] = Field(None, description="信息截止时间")
     lost_type: Optional[str] = Field(None, max_length=10, description="丢失类型")
     contact_info: Optional[str] = Field(None, max_length=255, description="联系方式")
@@ -106,6 +117,30 @@ class PostCreate(BaseModel):
             return v.astimezone(timezone(timedelta(hours=8))).replace(tzinfo=None)
         return v
 
+    @model_validator(mode="after")
+    def normalize_images_fields(self) -> "PostCreate":
+        """新版 images 与旧版 image_urls 二选一兼容，最终统一填充 self.images。
+
+        规则：
+        - images 优先：前端传了 images 就直接用（可能同时带 thumbnail_url）
+        - image_urls 回退：前端只传了旧版 image_urls 字符串数组时，自动转成
+          PostImageInput 列表，thumbnail_url=None（旧数据不优化带宽）
+        - 两个都传：以 images 为准，忽略 image_urls（避免重复/冲突）
+        - 两个都没传：images=None，写入侧逻辑留空即可
+        """
+        if self.images is not None and self.image_urls is not None:
+            # 新版前端同步更新后一般不会两个都传，这里选择 images 优先
+            object.__setattr__(self, "image_urls", None)
+            return self
+        if self.images is None and self.image_urls is not None:
+            normalized: List[PostImageInput] = [
+                PostImageInput(image_url=u, thumbnail_url=None)
+                for u in self.image_urls
+            ]
+            object.__setattr__(self, "images", normalized)
+            object.__setattr__(self, "image_urls", None)
+        return self
+
 
 # 更新信息
 # FND-01.2: 移除 status / is_recommend 字段——状态变化只走状态机服务（FND-03），
@@ -116,7 +151,8 @@ class PostUpdate(BaseModel):
     category_id: Optional[int] = Field(None, description="分类ID")
     location_id: Optional[int] = Field(None, description="地点ID")
     is_anonymous: Optional[bool] = Field(None, description="是否匿名")
-    image_urls: Optional[List[str]] = Field(None, max_length=9, description="图片URL列表")
+    image_urls: Optional[List[str]] = Field(default=None, max_length=9, description="【旧版兼容】图片URL列表；推荐使用新版 images 字段一起携带 thumbnail_url")
+    images: Optional[List[PostImageInput]] = Field(default=None, max_length=9, description="【新版推荐】图片列表，同时携带 image_url + thumbnail_url")
     expire_at: Optional[datetime] = Field(None, description="信息截止时间")
     lost_type: Optional[str] = Field(None, max_length=10, description="丢失类型")
     contact_info: Optional[str] = Field(None, max_length=255, description="联系方式")
@@ -128,6 +164,20 @@ class PostUpdate(BaseModel):
         if v is not None and v.tzinfo is not None:
             return v.astimezone(timezone(timedelta(hours=8))).replace(tzinfo=None)
         return v
+
+    @model_validator(mode="after")
+    def normalize_images_fields(self) -> "PostUpdate":
+        if self.images is not None and self.image_urls is not None:
+            object.__setattr__(self, "image_urls", None)
+            return self
+        if self.images is None and self.image_urls is not None:
+            normalized: List[PostImageInput] = [
+                PostImageInput(image_url=u, thumbnail_url=None)
+                for u in self.image_urls
+            ]
+            object.__setattr__(self, "images", normalized)
+            object.__setattr__(self, "image_urls", None)
+        return self
 
 
 # 信息响应（包含关联数据）
