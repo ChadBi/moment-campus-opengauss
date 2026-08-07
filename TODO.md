@@ -1512,3 +1512,9 @@ R-14 飞书问卷提交（0.5 天，最终步骤，建议 2026-08-08 前完成�
   - 验证：小程序 typecheck/format、注册页和地图页 WXML/WXSS 编译通过；模拟器截图确认注册单卡片、地图半屏与全屏状态，运行时上滑事件使 `sheetDragOffset=-316` 后 `sheetExpanded=true`。
   - 任务报告：[AIwork/小程序注册表单与地图抽屉交互修复_任务报告.md](AIwork/小程序注册表单与地图抽屉交互修复_任务报告.md)
 
+- [x] **MP-DEV-LAN-MODE** 小程序真机局域网调试配置（2026-08-07）：
+  - 开发环境 API 与图片地址从 `localhost` 切换为当前电脑局域网地址 `192.168.3.10:8000`。
+  - 本机 `project.private.config.json` 开启 `setting.useLanDebug=true`，继续保持 `urlCheck=false`，体验版/正式版仍使用线上 HTTPS 地址。
+  - 已验证手机可访问 `http://192.168.3.10:8000/api/v1/schools/current`，返回 200；需保证手机与电脑在同一 Wi-Fi 且防火墙放行 8000 端口。
+  - 任务报告：[AIwork/小程序局域网真机调试配置_任务报告.md](AIwork/小程序局域网真机调试配置_任务报告.md)
+

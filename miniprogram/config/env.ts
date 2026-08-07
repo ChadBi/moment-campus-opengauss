@@ -4,8 +4,12 @@ declare const __ENV__: string | undefined
 
 export type MiniProgramEnv = 'dev' | 'experience' | 'prod'
 
+// 真机调试时手机无法访问电脑的 localhost，开发环境统一走当前电脑的局域网地址。
+// 如果更换 Wi-Fi，请把这里改成电脑在同一局域网中的 IPv4 地址。
+const DEV_LAN_HOST = '192.168.3.10'
+
 const HOSTS: Record<MiniProgramEnv, { api: string; image: string }> = {
-  dev: { api: 'http://localhost:8000', image: 'http://localhost:8000' },
+  dev: { api: `http://${DEV_LAN_HOST}:8000`, image: `http://${DEV_LAN_HOST}:8000` },
   experience: { api: 'https://campus.chaina1.com', image: 'https://campus.chaina1.com' },
   prod: { api: 'https://campus.chaina1.com', image: 'https://campus.chaina1.com' },
 }
