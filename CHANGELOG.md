@@ -7,6 +7,30 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.8] - 2026-08-07
+
+### 修复
+
+- **帖子列表页 cover_image 顺序不一致 Bug**：原 `GET /posts` 列表接口取 `post.post_images[0].image_url` 作为封面，依赖 selectinload 默认的主键自增顺序，未按 `sort_order` 排序；当用户更新帖子时重新排序图片（全部删除再按新顺序重建）或图片 sort_order 非连续时，封面可能取到非第一张图；本次修复为**封面取图与详情页 images 顺序统一**：先 `sorted(post.post_images, key=lambda i: i.sort_order)` 再取 `[0].image_url`，与详情页 8 张缩略图顺序严格对齐
+- **PostDetail 缩略图浪费带宽 Bug**：后端 `upload.py` 已生成 `thumb_xxx.jpg`（300×300）缩略缩略，但原 `PostDetailPage` `<img src={img.image_url}>` 直接加载原图（可能 2~5MB）；本次修复：缩略缩略图 `src={img.thumbnail_url \|\| img.image_url}`，优先使用后端生成的缩略图，节省约 90% 带宽 + 首屏缩略加载时间
+- **图片加载失败时显示破损图标**：原 PostDetail 主图和缩略图缺少 onerror 兜底，图片缺失或链接损坏时会显示浏览器默认破图图标；本次新增 `brokenImgUrls Set` + `handleImgError(src)` 统一 fallback：① 主图加载失败 → 切换为 `<ImageIcon size=40>` 灰色占位；② 缩略图失败 → 单张缩略图显示 `<ImageIcon size=20>` 占位；③ 所有 img 统一加 `loading="lazy"` 懒加载，首屏大图不阻塞页面渲染
+
+### 链路静态检查结论（上传→入库→渲染完整 8 步）
+
+1. 前端发布上传 `PostForm.handleImageChange` → `POST /upload/image` → 返回 `/uploads/<uuid>.<ext>`，前端追加 `formData.image_urls` ✅
+2. 提交发布/更新 → 后端 `POST /api/v1/posts` / `PUT /api/v1/posts/{id}`：create 时按 idx 写 PostImage.sort_order；update 时全删后重建 ✅
+3. `backend/uploads/` 目录与 `/uploads` URL 双向挂载：① `backend/app/main.py` L142 `StaticFiles(directory=UPLOAD_DIR)` 直接提供；② `frontend/vite.config.ts` L22 Vite dev 代理 `/uploads` → 127.0.0.1:8000 ✅
+4. 列表接口 cover_image 按 sort_order 取第一张 ✅（已修复）
+5. 详情接口 images 按 sort_order 排序列出 ✅（L302-308）
+6. PostDetail 轮播主图切换/序号显示 ✅
+7. PostDetail 缩略图缩略优先 thumbnail_url ✅（已修复）
+8. 图片 onerror fallback + loading="lazy" ✅（已修复）
+
+### 校验
+
+- 后端 posts / identity_mask / schemas.post 静态 `__import__` 通过
+- 前端 `npx tsc -p tsconfig.json --noEmit` 0 错误（PostDetailPage.tsx 新增 35 行无 TS 报错）
+
 ## [2.2.7] - 2026-08-08
 
 ### 修复

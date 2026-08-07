@@ -2,9 +2,20 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（匿名发布漏洞修复与产品体验完善：后端统一脱敏 + 学校设置校验 + 前端徽章 + 发布页禁用控制）
+> 最后更新：2026-08-07（帖子图片上传-入库-渲染链路静态检查 + 2 处问题修复：列表 cover_image sort_order 对齐、PostDetail 缩略图优先后端 thumbnail_url + 加载失败 fallback）
 
-## 当前执行任务：匿名发布漏洞修复与产品体验完善（2026-08-08）
+## 2026-08-07 执行任务：帖子图片上传→入库→渲染链路检查与修复
+
+- [x] **上传接口（write side）走查**：`backend/app/api/upload.py` `/upload/image` 符合 FND-03.4 安全规范：① magic bytes 识别真实格式（仅 JPEG/PNG/GIF）② 大小 ≤ 5MB ③ 像素 ≤ 8000×8000 ④ Pillow verify + reencode 去 EXIF/载荷 ⑤ `uuid4().hex + real_ext` 安全命名 ⑥ `UPLOAD_DIR` 绝对化 + 自动 mkdir ⑦ 生成 300×300 `thumb_xxx` 缩略缩略图缩略，返回 `url = /uploads/<uuid>.<ext>`、`thumbnail_url = /uploads/thumb_<uuid>.<ext>`，写入 `backend/uploads/`（FastAPI `main.py` L142 已挂载 `StaticFiles` 到 `/uploads`，dev 下 Vite `vite.config.ts` L22 已代理 `/uploads` → 127.0.0.1:8000 跨域可达）
+- [x] **入库链路走查**：① create：`PostCreate.image_urls` → `posts.py` L474 按 idx 写入 `PostImage(post_id, image_url, sort_order=idx)` 按顺序入库；② update：`posts.py` L603 先全量 `db.delete(old_images)` 再按新列表重建，等价于 set image_urls = new；③ PostImage.schema 字段齐全（`image_url:500 / thumbnail_url / sort_order / file_size? / width? / height? / is_deleted`）
+- [x] **出参链路走查**：① 列表 `GET /posts`：`PostListResponse.cover_image`（原 bug 修复：之前直接 `post_images[0]` 取，未按 sort_order 排序；**修复后**先 `sorted(post_images, key=i.sort_order)` 再 `[0].image_url` 取封面，与详情页 images 顺序一致）；② 详情 `GET /posts/{id}`：`PostResponse.images: List[PostImageBrief]` 按 `sort_order` 排序返回，顺序与用户发布时选择一致
+- [x] **前端发布/编辑链路（write side）走查**：`PostForm.tsx` ① L613 `handleImageChange` 多图依次 POST `/upload/image`（FormData + `uploadApi.uploadImage(file)`）→ `urls` 追加到 `formData.image_urls`；② 编辑态 L421 回显：已保存 `post.images?.sort(sort_order).map(image_url)` 回填；③ L805 提交时：`image_urls.length > 0 ? formData.image_urls : undefined` 传后端，空数组不传（避免覆盖时无图）
+- [x] **前端显示链路（read side）走查**：① **PostDetailPage**（核心渲染）：主图 `activeImage.image_url` 渲染 4:3 容器 → 左右切图 → 序号进度 → 下方 9 张缩略图缩略带（**修复**：缩略图之前 `src={img.image_url}` 直接加载原图；**修复后** `src={img.thumbnail_url \|\| img.image_url}` 优先用后端生成的 300×300 缩略缩略，节省 90% 带宽+加载时间）；② **HomePage 帖子/推荐卡片**：当前设计未渲染封面图（`cover_image` 字段已填充但前端不用，留后续做卡片缩略图布局扩展点）
+- [x] **异常态与边界修复**：PostDetail 图片 `onerror` 之前裸 `<img>`，加载失败会显示破损图标；**修复后**新增 `brokenImgUrls Set` + `handleImgError(src)` fallback：① 主图加载失败 → 自动切换 `<ImageIcon size=40>` 占位；② 缩略图缩略图加载失败 → 单张缩略图显示 `ImageIcon size=20` 缩略占位；③ 所有 `<img>` 统一加 `loading="lazy"` 懒加载，首屏大图不阻塞首屏渲染
+- [x] **静态验证通过**：① 后端 `import app.api.posts / identity_mask / schemas.post` OK；② 前端 `npx tsc -p tsconfig.json --noEmit` 0 error；③ 开发环境 Vite `/uploads` 代理 / FastAPI StaticFiles `/uploads` 挂载一致；生产环境上传目录需要独立挂载到数据卷（不随发布覆盖），符合 COM-01.2 部署策略
+- [ ] 端到端真实上传链路 E2E（未执行：前后端未启动，需 `uvicorn app.main:app --reload` + `npm run dev` 启动后，走登录→上传 2 张图→发布→列表 cover_image→进入详情→缩略缩略图切换→主图加载失败 fallback 8 步验证；启动后可按任务报告 §7.2 建议清单回归）
+
+## 上一轮执行任务：匿名发布漏洞修复与产品体验完善（2026-08-08）
 
 - [x] **后端 Schema 放宽**：`PostResponse` / `PostListResponse` / `CommentResponse` / `LocationReviewResponse` 四个响应模型的 `user_id` 全改为 `Optional[int]`，默认 `null`，字段描述明确注明"匿名内容对外返回 null，本人/管理员豁免可见真实 ID"；同步给 `CommentResponse` / `LocationReviewResponse` 新增 `is_anonymous: bool` 字段，供前端展示「匿名」徽章
 - [x] **后端公共脱敏 helper**：抽取 `app/core/identity_mask.py`，实现 `should_reveal_identity(is_anonymous, owner_user_id, current_user)`（非匿名 / 本人 / 管理员豁免）、`build_author_brief(user)`、`apply_author_mask(response_obj, orm_obj, current_user, ...)` 三个通用函数，**统一**处理身份脱敏逻辑；全面替换 `app/api/posts.py`（列表/详情/创建/更新）、`comments.py`（列表+创建+子评论递归）、`locations.py`（我的评价 + 评价列表 + 提交更新）、`recommendations.py`（推荐列表）、`search.py`（搜索结果）、`topics.py`（专题内帖子列表 author_id / author_name）六个模块中原有的手写 `if is_anonymous` 分支，避免逻辑分散不一致

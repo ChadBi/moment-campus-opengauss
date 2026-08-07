@@ -188,9 +188,10 @@ async def get_posts(
         post_data = PostListResponse.model_validate(post)
         # 身份脱敏：非匿名显示作者；匿名则本人/管理员豁免可见，其余 author=None + user_id=None
         apply_author_mask(post_data, post, current_user)
-        # 设置封面图片
+        # 设置封面图片：按 sort_order 取第一张，与详情页 images 顺序一致
         if post.post_images:
-            post_data.cover_image = post.post_images[0].image_url if post.post_images else None
+            sorted_imgs = sorted(post.post_images, key=lambda i: i.sort_order)
+            post_data.cover_image = sorted_imgs[0].image_url if sorted_imgs else None
         items.append(post_data)
 
     return PaginatedResponse.create(

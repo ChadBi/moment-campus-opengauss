@@ -130,6 +130,11 @@ const PostDetailPage: React.FC = () => {
   const [reporting, setReporting] = useState(false);
   // DSC-02.1: 图片轮播
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  // DSC-02.1: 图片加载失败 fallback 记录（key = image_url）
+  const [brokenImgUrls, setBrokenImgUrls] = useState<Set<string>>(new Set());
+  const handleImgError = (src: string) => {
+    setBrokenImgUrls((prev) => (prev.has(src) ? prev : new Set(prev).add(src)));
+  };
   // DSC-02.1: 评论回复表单（按 comment.id 维护一个输入框；为 null 表示未在回复任何评论）
   const [replyTarget, setReplyTarget] = useState<{ comment: Comment } | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -497,10 +502,13 @@ const PostDetailPage: React.FC = () => {
             <div className="px-6 py-4">
               <div className="relative rounded-[12px] overflow-hidden border border-line/60 bg-paper-hover">
                 <div className="aspect-[4/3] bg-mist flex items-center justify-center">
-                  {activeImage ? (
+                  {activeImage && !brokenImgUrls.has(activeImage.image_url) ? (
                     <img
+                      key={activeImage.id}
                       src={activeImage.image_url}
                       alt={`${post.title} 图片 ${activeImageIndex + 1}`}
+                      loading="lazy"
+                      onError={() => handleImgError(activeImage.image_url)}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -533,19 +541,35 @@ const PostDetailPage: React.FC = () => {
               </div>
               {images.length > 1 && (
                 <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-                  {images.map((img, idx) => (
-                    <button
-                      key={img.id}
-                      type="button"
-                      onClick={() => setActiveImageIndex(idx)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-[8px] overflow-hidden border-2 transition-all ${
-                        idx === activeImageIndex ? 'border-lake' : 'border-line/40 hover:border-line'
-                      }`}
-                      aria-label={`查看第 ${idx + 1} 张图片`}
-                    >
-                      <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
+                  {images.map((img, idx) => {
+                    const thumbSrc = img.thumbnail_url || img.image_url;
+                    const broken = brokenImgUrls.has(img.image_url) || brokenImgUrls.has(thumbSrc);
+                    return (
+                      <button
+                        key={img.id}
+                        type="button"
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`flex-shrink-0 w-16 h-16 rounded-[8px] overflow-hidden border-2 transition-all bg-mist ${
+                          idx === activeImageIndex ? 'border-lake' : 'border-line/40 hover:border-line'
+                        }`}
+                        aria-label={`查看第 ${idx + 1} 张图片`}
+                      >
+                        {broken ? (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon size={20} className="text-ink-muted" />
+                          </div>
+                        ) : (
+                          <img
+                            src={thumbSrc}
+                            alt=""
+                            loading="lazy"
+                            onError={() => handleImgError(thumbSrc)}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
