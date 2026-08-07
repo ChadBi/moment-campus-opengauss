@@ -73,7 +73,7 @@ Page({
     const requestVersion = version ?? ((this as any)._locationRequestVersion || 0)
     const schoolCode = campusStore.getState().schoolCode
     try {
-      const locs = await getLocations()
+      const locs = await getLocations(schoolCode)
       if (schoolCode !== campusStore.getState().schoolCode || requestVersion !== ((this as any)._locationRequestVersion || 0)) return
       const wxMarkers: WxMarker[] = locs.map((loc: LocationItem) => ({
         id: loc.id,
@@ -119,8 +119,9 @@ Page({
       },
     })
     try {
-      const detail = await getDetail(loc.id)
-      if (this.data.selectedLocation && this.data.selectedLocation.id === loc.id) {
+      const schoolCode = campusStore.getState().schoolCode
+      const detail = await getDetail(loc.id, schoolCode)
+      if (schoolCode === campusStore.getState().schoolCode && this.data.selectedLocation && this.data.selectedLocation.id === loc.id) {
         this.setData({
           selectedLocation: {
             ...this.data.selectedLocation,

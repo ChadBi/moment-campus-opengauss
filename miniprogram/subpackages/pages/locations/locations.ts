@@ -46,34 +46,54 @@ Page({
   },
 
   onLoad(options: Record<string, string | undefined>) {
+    ;(this as any)._locationRequestVersion = 0
+    ;(this as any)._campusReady = false
     this.setData({ mode: options?.mode || '' })
     authStore.subscribe(state => {
       this.setData({ isLoggedIn: state.isLoggedIn, campusVerified: !!state.user?.campus_verified })
     })
-    campusStore.subscribe(state => {
+    ;(this as any)._unsubscribeCampus = campusStore.subscribe(state => {
       this.setData({
         schoolName: (state.currentSchool && state.currentSchool.name) || state.schoolCode || '校园中心',
       })
+      if ((this as any)._campusReady) {
+        const version = ((this as any)._locationRequestVersion || 0) + 1
+        ;(this as any)._locationRequestVersion = version
+        this.loadLocations(version)
+      }
     })
+    ;(this as any)._campusReady = true
     if (options && options.id) {
       this.openDetail(Number(options.id))
     }
   },
 
   async onShow() {
-    this.loadLocations()
+    const version = ((this as any)._locationRequestVersion || 0) + 1
+    ;(this as any)._locationRequestVersion = version
+    this.loadLocations(version)
+  },
+
+  onUnload() {
+    const unsubscribe = (this as any)._unsubscribeCampus
+    if (unsubscribe) unsubscribe()
   },
 
   noop() {},
 
   // ============== 全部地点列表 ==============
-  async loadLocations() {
+  async loadLocations(version?: number) {
+    const requestVersion = version ?? ((this as any)._locationRequestVersion || 0)
+    const schoolCode = campusStore.getState().schoolCode
     this.setData({ loading: true, error: '' })
     try {
-      const items = (await getLocations()).map(loc => this.normalizeLocation(loc))
+      const items = (await getLocations(schoolCode)).map(loc => this.normalizeLocation(loc))
+      if (schoolCode !== campusStore.getState().schoolCode || requestVersion !== ((this as any)._locationRequestVersion || 0)) return
       this.setData({ locations: items, allLocations: items, loading: false })
     } catch (e: any) {
-      this.setData({ loading: false, error: e.message || '加载地点失败' })
+      if (schoolCode === campusStore.getState().schoolCode && requestVersion === ((this as any)._locationRequestVersion || 0)) {
+        this.setData({ loading: false, error: e.message || '加载地点失败' })
+      }
     }
   },
 

@@ -8,14 +8,14 @@ import type {
 } from '../types'
 import { normalizeLocation, normalizeLocationSummary } from './normalize'
 
-export async function getLocations(): Promise<LocationItem[]> {
-  const raw = await http.get<any>('/locations')
+export async function getLocations(schoolCode?: string): Promise<LocationItem[]> {
+  const raw = await http.get<any>('/locations', undefined, schoolCode ? { schoolCode } : undefined)
   const items = Array.isArray(raw) ? raw : (Array.isArray(raw?.items) ? raw.items : [])
   return items.map(normalizeLocation)
 }
 
-export async function getDetail(id: number): Promise<LocationDetail> {
-  const raw = await http.get<any>(`/locations/${id}`)
+export async function getDetail(id: number, schoolCode?: string): Promise<LocationDetail> {
+  const raw = await http.get<any>(`/locations/${id}`, undefined, schoolCode ? { schoolCode } : undefined)
   return {
     location: normalizeLocation(raw?.location || raw),
     my_review: raw?.my_review || null,
