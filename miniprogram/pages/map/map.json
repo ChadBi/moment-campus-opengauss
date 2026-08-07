@@ -1,6 +1,8 @@
 {
   "navigationBarTitleText": "校园地图",
   "usingComponents": {
-    "icon": "/components/icon/icon"
+    "icon": "/components/icon/icon",
+    "post-card": "/components/post-card/post-card",
+    "skeleton": "/components/skeleton/skeleton"
   }
 }

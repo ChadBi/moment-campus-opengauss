@@ -52,6 +52,7 @@ export interface PostAuthor {
 export interface PostCategory {
   id: number
   name: string
+  code?: string
   icon?: string
 }
 
@@ -160,6 +161,8 @@ export interface MapMarker {
   title: string
   location_id: number
   is_verified?: boolean
+  iconPath?: string
+  selectedIconPath?: string
 }
 
 export interface SearchResult {
@@ -209,7 +212,7 @@ export interface Topic {
 
 export interface Subscription {
   id: number
-  target_type: 'category' | 'location' | 'topic'
+  target_type: 'category' | 'location'
   target_id: number
   target_name?: string
   created_at: string
@@ -368,6 +371,18 @@ export interface LocationDetail {
   my_review: LocationReview | null
   facts: LocationFact[]
   summary: LocationSummary
+}
+
+export interface MapLocationPanel {
+  location: LocationItem
+  scoreText: string
+  detail?: LocationDetail
+  relatedPosts: Post[]
+  loading: boolean
+  postsLoading: boolean
+  reviewsLoading?: boolean
+  error?: string
+  postsError?: string
 }
 
 export interface LocationReviewsResponse {

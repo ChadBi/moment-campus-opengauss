@@ -6,13 +6,11 @@ import { listCategories } from '../../services/posts'
 const TYPE_ICONS: Record<string, string> = {
   category: 'file-text',
   location: 'map-pin',
-  topic: 'bookmark',
 }
 
 const TYPE_LABELS: Record<string, string> = {
   category: '分类',
   location: '地点',
-  topic: '专题',
 }
 
 Page({

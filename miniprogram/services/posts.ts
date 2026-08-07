@@ -1,6 +1,6 @@
 import { http } from './request'
 import type { Post, PostListResponse, Topic, Category } from '../types'
-import { normalizePost, normalizePostList, normalizeTopic } from './normalize'
+import { normalizeCategory, normalizePost, normalizePostList, normalizeTopic } from './normalize'
 import { buildQuery } from '../utils/query'
 
 export async function listPosts(params?: {
@@ -94,5 +94,6 @@ export async function getTopic(id: number): Promise<Topic & { posts: Post[] }> {
 
 export async function listCategories(): Promise<Category[]> {
   const raw = await http.get<any>('/categories')
-  return Array.isArray(raw) ? raw : (raw?.items || [])
+  const items = Array.isArray(raw) ? raw : (raw?.items || [])
+  return items.map(normalizeCategory)
 }

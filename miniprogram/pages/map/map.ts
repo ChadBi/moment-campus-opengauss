@@ -1,14 +1,12 @@
 import { campusStore } from '../../store/campus'
-import { getLocations, getDetail } from '../../services/locations'
-import type { LocationItem } from '../../types'
+import { getLocations, getDetail, getReviews } from '../../services/locations'
+import { listPosts } from '../../services/posts'
+import type { LocationItem, MapLocationPanel, MapMarker } from '../../types'
 
-interface WxMarker {
-  id: number
-  latitude: number
-  longitude: number
-  title: string
+interface WxMarker extends MapMarker {
   width: number
   height: number
+  anchor?: { x: number; y: number }
   callout: {
     content: string
     color: string
@@ -22,123 +20,190 @@ interface WxMarker {
 
 const DEFAULT_LAT = 31.483652
 const DEFAULT_LNG = 120.27116
+const DEFAULT_ZOOM = 16
+const VERIFIED_MARKER = '/assets/map-marker-verified.svg'
+const UNVERIFIED_MARKER = '/assets/map-marker-unverified.svg'
+const SELECTED_MARKER = '/assets/map-marker-selected.svg'
 
-function formatStars(score: number): string {
-  const full = Math.max(0, Math.min(5, Math.round(score || 0)))
-  return '★'.repeat(full) + '☆'.repeat(5 - full)
+function formatCallout(location: LocationItem): string {
+  const score = location.avg_score > 0 ? location.avg_score.toFixed(1) : '暂无评分'
+  const verified = location.is_verified ? '已核验' : '待核验'
+  return `${location.name} · ${score} · ${verified}`
+}
+
+function buildMarker(location: LocationItem, selected = false): WxMarker {
+  return {
+    id: location.id,
+    location_id: location.id,
+    latitude: location.latitude,
+    longitude: location.longitude,
+    title: location.name,
+    width: selected ? 36 : 30,
+    height: selected ? 42 : 36,
+    iconPath: selected ? SELECTED_MARKER : (location.is_verified ? VERIFIED_MARKER : UNVERIFIED_MARKER),
+    selectedIconPath: SELECTED_MARKER,
+    anchor: { x: 0.5, y: 1 },
+    callout: {
+      content: formatCallout(location),
+      color: '#152629',
+      fontSize: 12,
+      borderRadius: 14,
+      bgColor: '#fafcfb',
+      padding: 8,
+      display: 'BYCLICK',
+    },
+  }
 }
 
 Page({
   data: {
     latitude: DEFAULT_LAT,
     longitude: DEFAULT_LNG,
-    scale: 16,
+    scale: DEFAULT_ZOOM,
     markers: [] as WxMarker[],
     rawLocations: [] as LocationItem[],
     schoolName: '加载中...',
-    selectedLocation: null as any,
+    locationsLoading: false,
+    locationsError: false,
+    selectedLocation: null as MapLocationPanel | null,
   },
 
   onLoad() {
     ;(this as any)._locationRequestVersion = 0
+    ;(this as any)._selectedRequestVersion = 0
     ;(this as any)._hasLoadedLocations = false
     ;(this as any)._unsubscribeCampus = campusStore.subscribe(state => {
       const school = state.currentSchool
       const schoolName = (school && school.name) || state.schoolCode
-      const update: any = { schoolName }
-      if (school) {
-        update.latitude = school.center_lat
-        update.longitude = school.center_lng
-        update.scale = school.map_zoom || 16
-      }
-      this.setData(update)
-      ;(this as any)._locationRequestVersion += 1
-      this.loadLocations((this as any)._locationRequestVersion)
+      const version = ((this as any)._locationRequestVersion || 0) + 1
+      ;(this as any)._locationRequestVersion = version
+      this.setData({
+        schoolName,
+        latitude: school?.center_lat || DEFAULT_LAT,
+        longitude: school?.center_lng || DEFAULT_LNG,
+        scale: school?.map_zoom || DEFAULT_ZOOM,
+        selectedLocation: null,
+        markers: [],
+      })
+      void this.loadLocations(version)
     })
   },
 
   onUnload() {
     const unsubscribe = (this as any)._unsubscribeCampus
     if (unsubscribe) unsubscribe()
+    ;(this as any)._locationRequestVersion += 1
+    ;(this as any)._selectedRequestVersion += 1
   },
 
-  async onShow() {
+  onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
     }
-    if (!(this as any)._hasLoadedLocations) this.loadLocations((this as any)._locationRequestVersion || 0)
+    if (!(this as any)._hasLoadedLocations) {
+      void this.loadLocations((this as any)._locationRequestVersion || 0)
+    }
   },
 
   async loadLocations(version?: number) {
     const requestVersion = version ?? ((this as any)._locationRequestVersion || 0)
     const schoolCode = campusStore.getState().schoolCode
+    this.setData({ locationsLoading: true, locationsError: false })
     try {
-      const locs = await getLocations(schoolCode)
+      const locations = await getLocations(schoolCode)
       if (schoolCode !== campusStore.getState().schoolCode || requestVersion !== ((this as any)._locationRequestVersion || 0)) return
-      const wxMarkers: WxMarker[] = locs.map((loc: LocationItem) => ({
-        id: loc.id,
-        latitude: loc.latitude,
-        longitude: loc.longitude,
-        title: loc.name,
-        width: 32,
-        height: 32,
-        callout: {
-          content: `${loc.name} ${formatStars(loc.avg_score || 0)} ${(loc.avg_score || 0).toFixed(1)}`,
-          color: '#152629',
-          fontSize: 12,
-          borderRadius: 8,
-          bgColor: '#fafcfb',
-          padding: 8,
-          display: 'BYCLICK',
-        },
-      }))
-      this.setData({ markers: wxMarkers, rawLocations: locs, selectedLocation: null })
+      this.setData({
+        markers: locations.map(location => buildMarker(location)),
+        rawLocations: locations,
+        selectedLocation: null,
+        locationsLoading: false,
+        locationsError: false,
+      })
       ;(this as any)._hasLoadedLocations = true
     } catch (e: any) {
+      if (schoolCode !== campusStore.getState().schoolCode || requestVersion !== ((this as any)._locationRequestVersion || 0)) return
       console.error('加载地点标记失败', e)
-      wx.showToast({ title: e.message || '加载地点标记失败', icon: 'none' })
+      this.setData({ locationsLoading: false, locationsError: true })
     }
   },
 
+  selectMarker(locationId: number) {
+    this.setData({
+      markers: this.data.rawLocations.map(location => buildMarker(location, location.id === locationId)),
+    })
+  },
+
   async onMarkerTap(e: any) {
-    const markerId = e.detail.markerId
-    const loc = this.data.rawLocations.find(m => m.id === markerId)
-    if (!loc) return
+    const markerId = Number(e.detail.markerId)
+    const location = this.data.rawLocations.find(item => item.id === markerId)
+    if (!location) return
+
+    const requestVersion = ((this as any)._selectedRequestVersion || 0) + 1
+    ;(this as any)._selectedRequestVersion = requestVersion
+    this.selectMarker(location.id)
     this.setData({
       selectedLocation: {
-        id: loc.id,
-        name: loc.name,
-        isVerified: loc.is_verified,
-        postCount: loc.post_count || 0,
-        starsText: formatStars(loc.avg_score || 0),
-        avgScoreText: (loc.avg_score || 0).toFixed(1),
-        rating_count: loc.rating_count || 0,
-        review_count: loc.review_count || 0,
-        summaryPreview: '',
-        summaryStatus: 'loading',
+        location,
+        scoreText: location.avg_score > 0 ? location.avg_score.toFixed(1) : '暂无',
+        relatedPosts: [],
+        loading: true,
+        postsLoading: true,
       },
     })
-    try {
-      const schoolCode = campusStore.getState().schoolCode
-      const detail = await getDetail(loc.id, schoolCode)
-      if (schoolCode === campusStore.getState().schoolCode && this.data.selectedLocation && this.data.selectedLocation.id === loc.id) {
-        this.setData({
-          selectedLocation: {
-            ...this.data.selectedLocation,
-            summaryPreview: detail.summary?.summary_text || '',
-            summaryStatus: detail.summary?.status || 'insufficient',
-          },
-        })
-      }
-    } catch {
-      if (this.data.selectedLocation && this.data.selectedLocation.id === loc.id) {
-        this.setData({ 'selectedLocation.summaryStatus': 'insufficient' })
-      }
+
+    const schoolCode = campusStore.getState().schoolCode
+    const [detailResult, reviewsResult, postsResult] = await Promise.allSettled([
+      getDetail(location.id, schoolCode),
+      getReviews(location.id, { page: 1, page_size: 20 }),
+      listPosts({ location_id: location.id, status: 'published', sort: 'latest', page: 1, page_size: 5 }),
+    ])
+
+    if (
+      schoolCode !== campusStore.getState().schoolCode ||
+      requestVersion !== ((this as any)._selectedRequestVersion || 0) ||
+      !this.data.selectedLocation ||
+      this.data.selectedLocation.location.id !== location.id
+    ) return
+
+    const detail = detailResult.status === 'fulfilled' ? detailResult.value : undefined
+    const reviews = reviewsResult.status === 'fulfilled' ? reviewsResult.value : undefined
+    const posts = postsResult.status === 'fulfilled' ? postsResult.value.items : []
+    const detailError = detailResult.status === 'rejected' ? '地点详情加载失败' : undefined
+    const postsError = postsResult.status === 'rejected' ? '相关帖子加载失败' : undefined
+    const normalizedLocation = detail?.location || location
+
+    this.setData({
+      selectedLocation: {
+        location: normalizedLocation,
+        scoreText: normalizedLocation.avg_score > 0 ? normalizedLocation.avg_score.toFixed(1) : '暂无',
+        detail,
+        relatedPosts: posts,
+        loading: false,
+        postsLoading: false,
+        reviewsLoading: false,
+        error: detailError,
+        postsError,
+      },
+    })
+    if (reviews && reviews.total !== normalizedLocation.review_count) {
+      this.setData({ 'selectedLocation.location.review_count': reviews.total })
     }
   },
 
   closeLocationCard() {
-    this.setData({ selectedLocation: null })
+    ;(this as any)._selectedRequestVersion += 1
+    this.setData({
+      selectedLocation: null,
+      markers: this.data.rawLocations.map(location => buildMarker(location)),
+    })
+  },
+
+  onZoomIn() {
+    this.setData({ scale: Math.min(19, this.data.scale + 1) })
+  },
+
+  onZoomOut() {
+    this.setData({ scale: Math.max(12, this.data.scale - 1) })
   },
 
   goToLocationsPage() {
@@ -146,9 +211,14 @@ Page({
   },
 
   goToLocationDetail() {
-    const loc = this.data.selectedLocation
-    if (!loc) return
-    wx.navigateTo({ url: `/subpackages/pages/locations/locations?id=${loc.id}` })
+    const panel = this.data.selectedLocation
+    if (!panel) return
+    wx.navigateTo({ url: `/subpackages/pages/locations/locations?id=${panel.location.id}` })
   },
 
+  onRelatedPostTap(e: any) {
+    const id = Number(e.detail.id)
+    if (!id) return
+    wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${id}` })
+  },
 })

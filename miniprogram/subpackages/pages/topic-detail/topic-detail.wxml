@@ -15,13 +15,6 @@
       <view class="topic-meta-wrap">
         <view class="topic-title-row">
           <text class="topic-title">{{topic.title}}</text>
-          <button
-            class="subscribe-btn {{isSubscribed ? 'subscribed' : ''}}"
-            bind:tap="toggleSubscribe"
-            disabled="{{subscribedLoading}}"
-            loading="{{subscribedLoading}}">
-            {{isSubscribed ? '已订阅' : '订阅'}}
-          </button>
         </view>
         <text wx:if="{{topic.description}}" class="topic-desc">{{topic.description}}</text>
         <view class="topic-meta">

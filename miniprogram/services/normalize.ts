@@ -1,5 +1,6 @@
 import type {
   Comment,
+  Category,
   LocationItem,
   LocationSummary,
   Notification,
@@ -111,6 +112,7 @@ export function normalizePost(raw: any): Post {
     category: categoryRaw ? {
       id: numberOr(categoryRaw.id, 0),
       name: String(categoryRaw.name || ''),
+      code: categoryRaw.code,
       icon: categoryRaw.icon,
     } : null,
     location: locationRaw ? {
@@ -135,6 +137,18 @@ export function normalizePost(raw: any): Post {
     is_verified: raw?.is_verified ?? authorRaw?.is_verified,
     recommend_reason: raw?.reason || raw?.recommend_reason,
     recommend_score: raw?.score,
+  }
+}
+
+export function normalizeCategory(raw: any): Category {
+  return {
+    id: numberOr(raw?.id, 0),
+    name: String(raw?.name || ''),
+    code: raw?.code ? String(raw.code) : undefined,
+    icon: raw?.icon,
+    description: raw?.description,
+    sort_order: numberOr(raw?.sort_order, 0),
+    is_active: raw?.is_active !== false,
   }
 }
 
