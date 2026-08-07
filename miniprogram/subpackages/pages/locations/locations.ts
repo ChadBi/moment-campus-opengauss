@@ -32,6 +32,7 @@ Page({
     detail: null as any,
     detailLoading: false,
     detailError: '',
+    detailNotice: '',
     locationSubscribed: false,
     locationSubscriptionId: 0,
     locationSubscriptionLoading: false,
@@ -149,6 +150,7 @@ Page({
       activeDetailId: id,
       detailLoading: true,
       detailError: '',
+      detailNotice: '',
       detail: null,
       myReview: null,
       locationSubscribed: false,
@@ -163,29 +165,63 @@ Page({
   },
 
   async reloadDetail(id: number, keepLoading = false) {
+    let baseLocation = (this.data.allLocations || []).find((item: any) => item.id === id)
+    let detailRes: any = null
+    let reviews: LocationReview[] = []
+    let detailNotice = ''
+
     try {
-      const [detailRes, reviewsRes] = await Promise.all([
-        getDetail(id),
-        getReviews(id, { page: 1, page_size: 20 }),
-      ])
-      const myReview = detailRes.my_review
-      this.setData({
-        detail: {
-          location: this.normalizeLocation(detailRes.location),
-          facts: detailRes.facts || [],
-          summary: detailRes.summary || { status: 'insufficient', confidence_level: 'insufficient', claims: [], conflicts: [], source_count: 0, sources: [] },
-          reviews: (reviewsRes.items || []).map(r => this.normalizeReview(r)),
-        },
-        myReview,
-        score: myReview ? myReview.score : (keepLoading ? this.data.score : 5),
-        content: myReview ? (myReview.content || '') : (keepLoading ? this.data.content : ''),
-        detailLoading: false,
-        detailError: '',
-      })
-      this.loadLocationSubscription(id)
+      detailRes = await getDetail(id)
     } catch (e: any) {
-      this.setData({ detailLoading: false, detailError: e.message || '加载详情失败' })
+      // 体验环境可能先部署了地点列表、尚未部署详情路由。列表中的基础资料仍然可信，
+      // 先让用户能打开地点，再明确提示详情能力待后端更新，而不是显示整块 Not Found。
+      if (!baseLocation) {
+        try {
+          const schoolCode = campusStore.getState().schoolCode
+          const list = await getLocations(schoolCode)
+          const found = list.find(item => item.id === id)
+          if (found) baseLocation = this.normalizeLocation(found)
+        } catch {
+          // 详情回退仍以原始错误为准。
+        }
+      }
+      if (!baseLocation) {
+        this.setData({ detailLoading: false, detailError: e.message || '加载详情失败' })
+        return
+      }
+      detailRes = {
+        location: baseLocation,
+        my_review: null,
+        facts: [],
+        summary: { status: 'insufficient', confidence_level: 'insufficient', claims: [], conflicts: [], source_count: 0, sources: [] },
+      }
+      detailNotice = '当前体验环境暂未提供地点详情接口，先展示基础资料；摘要和评价明细待服务更新后显示。'
     }
+
+    try {
+      const reviewsRes = await getReviews(id, { page: 1, page_size: 20 })
+      reviews = reviewsRes.items || []
+    } catch {
+      detailNotice = detailNotice || '当前体验环境暂未提供地点评价接口，暂时无法显示评价明细。'
+    }
+
+    if (this.data.activeDetailId !== id) return
+    const myReview = detailRes.my_review
+    this.setData({
+      detail: {
+        location: this.normalizeLocation(detailRes.location),
+        facts: detailRes.facts || [],
+        summary: detailRes.summary || { status: 'insufficient', confidence_level: 'insufficient', claims: [], conflicts: [], source_count: 0, sources: [] },
+        reviews: reviews.map(r => this.normalizeReview(r)),
+      },
+      myReview,
+      score: myReview ? myReview.score : (keepLoading ? this.data.score : 5),
+      content: myReview ? (myReview.content || '') : (keepLoading ? this.data.content : ''),
+      detailLoading: false,
+      detailError: '',
+      detailNotice,
+    })
+    this.loadLocationSubscription(id)
   },
 
   async loadLocationSubscription(id: number) {
@@ -228,12 +264,12 @@ Page({
   },
 
   closeDetail() {
-    this.setData({ detailVisible: false, detail: null, myReview: null, activeDetailId: 0 })
+    this.setData({ detailVisible: false, detail: null, myReview: null, activeDetailId: 0, detailNotice: '' })
   },
 
   retryDetail() {
     if (this.data.activeDetailId) {
-      this.setData({ detailLoading: true, detailError: '' })
+      this.setData({ detailLoading: true, detailError: '', detailNotice: '' })
       this.reloadDetail(this.data.activeDetailId)
     }
   },
