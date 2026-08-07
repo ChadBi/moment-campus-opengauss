@@ -180,8 +180,12 @@
   box-shadow: 0 22rpx 60rpx rgba(21, 38, 41, 0.24);
   backdrop-filter: blur(18rpx);
   z-index: 20;
-  transition: top 280ms cubic-bezier(0.16, 1, 0.3, 1), bottom 280ms cubic-bezier(0.16, 1, 0.3, 1), height 280ms cubic-bezier(0.16, 1, 0.3, 1), border-radius 280ms ease;
+  transition: top 280ms cubic-bezier(0.16, 1, 0.3, 1), bottom 280ms cubic-bezier(0.16, 1, 0.3, 1), height 280ms cubic-bezier(0.16, 1, 0.3, 1), border-radius 280ms ease, transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
   animation: sheet-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.location-sheet-dragging {
+  transition: none;
 }
 
 .location-sheet-half {
@@ -197,7 +201,6 @@
 
 .sheet-drag-area {
   flex-shrink: 0;
-  touch-action: none;
 }
 
 .sheet-handle {
@@ -313,6 +316,10 @@
   width: 100%;
   padding: 0;
   box-sizing: border-box;
+}
+
+.sheet-scroll[scroll-y="false"] {
+  overflow: hidden;
 }
 
 .sheet-content {

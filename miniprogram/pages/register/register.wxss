@@ -43,11 +43,14 @@
 
 /* ============== 表单分区 ============== */
 .form-section {
+  width: 100%;
+  box-sizing: border-box;
   background: var(--paper);
   border-radius: var(--radius-lg);
   padding: 32rpx 30rpx;
   margin-bottom: 24rpx;
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
 .form-item {
@@ -72,7 +75,11 @@
 }
 
 .input {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   height: 88rpx;
   background: var(--paper-alt);
   border: 1rpx solid var(--ink-divider);
@@ -93,6 +100,9 @@
 
 /* ============== Picker ============== */
 .picker {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -104,6 +114,13 @@
   font-size: 28rpx;
   color: var(--ink-disabled);
   transition: all 0.2s;
+}
+
+/* picker/input 在微信基础库中会带默认盒模型，统一边界避免右侧溢出父卡片 */
+.form-section input,
+.form-section picker,
+.form-section .picker {
+  min-width: 0;
 }
 
 .picker.has-value {

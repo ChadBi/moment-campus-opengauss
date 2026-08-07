@@ -67,6 +67,8 @@ Page({
     locationsError: false,
     selectedLocation: null as MapLocationPanel | null,
     sheetExpanded: false,
+    sheetDragging: false,
+    sheetDragOffset: 0,
   },
 
   onLoad() {
@@ -85,6 +87,8 @@ Page({
         scale: school?.map_zoom || DEFAULT_ZOOM,
         selectedLocation: null,
         sheetExpanded: false,
+        sheetDragging: false,
+        sheetDragOffset: 0,
         markers: [],
       })
       void this.loadLocations(version)
@@ -153,6 +157,8 @@ Page({
         postsLoading: true,
       },
       sheetExpanded: false,
+      sheetDragging: false,
+      sheetDragOffset: 0,
     })
 
     const schoolCode = campusStore.getState().schoolCode
@@ -201,38 +207,68 @@ Page({
     this.setData({
       selectedLocation: null,
       sheetExpanded: false,
+      sheetDragging: false,
+      sheetDragOffset: 0,
       markers: this.data.rawLocations.map(location => buildMarker(location)),
     })
   },
 
   onSheetTouchStart(e: any) {
+    if (this.data.sheetExpanded) return
     const touch = e.touches && e.touches[0]
     if (!touch) return
     ;(this as any)._sheetTouchStartY = touch.clientY ?? touch.pageY
+    ;(this as any)._sheetTouchStartOffset = Number(this.data.sheetDragOffset || 0)
+    this.setData({ sheetDragging: true })
   },
 
-  onSheetTouchMove() {
-    // 仅在拖拽区阻止事件穿透到地图，内容区域仍由 scroll-view 自己滚动。
+  onSheetTouchMove(e: any) {
+    if (this.data.sheetExpanded) return
+    const touch = e.touches && e.touches[0]
+    const startY = (this as any)._sheetTouchStartY
+    if (!touch || typeof startY !== 'number') return
+    const currentY = touch.clientY ?? touch.pageY
+    const deltaY = currentY - startY
+    const startOffset = Number((this as any)._sheetTouchStartOffset || 0)
+    const maxDrag = this.getSheetMaxDrag()
+    // 半屏状态下整张卡片随手指移动；向下最多露出一小段，松手后关闭。
+    const offset = Math.max(-maxDrag, Math.min(150, startOffset + deltaY))
+    this.setData({ sheetDragOffset: offset })
   },
 
   onSheetTouchEnd(e: any) {
+    if (this.data.sheetExpanded) return
     const touch = e.changedTouches && e.changedTouches[0]
     const startY = (this as any)._sheetTouchStartY
-    if (!touch || typeof startY !== 'number') return
+    if (!touch || typeof startY !== 'number') {
+      this.setData({ sheetDragging: false, sheetDragOffset: 0 })
+      return
+    }
     const endY = touch.clientY ?? touch.pageY
     const deltaY = endY - startY
     ;(this as any)._sheetTouchStartY = undefined
-    if (Math.abs(deltaY) < 36) return
+    const offset = Number(this.data.sheetDragOffset || 0)
+    const maxDrag = this.getSheetMaxDrag()
+    this.setData({ sheetDragging: false })
 
-    if (deltaY < 0) {
-      this.setData({ sheetExpanded: true })
+    if (offset <= -Math.max(72, maxDrag * 0.22) || deltaY <= -72) {
+      this.setData({ sheetExpanded: true, sheetDragOffset: 0 })
       return
     }
-    if (this.data.sheetExpanded) {
-      this.setData({ sheetExpanded: false })
+    if (offset >= 100 || deltaY >= 100) {
+      this.closeLocationCard()
       return
     }
-    this.closeLocationCard()
+    this.setData({ sheetDragOffset: 0 })
+  },
+
+  getSheetMaxDrag() {
+    try {
+      const info = wx.getSystemInfoSync()
+      return Math.max(220, Math.round(info.windowHeight * 0.42))
+    } catch (e) {
+      return 320
+    }
   },
 
   onZoomIn() {

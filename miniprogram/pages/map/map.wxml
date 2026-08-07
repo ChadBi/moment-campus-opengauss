@@ -45,13 +45,15 @@
     <text>地点加载失败，点击重试</text>
   </view>
 
-  <view wx:if="{{selectedLocation}}" class="location-sheet {{sheetExpanded ? 'location-sheet-expanded' : 'location-sheet-half'}}">
-    <scroll-view class="sheet-scroll" scroll-y="true" enhanced="true" show-scrollbar="{{false}}">
-      <view
-        class="sheet-drag-area"
-        catchtouchstart="onSheetTouchStart"
-        catchtouchmove="onSheetTouchMove"
-        catchtouchend="onSheetTouchEnd">
+  <view
+    wx:if="{{selectedLocation}}"
+    class="location-sheet {{sheetExpanded ? 'location-sheet-expanded' : 'location-sheet-half'}} {{sheetDragging ? 'location-sheet-dragging' : ''}}"
+    style="transform: translate3d(0, {{sheetDragOffset}}px, 0);"
+    bindtouchstart="onSheetTouchStart"
+    bindtouchmove="onSheetTouchMove"
+    bindtouchend="onSheetTouchEnd">
+    <scroll-view class="sheet-scroll" scroll-y="{{sheetExpanded}}" enhanced="true" show-scrollbar="{{false}}">
+      <view class="sheet-drag-area">
         <view class="sheet-handle"></view>
         <view class="sheet-header">
           <view class="sheet-title-wrap">
