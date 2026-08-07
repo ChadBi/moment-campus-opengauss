@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Menu, Plus } from 'lucide-react';
 import { Avatar } from '../ui';
-import { SchoolSwitcher } from './SchoolSwitcher';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -32,18 +31,9 @@ export const Header: React.FC<HeaderProps> = ({
             <small className="hidden lg:inline text-ink-muted text-xs flex-shrink-0">
               把会消失的校园经验留下来
             </small>
-            {/* TEN-03.3：学校切换组件，与标题同行，便于跨校切换 */}
-            <div className="hidden md:block flex-shrink-0">
-              <SchoolSwitcher />
-            </div>
           </div>
 
           <div className="flex justify-end items-center gap-1 md:gap-1.5">
-            {/* 移动端学校切换器，与桌面端分离避免挤压 */}
-            <div className="md:hidden">
-              <SchoolSwitcher />
-            </div>
-
             {user && (
               <Link
                 to="/notifications"

@@ -17,7 +17,6 @@ import { Button } from '../components/ui/Button';
 import { Loading } from '../components/ui/Loading';
 import { Toast } from '../components/ui/Toast';
 import { NotificationPreferencesCard } from '../components/NotificationPreferencesCard';
-import { SubscriptionsCard } from '../components/SubscriptionsCard';
 import { CampusVerifyCard } from '../components/CampusVerifyCard';
 import { VerifiedBadge } from '../components/VerifiedBadge';
 import { SwitchSchoolModal } from '../components/SwitchSchoolModal';
@@ -764,9 +763,6 @@ const ProfilePage: React.FC = () => {
 
       {/* UX-01.5: 通知偏好（7 类开关 + 每日摘要时间 + 邮件同步） */}
       <NotificationPreferencesCard />
-
-      {/* SUB-01: 我的订阅（分类/地点/专题，按当前学校过滤） */}
-      <SubscriptionsCard />
 
       {/* REC-01.2: 推荐隐私偏好（个性化开关 + 清除画像历史） */}
       <div className="bg-paper rounded-[16px] border border-line/60 p-5 shadow-sm mb-4">

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   MapPin,
@@ -9,6 +9,8 @@ import {
   MessageSquare,
   Check,
   BadgeCheck,
+  Search,
+  X,
 } from 'lucide-react';
 import {
   locationsApi,
@@ -73,6 +75,20 @@ const LocationPage: React.FC = () => {
   const [factValue, setFactValue] = useState('');
   const [factReason, setFactReason] = useState('');
   const [submittingProposal, setSubmittingProposal] = useState(false);
+
+  // 地点列表搜索栏：按名称/描述/建筑/楼层过滤
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const filteredLocations = useMemo(() => {
+    const q = searchKeyword.trim().toLowerCase();
+    if (!q) return locations;
+    return locations.filter(
+      (loc) =>
+        loc.name.toLowerCase().includes(q) ||
+        (loc.description?.toLowerCase().includes(q) ?? false) ||
+        (loc.building?.toLowerCase().includes(q) ?? false) ||
+        (loc.floor?.toLowerCase().includes(q) ?? false)
+    );
+  }, [locations, searchKeyword]);
 
   const loadLocations = useCallback(async () => {
     setLoading(true);
@@ -213,7 +229,7 @@ const LocationPage: React.FC = () => {
   return (
     <div className="max-w-3xl mx-auto py-4 px-1">
       {/* 页头 */}
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
+      <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display font-bold text-[24px] tracking-wide text-lake leading-tight">
             校园地点
@@ -224,6 +240,35 @@ const LocationPage: React.FC = () => {
         </div>
       </header>
 
+      {/* 搜索框：放在地点列表的容器（bg-paper 卡片）内，统一搜索名称/描述/楼栋/楼层 */}
+      <div className="bg-paper rounded-[16px] border border-line/60 p-4 shadow-sm mb-4">
+        <div className="relative">
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            placeholder={`搜索${currentSchoolName || '学校'}地点（按名称/描述/楼栋/楼层）`}
+            className="w-full h-11 pl-10 pr-10 rounded-[12px] bg-mist/40 border border-line/60 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-lake/30 focus:border-lake/40"
+            aria-label="地点搜索"
+          />
+          {searchKeyword && (
+            <button
+              type="button"
+              onClick={() => setSearchKeyword('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-paper flex items-center justify-center text-ink-sub hover:text-ink hover:bg-line transition-colors"
+              aria-label="清除搜索"
+            >
+              <X size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+
       {loading ? (
         <div className="bg-paper rounded-[16px] border border-line/60">
           <LoadingState title="正在加载地点" />
@@ -232,17 +277,17 @@ const LocationPage: React.FC = () => {
         <div className="bg-paper rounded-[16px] border border-line/60">
           <ErrorState description={error} onRetry={() => void loadLocations()} />
         </div>
-      ) : locations.length === 0 ? (
+      ) : filteredLocations.length === 0 ? (
         <div className="bg-paper rounded-[16px] border border-line/60 shadow-sm">
           <EmptyState
-            title="暂无地点"
-            description="去探索更多校园角落吧。"
+            title={searchKeyword ? '没有匹配的地点' : '暂无地点'}
+            description={searchKeyword ? '试试换个关键词吧' : '去探索更多校园角落吧。'}
             icon={<MapPin size={24} />}
           />
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {locations.map((loc) => (
+          {filteredLocations.map((loc) => (
             <button
               key={loc.id}
               onClick={() => void openDetail(loc.id)}

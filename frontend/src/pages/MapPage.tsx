@@ -2,17 +2,19 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Minus, X, MapPin, AlertCircle, RefreshCw, ChevronRight, Edit3, Star, MessageSquare } from 'lucide-react';
-import { locationsApi, type LocationItem } from '../services/locations';
+import { Plus, Minus, X, MapPin, AlertCircle, RefreshCw, ChevronRight, Edit3, Star, MessageSquare, Check, LogIn, BadgeCheck, StarHalf } from 'lucide-react';
+import { locationsApi, type LocationItem, type LocationReviewItem } from '../services/locations';
 import { postsApi } from '../services/posts';
 import type { Post } from '../types';
 import { Loading } from '../components/ui/Loading';
 import { Button } from '../components/ui/Button';
 import PostForm from '../components/PostForm';
+import { VerifyGate } from '../components/VerifyGate';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 import { useCampusStore } from '../store/useCampusStore';
 import { logger } from '../utils/logger';
+import { formatRelativeTime } from '../utils/date';
 import {
   clearMapLocationLayer,
   installMapLocationLayer,
@@ -75,15 +77,108 @@ const MapPage: React.FC = () => {
   // D-04: 地点面板
   const [locationPanel, setLocationPanel] = useState<LocationItem | null>(null);
 
+  // 地点面板：评价列表展开状态
+  const [locationReviewsOpen, setLocationReviewsOpen] = useState(false);
+  const [locationReviews, setLocationReviews] = useState<LocationReviewItem[]>([]);
+  const [locationReviewsLoading, setLocationReviewsLoading] = useState(false);
+  // 地点面板：我的评价与评分表单
+  const [locationMyReview, setLocationMyReview] = useState<LocationReviewItem | null>(null);
+  const [locationScore, setLocationScore] = useState(5);
+  const [locationReviewContent, setLocationReviewContent] = useState('');
+  const [locationReviewSubmitting, setLocationReviewSubmitting] = useState(false);
+
   // D-04: 地点面板相关帖子（GET /posts?location_id=）
   const [locationPosts, setLocationPosts] = useState<Post[]>([]);
   const [locationPostsLoading, setLocationPostsLoading] = useState(false);
   const [locationPostsError, setLocationPostsError] = useState(false);
 
-  // D-04: 打开地点面板时并行拉取相关帖子
+  // 评分星星展示组件（复现 LocationPage 的 ScoreStars）
+  function ScoreStars({ score, size = 14 }: { score: number; size?: number }) {
+    const full = Math.floor(score);
+    const half = score - full >= 0.25 && score - full < 0.75;
+    return (
+      <span className="inline-flex items-center gap-0.5 text-lamp" aria-label={`评分 ${score} 分`}>
+        {Array.from({ length: full }).map((_, i) => (
+          <Star key={`f${i}`} size={size} className="fill-current" />
+        ))}
+        {half && <StarHalf key="h" size={size} className="fill-current" />}
+        {Array.from({ length: Math.max(0, 5 - full - (half ? 1 : 0)) }).map((_, i) => (
+          <Star key={`e${i}`} size={size} className="text-line" />
+        ))}
+      </span>
+    );
+  }
+
+  // 提交/更新评价
+  const handleLocationSubmitReview = useCallback(async () => {
+    if (!locationPanel) return;
+    setLocationReviewSubmitting(true);
+    try {
+      const review = await locationsApi.submitReview(locationPanel.id, {
+        score: locationScore,
+        content: locationReviewContent.trim() || undefined,
+      });
+      setLocationMyReview(review);
+      // 重新拉取评价列表与最新地点信息（评分汇总会变化）
+      const reviewsRes = await locationsApi.getReviews(locationPanel.id, 1, 20);
+      setLocationReviews(reviewsRes.items);
+      const detail = await locationsApi.getDetail(locationPanel.id);
+      // 同步回 locationPanel 的汇总字段，使 UI 立即刷新
+      setLocationPanel({
+        ...locationPanel,
+        avg_score: detail.location.avg_score,
+        rating_count: detail.location.rating_count,
+        review_count: detail.location.review_count,
+      });
+      showToast('评价已提交', 'success');
+    } catch (err: unknown) {
+      logger.error('提交评价失败:', err);
+      const e = err as { response?: { data?: { detail?: string } } };
+      showToast(e?.response?.data?.detail || '提交评价失败', 'error');
+    } finally {
+      setLocationReviewSubmitting(false);
+    }
+  }, [locationPanel, locationScore, locationReviewContent, showToast]);
+
+  // 撤回评价
+  const handleLocationWithdrawReview = useCallback(async () => {
+    if (!locationPanel) return;
+    setLocationReviewSubmitting(true);
+    try {
+      await locationsApi.withdrawReview(locationPanel.id);
+      setLocationMyReview(null);
+      setLocationScore(5);
+      setLocationReviewContent('');
+      const reviewsRes = await locationsApi.getReviews(locationPanel.id, 1, 20);
+      setLocationReviews(reviewsRes.items);
+      const detail = await locationsApi.getDetail(locationPanel.id);
+      setLocationPanel({
+        ...locationPanel,
+        avg_score: detail.location.avg_score,
+        rating_count: detail.location.rating_count,
+        review_count: detail.location.review_count,
+      });
+      showToast('评价已撤回', 'success');
+    } catch (err: unknown) {
+      logger.error('撤回评价失败:', err);
+      const e = err as { response?: { data?: { detail?: string } } };
+      showToast(e?.response?.data?.detail || '撤回评价失败', 'error');
+    } finally {
+      setLocationReviewSubmitting(false);
+    }
+  }, [locationPanel, showToast]);
+
+  // D-04: 打开地点面板时并行拉取相关帖子 + 评价列表（默认关闭）+ 我的评价
   useEffect(() => {
     if (!locationPanel) {
-      void Promise.resolve().then(() => setLocationPosts([]));
+      void Promise.resolve().then(() => {
+        setLocationPosts([]);
+        setLocationReviews([]);
+        setLocationReviewsOpen(false);
+        setLocationMyReview(null);
+        setLocationScore(5);
+        setLocationReviewContent('');
+      });
       return;
     }
     let cancelled = false;
@@ -91,19 +186,35 @@ const MapPage: React.FC = () => {
       .then(async () => {
         setLocationPostsLoading(true);
         setLocationPostsError(false);
-        const res = await postsApi.getPosts({
-          location_id: locationPanel.id,
-          page: 1,
-          page_size: 5,
-          sort: 'latest',
-        });
-        if (!cancelled) setLocationPosts(res.items ?? []);
+        setLocationReviewsLoading(true);
+        const [postsRes, reviewsRes, detail] = await Promise.all([
+          postsApi.getPosts({
+            location_id: locationPanel.id,
+            page: 1,
+            page_size: 5,
+            sort: 'latest',
+          }),
+          locationsApi.getReviews(locationPanel.id, 1, 20),
+          locationsApi.getDetail(locationPanel.id),
+        ]);
+        if (!cancelled) {
+          setLocationPosts(postsRes.items ?? []);
+          setLocationReviews(reviewsRes.items);
+          setLocationMyReview(detail.my_review ?? null);
+          if (detail.my_review) {
+            setLocationScore(detail.my_review.score);
+            setLocationReviewContent(detail.my_review.content ?? '');
+          }
+        }
       })
       .catch(() => {
         if (!cancelled) setLocationPostsError(true);
       })
       .finally(() => {
-        if (!cancelled) setLocationPostsLoading(false);
+        if (!cancelled) {
+          setLocationPostsLoading(false);
+          setLocationReviewsLoading(false);
+        }
       });
     return () => {
       cancelled = true;
@@ -446,9 +557,140 @@ const MapPage: React.FC = () => {
                 <MapPin size={12} className="text-lake flex-shrink-0" />
                 {locationPanel.building || locationPanel.floor || '校园内'}
               </div>
-              <div className="flex items-center gap-2 text-xs text-ink-muted border-t border-line/60 pt-3">
-                <MessageSquare size={12} />
-                <span>{locationPanel.review_count} 条评价</span>
+
+              {/* 评价区：点击展开/收起评价列表 */}
+              <button
+                type="button"
+                onClick={() => setLocationReviewsOpen((v) => !v)}
+                className="w-full flex items-center justify-between text-left text-xs text-ink-muted border-t border-line/60 pt-3 hover:text-ink transition-colors"
+                aria-expanded={locationReviewsOpen}
+                aria-label={`${locationReviewsOpen ? '收起' : '查看'} ${locationPanel.review_count} 条评价`}
+              >
+                <span className="flex items-center gap-2">
+                  <MessageSquare size={12} />
+                  <span>{locationPanel.review_count} 条评价</span>
+                </span>
+                <ChevronRight
+                  size={14}
+                  className={`text-ink-muted transition-transform ${locationReviewsOpen ? 'rotate-90' : ''}`}
+                />
+              </button>
+              {locationReviewsOpen && (
+                <div className="-mt-1 border-l-2 border-line/60 ml-2 pl-3 space-y-2">
+                  {locationReviewsLoading ? (
+                    <div className="flex items-center justify-center py-3">
+                      <RefreshCw size={14} className="animate-spin text-ink-muted" />
+                    </div>
+                  ) : locationReviews.length === 0 ? (
+                    <p className="text-xs text-ink-muted py-2">还没有评价，在下方提交第一条吧。</p>
+                  ) : (
+                    locationReviews.map((review) => (
+                      <div key={review.id} className="py-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-medium text-ink text-xs truncate">
+                              {review.author?.nickname || '匿名用户'}
+                            </span>
+                            {review.author?.is_verified && (
+                              <BadgeCheck size={12} className="text-lake flex-shrink-0" aria-label="已认证" />
+                            )}
+                          </div>
+                          <span className="text-[10px] text-ink-muted flex-shrink-0">
+                            {formatRelativeTime(review.created_at)}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 flex items-center gap-1.5">
+                          <ScoreStars score={review.score} size={11} />
+                          <span className="text-[11px] text-ink-sub">{review.score}.0</span>
+                        </div>
+                        {review.content && (
+                          <p className="text-[12px] text-ink-sub mt-1 leading-relaxed line-clamp-3">
+                            {review.content}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* 评分/评价表单：内嵌在面板中，与地点详情页一致 */}
+              <div className="border border-line/60 rounded-[10px] p-3">
+                <h4 className="font-semibold text-ink text-xs mb-2">
+                  {locationMyReview ? '我的评价（可更新）' : '给这个地点打个分'}
+                </h4>
+                {!isAuthenticated ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] text-ink-muted">登录后即可评分评价</p>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      icon={<LogIn size={12} />}
+                      onClick={() => navigate('/login')}
+                    >
+                      去登录
+                    </Button>
+                  </div>
+                ) : (
+                  <VerifyGate compact message="完成校园身份认证后即可评分评价">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1" role="radiogroup" aria-label="评分">
+                        {[1, 2, 3, 4, 5].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setLocationScore(value)}
+                            aria-label={`${value} 星`}
+                            aria-checked={locationScore === value}
+                            role="radio"
+                            className="p-0.5"
+                          >
+                            <Star
+                              size={18}
+                              className={
+                                value <= locationScore
+                                  ? 'fill-current text-lamp'
+                                  : 'text-line'
+                              }
+                            />
+                          </button>
+                        ))}
+                        <span className="ml-2 text-xs font-semibold text-ink">
+                          {locationScore}.0 分
+                        </span>
+                      </div>
+                      <textarea
+                        value={locationReviewContent}
+                        onChange={(e) => setLocationReviewContent(e.target.value)}
+                        maxLength={500}
+                        rows={2}
+                        placeholder="分享你的体验（最多 500 字，可选）"
+                        className="w-full rounded-[8px] border border-line bg-paper px-2.5 py-1.5 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-lake/30 resize-none"
+                      />
+                      <div className="flex items-center justify-end gap-2">
+                        {locationMyReview && (
+                          <Button
+                            variant="text"
+                            size="sm"
+                            loading={locationReviewSubmitting}
+                            onClick={() => void handleLocationWithdrawReview()}
+                          >
+                            撤回
+                          </Button>
+                        )}
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          loading={locationReviewSubmitting}
+                          onClick={() => void handleLocationSubmitReview()}
+                          icon={<Check size={12} />}
+                        >
+                          {locationMyReview ? '更新' : '提交'}
+                        </Button>
+                      </div>
+                    </div>
+                  </VerifyGate>
+                )}
               </div>
 
               {/* D-04: 相关帖子列表 */}

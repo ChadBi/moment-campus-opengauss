@@ -14,6 +14,13 @@
 - `AGENTS.md` 演示账号清单从单行简表扩展为江南大学 + 复旦大学 + 浙江大学完整三校清单，与 `backend/scripts/seed_data.py` 中 `JIANGNAN_USERS` / `FUDAN_USERS` / `ZJU_USERS` 三组常量对齐；标注各校已 `campus_verified=True` 的用户编号，并明确 `@momentcampus.com` 为平台运营专用域名（不受学校 `domain`/`addl_domains` 校验，不参与校园身份认证）
 - `backend/tests/manual/` 7 个手动验证脚本（verify_comments / verify_e2e_extra / verify_governance / verify_notifications / verify_profile / verify_subscription_fix / verify_subscription_flow）中 15 处 `login("user1~3@example.com")` 统一替换为 `login("user1~3@example.jiangnan.edu.cn")`，避免使用与 seed 不一致的旧邮箱，7 个脚本 `py_compile` 语法编译全部通过
 
+### 前端
+
+- `Header.tsx`：移除学校切换按钮（桌面端 + 移动端两处 `<SchoolSwitcher />`），简化页头布局并避免切换入口与"一对一绑定"设计割裂
+- `MapPage.tsx`：地图地点侧滑面板（`<aside>`）改为评价可点击展开/收起查看完整列表；内嵌评分表单（5 星点击 + 500 字可选正文 + 提交/撤回 + 未认证 `VerifyGate` 门禁）；打开面板时并行拉取 reviews + my_review + detail；提交/撤回后自动回写 `avg_score` / `rating_count` / `review_count`；与 `LocationPage` 表现一致
+- `LocationPage.tsx`：在地点列表容器上方新增搜索框（bg-paper 卡片 + Search 图标 + 一键清除），前端按「名称/描述/楼栋/楼层」四字段过滤，无匹配时 EmptyState 友好提示
+- `ProfilePage.tsx`：移除已废弃的 `<SubscriptionsCard />` 订阅模块卡片与对应 import，避免展示不存在的订阅功能造成用户困惑
+
 ## [2.2.5] - 2026-08-06
 
 ### 修复
