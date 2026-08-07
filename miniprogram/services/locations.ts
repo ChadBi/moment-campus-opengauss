@@ -7,6 +7,7 @@ import type {
   LocationSummary,
 } from '../types'
 import { normalizeLocation, normalizeLocationSummary } from './normalize'
+import { buildQuery } from '../utils/query'
 
 export async function getLocations(schoolCode?: string): Promise<LocationItem[]> {
   const raw = await http.get<any>('/locations', undefined, schoolCode ? { schoolCode } : undefined)
@@ -38,13 +39,7 @@ export async function getReviews(
   id: number,
   params?: { page?: number; page_size?: number }
 ): Promise<LocationReviewsResponse> {
-  const query = new URLSearchParams()
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined) query.append(k, String(v))
-    })
-  }
-  const qs = query.toString()
+  const qs = buildQuery(params)
   const raw = await http.get<any>(`/locations/${id}/reviews${qs ? `?${qs}` : ''}`)
   return {
     items: Array.isArray(raw?.items) ? raw.items : [],

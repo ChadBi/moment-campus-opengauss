@@ -1,4 +1,5 @@
 import type { User, WechatExchangeResponse } from '../types'
+import { clearAuthTokens, syncAuthTokens } from '../services/request'
 
 interface AuthState {
   isLoggedIn: boolean
@@ -39,9 +40,8 @@ export const authStore = {
       state.refreshToken = data.refresh_token
       state.user = data.user
       state.isLoggedIn = true
-      // 仅持久化长凭据 refresh_token；access_token 保持内存态，不落 storage
-      if (data.refresh_token) wx.setStorageSync('refresh_token', data.refresh_token)
-      wx.removeStorageSync('access_token')
+      // 与请求层同步：避免登录/切换账号后继续复用旧用户的内存 token。
+      syncAuthTokens(data.access_token, data.refresh_token)
     }
     notify()
   },
@@ -49,8 +49,7 @@ export const authStore = {
   setTokens(accessToken: string, refreshToken: string) {
     state.accessToken = accessToken
     state.refreshToken = refreshToken
-    if (refreshToken) wx.setStorageSync('refresh_token', refreshToken)
-    wx.removeStorageSync('access_token')
+    syncAuthTokens(accessToken, refreshToken)
     notify()
   },
 
@@ -64,8 +63,7 @@ export const authStore = {
     state.user = null
     state.accessToken = ''
     state.refreshToken = ''
-    wx.removeStorageSync('access_token')
-    wx.removeStorageSync('refresh_token')
+    clearAuthTokens()
     notify()
   },
 

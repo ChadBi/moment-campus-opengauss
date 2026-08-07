@@ -55,6 +55,11 @@ Page({
   onShow() {
     if (!authStore.getState().isLoggedIn) return
     this.loadUnreadCount()
+    // 登录跳转与页面生命周期可能交错：若 onLoad 在登录态写入前执行，
+    // 这里只刷新未读数会留下空列表。首次展示且尚未推进分页时补加载列表。
+    if (this.data.page === 1 && this.data.notifications.length === 0 && !this.data.loading) {
+      this.refreshNotifications()
+    }
   },
 
   // ============== 通知列表 ==============

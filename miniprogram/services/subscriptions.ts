@@ -1,11 +1,11 @@
 import { http } from './request'
 import { normalizeSubscription } from './normalize'
 import type { Subscription } from '../types'
+import { buildQuery } from '../utils/query'
 
 export async function listSubscriptions(params?: { target_type?: string }): Promise<Subscription[]> {
-  const query = new URLSearchParams()
-  if (params?.target_type) query.set('target_type', params.target_type)
-  const raw = await http.get<any>(`/subscriptions${query.toString() ? `?${query}` : ''}`)
+  const query = buildQuery(params)
+  const raw = await http.get<any>(`/subscriptions${query ? `?${query}` : ''}`)
   const items = Array.isArray(raw) ? raw : (raw?.items || [])
   return items.map(normalizeSubscription)
 }

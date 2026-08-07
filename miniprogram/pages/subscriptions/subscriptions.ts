@@ -22,6 +22,7 @@ Page({
     // 已订阅列表
     subscriptions: [] as any[],
     loadingSubscriptions: false,
+    subscriptionsLoaded: false,
 
     // 添加订阅（分类列表）
     categories: [] as any[],
@@ -39,8 +40,11 @@ Page({
   },
 
   onShow() {
-    // 返回页面时刷新已订阅列表（首次进入由 onLoad 处理，避免重复加载）
-    if (this.data.subscriptions.length > 0) {
+    // 登录跳转与页面生命周期可能交错：首次 onLoad 可能早于登录态写入，
+    // 用 subscriptionsLoaded 保证回到页面时仍会补加载一次。
+    if (!this.data.subscriptionsLoaded && !this.data.loadingSubscriptions) {
+      this.loadSubscriptions()
+    } else if (this.data.subscriptions.length > 0) {
       this.loadSubscriptions()
     }
   },
@@ -71,7 +75,7 @@ Page({
     } catch (e: any) {
       wx.showToast({ title: e.message || '加载订阅失败', icon: 'none' })
     } finally {
-      this.setData({ loadingSubscriptions: false })
+      this.setData({ loadingSubscriptions: false, subscriptionsLoaded: true })
     }
   },
 

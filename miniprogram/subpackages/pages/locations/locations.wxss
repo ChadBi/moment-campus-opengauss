@@ -227,6 +227,25 @@
   border-bottom: 1rpx solid var(--ink-divider);
 }
 
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.location-subscribe-btn {
+  padding: 8rpx 18rpx;
+  border: 1rpx solid #174d5e;
+  border-radius: 999rpx;
+  color: #174d5e;
+  font-size: 24rpx;
+}
+
+.location-subscribe-btn.subscribed {
+  background: #174d5e;
+  color: #ffffff;
+}
+
 .panel-title {
   font-size: 34rpx;
   font-weight: 600;

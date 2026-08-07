@@ -1,6 +1,7 @@
 import { http } from './request'
 import type { School, SchoolMembership, User } from '../types'
 import { normalizeMembership, normalizeSchool, normalizePostList } from './normalize'
+import { buildQuery } from '../utils/query'
 
 export async function listSchools(): Promise<School[]> {
   const raw = await http.get<any>('/schools')
@@ -35,11 +36,6 @@ export async function getRecommendations(params?: {
   page?: number
   page_size?: number
 }): Promise<any> {
-  const query = new URLSearchParams()
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined) query.append(k, String(v))
-    })
-  }
-  return normalizePostList(await http.get<any>(`/recommendations?${query.toString()}`))
+  const query = buildQuery(params)
+  return normalizePostList(await http.get<any>(`/recommendations${query ? `?${query}` : ''}`))
 }

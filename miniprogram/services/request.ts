@@ -31,11 +31,24 @@ function setTokens(accessToken: string, refreshToken: string): void {
   wx.removeStorageSync('access_token')
 }
 
+/**
+ * 同步登录服务写入的凭据到请求层内存缓存。
+ * access_token 只保存在内存中，避免账号切换时继续复用上一位用户的 token。
+ */
+export function syncAuthTokens(accessToken: string, refreshToken: string): void {
+  setTokens(accessToken, refreshToken)
+}
+
 function clearTokens(): void {
   accessTokenCache = ''
   refreshTokenCache = ''
   wx.removeStorageSync('access_token')
   wx.removeStorageSync('refresh_token')
+}
+
+/** 清空请求层凭据缓存，供登出/账号切换时与 authStore 保持一致。 */
+export function clearAuthTokens(): void {
+  clearTokens()
 }
 
 function isAuthUrl(url: string): boolean {

@@ -1,6 +1,7 @@
 import { http } from './request'
 import type { SearchResult } from '../types'
 import { normalizeSearchResult } from './normalize'
+import { buildQuery } from '../utils/query'
 
 export async function searchPosts(params: {
   keyword: string
@@ -8,12 +9,8 @@ export async function searchPosts(params: {
   page_size?: number
   category_id?: number
 }): Promise<SearchResult> {
-  const query = new URLSearchParams()
-  query.append('keyword', params.keyword)
-  if (params.page) query.append('page', String(params.page))
-  if (params.page_size) query.append('page_size', String(params.page_size))
-  if (params.category_id) query.append('category_id', String(params.category_id))
-  return normalizeSearchResult(await http.get<any>(`/search?${query.toString()}`))
+  const query = buildQuery(params)
+  return normalizeSearchResult(await http.get<any>(`/search${query ? `?${query}` : ''}`))
 }
 
 export async function aiSearch(params: {

@@ -1,6 +1,7 @@
 import { http } from './request'
 import type { Post, PostListResponse, Topic, Category } from '../types'
 import { normalizePost, normalizePostList, normalizeTopic } from './normalize'
+import { buildQuery } from '../utils/query'
 
 export async function listPosts(params?: {
   page?: number
@@ -9,13 +10,8 @@ export async function listPosts(params?: {
   status?: string
   keyword?: string
 }): Promise<PostListResponse> {
-  const query = new URLSearchParams()
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined) query.append(k, String(v))
-    })
-  }
-  return normalizePostList(await http.get<any>(`/posts?${query.toString()}`))
+  const query = buildQuery(params)
+  return normalizePostList(await http.get<any>(`/posts${query ? `?${query}` : ''}`))
 }
 
 export async function getPost(id: number): Promise<Post> {

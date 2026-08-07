@@ -1,19 +1,15 @@
 import { http } from './request'
 import type { Notification, NotificationListResponse } from '../types'
 import { normalizeNotification } from './normalize'
+import { buildQuery } from '../utils/query'
 
 export async function listNotifications(params?: {
   page?: number
   page_size?: number
   type?: string
 }): Promise<NotificationListResponse> {
-  const query = new URLSearchParams()
-  if (params) {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined) query.append(k, String(v))
-    })
-  }
-  const raw = await http.get<any>(`/notifications?${query.toString()}`)
+  const query = buildQuery(params)
+  const raw = await http.get<any>(`/notifications${query ? `?${query}` : ''}`)
   const items = Array.isArray(raw?.items) ? raw.items : []
   return {
     items: items.map(normalizeNotification),
