@@ -101,11 +101,6 @@
 
   <view class="mode-switch">
     <text class="mode-switch-label">{{mode === 'bind' ? '还没有账号？' : '已有此刻校园账号？'}}</text>
-    <text
-      class="mode-switch-link"
-      bindtap="switchMode"
-      data-mode="{{mode === 'bind' ? 'register' : 'bind'}}">
-      {{mode === 'bind' ? '注册新账号' : '绑定并登录'}}
-    </text>
+    <text class="mode-switch-link" bindtap="switchMode" data-mode="{{mode === 'bind' ? 'register' : 'bind'}}">{{mode === 'bind' ? '注册新账号' : '绑定并登录'}}</text>
   </view>
 </view>
