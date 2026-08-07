@@ -45,6 +45,7 @@
 - [x] 已复核本地路由与小程序配置一致：`GET /schools/current/settings` 返回 200；体验版/正式版仍保留切换线上基地址的配置入口
 - [x] 删除自动化验证产生的临时参数文件，仓库不保留运行垃圾
 - [x] 微信开发者工具门禁、模拟器刷新、关键 WXML/WXSS 编译和错误日志筛查通过；重复 `simulator_open_page` 产生的 `appLaunch with non-empty page stack` 仅为工具导航提示，不影响页面运行
+- [ ] 本地历史图书馆摘要存在 `source_count=6` 但 `source_refs=[]` 的旧数据，需受控刷新并管理员审核后再作为来源卡片演示数据
 
 ## 2026-08-07 执行任务：历史帖子 thumbnail_url 补写 + seed_data 优化升级（v2.2.10）
 
