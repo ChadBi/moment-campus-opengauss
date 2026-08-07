@@ -2,7 +2,18 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-07（thumbnail_url 入库端到端打通：上传响应 → 前端表单 → 后端写入 → 详情页缩略图真正省 90% 带宽）
+> 最后更新：2026-08-07（历史帖子 thumbnail_url 补写脚本 + seed_data 优化升级 v2.2.10，与 v2.2.9 入库修复形成完整闭环）
+
+## 2026-08-07 执行任务：历史帖子 thumbnail_url 补写 + seed_data 优化升级（v2.2.10）
+
+- [x] **seed_data.py 主函数解耦 + 新增补写 helper**：新增顶层 `async def fix_missing_thumbnails(session: AsyncSession, *, dry_run=False) -> int`，与 seed_data 其他 seed 函数平级，可被其他脚本直接 import 复用；支持 dry_run 只 COUNT 不 UPDATE，幂等（仅改 `thumbnail_url IS NULL`），安全（4 重 WHERE 过滤：IS NULL / LIKE '/uploads/%' / char_length > 10 / SUBSTRING basename 非空）
+- [x] **补写 SQL 与 upload.py 缩略图命名严格对齐**：`thumbnail_url = '/uploads/thumb_' || substring(image_url FROM '/uploads/(.*)$')`（openGauss / PostgreSQL 标准兼容语法），与 `backend/app/api/upload.py` 生成缩略时写的 `thumb_{uuid}{real_ext}` 一一对应，不会出现「DB 有 thumbnail_url 但磁盘上缺文件」的错配
+- [x] **seed_data 两种运行模式**：① 完整 seed（默认）→ 在所有业务表 commit **之前**自动执行一次补写（dry-run 预估 → UPDATE，无候选时打印跳过），保证刚 seed 出来的图片（如果用户手动 INSERT 了 post_image）缩略图立即可用；② `--only-fix-thumbnails` 模式：不清空、不 seed，只对现有 DB 跑一次补写，适用于线上升级 v2.2.10 后修复历史数据
+- [x] **seed_data CLI 从裸入口升级为 argparse**：新增 `--only-fix-thumbnails` / `--no-fix-thumbnails` / `--dry-run` 三个参数，带 4 条常用示例 docstring；`--dry-run` 必须与 `--only-fix-thumbnails` 联用，防止误清空生产库
+- [x] **新增独立运维脚本** `backend/scripts/fix_post_image_thumbnails.py`：与 `seed_data.py --only-fix-thumbnails` SQL 完全同构，便于运维时"不想碰 seed 工具只想跑补写"的场景；同样支持 `--dry-run`，执行后二次 COUNT 验证剩余行数、打印建议验证 SQL
+- [x] **静态校验通过**：① `py_compile` 两个脚本 0 Error 0 Warning（docstring 已改为 raw string 避免 `\S` 转义告警）；② `--help` 输出正常（seed_data 4 行示例 / fix 脚本说明与实现一致）；③ 纯 Python 等价模拟补写推导：`/uploads/abc123.jpg → /uploads/thumb_abc123.jpg ✅`；`/uploads/`、非 `/uploads/` 前缀、空 basename 全部安全 SKIP ✅
+- [ ] openGauss 真实 DB 跑一次 `--only-fix-thumbnails --dry-run` + `--only-fix-thumbnails` 完整验证（未执行：环境未启动 opengauss 容器，未设置 `$env:APP_ENV='opengauss'`，也未确认 uploads 目录下历史图片缩略是否存在；**升级前建议运维手动执行**）
+- [ ] 真实上传链路 E2E（与 v2.2.9 任务同一缺口：需 `uvicorn app.main:app --reload` + `npm run dev` 启动后，走登录→上传 2 张图→发布→查 DB 确认 thumbnail_url 非空→进入详情页 Network 面板确认缩略请求加载 thumb_xxx.jpg，再跑一次 `--only-fix-thumbnails --dry-run` 应该显示 0 行候选，证明幂等性正确）
 
 ## 2026-08-07 执行任务：thumbnail_url 端到端入库修复（缩略带宽优化生效）
 

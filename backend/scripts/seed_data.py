@@ -2174,12 +2174,88 @@ async def seed_reports(session: AsyncSession, schools: list, users_by_email: dic
 # 主函数
 # =============================================================================
 
-async def seed_data():
-    """主函数：填充所有演示数据（三校多租户差异化数据）"""
+
+async def fix_missing_thumbnails(session: AsyncSession, *, dry_run: bool = False) -> int:
+    """补写历史 post_image 行缺失的 thumbnail_url 列。
+
+    设计目标（与 2.2.9 版本升级配套）：
+    - 解决：升级前上传的图片只写了 image_url，DB 里 thumbnail_url 永远为 NULL，
+      导致详情页缩略图缩略实际仍在加载原图（浪费 ~90% 带宽）的问题。
+    - 规则：对 image_url LIKE '/uploads/<xxx>' 的行，推导
+      thumbnail_url = '/uploads/thumb_' + <xxx>（与 upload.py 300×300 缩略命名一致）
+    - 幂等：只 UPDATE WHERE thumbnail_url IS NULL，已有的不覆盖
+    - 安全：只改 URL 前缀是 '/uploads/' 且文件名 ≥ 1 字符的行
+    - 兼容 openGauss / PostgreSQL：使用标准 SQL || 拼接 + SUBSTRING(column FROM pattern)
+
+    Args:
+        session: 活跃的 AsyncSession（调用方自行管理事务 commit）
+        dry_run: True 时只 SELECT COUNT 不 UPDATE，返回预计会更新的行数
+
+    Returns:
+        int: 实际更新（或 dry_run 下会被更新）的行数
+    """
+    where_clause = (
+        "WHERE thumbnail_url IS NULL "
+        "AND image_url LIKE '/uploads/%' "
+        "AND char_length(image_url) > char_length('/uploads/') + 1 "
+        "AND substring(image_url FROM '/uploads/(.*)$') IS NOT NULL"
+    )
+    if dry_run:
+        count_sql = text(f"SELECT COUNT(*) AS n FROM post_image {where_clause};")
+        result = await session.execute(count_sql)
+        return int(result.scalar_one() or 0)
+
+    update_sql = text(
+        "UPDATE post_image "
+        "SET thumbnail_url = '/uploads/thumb_' || substring(image_url FROM '/uploads/(.*)$') "
+        f"{where_clause};"
+    )
+    result = await session.execute(update_sql)
+    return int(result.rowcount or 0)
+
+
+async def seed_data(
+    *,
+    fix_thumbnails: bool = True,
+    only_fix_thumbnails: bool = False,
+):
+    """主函数：填充所有演示数据（三校多租户差异化数据）
+
+    Args:
+        fix_thumbnails: 执行完 seed 后，自动补写一次历史 post_image.thumbnail_url
+            （幂等，不会覆盖已有值）
+        only_fix_thumbnails: 不执行任何 seed 动作，只对现有数据库执行一次
+            补写 thumbnail_url 的操作；其他参数忽略
+    """
     print("=" * 60)
-    print("TEN-05 三校多租户差异化数据填充")
+    if only_fix_thumbnails:
+        print("修复：仅补写历史 post_image.thumbnail_url 列（不 seed 新数据）")
+    else:
+        print("TEN-05 三校多租户差异化数据填充")
     print("=" * 60)
 
+    # ------------------------------------------------------------------
+    # 模式 1：仅补写 thumbnail_url（无清空、无 seed）
+    # ------------------------------------------------------------------
+    if only_fix_thumbnails:
+        async with async_session_maker() as session:
+            print("\n[DRY RUN] 预估待补写行数 ...")
+            n_dry = await fix_missing_thumbnails(session, dry_run=True)
+            print(f"✓ 预计补写 {n_dry} 行 post_image.thumbnail_url（NULL 且前缀 /uploads/）")
+            if n_dry == 0:
+                print("（没有需要补写的行，已跳过 UPDATE）")
+                return
+            n = await fix_missing_thumbnails(session, dry_run=False)
+            await session.commit()
+            print(f"\n✅ 已成功更新 {n} 行 post_image.thumbnail_url（幂等：仅修改 thumbnail_url IS NULL 的行）")
+            print("\n验证 SQL（可选）：")
+            print("  SELECT count(*) FROM post_image WHERE thumbnail_url IS NULL;  -- 期望 0 或大幅下降")
+            print("  SELECT image_url, thumbnail_url FROM post_image ORDER BY id DESC LIMIT 3;")
+        return
+
+    # ------------------------------------------------------------------
+    # 模式 2：完整 seed + （可选）末尾补写 thumbnail_url
+    # ------------------------------------------------------------------
     print("\n[1/11] 清空现有数据（保留表结构）...")
     await init_db()
     print("✓ 已清空所有业务表数据并重置自增 ID")
@@ -2274,6 +2350,16 @@ async def seed_data():
         print(f"✓ 创建了 {len(notifications)} 条通知")
         print(f"✓ 创建了 {len(reports)} 条举报记录")
 
+        # [可选] 补写历史 post_image.thumbnail_url（2.2.9 升级配套）
+        if fix_thumbnails:
+            print("\n[POST] 补写历史 post_image.thumbnail_url 列（升级 2.2.9 配套，幂等）...")
+            n_dry = await fix_missing_thumbnails(session, dry_run=True)
+            if n_dry == 0:
+                print("✓ 没有需要补写的行，已跳过 UPDATE（幂等）")
+            else:
+                n = await fix_missing_thumbnails(session, dry_run=False)
+                print(f"✓ 已更新 {n} 行 post_image.thumbnail_url（共预估 {n_dry} 行）")
+
         await session.commit()
 
         # 打印总结
@@ -2298,4 +2384,55 @@ async def seed_data():
 
 
 if __name__ == "__main__":
-    asyncio.run(seed_data())
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="moment-campus 三校多租户演示数据 seed 工具（openGauss 专用）",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""\
+常用示例：
+  # 1. 完整 seed（清空 + 重填所有数据，最后自动补写 thumbnail_url）
+  $env:APP_ENV='opengauss'; python scripts/seed_data.py
+
+  # 2. 完整 seed，但不做末尾的 thumbnail_url 补写（不推荐）
+  $env:APP_ENV='opengauss'; python scripts/seed_data.py --no-fix-thumbnails
+
+  # 3. 不清空、不 seed，只对现有数据库补写一次 thumbnail_url（升级 2.2.9 用）
+  $env:APP_ENV='opengauss'; python scripts/seed_data.py --only-fix-thumbnails
+
+  # 4. 只补写前先做一次 dry-run，看会改多少行
+  $env:APP_ENV='opengauss'; python scripts/seed_data.py --only-fix-thumbnails --dry-run
+""",
+    )
+    parser.add_argument(
+        "--only-fix-thumbnails",
+        action="store_true",
+        help="仅补写 post_image.thumbnail_url 列，不执行任何 seed 动作（升级 2.2.9 配套）",
+    )
+    parser.add_argument(
+        "--no-fix-thumbnails",
+        action="store_true",
+        help="执行完整 seed 后不自动补写 thumbnail_url（不推荐）",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="仅与 --only-fix-thumbnails 联用：只查询预估会更新的行数，不做 UPDATE",
+    )
+    args = parser.parse_args()
+
+    if args.only_fix_thumbnails and args.dry_run:
+        # dry-run 模式：只 COUNT
+        async def _dry_run():
+            async with async_session_maker() as session:
+                n = await fix_missing_thumbnails(session, dry_run=True)
+            print(f"[DRY RUN] 预计更新 {n} 行 post_image.thumbnail_url（thumbnail_url IS NULL 且 image_url LIKE '/uploads/%'）")
+
+        asyncio.run(_dry_run())
+    else:
+        asyncio.run(
+            seed_data(
+                fix_thumbnails=not args.no_fix_thumbnails,
+                only_fix_thumbnails=args.only_fix_thumbnails,
+            )
+        )

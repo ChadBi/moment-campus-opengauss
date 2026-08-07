@@ -7,6 +7,31 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.10] - 2026-08-07
+
+### 新增
+
+- **历史帖子 PostImage.thumbnail_url 批量补写脚本（两入口）**：
+  解决 v2.2.9 之前发布的图片帖子 `PostImage.thumbnail_url IS NULL` 导致详情页缩略图仍加载原图的遗留问题（与 v2.2.9 thumbnail_url 入库修复配套，形成完整闭环）。
+  - `backend/scripts/fix_post_image_thumbnails.py`：独立运维脚本，支持 `--dry-run` 预估行数，单条 UPDATE + 1 次 COMMIT 原子完成，幂等（仅改 NULL 行，绝不覆盖已有缩略图）、安全（仅作用于 image_url 前缀 `/uploads/` 且文件名非空的行）
+  - `backend/scripts/seed_data.py --only-fix-thumbnails`：seed 工具内置同一套补写能力（SQL 完全同构、结果与独立脚本等价），支持 `--dry-run` 只 COUNT 不 UPDATE；`--no-fix-thumbnails` 可临时关闭默认补写；完整 seed 运行时默认在写入侧 commit 前自动执行一次补写，保证新 seed 环境直接缩略图带宽优化生效
+
+### 实现（与 upload.py 命名规则严格对齐）
+
+- 补写规则（openGauss / PostgreSQL 兼容语法）：
+  `thumbnail_url = '/uploads/thumb_' || substring(image_url FROM '/uploads/(.*)$')`
+  与 `backend/app/api/upload.py` 缩略图生成命名
+  `thumb_{uuid}{ext}` 完全一致，不会出现"DB 有 thumbnail_url 但磁盘文件不存在"的错配
+- WHERE 四重过滤：`thumbnail_url IS NULL AND image_url LIKE '/uploads/%' AND char_length(image_url) > 10 AND substring(...) IS NOT NULL`，
+  避免误伤非托管 URL、空文件名和异常路径
+- **seed_data.py 结构优化**：新增顶层 `fix_missing_thumbnails(session, dry_run=False) -> int` 独立函数，可被其他脚本或管理端定时任务直接 import 复用；CLI 从裸 `asyncio.run(seed_data())` 扩展为 `argparse` 三参数结构，带 4 条常用使用示例 docstring
+
+### 校验
+
+- `py_compile scripts/seed_data.py scripts/fix_post_image_thumbnails.py`：0 Error 0 Warning
+- `--help` 输出正常（两脚本独立跑通，示例说明与实现一致）
+- 纯 Python 等价模拟补写推导：`/uploads/abc123.jpg → /uploads/thumb_abc123.jpg ✅`；`/uploads/`、非 `/uploads/` 前缀、空 basename 全部安全 SKIP ✅
+
 ## [2.2.9] - 2026-08-07
 
 ### 修复
