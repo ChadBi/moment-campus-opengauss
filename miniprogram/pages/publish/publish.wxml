@@ -34,7 +34,7 @@
       <input
         class="title-input"
         type="text"
-        placeholder="一句话说清核心信息（最多50字）"
+        placeholder="请输入标题（5-100 字符）"
         placeholder-class="ph"
         maxlength="{{titleMaxLen}}"
         value="{{title}}"
@@ -51,7 +51,7 @@
     <view class="input-wrap">
       <textarea
         class="content-input"
-        placeholder="描述详细情况、时间、地点、经过等（最多2000字）"
+        placeholder="请输入内容（10-5000 字符）"
         placeholder-class="ph"
         maxlength="{{contentMaxLen}}"
         value="{{content}}"
@@ -101,6 +101,37 @@
     </view>
   </view>
 
+  <!-- 联系方式与失物类型（对齐 Web） -->
+  <view class="section">
+    <view class="section-label">
+      <text class="label-text">联系方式</text>
+      <text class="label-hint">可选</text>
+    </view>
+    <view class="input-wrap">
+      <input
+        class="title-input"
+        type="text"
+        placeholder="如微信/QQ/电话（可选）"
+        placeholder-class="ph"
+        maxlength="255"
+        value="{{contactInfo}}"
+        bindinput="onContactInput" />
+    </view>
+  </view>
+
+  <view wx:if="{{lostTypeVisible}}" class="section">
+    <view class="section-label">
+      <text class="label-text">失物类型</text>
+      <text class="required">*</text>
+    </view>
+    <picker mode="selector" range="{{lostTypeOptions}}" value="{{lostTypeIndex}}" bindchange="onLostTypeChange">
+      <view class="picker-value">
+        <text>{{lostTypeOptions[lostTypeIndex]}}</text>
+        <icon name="chevron-down" size="24rpx" color="#6a7d81" />
+      </view>
+    </picker>
+  </view>
+
   <!-- ============== 位置（对齐 Web: icon map-pin + icon 更换/移除） ============== -->
   <view class="section">
     <view class="section-label">
@@ -131,6 +162,16 @@
         </view>
       </block>
     </view>
+  </view>
+
+  <view class="anonymous-row">
+    <checkbox
+      value="anonymous"
+      checked="{{isAnonymous}}"
+      disabled="{{!allowAnonymous}}"
+      bindchange="onAnonymousChange" />
+    <text class="anonymous-label {{!allowAnonymous ? 'disabled' : ''}}">匿名发布</text>
+    <text wx:if="{{!allowAnonymous}}" class="anonymous-hint">当前学校已关闭匿名发布</text>
   </view>
 
   <!-- ============== 有效期（对齐 Web: icon chevron-down 下拉箭头） ============== -->
@@ -251,8 +292,8 @@
 
 <!-- ============== 底部操作栏 ============== -->
 <view class="action-bar">
-  <view class="action-btn btn-secondary" bindtap="onClearDraft" hover-class="action-btn-hover" hover-stay-time="120">
-    <text>清空</text>
+  <view class="action-btn btn-secondary" bindtap="onSaveDraft" hover-class="action-btn-hover" hover-stay-time="120">
+    <text>{{submitting ? '保存中...' : '存为草稿'}}</text>
   </view>
   <view
     class="action-btn btn-primary {{submitting ? 'disabled' : ''}}"
@@ -260,6 +301,6 @@
     hover-class="action-btn-hover"
     hover-stay-time="120">
     <text wx:if="{{submitting}}" class="btn-loading"></text>
-    <text>{{submitting ? '发布中...' : '发布'}}</text>
+    <text>{{submitting ? '提交中...' : '提交审核'}}</text>
   </view>
 </view>

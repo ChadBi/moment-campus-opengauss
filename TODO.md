@@ -12,6 +12,15 @@
 - [x] 小程序 `npm run typecheck`、`npm run test:format` 通过
 - [ ] 发帖/编辑流程与地图地点面板仍待完成
 
+## 2026-08-07 执行任务：Web/小程序一致性重构 P2
+
+- [x] 发布页、编辑页标题/正文限制对齐 Web（5-100 / 10-5000）
+- [x] 发布与编辑补齐 `is_anonymous`、`contact_info`、`lost_type`、动态图片上限和标准 `images` 字段
+- [x] 新增“存为草稿”“提交审核”，接入帖子状态流转；草稿按学校与用户隔离
+- [x] 发布/编辑分类、学校设置、AI 建议和帖子写入统一走 service 层
+- [x] 小程序 `npm run typecheck`、`npm run test:format` 通过
+- [ ] 地图标记视觉与地点相关帖子面板仍待完成
+
 ## 2026-08-07 执行任务：历史帖子 thumbnail_url 补写 + seed_data 优化升级（v2.2.10）
 
 - [x] **seed_data.py 主函数解耦 + 新增补写 helper**：新增顶层 `async def fix_missing_thumbnails(session: AsyncSession, *, dry_run=False) -> int`，与 seed_data 其他 seed 函数平级，可被其他脚本直接 import 复用；支持 dry_run 只 COUNT 不 UPDATE，幂等（仅改 `thumbnail_url IS NULL`），安全（4 重 WHERE 过滤：IS NULL / LIKE '/uploads/%' / char_length > 10 / SUBSTRING basename 非空）

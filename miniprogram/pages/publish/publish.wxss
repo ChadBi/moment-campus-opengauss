@@ -284,6 +284,28 @@
   opacity: 0.7;
 }
 
+.anonymous-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 0 30rpx 20rpx;
+}
+
+.anonymous-label {
+  font-size: 26rpx;
+  color: var(--ink);
+}
+
+.anonymous-label.disabled {
+  color: var(--muted);
+}
+
+.anonymous-hint {
+  margin-left: 8rpx;
+  color: var(--muted);
+  font-size: 22rpx;
+}
+
 .location-placeholder {
   font-size: 28rpx;
   color: var(--muted);

@@ -1,6 +1,7 @@
-import { http } from '../../../services/request'
 import { chooseAndUploadImage } from '../../../services/upload'
-import type { PostImage } from '../../../types'
+import { getPost, listCategories, transitionPost, updatePost } from '../../../services/posts'
+import { getSchoolSettings } from '../../../services/schools'
+import type { Category, PostImage } from '../../../types'
 
 const DAY_MS = 86400000
 const PRESET_DAYS = [1, 3, 7, 30]
@@ -26,14 +27,21 @@ Page({
     loading: true,
     loadError: '',
 
-    categories: [] as any[],
+    categories: [] as Array<Category & { cls: string }>,
     selectedCategoryId: 0,
     title: '',
     content: '',
     images: [] as PostImage[],
     maxImages: 9,
-    titleMaxLen: 50,
-    contentMaxLen: 2000,
+    titleMaxLen: 100,
+    contentMaxLen: 5000,
+    isAnonymous: false,
+    allowAnonymous: true,
+    contactInfo: '',
+    lostType: '' as '' | 'lost' | 'found',
+    lostTypeOptions: ['请选择', '丢失', '拾获'],
+    lostTypeIndex: 0,
+    lostTypeVisible: false,
 
     // 位置
     locationId: null as number | null,
@@ -74,14 +82,18 @@ Page({
   async loadCategories() {
     this.setData({ loadingCategories: true })
     try {
-      const res: any = await http.get('/categories')
-      const list = Array.isArray(res) ? res : ((res && (res.items || res.data)) || [])
-      const cats = Array.isArray(list)
-        ? list
-            .filter((c: any) => c.is_active === undefined || c.is_active === true)
-            .map((c: any) => ({ ...c, cls: mapCategoryToClass(c.name) }))
-        : []
+      const list = await listCategories()
+      const cats = list
+        .filter(c => c.is_active !== false)
+        .map(c => ({ ...c, cls: mapCategoryToClass(c.name) }))
       this.setData({ categories: cats, loadingCategories: false })
+      if (this.data.selectedCategoryId) this.updateLostTypeVisibility(this.data.selectedCategoryId)
+      try {
+        const settings = await getSchoolSettings()
+        this.setData({ allowAnonymous: settings?.allow_anonymous !== false })
+      } catch {
+        // 设置读取失败时沿用兼容默认值，提交仍由后端校验。
+      }
     } catch (e: any) {
       this.setData({ loadingCategories: false })
       wx.showToast({ title: e.message || '分类加载失败', icon: 'none' })
@@ -92,8 +104,8 @@ Page({
   async loadPost() {
     this.setData({ loading: true, loadError: '' })
     try {
-      const res: any = await http.get(`/posts/${this.data.postId}`)
-      this.prefillForm(res || {})
+      const post = await getPost(this.data.postId)
+      this.prefillForm(post)
     } catch (e: any) {
       this.setData({ loading: false, loadError: e.message || '加载失败' })
       wx.showToast({ title: e.message || '加载失败', icon: 'none' })
@@ -138,9 +150,14 @@ Page({
       expiryIndex,
       isCustomExpiry,
       customDays,
+      isAnonymous: !!post.is_anonymous,
+      contactInfo: post.contact_info || '',
+      lostType: post.lost_type || '',
+      lostTypeIndex: post.lost_type === 'lost' ? 1 : (post.lost_type === 'found' ? 2 : 0),
       originalStatus: post.status || '',
       loading: false,
     })
+    this.updateLostTypeVisibility(selectedCategoryId)
   },
 
   computeExpiryFromPost(post: any) {
@@ -160,9 +177,17 @@ Page({
 
   // ============== 分类 ==============
   onCategoryTap(e: any) {
-    const id = e.currentTarget.dataset.id
+    const id = Number(e.currentTarget.dataset.id)
     if (!id || id === this.data.selectedCategoryId) return
     this.setData({ selectedCategoryId: id })
+    this.updateLostTypeVisibility(id)
+  },
+
+  updateLostTypeVisibility(categoryId: number) {
+    const category = this.data.categories.find(item => item.id === categoryId)
+    const visible = category?.code === 'lost_found' || /失物/.test(category?.name || '')
+    this.setData({ lostTypeVisible: visible })
+    if (!visible) this.setData({ lostType: '', lostTypeIndex: 0 })
   },
 
   // ============== 表单输入 ==============
@@ -174,6 +199,20 @@ Page({
   onContentInput(e: any) {
     const value: string = (e.detail.value || '').slice(0, this.data.contentMaxLen)
     this.setData({ content: value })
+  },
+
+  onContactInput(e: any) {
+    this.setData({ contactInfo: String(e.detail.value || '').slice(0, 255) })
+  },
+
+  onAnonymousChange(e: any) {
+    if (!this.data.allowAnonymous) return
+    this.setData({ isAnonymous: !!e.detail.value })
+  },
+
+  onLostTypeChange(e: any) {
+    const index = Number(e.detail.value)
+    this.setData({ lostTypeIndex: index, lostType: index === 1 ? 'lost' : (index === 2 ? 'found' : '') })
   },
 
   // ============== 图片 ==============
@@ -270,15 +309,26 @@ Page({
   validate(): string | null {
     const title = this.data.title.trim()
     if (!title) return '请输入标题'
+    if (title.length < 5 || title.length > this.data.titleMaxLen) return '标题长度必须在 5-100 字符之间'
+    if (this.data.content.trim().length < 10 || this.data.content.trim().length > this.data.contentMaxLen) return '正文长度必须在 10-5000 字符之间'
     if (!this.data.selectedCategoryId) return '请选择分类'
     if (this.data.isCustomExpiry) {
       const days = parseInt(this.data.customDays, 10)
       if (!days || days <= 0) return '请输入自定义有效天数'
     }
+    if (this.data.lostTypeVisible && !this.data.lostType) return '请选择失物类型'
     return null
   },
 
   async onSubmit() {
+    await this.savePost('pending')
+  },
+
+  async onSaveDraft() {
+    await this.savePost('draft')
+  },
+
+  async savePost(targetStatus: 'draft' | 'pending') {
     if (this.data.submitting) return
     const err = this.validate()
     if (err) {
@@ -323,8 +373,19 @@ Page({
       }
       if (expiresAt) payload.expire_at = expiresAt
 
-      await http.put(`/posts/${this.data.postId}`, payload)
-      wx.showToast({ title: '修改成功', icon: 'success', duration: 1200 })
+      payload.is_anonymous = this.data.isAnonymous
+      payload.contact_info = this.data.contactInfo.trim() || undefined
+      payload.lost_type = this.data.lostTypeVisible ? (this.data.lostType || undefined) : undefined
+
+      await updatePost(this.data.postId, payload)
+      if (targetStatus === 'pending' && this.data.originalStatus === 'draft') {
+        await transitionPost(this.data.postId, 'pending')
+      }
+      wx.showToast({
+        title: targetStatus === 'draft' ? '修改已保存' : '已提交审核',
+        icon: 'success',
+        duration: 1200,
+      })
       setTimeout(() => {
         wx.navigateBack({
           fail: () => {

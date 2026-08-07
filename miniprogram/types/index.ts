@@ -145,6 +145,7 @@ export interface Comment {
 export interface Category {
   id: number
   name: string
+  code?: string
   icon?: string
   description?: string
   sort_order: number

@@ -1,11 +1,19 @@
-import { http } from '../../services/request'
 import { chooseAndUploadImage } from '../../services/upload'
 import { requireLogin, guardPageLogin } from '../../utils/auth-guard'
 import { cachedFetch } from '../../utils/cache'
 import { campusStore } from '../../store/campus'
-import type { PostImage } from '../../types'
+import { authStore } from '../../store/auth'
+import { createPost, listCategories, suggestPost } from '../../services/posts'
+import { getSchoolSettings } from '../../services/schools'
+import type { Category, PostImage } from '../../types'
 
-const DRAFT_KEY = 'publish_draft'
+const DRAFT_KEY_PREFIX = 'publish_draft'
+
+function getDraftKey(): string {
+  const schoolCode = campusStore.getState().schoolCode || 'jiangnan'
+  const userId = authStore.getState().user?.id || 'guest'
+  return `${DRAFT_KEY_PREFIX}:${schoolCode}:${userId}`
+}
 
 /**
  * 分类名映射到分类色板 CSS 类名（与 post-card 组件保持一致）
@@ -26,14 +34,21 @@ function mapCategoryToClass(name: string): string {
 
 Page({
   data: {
-    categories: [] as any[],
+    categories: [] as Array<Category & { cls: string }>,
     selectedCategoryId: 0,
     title: '',
     content: '',
     images: [] as PostImage[],
     maxImages: 9,
-    titleMaxLen: 50,
-    contentMaxLen: 2000,
+    titleMaxLen: 100,
+    contentMaxLen: 5000,
+    isAnonymous: false,
+    allowAnonymous: true,
+    contactInfo: '',
+    lostType: '' as '' | 'lost' | 'found',
+    lostTypeVisible: false,
+    lostTypeOptions: ['请选择', '丢失', '拾获'],
+    lostTypeIndex: 0,
 
     // 位置
     locationId: null as number | null,
@@ -85,22 +100,25 @@ Page({
     try {
       // 分类为低频数据，走本地缓存 + 过期刷新（Task 10）
       const schoolCode = campusStore.getState().schoolCode
-      const res: any = await cachedFetch<any>('categories', () => http.get('/categories'), { schoolCode })
-      const list = Array.isArray(res) ? res : ((res && (res.items || res.data)) || [])
+      const list = await cachedFetch<Category[]>('categories', () => listCategories(), { schoolCode })
       const cats = list
-        .filter((c: any) => c.is_active === undefined || c.is_active === true)
-        .map((c: any) => ({ ...c, cls: mapCategoryToClass(c.name) }))
+        .filter(c => c.is_active !== false)
+        .map(c => ({ ...c, cls: mapCategoryToClass(c.name) }))
       let selectedCategoryId = this.data.selectedCategoryId
       if (!selectedCategoryId && cats.length > 0) {
         selectedCategoryId = cats[0].id
       }
       this.setData({ categories: cats, selectedCategoryId, loadingCategories: false })
+      this.updateLostTypeVisibility(selectedCategoryId, cats)
       try {
-        const settings: any = await http.get('/schools/current/settings')
+        const settings = await cachedFetch<any>('school-settings', () => getSchoolSettings(), { schoolCode })
         const limit = Number(settings?.image_limit)
-        if (Number.isFinite(limit) && limit > 0) this.setData({ maxImages: Math.min(limit, 9) })
+        this.setData({
+          allowAnonymous: settings?.allow_anonymous !== false,
+          maxImages: Number.isFinite(limit) && limit > 0 ? Math.min(limit, 9) : 9,
+        })
       } catch {
-        // 学校设置不可用时沿用后端默认 9 张。
+        // 学校设置不可用时沿用安全默认值。
       }
     } catch (e: any) {
       this.setData({ loadingCategories: false })
@@ -112,6 +130,14 @@ Page({
     const id = e.currentTarget.dataset.id
     if (!id || id === this.data.selectedCategoryId) return
     this.setData({ selectedCategoryId: id })
+    this.updateLostTypeVisibility(id)
+  },
+
+  updateLostTypeVisibility(categoryId: number, categories = this.data.categories) {
+    const category = categories.find(item => item.id === categoryId)
+    const visible = category?.code === 'lost_found' || /失物/.test(category?.name || '')
+    this.setData({ lostTypeVisible: visible })
+    if (!visible && this.data.lostType) this.setData({ lostType: '' })
   },
 
   // ============== 表单输入 ==============
@@ -123,6 +149,23 @@ Page({
   onContentInput(e: any) {
     let value: string = (e.detail.value || '').slice(0, this.data.contentMaxLen)
     this.setData({ content: value })
+  },
+
+  onContactInput(e: any) {
+    this.setData({ contactInfo: String(e.detail.value || '').slice(0, 255) })
+  },
+
+  onAnonymousChange(e: any) {
+    if (!this.data.allowAnonymous) return
+    this.setData({ isAnonymous: !!e.detail.value })
+  },
+
+  onLostTypeChange(e: any) {
+    const index = Number(e.detail.value)
+    this.setData({
+      lostTypeIndex: index,
+      lostType: index === 1 ? 'lost' : (index === 2 ? 'found' : ''),
+    })
   },
 
   // ============== 图片 ==============
@@ -238,6 +281,9 @@ Page({
       expiryIndex: this.data.expiryIndex,
       isCustomExpiry: this.data.isCustomExpiry,
       customDays: this.data.customDays,
+      isAnonymous: this.data.isAnonymous,
+      contactInfo: this.data.contactInfo,
+      lostType: this.data.lostType,
       savedAt: Date.now(),
     }
   },
@@ -254,7 +300,7 @@ Page({
   saveDraftSilent() {
     if (!this.hasFormContent()) return
     try {
-      wx.setStorageSync(DRAFT_KEY, this.buildDraftData())
+      wx.setStorageSync(getDraftKey(), this.buildDraftData())
     } catch (e) {
       // 静默
     }
@@ -262,11 +308,11 @@ Page({
 
   restoreDraft() {
     try {
-      const draft: any = wx.getStorageSync(DRAFT_KEY)
+      const draft: any = wx.getStorageSync(getDraftKey())
       if (!draft) return
       // 草稿超过 7 天则丢弃
       if (draft.savedAt && Date.now() - draft.savedAt > 7 * 86400000) {
-        wx.removeStorageSync(DRAFT_KEY)
+        wx.removeStorageSync(getDraftKey())
         return
       }
       this.setData({
@@ -284,6 +330,10 @@ Page({
         expiryIndex: draft.expiryIndex || 0,
         isCustomExpiry: !!draft.isCustomExpiry,
         customDays: draft.customDays || '',
+        isAnonymous: this.data.allowAnonymous && !!draft.isAnonymous,
+        contactInfo: draft.contactInfo || '',
+        lostType: draft.lostType || '',
+        lostTypeIndex: draft.lostType === 'lost' ? 1 : (draft.lostType === 'found' ? 2 : 0),
         draftRestored: true,
       })
       if (this.hasFormContent()) {
@@ -301,7 +351,7 @@ Page({
       confirmColor: '#e53935',
       success: (res: any) => {
         if (!res.confirm) return
-        try { wx.removeStorageSync(DRAFT_KEY) } catch (e) {}
+        try { wx.removeStorageSync(getDraftKey()) } catch (e) {}
         this.setData({
           title: '',
           content: '',
@@ -314,6 +364,10 @@ Page({
           expiryIndex: 0,
           isCustomExpiry: false,
           customDays: '',
+          isAnonymous: false,
+          contactInfo: '',
+          lostType: '',
+          lostTypeIndex: 0,
           draftRestored: false,
         })
         wx.showToast({ title: '已清空', icon: 'success' })
@@ -324,46 +378,37 @@ Page({
   // ============== 提交 ==============
   validate(): string | null {
     const title = this.data.title.trim()
+    const content = this.data.content.trim()
     if (!title) return '请输入标题'
-    if (this.data.content.trim().length < 10) return '正文至少需要 10 个字'
+    if (title.length < 5 || title.length > this.data.titleMaxLen) return '标题长度必须在 5-100 字符之间'
+    if (!content) return '请输入正文'
+    if (content.length < 10 || content.length > this.data.contentMaxLen) return '正文长度必须在 10-5000 字符之间'
     if (!this.data.selectedCategoryId) return '请选择分类'
     if (this.data.isCustomExpiry) {
       const days = parseInt(this.data.customDays, 10)
       if (!days || days <= 0) return '请输入自定义有效天数'
     }
+    if (this.isLostFoundCategory() && !this.data.lostType) return '请选择失物类型'
     return null
   },
 
-  async onSubmit() {
-    if (!requireLogin('登录后即可发布帖子')) return
-    if (this.data.submitting) return
-    const err = this.validate()
-    if (err) {
-      wx.showToast({ title: err, icon: 'none' })
-      return
-    }
+  isLostFoundCategory(): boolean {
+    const category = this.data.categories.find(item => item.id === this.data.selectedCategoryId)
+    return category?.code === 'lost_found' || /失物/.test(category?.name || '')
+  },
 
-    // 敏感操作二次确认
-    const confirmed = await new Promise<boolean>(resolve => {
-      wx.showModal({
-        title: '确认发布',
-        content: '确定要发布这条帖子吗？',
-        confirmText: '发布',
-        cancelText: '取消',
-        success: (r: any) => resolve(!!r.confirm),
-        fail: () => resolve(false),
-      })
-    })
-    if (!confirmed) return
-
-    const expiresAt = this.computeExpiresAt()
-
+  buildPostPayload(status: 'draft' | 'pending') {
     const payload: any = {
       title: this.data.title.trim(),
       content: this.data.content.trim(),
       category_id: this.data.selectedCategoryId,
+      is_anonymous: this.data.allowAnonymous && this.data.isAnonymous,
+      contact_info: this.data.contactInfo.trim() || undefined,
+      lost_type: this.isLostFoundCategory() ? (this.data.lostType || undefined) : undefined,
+      images: this.data.images.length > 0 ? this.data.images : undefined,
+      expire_at: this.computeExpiresAt(),
+      status,
     }
-    if (this.data.images.length > 0) payload.images = this.data.images
     if (this.data.hasLocation && this.data.locationId) {
       payload.location_id = this.data.locationId
     } else if (this.data.hasLocation) {
@@ -371,28 +416,41 @@ Page({
       payload.location_lat = this.data.locationLat
       payload.location_lng = this.data.locationLng
     }
-    if (expiresAt) payload.expire_at = expiresAt
+    return payload
+  },
 
+  async onSaveDraft() {
+    await this.submitPost('draft')
+  },
+
+  async onSubmit() {
+    await this.submitPost('pending')
+  },
+
+  async submitPost(status: 'draft' | 'pending') {
+    if (!requireLogin(status === 'draft' ? '登录后即可保存草稿' : '登录后即可提交审核')) return
+    if (this.data.submitting) return
+    const err = this.validate()
+    if (err) {
+      wx.showToast({ title: err, icon: 'none' })
+      return
+    }
     this.setData({ submitting: true })
     try {
-      await http.post('/posts', payload)
-      // 清除草稿
-      try { wx.removeStorageSync(DRAFT_KEY) } catch (e) {}
-      wx.showToast({ title: '发布成功', icon: 'success', duration: 1200 })
+      await createPost(this.buildPostPayload(status))
+      try { wx.removeStorageSync(getDraftKey()) } catch (e) {}
+      wx.showToast({
+        title: status === 'draft' ? '草稿已保存' : '已提交审核',
+        icon: 'success',
+        duration: 1200,
+      })
       setTimeout(() => {
         wx.navigateBack({
-          fail: () => {
-            wx.switchTab({
-              url: '/pages/home/home',
-              fail: () => {
-                wx.reLaunch({ url: '/pages/home/home' })
-              },
-            } as any)
-          },
+          fail: () => wx.switchTab({ url: '/pages/home/home' } as any),
         })
       }, 1000)
     } catch (e: any) {
-      wx.showToast({ title: e.message || '发布失败', icon: 'none' })
+      wx.showToast({ title: e.message || '操作失败', icon: 'none' })
     } finally {
       this.setData({ submitting: false })
     }
@@ -409,7 +467,7 @@ Page({
     }
     this.setData({ aiLoading: true, showAiSuggestion: true, aiSuggestion: null })
     try {
-      const res: any = await http.post('/posts/ai-suggest', { title, content })
+      const res = await suggestPost(title, content)
       this.setData({ aiSuggestion: res || {}, aiLoading: false })
     } catch (e: any) {
       this.setData({ aiLoading: false, showAiSuggestion: false })
@@ -437,6 +495,7 @@ Page({
       return
     }
     this.setData(updates)
+    if (updates.selectedCategoryId) this.updateLostTypeVisibility(updates.selectedCategoryId)
     wx.showToast({ title: '已应用建议', icon: 'success' })
   },
 

@@ -39,3 +39,16 @@ export async function getRecommendations(params?: {
   const query = buildQuery(params)
   return normalizePostList(await http.get<any>(`/recommendations${query ? `?${query}` : ''}`))
 }
+
+export interface PublicSchoolSettings {
+  allow_anonymous?: boolean
+  allow_comments?: boolean
+  publish_frequency?: number
+  image_limit?: number
+  default_validity_days?: number
+  require_review?: boolean
+}
+
+export async function getSchoolSettings(): Promise<PublicSchoolSettings> {
+  return http.get<PublicSchoolSettings>('/schools/current/settings')
+}

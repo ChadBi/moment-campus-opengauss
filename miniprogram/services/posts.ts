@@ -54,6 +54,24 @@ export async function transitionPost(id: number, targetStatus: PostTransitionSta
   return getPost(id)
 }
 
+export interface AIPublishSuggestion {
+  fallback?: boolean
+  fallback_reason?: string
+  suggestions?: {
+    title?: string
+    summary?: string
+    category_id?: number
+    tags?: string[]
+    default_validity_days?: number
+  }
+  missing_info?: string[]
+  sensitive_warnings?: string[]
+}
+
+export async function suggestPost(title: string, content: string): Promise<AIPublishSuggestion> {
+  return http.post<AIPublishSuggestion>('/posts/ai-suggest', { title, content })
+}
+
 export async function deletePost(id: number): Promise<void> {
   return http.delete(`/posts/${id}`)
 }
