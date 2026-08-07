@@ -303,6 +303,8 @@
   justify-content: center;
   border-radius: 50%;
   flex-shrink: 0;
+  position: relative;
+  z-index: 3;
 }
 
 .info-close-hover {

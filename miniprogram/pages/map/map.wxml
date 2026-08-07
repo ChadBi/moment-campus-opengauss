@@ -48,11 +48,16 @@
   <view
     wx:if="{{selectedLocation}}"
     class="location-sheet {{sheetExpanded ? 'location-sheet-expanded' : 'location-sheet-half'}} {{sheetDragging ? 'location-sheet-dragging' : ''}}"
-    style="transform: translate3d(0, {{sheetDragOffset}}px, 0);"
-    bindtouchstart="onSheetTouchStart"
-    bindtouchmove="onSheetTouchMove"
-    bindtouchend="onSheetTouchEnd">
-    <scroll-view class="sheet-scroll" scroll-y="{{sheetExpanded}}" enhanced="true" show-scrollbar="{{false}}">
+    style="transform: translate3d(0, {{sheetDragOffset}}px, 0);">
+    <scroll-view
+      class="sheet-scroll"
+      scroll-y="{{sheetExpanded}}"
+      enhanced="true"
+      show-scrollbar="{{false}}"
+      catchtouchstart="onSheetTouchStart"
+      catchtouchmove="onSheetTouchMove"
+      catchtouchend="onSheetTouchEnd"
+    >
       <view class="sheet-drag-area">
         <view class="sheet-handle"></view>
         <view class="sheet-header">
