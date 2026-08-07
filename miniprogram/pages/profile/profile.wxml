@@ -422,32 +422,11 @@
       <text class="settings-label">编辑资料</text>
       <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-    <view class="settings-item" bindtap="showIdentityPopup" hover-class="settings-item-hover" hover-stay-time="120">
-      <view class="settings-icon-wrap">
-        <icon name="shield" size="32rpx" color="#174d5e" />
-      </view>
-      <text class="settings-label">身份管理</text>
-      <icon name="chevron-right" size="32rpx" color="#9aabae" />
-    </view>
-    <view class="settings-item" bindtap="showSessionPopup" hover-class="settings-item-hover" hover-stay-time="120">
-      <view class="settings-icon-wrap">
-        <icon name="settings" size="32rpx" color="#174d5e" />
-      </view>
-      <text class="settings-label">设备管理</text>
-      <icon name="chevron-right" size="32rpx" color="#9aabae" />
-    </view>
     <view class="settings-item" bindtap="goToNotificationPreferences" hover-class="settings-item-hover" hover-stay-time="120">
       <view class="settings-icon-wrap">
         <icon name="bell" size="32rpx" color="#174d5e" />
       </view>
       <text class="settings-label">通知偏好</text>
-      <icon name="chevron-right" size="32rpx" color="#9aabae" />
-    </view>
-    <view class="settings-item" bindtap="goToFeedback" hover-class="settings-item-hover" hover-stay-time="120">
-      <view class="settings-icon-wrap">
-        <icon name="message-circle" size="32rpx" color="#174d5e" />
-      </view>
-      <text class="settings-label">意见反馈</text>
       <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
     <view class="settings-item" bindtap="goToAgreement" hover-class="settings-item-hover" hover-stay-time="120">
@@ -480,7 +459,6 @@
     </view>
   </view>
 </view>
-
 <!-- ============== 编辑资料弹出层 ============== -->
 <view wx:if="{{editVisible}}" class="popup-mask" bindtap="hideEditPopup">
   <view class="popup-container" catchtap="noop">
@@ -523,114 +501,6 @@
       <view class="popup-btn btn-confirm" bindtap="saveEdit" hover-class="popup-btn-hover" hover-stay-time="120">
         <text>{{savingProfile ? '保存中...' : '保存'}}</text>
       </view>
-    </view>
-  </view>
-</view>
-
-<!-- ============== 身份管理弹出层 ============== -->
-<view wx:if="{{identityVisible}}" class="popup-mask" bindtap="hideIdentityPopup">
-  <view class="popup-container popup-lg" catchtap="noop">
-    <view class="popup-header">
-      <text class="popup-title">身份管理</text>
-      <view class="popup-close" bindtap="hideIdentityPopup" hover-class="popup-close-hover" hover-stay-time="120">
-        <icon name="x" size="32rpx" color="#6a7d81" />
-      </view>
-    </view>
-    <view class="popup-body">
-      <view wx:if="{{loadingIdentities}}" class="popup-loading">
-        <view class="loading-dot"></view>
-        <view class="loading-dot loading-dot-delay1"></view>
-        <view class="loading-dot loading-dot-delay2"></view>
-      </view>
-      <block wx:elif="{{identities.length === 0}}">
-        <empty-state
-          compact
-          icon="shield"
-          title="暂无绑定身份"
-          hint="登录方式将显示在这里"
-        />
-      </block>
-      <block wx:else>
-        <view wx:for="{{identities}}" wx:key="id" class="identity-item">
-          <view class="identity-info">
-            <view class="identity-row">
-              <text class="identity-type">{{item.type_label}}</text>
-              <text class="identity-key">{{item.identity_key}}</text>
-            </view>
-            <view class="identity-meta">
-              <text>绑定：{{item.created_at_text}}</text>
-              <text>最近使用：{{item.last_used_at_text}}</text>
-            </view>
-          </view>
-          <view
-            class="identity-action"
-            data-id="{{item.id}}"
-            bindtap="onDeleteIdentity"
-            hover-class="identity-action-hover"
-            hover-stay-time="120"
-          >
-            <icon name="trash2" size="24rpx" color="#cd5852" />
-            <text>删除</text>
-          </view>
-        </view>
-      </block>
-    </view>
-  </view>
-</view>
-
-<!-- ============== 设备管理弹出层 ============== -->
-<view wx:if="{{sessionVisible}}" class="popup-mask" bindtap="hideSessionPopup">
-  <view class="popup-container popup-lg" catchtap="noop">
-    <view class="popup-header">
-      <text class="popup-title">设备管理</text>
-      <view class="popup-close" bindtap="hideSessionPopup" hover-class="popup-close-hover" hover-stay-time="120">
-        <icon name="x" size="32rpx" color="#6a7d81" />
-      </view>
-    </view>
-    <view class="popup-body">
-      <view wx:if="{{loadingSessions}}" class="popup-loading">
-        <view class="loading-dot"></view>
-        <view class="loading-dot loading-dot-delay1"></view>
-        <view class="loading-dot loading-dot-delay2"></view>
-      </view>
-      <block wx:elif="{{sessions.length === 0}}">
-        <empty-state
-          compact
-          icon="settings"
-          title="暂无活动会话"
-          hint="登录的设备会显示在这里"
-        />
-      </block>
-      <block wx:else>
-        <view wx:for="{{sessions}}" wx:key="id" class="session-item">
-          <view class="session-info">
-            <view class="session-row">
-              <text class="session-type">{{item.type_label}}</text>
-              <text wx:if="{{item.is_current}}" class="session-current">当前</text>
-            </view>
-            <text class="session-device">{{item.device_brief}}</text>
-            <view class="session-meta">
-              <text>IP：{{item.ip_text}}</text>
-              <text>最近活跃：{{item.last_active_text}}</text>
-              <text>过期：{{item.expires_text}}</text>
-            </view>
-          </view>
-          <view
-            wx:if="{{!item.is_current}}"
-            class="session-action"
-            data-id="{{item.id}}"
-            bindtap="onRevokeSession"
-            hover-class="identity-action-hover"
-            hover-stay-time="120"
-          >
-            <icon name="log-out" size="24rpx" color="#cd5852" />
-            <text>退出</text>
-          </view>
-          <view wx:else class="session-action session-action-disabled">
-            <text>当前</text>
-          </view>
-        </view>
-      </block>
     </view>
   </view>
 </view>

@@ -59,7 +59,4 @@ Page({
     wx.navigateTo({ url: '/subpackages/pages/privacy/privacy' })
   },
 
-  goToFeedback() {
-    wx.navigateTo({ url: '/subpackages/pages/feedback/feedback' })
-  },
 })

@@ -41,13 +41,6 @@
       <text class="menu-label">隐私政策</text>
       <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-    <view class="menu-item" bindtap="goToFeedback" hover-class="menu-item-hover" hover-stay-time="120">
-      <view class="menu-icon-wrap">
-        <icon name="message-circle" size="32rpx" color="#174d5e" />
-      </view>
-      <text class="menu-label">意见反馈</text>
-      <icon name="chevron-right" size="32rpx" color="#9aabae" />
-    </view>
   </view>
 
   <view class="copyright">© 2026 此刻校园 · 用心记录校园每一刻</view>

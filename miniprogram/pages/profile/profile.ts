@@ -4,7 +4,6 @@ import { campusStore } from '../../store/campus'
 import { formatDate, formatCount } from '../../utils/format'
 import { normalizePost, normalizeMembership } from '../../services/normalize'
 import { listMemberships } from '../../services/schools'
-import { listIdentities, deleteIdentity, listSessions, revokeSession } from '../../services/auth'
 import { logout } from '../../services/auth'
 import { sendCampusVerify, confirmCampusVerify } from '../../services/auth'
 import { guardPageLogin } from '../../utils/auth-guard'
@@ -82,16 +81,6 @@ Page({
     editNickname: '',
     editBio: '',
     savingProfile: false,
-
-    // 身份管理弹出层
-    identityVisible: false,
-    identities: [] as any[],
-    loadingIdentities: false,
-
-    // 会话管理弹出层
-    sessionVisible: false,
-    sessions: [] as any[],
-    loadingSessions: false,
 
     // 校园身份认证（B-06）
     campusVerified: false,
@@ -490,121 +479,6 @@ Page({
   // 阻止弹出层冒泡
   noop() {},
 
-  // ============== 身份管理 ==============
-  async showIdentityPopup() {
-    this.setData({ identityVisible: true })
-    await this.loadIdentities()
-  },
-
-  hideIdentityPopup() {
-    this.setData({ identityVisible: false })
-  },
-
-  async loadIdentities() {
-    this.setData({ loadingIdentities: true })
-    try {
-      const res: any = await listIdentities()
-      const list = (res.identities || []) as any[]
-      const formatted = list.map((it: any) => ({
-        ...it,
-        type_label: this.identityTypeLabel(it.identity_type),
-        created_at_text: formatDate(it.created_at, 'datetime'),
-        last_used_at_text: it.last_used_at ? formatDate(it.last_used_at, 'datetime') : '未使用',
-      }))
-      this.setData({ identities: formatted })
-    } catch (e: any) {
-      wx.showToast({ title: e.message || '加载身份失败', icon: 'none' })
-    } finally {
-      this.setData({ loadingIdentities: false })
-    }
-  },
-
-  identityTypeLabel(t: string): string {
-    if (!t) return '未知'
-    if (t === 'email' || t === 'password') return '邮箱'
-    if (t === 'wechat' || t === 'wechat_miniprogram') return '微信'
-    if (t === 'wechat_mp') return '公众号'
-    return t
-  },
-
-  onDeleteIdentity(e: any) {
-    const id = e.currentTarget.dataset.id
-    if (!id) return
-    wx.showModal({
-      title: '提示',
-      content: '确定要删除该登录身份吗？删除后将无法使用该方式登录。',
-      success: async r => {
-        if (!r.confirm) return
-        try {
-          await deleteIdentity(Number(id))
-          wx.showToast({ title: '已删除', icon: 'success' })
-          await this.loadIdentities()
-        } catch (err: any) {
-          wx.showToast({ title: err.message || '删除失败', icon: 'none' })
-        }
-      },
-    })
-  },
-
-  // ============== 设备会话管理 ==============
-  async showSessionPopup() {
-    this.setData({ sessionVisible: true })
-    await this.loadSessions()
-  },
-
-  hideSessionPopup() {
-    this.setData({ sessionVisible: false })
-  },
-
-  async loadSessions() {
-    this.setData({ loadingSessions: true })
-    try {
-      const res: any = await listSessions()
-      const list = (res.sessions || []) as any[]
-      const formatted = list.map((s: any) => ({
-        ...s,
-        type_label: this.sessionTypeLabel(s.session_type),
-        device_brief: s.device_info || s.user_agent || '未知设备',
-        ip_text: s.client_ip || '未知',
-        created_at_text: formatDate(s.created_at, 'datetime'),
-        last_active_text: s.last_active_at ? formatDate(s.last_active_at) : '无记录',
-        expires_text: s.expires_at ? formatDate(s.expires_at, 'datetime') : '永久',
-      }))
-      this.setData({ sessions: formatted })
-    } catch (e: any) {
-      wx.showToast({ title: e.message || '加载会话失败', icon: 'none' })
-    } finally {
-      this.setData({ loadingSessions: false })
-    }
-  },
-
-  sessionTypeLabel(t: string): string {
-    if (!t) return '会话'
-    if (t === 'web') return '网页'
-    if (t === 'miniprogram') return '小程序'
-    if (t === 'wechat') return '微信'
-    return t
-  },
-
-  onRevokeSession(e: any) {
-    const id = e.currentTarget.dataset.id
-    if (!id) return
-    wx.showModal({
-      title: '提示',
-      content: '确定要退出该设备？',
-      success: async r => {
-        if (!r.confirm) return
-        try {
-          await revokeSession(Number(id))
-          wx.showToast({ title: '已退出', icon: 'success' })
-          await this.loadSessions()
-        } catch (err: any) {
-          wx.showToast({ title: err.message || '操作失败', icon: 'none' })
-        }
-      },
-    })
-  },
-
   // ============== 退出登录 ==============
   onLogout() {
     wx.showModal({
@@ -632,8 +506,6 @@ Page({
     }
     this.setData({
       editVisible: false,
-      identityVisible: false,
-      sessionVisible: false,
     })
     wx.reLaunch({ url: '/pages/login/login' })
   },
@@ -732,21 +604,6 @@ Page({
       return
     }
     wx.navigateTo({ url: '/subpackages/pages/notification-preferences/notification-preferences' })
-  },
-
-  goToFeedback() {
-    if (!this.data.isLoggedIn) {
-      wx.showModal({
-        title: '提示',
-        content: '请先登录后再提交反馈',
-        confirmText: '去登录',
-        success: r => {
-          if (r.confirm) wx.reLaunch({ url: '/pages/login/login' })
-        },
-      })
-      return
-    }
-    wx.navigateTo({ url: '/subpackages/pages/feedback/feedback' })
   },
 
   goToAgreement() {

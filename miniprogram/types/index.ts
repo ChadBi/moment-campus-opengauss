@@ -257,31 +257,6 @@ export interface PaginatedResponse<T> {
   total_pages?: number
 }
 
-export type SessionType = 'web' | 'miniprogram' | 'wechat'
-
-export interface AuthSessionInfo {
-  id: number
-  session_type: SessionType
-  client_ip?: string
-  user_agent?: string
-  device_id?: string
-  device_info?: string
-  expires_at: string
-  last_active_at?: string
-  created_at: string
-  is_current: boolean
-}
-
-export interface IdentityInfo {
-  id: number
-  identity_type: string
-  identity_key: string
-  openid?: string
-  unionid?: string
-  created_at: string
-  last_used_at?: string
-}
-
 export interface LocationAuthor {
   id: number
   nickname: string

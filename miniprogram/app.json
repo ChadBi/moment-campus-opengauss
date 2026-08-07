@@ -65,7 +65,6 @@
       "pages": [
         "agreement/agreement",
         "privacy/privacy",
-        "feedback/feedback",
         "notification-preferences/notification-preferences",
         "forgot-password/forgot-password",
         "school-select/school-select",
