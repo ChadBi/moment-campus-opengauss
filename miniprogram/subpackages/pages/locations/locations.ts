@@ -195,14 +195,14 @@ Page({
         facts: [],
         summary: { status: 'insufficient', confidence_level: 'insufficient', claims: [], conflicts: [], source_count: 0, sources: [] },
       }
-      detailNotice = '当前体验环境暂未提供地点详情接口，先展示基础资料；摘要和评价明细待服务更新后显示。'
+      detailNotice = '地点详细信息暂时不可用，当前展示基础资料。请稍后再试。'
     }
 
     try {
       const reviewsRes = await getReviews(id, { page: 1, page_size: 20 })
       reviews = reviewsRes.items || []
     } catch {
-      detailNotice = detailNotice || '当前体验环境暂未提供地点评价接口，暂时无法显示评价明细。'
+      detailNotice = detailNotice || '评价明细暂时不可用，基础资料仍可查看。'
     }
 
     if (this.data.activeDetailId !== id) return
