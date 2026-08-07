@@ -1,5 +1,5 @@
 import { campusStore } from '../../store/campus'
-import { getLocations } from '../../services/locations'
+import { getLocations, getDetail } from '../../services/locations'
 import type { LocationItem } from '../../types'
 
 interface WxMarker {
@@ -100,7 +100,7 @@ Page({
     }
   },
 
-  onMarkerTap(e: any) {
+  async onMarkerTap(e: any) {
     const markerId = e.detail.markerId
     const loc = this.data.rawLocations.find(m => m.id === markerId)
     if (!loc) return
@@ -108,12 +108,32 @@ Page({
       selectedLocation: {
         id: loc.id,
         name: loc.name,
+        isVerified: loc.is_verified,
+        postCount: loc.post_count || 0,
         starsText: formatStars(loc.avg_score || 0),
         avgScoreText: (loc.avg_score || 0).toFixed(1),
         rating_count: loc.rating_count || 0,
         review_count: loc.review_count || 0,
+        summaryPreview: '',
+        summaryStatus: 'loading',
       },
     })
+    try {
+      const detail = await getDetail(loc.id)
+      if (this.data.selectedLocation && this.data.selectedLocation.id === loc.id) {
+        this.setData({
+          selectedLocation: {
+            ...this.data.selectedLocation,
+            summaryPreview: detail.summary?.summary_text || '',
+            summaryStatus: detail.summary?.status || 'insufficient',
+          },
+        })
+      }
+    } catch {
+      if (this.data.selectedLocation && this.data.selectedLocation.id === loc.id) {
+        this.setData({ 'selectedLocation.summaryStatus': 'insufficient' })
+      }
+    }
   },
 
   closeLocationCard() {

@@ -6,7 +6,7 @@ var util = require('../utils/util.js');
 
 /**
  * 发布新此刻
- * @param {Object} args - { title, content, category_id, location_name?, images?, expires_at? }
+ * @param {Object} args - { title, content, category_id, location_id?, location_name?, images?, expire_at? }
  */
 async function createPost(args) {
   args = args || {};
@@ -39,10 +39,13 @@ async function createPost(args) {
     category_id: args.category_id
   };
   if (args.location_name) payload.location_name = args.location_name;
-  if (args.latitude) payload.latitude = args.latitude;
-  if (args.longitude) payload.longitude = args.longitude;
-  if (args.images && args.images.length > 0) payload.images = args.images;
-  if (args.expires_at) payload.expires_at = args.expires_at;
+  if (args.location_id) payload.location_id = args.location_id;
+  if (args.location_lat) payload.location_lat = args.location_lat;
+  if (args.location_lng) payload.location_lng = args.location_lng;
+  if (args.images && args.images.length > 0) payload.images = args.images.map(function(img) {
+    return typeof img === 'string' ? { image_url: img } : img;
+  });
+  if (args.expire_at) payload.expire_at = args.expire_at;
 
   try {
     var res = await http.post('/posts', payload);

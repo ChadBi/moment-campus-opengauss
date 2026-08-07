@@ -5,48 +5,32 @@ var http = require('../utils/request.js').http;
 var util = require('../utils/util.js');
 
 /**
- * 获取地图标记点
- * @param {Object} args - { school_id?, category_id? }
+ * 获取学校静态地点标记点；地图不读取用户位置。
+ * @param {Object} args - {}
  */
 async function getMapMarkers(args) {
   args = args || {};
-  var err = util.ensureLogin();
-  if (err.needLogin) {
-    return {
-      isError: true,
-      content: [{ type: 'text', text: err.message }]
-    };
-  }
-
   console.log('[ai-mode] getMapMarkers');
 
-  var params = {};
-  if (args.school_id) params.school_id = args.school_id;
-  if (args.category_id) params.category_id = args.category_id;
-
-  var query = util.buildQueryString(params);
-
   try {
-    var res = await http.get('/map/markers' + query);
-    var markers = res.markers || [];
-    var processed = markers.map(function(m) {
+    var res = await http.get('/locations');
+    var locations = Array.isArray(res) ? res : (res.items || []);
+    var processed = locations.map(function(m) {
       return {
         id: m.id,
-        post_id: m.post_id,
         latitude: m.latitude,
         longitude: m.longitude,
-        title: m.title,
-        content_snippet: m.content_snippet,
-        category_name: m.category_name,
-        status: m.status,
-        created_at: m.created_at
+        title: m.name,
+        is_verified: m.is_verified,
+        avg_score: m.avg_score,
+        post_count: m.post_count
       };
     });
 
     console.log('[ai-mode] getMapMarkers success count=' + processed.length);
 
     return {
-      content: [{ type: 'text', text: '地图上有 ' + processed.length + ' 个此刻标记点' }],
+      content: [{ type: 'text', text: '地图上有 ' + processed.length + ' 个学校地点' }],
       structuredContent: {
         markers: processed
       },

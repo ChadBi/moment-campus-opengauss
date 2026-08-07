@@ -30,17 +30,17 @@ async function getMyPosts(args) {
     var res = await http.get('/users/me/posts' + query);
     var items = res.items || res.posts || [];
     var processed = items.map(function(p) {
-      var images = Array.isArray(p.images) ? p.images.map(function(u) { return util.resolveImageUrl(u); }) : [];
+      var images = Array.isArray(p.images) ? p.images.map(function(img) { return { image_url: util.resolveImageUrl(img.image_url || img), thumbnail_url: img.thumbnail_url ? util.resolveImageUrl(img.thumbnail_url) : undefined }; }) : [];
       return {
         id: p.id,
         title: p.title,
         content: p.content,
         cover: images[0] || '',
         status: p.status,
-        views_count: p.views_count,
-        likes_count: p.likes_count,
-        comments_count: p.comments_count,
-        validations_count: p.validations_count,
+        view_count: p.view_count,
+        like_count: p.like_count,
+        comment_count: p.comment_count,
+        valid_count: p.valid_count,
         created_at: p.created_at,
         created_at_text: util.formatDate(p.created_at)
       };

@@ -100,6 +100,8 @@ export interface Post {
   is_liked?: boolean
   governance?: PostGovernance | null
   is_verified?: boolean
+  recommend_reason?: string
+  recommend_score?: number
 }
 
 export interface PostListResponse {
@@ -312,6 +314,8 @@ export interface LocationSummarySource {
   created_at?: string
   author_name?: string
   score?: number
+  confirmation_count?: number
+  refutation_count?: number
 }
 
 export interface LocationSummaryClaim {

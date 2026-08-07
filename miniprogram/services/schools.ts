@@ -1,6 +1,6 @@
 import { http } from './request'
 import type { School, SchoolMembership, User } from '../types'
-import { normalizeMembership, normalizeSchool } from './normalize'
+import { normalizeMembership, normalizeSchool, normalizePostList } from './normalize'
 
 export async function listSchools(): Promise<School[]> {
   const raw = await http.get<any>('/schools')
@@ -41,5 +41,5 @@ export async function getRecommendations(params?: {
       if (v !== undefined) query.append(k, String(v))
     })
   }
-  return http.get(`/recommendations?${query.toString()}`)
+  return normalizePostList(await http.get<any>(`/recommendations?${query.toString()}`))
 }

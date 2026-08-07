@@ -10,14 +10,6 @@ var util = require('../utils/util.js');
  */
 async function listTopics(args) {
   args = args || {};
-  var err = util.ensureLogin();
-  if (err.needLogin) {
-    return {
-      isError: true,
-      content: [{ type: 'text', text: err.message }]
-    };
-  }
-
   console.log('[ai-mode] listTopics');
 
   var params = {};
@@ -34,7 +26,7 @@ async function listTopics(args) {
         id: t.id,
         title: t.title,
         description: t.description,
-        cover_image: util.resolveImageUrl(t.cover_url || t.cover_image),
+        cover_url: util.resolveImageUrl(t.cover_url || t.cover_image),
         post_count: t.post_count,
         is_featured: t.is_featured,
         created_at: t.created_at

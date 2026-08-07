@@ -4,8 +4,9 @@ import type {
   LocationDetail,
   LocationReview,
   LocationReviewsResponse,
+  LocationSummary,
 } from '../types'
-import { normalizeLocation } from './normalize'
+import { normalizeLocation, normalizeLocationSummary } from './normalize'
 
 export async function getLocations(): Promise<LocationItem[]> {
   const raw = await http.get<any>('/locations')
@@ -19,8 +20,8 @@ export async function getDetail(id: number): Promise<LocationDetail> {
     location: normalizeLocation(raw?.location || raw),
     my_review: raw?.my_review || null,
     facts: Array.isArray(raw?.facts) ? raw.facts : [],
-    summary: raw?.summary || {
-      status: 'pending_review',
+    summary: normalizeLocationSummary(raw?.summary || {
+      status: 'insufficient',
       summary_text: null,
       confidence_level: 'insufficient',
       claims: [],
@@ -29,7 +30,7 @@ export async function getDetail(id: number): Promise<LocationDetail> {
       generated_at: null,
       stale_at: null,
       sources: [],
-    },
+    }),
   }
 }
 
@@ -52,6 +53,11 @@ export async function getReviews(
     page_size: Number(raw?.page_size || params?.page_size || 20),
     has_more: raw?.has_more === true,
   }
+}
+
+export async function getSummary(id: number): Promise<LocationSummary> {
+  const raw = await http.get<any>(`/locations/${id}/summary`)
+  return normalizeLocationSummary(raw)
 }
 
 export async function submitReview(

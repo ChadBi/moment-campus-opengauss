@@ -1,6 +1,7 @@
 import { formatDate } from '../../utils/format'
 import { guardPageLogin } from '../../utils/auth-guard'
 import { listSubscriptions, createSubscription, removeSubscription } from '../../services/subscriptions'
+import { listCategories } from '../../services/posts'
 
 const TYPE_ICONS: Record<string, string> = {
   category: 'file-text',
@@ -126,8 +127,7 @@ Page({
   async loadCategories() {
     this.setData({ loadingCategories: true })
     try {
-      const res: any = await import('../../services/request').then(m => m.http.get('/categories'))
-      const items = (Array.isArray(res) ? res : (res.items || res.data || [])) as any[]
+      const items = await listCategories()
       const ids = this.data.subscribedCategoryIds
       const list = items.map((c: any) => ({
         ...c,

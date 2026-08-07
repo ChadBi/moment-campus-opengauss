@@ -29,7 +29,10 @@
   <!-- 地点信息卡片 -->
   <view wx:if="{{selectedLocation}}" class="info-card">
     <view class="info-card-header">
-      <text class="info-title">{{selectedLocation.name}}</text>
+      <view class="info-title-wrap">
+        <text class="info-title">{{selectedLocation.name}}</text>
+        <text wx:if="{{selectedLocation.isVerified}}" class="verified-badge">官方核验</text>
+      </view>
       <view class="info-close" catchtap="closeLocationCard" hover-class="info-close-hover" hover-stay-time="120">
         <icon name="x" size="32rpx" color="#6a7d81" />
       </view>
@@ -37,8 +40,10 @@
     <view class="loc-meta-row">
       <text class="loc-stars">{{selectedLocation.starsText}}</text>
       <text class="loc-score">{{selectedLocation.avgScoreText}}</text>
-      <text class="loc-meta">{{selectedLocation.rating_count}} 人评 · {{selectedLocation.review_count}} 条评价</text>
+      <text class="loc-meta">{{selectedLocation.rating_count}} 人评 · {{selectedLocation.review_count}} 条评价 · {{selectedLocation.postCount}} 条帖子</text>
     </view>
+    <text wx:if="{{selectedLocation.summaryPreview}}" class="summary-preview">{{selectedLocation.summaryPreview}}</text>
+    <text wx:elif="{{selectedLocation.summaryStatus === 'insufficient'}}" class="summary-preview muted">暂无足够近期信息</text>
     <view class="info-action" catchtap="goToLocationDetail" hover-class="info-action-hover" hover-stay-time="120">
       <text>查看详情</text>
       <icon name="chevron-right" size="28rpx" color="#ffffff" />

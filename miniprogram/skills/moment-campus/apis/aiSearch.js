@@ -10,14 +10,6 @@ var util = require('../utils/util.js');
  */
 async function aiSearch(args) {
   args = args || {};
-  var err = util.ensureLogin();
-  if (err.needLogin) {
-    return {
-      isError: true,
-      content: [{ type: 'text', text: err.message }]
-    };
-  }
-
   if (!args.query || !args.query.trim()) {
     return {
       isError: true,
@@ -37,7 +29,7 @@ async function aiSearch(args) {
     var matchReasons = res.match_reasons || {};
 
     var processed = items.map(function(p) {
-      var images = Array.isArray(p.images) ? p.images.map(function(u) { return util.resolveImageUrl(u); }) : [];
+      var images = Array.isArray(p.images) ? p.images.map(function(img) { return { image_url: util.resolveImageUrl(img.image_url || img), thumbnail_url: img.thumbnail_url ? util.resolveImageUrl(img.thumbnail_url) : undefined }; }) : [];
       var reasons = (p.id !== undefined && (matchReasons[String(p.id)] || matchReasons[p.id])) || [];
       return {
         id: p.id,
@@ -46,10 +38,10 @@ async function aiSearch(args) {
         content_brief: util.truncateText(p.content || '', 80),
         cover: images[0] || '',
         images: images,
-        category_name: p.category_name,
-        author_nickname: p.author_nickname,
-        likes_count: p.likes_count,
-        comments_count: p.comments_count,
+        category_name: p.category && p.category.name,
+        author_nickname: p.author && p.author.nickname,
+        like_count: p.like_count,
+        comment_count: p.comment_count,
         created_at_text: util.formatDate(p.created_at),
         match_reasons: reasons
       };

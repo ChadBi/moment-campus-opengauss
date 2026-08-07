@@ -10,14 +10,6 @@ var util = require('../utils/util.js');
  */
 async function searchPosts(args) {
   args = args || {};
-  var err = util.ensureLogin();
-  if (err.needLogin) {
-    return {
-      isError: true,
-      content: [{ type: 'text', text: err.message }]
-    };
-  }
-
   if (!args.keyword || !args.keyword.trim()) {
     return {
       isError: true,
@@ -37,7 +29,7 @@ async function searchPosts(args) {
     var res = await http.get('/search' + query);
     var items = res.items || res.posts || [];
     var processed = items.map(function(p) {
-      var images = Array.isArray(p.images) ? p.images.map(function(u) { return util.resolveImageUrl(u); }) : [];
+      var images = Array.isArray(p.images) ? p.images.map(function(img) { return { image_url: util.resolveImageUrl(img.image_url || img), thumbnail_url: img.thumbnail_url ? util.resolveImageUrl(img.thumbnail_url) : undefined }; }) : [];
       return {
         id: p.id,
         title: p.title,
@@ -46,12 +38,12 @@ async function searchPosts(args) {
         cover: images[0] || '',
         images: images,
         category_id: p.category_id,
-        category_name: p.category_name,
-        author_nickname: p.author_nickname,
-        author_avatar: util.resolveImageUrl(p.author_avatar),
-        likes_count: p.likes_count,
-        comments_count: p.comments_count,
-        views_count: p.views_count,
+        category_name: p.category && p.category.name,
+        author_nickname: p.author && p.author.nickname,
+        author_avatar: util.resolveImageUrl(p.author && p.author.avatar_url),
+        like_count: p.like_count,
+        comment_count: p.comment_count,
+        view_count: p.view_count,
         created_at: p.created_at,
         created_at_text: util.formatDate(p.created_at)
       };

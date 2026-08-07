@@ -29,8 +29,8 @@ async function likePost(args) {
 
   try {
     var res = await http.post('/posts/' + args.post_id + '/like');
-    var liked = res.liked;
-    var count = res.likes_count;
+    var liked = res.is_liked;
+    var count = res.like_count;
     var action = liked ? '点赞成功' : '已取消点赞';
 
     console.log('[ai-mode] likePost success liked=' + liked);
@@ -38,8 +38,8 @@ async function likePost(args) {
     return {
       content: [{ type: 'text', text: action + '（当前' + count + '赞）' }],
       structuredContent: {
-        liked: liked,
-        likes_count: count
+        is_liked: liked,
+        like_count: count
       }
     };
   } catch(e) {

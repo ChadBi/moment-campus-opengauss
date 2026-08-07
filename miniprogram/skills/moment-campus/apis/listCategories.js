@@ -9,19 +9,11 @@ var util = require('../utils/util.js');
  */
 async function listCategories(args) {
   args = args || {};
-  var err = util.ensureLogin();
-  if (err.needLogin) {
-    return {
-      isError: true,
-      content: [{ type: 'text', text: err.message }]
-    };
-  }
-
   console.log('[ai-mode] listCategories');
 
   try {
     var res = await http.get('/categories');
-    var categories = res.categories || res.items || [];
+    var categories = Array.isArray(res) ? res : (res.items || []);
     var processed = categories.map(function(c) {
       return {
         id: c.id,

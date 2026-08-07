@@ -1,6 +1,7 @@
 import type {
   Comment,
   LocationItem,
+  LocationSummary,
   Notification,
   Post,
   PostImage,
@@ -129,6 +130,8 @@ export function normalizePost(raw: any): Post {
     is_liked: raw?.is_liked === true,
     governance,
     is_verified: raw?.is_verified ?? authorRaw?.is_verified,
+    recommend_reason: raw?.reason || raw?.recommend_reason,
+    recommend_score: raw?.score,
   }
 }
 
@@ -159,6 +162,49 @@ export function normalizeLocation(raw: any): LocationItem {
     avg_score: numberOr(raw?.avg_score, 0),
     rating_count: numberOr(raw?.rating_count, 0),
     review_count: numberOr(raw?.review_count, 0),
+  }
+}
+
+export function normalizeLocationSummary(raw: any): LocationSummary {
+  const claims = Array.isArray(raw?.claims) ? raw.claims : []
+  const conflicts = Array.isArray(raw?.conflicts) ? raw.conflicts : []
+  const sources = Array.isArray(raw?.sources) ? raw.sources : []
+  return {
+    id: raw?.id ?? null,
+    version: raw?.version ?? null,
+    status: raw?.status || 'insufficient',
+    summary_text: raw?.summary_text ?? null,
+    confidence_level: raw?.confidence_level || 'insufficient',
+    claims: claims.map((claim: any, index: number) => ({
+      claim_id: String(claim?.claim_id || `claim-${index + 1}`),
+      text: String(claim?.text || ''),
+      confidence_level: String(claim?.confidence_level || raw?.confidence_level || 'insufficient'),
+      source_refs: Array.isArray(claim?.source_refs) ? claim.source_refs.map((ref: any) => ({
+        source_type: String(ref?.source_type || ''),
+        source_id: numberOr(ref?.source_id, 0),
+      })) : [],
+    })),
+    conflicts: conflicts.map((conflict: any) => ({
+      text: String(conflict?.text || ''),
+      source_refs: Array.isArray(conflict?.source_refs) ? conflict.source_refs.map((ref: any) => ({
+        source_type: String(ref?.source_type || ''),
+        source_id: numberOr(ref?.source_id, 0),
+      })) : [],
+    })),
+    source_count: numberOr(raw?.source_count, sources.length),
+    generated_at: raw?.generated_at ?? null,
+    stale_at: raw?.stale_at ?? null,
+    sources: sources.map((source: any) => ({
+      source_type: String(source?.source_type || ''),
+      source_id: numberOr(source?.source_id, 0),
+      title: source?.title,
+      snippet: source?.snippet,
+      created_at: source?.created_at,
+      author_name: source?.author_name,
+      score: source?.score,
+      confirmation_count: numberOr(source?.confirmation_count, 0),
+      refutation_count: numberOr(source?.refutation_count, 0),
+    })),
   }
 }
 

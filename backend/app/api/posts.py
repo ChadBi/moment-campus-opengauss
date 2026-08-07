@@ -110,6 +110,7 @@ async def get_posts(
         pattern="^(latest|hottest|active)$",
         description="排序方式: latest（最新）/ hottest（最热）/ active（综合活动）",
     ),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):

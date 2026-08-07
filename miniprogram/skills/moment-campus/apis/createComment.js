@@ -6,7 +6,7 @@ var util = require('../utils/util.js');
 
 /**
  * 发表评论
- * @param {Object} args - { post_id, content, parent_id? }
+ * @param {Object} args - { post_id, content, parent_id?, reply_to_user_id? }
  */
 async function createComment(args) {
   args = args || {};
@@ -35,6 +35,7 @@ async function createComment(args) {
 
   var payload = { content: args.content.trim() };
   if (args.parent_id) payload.parent_id = args.parent_id;
+  if (args.reply_to_user_id) payload.reply_to_user_id = args.reply_to_user_id;
 
   try {
     var res = await http.post('/posts/' + args.post_id + '/comments', payload);

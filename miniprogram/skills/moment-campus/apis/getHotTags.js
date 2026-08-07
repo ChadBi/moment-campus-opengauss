@@ -9,14 +9,6 @@ var util = require('../utils/util.js');
  */
 async function getHotTags(args) {
   args = args || {};
-  var err = util.ensureLogin();
-  if (err.needLogin) {
-    return {
-      isError: true,
-      content: [{ type: 'text', text: err.message }]
-    };
-  }
-
   console.log('[ai-mode] getHotTags');
 
   try {

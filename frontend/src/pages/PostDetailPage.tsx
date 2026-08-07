@@ -285,7 +285,7 @@ const PostDetailPage: React.FC = () => {
         Number(id),
         replyText,
         parent.parent_id ?? parent.id, // 已是子评论时仍挂在同一顶级父评论下
-        parent.user_id // 被回复者：当前所点评论的作者
+        parent.user_id ?? undefined // 被回复者：匿名评论没有可回复的用户 ID
       );
       setReplyText('');
       setReplyTarget(null);

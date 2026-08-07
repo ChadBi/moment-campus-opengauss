@@ -45,8 +45,8 @@
           "validation_stats": { "type": "object", "description": "验证统计" },
           "comments": { "type": "array", "description": "评论列表" },
           "is_liked": { "type": "boolean", "description": "是否已点赞" },
-          "likes_count": { "type": "number", "description": "点赞数" },
-          "comments_count": { "type": "number", "description": "评论数" }
+          "like_count": { "type": "number", "description": "点赞数" },
+          "comment_count": { "type": "number", "description": "评论数" }
         }
       },
       "_meta": {
@@ -64,7 +64,7 @@
           "category_id": { "type": "number", "description": "分类ID" },
           "location_name": { "type": "string", "description": "位置名称" },
           "images": { "type": "array", "description": "图片URL列表" },
-          "expires_at": { "type": "string", "description": "过期时间ISO格式" }
+          "expire_at": { "type": "string", "description": "过期时间ISO格式" }
         },
         "required": ["title", "content", "category_id"]
       },
@@ -144,8 +144,8 @@
       "outputSchema": {
         "type": "object",
         "properties": {
-          "liked": { "type": "boolean", "description": "是否已点赞" },
-          "likes_count": { "type": "number", "description": "点赞总数" }
+          "is_liked": { "type": "boolean", "description": "是否已点赞" },
+          "like_count": { "type": "number", "description": "点赞总数" }
         }
       }
     },
@@ -228,7 +228,7 @@
           "id": { "type": "number", "description": "话题ID" },
           "title": { "type": "string", "description": "话题标题" },
           "description": { "type": "string", "description": "话题描述" },
-          "cover_image": { "type": "string", "description": "话题封面图" },
+          "cover_url": { "type": "string", "description": "专题封面图" },
           "post_count": { "type": "number", "description": "话题帖子数" }
         }
       },

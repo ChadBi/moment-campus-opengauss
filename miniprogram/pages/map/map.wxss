@@ -93,6 +93,23 @@
   flex-shrink: 0;
 }
 
+.info-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.verified-badge {
+  flex-shrink: 0;
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  background: rgba(115, 160, 104, 0.14);
+  color: var(--success);
+  font-size: 20rpx;
+}
+
 .info-close-hover {
   background: var(--paper-hover);
   color: var(--ink);

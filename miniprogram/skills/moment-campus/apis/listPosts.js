@@ -10,14 +10,6 @@ var util = require('../utils/util.js');
  */
 async function listPosts(args) {
   args = args || {};
-  var err = util.ensureLogin();
-  if (err.needLogin) {
-    return {
-      isError: true,
-      content: [{ type: 'text', text: err.message }]
-    };
-  }
-
   console.log('[ai-mode] listPosts args=' + JSON.stringify(args));
 
   var params = {};
@@ -39,20 +31,21 @@ async function listPosts(args) {
         id: p.id,
         title: p.title,
         content: p.content,
-        images: (p.images || []).map(function(u) { return util.resolveImageUrl(u); }),
+        images: (p.images || []).map(function(img) { return { image_url: util.resolveImageUrl(img.image_url || img), thumbnail_url: img.thumbnail_url ? util.resolveImageUrl(img.thumbnail_url) : undefined }; }),
         category_id: p.category_id,
-        category_name: p.category_name,
+        category_name: p.category && p.category.name,
         status: p.status,
         author_nickname: p.author_nickname,
         author_avatar: util.resolveImageUrl(p.author_avatar),
         school_name: p.school_name,
-        views_count: p.views_count,
-        likes_count: p.likes_count,
-        comments_count: p.comments_count,
-        validations_count: p.validations_count,
+        view_count: p.view_count,
+        like_count: p.like_count,
+        comment_count: p.comment_count,
+        valid_count: p.valid_count,
+        invalid_count: p.invalid_count,
         created_at: p.created_at,
         created_at_text: util.formatDate(p.created_at),
-        has_location: !!(p.latitude && p.longitude)
+        has_location: !!(p.location_id || p.location)
       };
     });
 

@@ -28,7 +28,7 @@ async function getNotifications(args) {
 
   try {
     var res = await http.get('/notifications' + query);
-    var items = res.items || res.notifications || [];
+    var items = res.items || [];
     var processed = items.map(function(n) {
       return {
         id: n.id,
@@ -36,7 +36,9 @@ async function getNotifications(args) {
         title: n.title,
         content: n.content,
         is_read: n.is_read,
-        related_post_id: n.related_post_id,
+        target_type: n.target_type,
+        target_id: n.target_id,
+        actor_name: n.actor_name,
         created_at: n.created_at,
         created_at_text: util.formatDate(n.created_at)
       };

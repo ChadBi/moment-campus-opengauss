@@ -26,8 +26,8 @@
 
 ## 前置条件
 
-- 用户需已登录此刻校园账号
-- 需要有效的 access_token
+- 浏览、搜索、专题、地图和地点详情支持游客；发布与互动需要登录
+- 写操作需要有效的 access_token
 - 需要网络连接
 
 ## 使用顺序
@@ -36,6 +36,6 @@
 2. 搜索场景：searchPosts/aiSearch → getPostDetail
 3. 发布场景：listCategories → createPost
 4. 话题场景：listTopics → getTopicDetail → getPostDetail
-5. 地图场景：getMapMarkers → getPostDetail
+5. 地图场景：getMapMarkers（学校静态地点）→ 地点详情；不读取 GPS、不计算距离
 6. 通知场景：getNotifications
 7. 个人场景：getMyPosts
