@@ -308,11 +308,15 @@
 
 .sheet-scroll {
   min-height: 0;
-  height: 0;
+  height: 100%;
   flex: 1;
   width: 100%;
-  padding: 20rpx 24rpx 8rpx;
+  padding: 0;
   box-sizing: border-box;
+}
+
+.sheet-content {
+  padding: 20rpx 24rpx 8rpx;
 }
 
 .sheet-loading,
