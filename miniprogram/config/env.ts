@@ -1,14 +1,33 @@
-// 统一环境配置：通过构建标记 __ENV__ 区分 dev / experience / prod；未定义时默认 prod
+// 统一环境配置：优先使用构建标记 __ENV__，否则按微信运行版本自动选择：
+// 开发者工具=本地，体验版=线上体验，正式版=线上生产。
 declare const __ENV__: string | undefined
-const ENV = (typeof __ENV__ !== 'undefined' && __ENV__) || 'prod'
 
-const HOSTS: Record<string, { api: string; image: string }> = {
+export type MiniProgramEnv = 'dev' | 'experience' | 'prod'
+
+const HOSTS: Record<MiniProgramEnv, { api: string; image: string }> = {
   dev: { api: 'http://localhost:8000', image: 'http://localhost:8000' },
   experience: { api: 'https://campus.chaina1.com', image: 'https://campus.chaina1.com' },
   prod: { api: 'https://campus.chaina1.com', image: 'https://campus.chaina1.com' },
 }
 
-const cfg = HOSTS[ENV] || HOSTS.prod
+function resolveEnv(): MiniProgramEnv {
+  // 保留构建时显式覆盖，便于需要时固定指向某个环境。
+  const override = typeof __ENV__ !== 'undefined' ? __ENV__ : ''
+  if (override === 'dev' || override === 'experience' || override === 'prod') return override
+
+  // 微信开发者工具为 develop；上传体验版/正式版分别为 trial/release。
+  try {
+    const envVersion = wx.getAccountInfoSync().miniProgram.envVersion
+    if (envVersion === 'release') return 'prod'
+    if (envVersion === 'trial') return 'experience'
+  } catch {
+    // 旧基础库或测试环境取不到账号信息时，默认使用本地后端，避免误连线上旧服务。
+  }
+  return 'dev'
+}
+
+export const ENV = resolveEnv()
+const cfg = HOSTS[ENV]
 export const API_HOST = cfg.api
 export const IMAGE_HOST = cfg.image
 export const BASE_URL = `${API_HOST}/api/v1`
