@@ -141,9 +141,17 @@ const PostDetailPage: React.FC = () => {
   // 当前学校 code（用于构造分享 URL 含 school_code）
   const currentSchoolCode = useCampusStore((s) => s.currentSchoolCode);
 
-  const loadPost = async (skipViewCount = false) => {
+  /**
+   * 加载帖子详情。
+   *
+   * @param skipViewCount 是否跳过增加浏览量（用户在详情页内操作时不应重复 +1）
+   * @param silent 是否静默刷新（为 true 时不切换 loading 状态，
+   *               避免点击证实/证伪后 setLoading(true) 触发 Early Return
+   *               导致整页骨架屏「闪一下」——用户感知为页面重新加载）
+   */
+  const loadPost = async (skipViewCount = false, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setPostError(null);
       const response = await postsApi.getPost(Number(id), !skipViewCount);
       setPost(response as Post);
@@ -152,7 +160,7 @@ const PostDetailPage: React.FC = () => {
       const e = err as { response?: { data?: { detail?: string } } };
       setPostError(e?.response?.data?.detail || '加载帖子失败');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -208,7 +216,7 @@ const PostDetailPage: React.FC = () => {
       } else {
         setToast({ message: '验证已提交', type: 'success' });
       }
-      void loadPost(true);
+      void loadPost(true, true);  // silent=true：不切 loading，避免整页闪屏
     } catch {
       setToast({ message: '验证失败', type: 'error' });
     }

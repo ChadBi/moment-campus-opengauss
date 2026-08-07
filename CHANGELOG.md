@@ -24,6 +24,7 @@
 - `index.css` + 全站 `<select>`：**全局原生 select 外框统一美化**——新增两档通用工具类 `.select-nice`（40px / 圆角 10px / 纸面白底 / 内嵌 SVG ChevronDown 替换默认箭头 / 湖蓝 focus ring / hover 边框加深 / disabled 灰显）与 `.select-nice-sm`（紧凑 36px / 圆角 8px，供 admin 列表筛选）；覆盖 PostForm 2 处（地点/失物类型）、LocationPage 1 处、SearchPage 筛选区 3 处、admin 后台 8 处（ActivationFunnel / AdminLogs / AdminTopics / Analytics / PlatformOverview / PlatformPlans 3 / PlatformSchools / SchoolImport）共 14+ 原生 select；**明确放弃自定义展开面板方案**（因原生 `<option>` 弹窗由 OS 渲染，CSS 无法覆盖，经评估改造成本与收益不匹配后回滚，仅保留外框美化）
 - `routes.tsx` + `Sidebar.tsx` + `MobileNav.tsx`：**地图升级为主页**——导航顺序从「首页→地图→地点…」改为「地图→首页→地点…」；默认路由 `/` 改为 `<Navigate to="/map" replace />` 重定向，原 HomePage 改挂 `/home`；Sidebar 顶部 Logo 方块 `to="/map"`（不再 `/`）；`commonRouteLoaders` 预加载顺序 `loadMapPage` 移至首位（用户最常打开的页面优先准备）
 - `Header.tsx`：**页头新增当前学校名称徽章**——Logo「此刻校园」右侧新增 ≥sm 可见的学校徽章（`School` 图标 + 校名，`bg-lake/8` 浅湖蓝底胶囊 + `text-lake` 湖蓝字 + 1px 湖蓝描边）；数据取自 `useCampusStore().currentSchoolName`，未选校/游客态 `&&` 短路不渲染；避免旧 `<SchoolSwitcher />` 移除后用户「不知道自己在看哪个学校」的上下文缺失问题
+- `PostDetailPage.tsx`：**修复点击证实/证伪后整页闪一下的感知 Bug**——原 `handleValidate()` 成功后 `void loadPost(true)` 会在 `loadPost` 里触发 `setLoading(true)`，进而命中 L391 `if (loading) return <LoadingState />` 整页骨架屏 Early Return，用户感知为「页面重新加载」；修复方案：给 `loadPost()` 新增第 2 参 `silent=false`（为 true 时跳过 `setLoading` 切换），`handleValidate()` 改为 `loadPost(true, true)` 静默刷新 governance 数据；首屏加载 / ErrorState onRetry 仍保持 `silent=false`（需显示骨架屏加载态）
 
 ## [2.2.5] - 2026-08-06
 
