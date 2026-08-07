@@ -4,7 +4,7 @@ import { campusStore } from '../../store/campus'
 import { formatDate, formatCount } from '../../utils/format'
 import { normalizePost, normalizeMembership } from '../../services/normalize'
 import { listMemberships } from '../../services/schools'
-import { listIdentities, deleteIdentity, listSessions, revokeSession, logoutAll } from '../../services/auth'
+import { listIdentities, deleteIdentity, listSessions, revokeSession } from '../../services/auth'
 import { logout } from '../../services/auth'
 import { sendCampusVerify, confirmCampusVerify } from '../../services/auth'
 import { guardPageLogin } from '../../utils/auth-guard'
@@ -598,23 +598,6 @@ Page({
           await revokeSession(Number(id))
           wx.showToast({ title: '已退出', icon: 'success' })
           await this.loadSessions()
-        } catch (err: any) {
-          wx.showToast({ title: err.message || '操作失败', icon: 'none' })
-        }
-      },
-    })
-  },
-
-  onLogoutAll() {
-    wx.showModal({
-      title: '提示',
-      content: '将退出全部设备（含当前设备），确定继续？',
-      success: async r => {
-        if (!r.confirm) return
-        try {
-          await logoutAll()
-          wx.showToast({ title: '已退出全部设备', icon: 'success' })
-          this.performLogoutRedirect()
         } catch (err: any) {
           wx.showToast({ title: err.message || '操作失败', icon: 'none' })
         }

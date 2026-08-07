@@ -95,10 +95,6 @@ export async function revokeSession(sessionId: number): Promise<{ message: strin
   return http.delete(`/auth/wechat/sessions/${sessionId}`)
 }
 
-export async function logoutAll(): Promise<{ message: string; revoked_count: number }> {
-  return http.post('/auth/wechat/logout-all')
-}
-
 // ============== 校园身份认证（B-01/B-06，统一教育邮箱） ==============
 
 export async function sendCampusVerify(): Promise<{ message: string; code?: string }> {

@@ -914,6 +914,31 @@
   border-bottom: none;
 }
 
+/* 设置项图标占用固定槽位，避免不同图标的视觉宽度造成文字错位。 */
+.settings-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 40rpx;
+  width: 40rpx;
+  height: 40rpx;
+  margin-right: 18rpx;
+  line-height: 1;
+}
+
+.settings-icon-wrap icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-item > icon:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 32rpx;
+}
+
 .settings-icon {
   font-size: 24rpx;
   margin-right: 20rpx;

@@ -478,19 +478,13 @@
       <text class="settings-label">关于</text>
       <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-    <view class="settings-item danger" bindtap="onLogoutAll" hover-class="settings-item-hover" hover-stay-time="120">
+    <view class="settings-item danger" bindtap="onLogout" hover-class="settings-item-hover" hover-stay-time="120">
       <view class="settings-icon-wrap settings-icon-danger">
         <icon name="log-out" size="32rpx" color="#cd5852" />
       </view>
-      <text class="settings-label">退出全部设备</text>
+      <text class="settings-label">退出登录</text>
       <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-  </view>
-
-  <!-- 退出登录主按钮 -->
-  <view class="logout-primary" bindtap="onLogout" hover-class="logout-primary-hover" hover-stay-time="120">
-    <icon name="log-out" size="32rpx" color="#fff" />
-    <text>退出登录</text>
   </view>
 </view>
 
