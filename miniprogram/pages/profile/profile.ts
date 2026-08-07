@@ -603,18 +603,18 @@ Page({
       })
       return
     }
-    wx.navigateTo({ url: '/subpackages/pages/notification-preferences/notification-preferences' })
+    wx.navigateTo({ url: '/pages/notification-preferences/notification-preferences' })
   },
 
   goToAgreement() {
-    wx.navigateTo({ url: '/subpackages/pages/agreement/agreement' })
+    wx.navigateTo({ url: '/pages/agreement/agreement' })
   },
 
   goToPrivacy() {
-    wx.navigateTo({ url: '/subpackages/pages/privacy/privacy' })
+    wx.navigateTo({ url: '/pages/privacy/privacy' })
   },
 
   goToAbout() {
-    wx.navigateTo({ url: '/subpackages/pages/about/about' })
+    wx.navigateTo({ url: '/pages/about/about' })
   },
 })

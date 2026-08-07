@@ -8,6 +8,10 @@
     "pages/post-detail/post-detail",
     "pages/hot-ranking/hot-ranking",
     "pages/notifications/notifications",
+    "pages/notification-preferences/notification-preferences",
+    "pages/agreement/agreement",
+    "pages/privacy/privacy",
+    "pages/about/about",
     "pages/login/login"
   ],
   "tabBar": {
@@ -63,15 +67,11 @@
       "root": "subpackages/pages",
       "name": "pagesExtra",
       "pages": [
-        "agreement/agreement",
-        "privacy/privacy",
-        "notification-preferences/notification-preferences",
         "forgot-password/forgot-password",
         "school-select/school-select",
         "bind-account/bind-account",
         "edit-post/edit-post",
-        "locations/locations",
-        "about/about"
+        "locations/locations"
       ]
     },
     {

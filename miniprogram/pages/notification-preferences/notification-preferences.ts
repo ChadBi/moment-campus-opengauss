@@ -1,5 +1,5 @@
-import { authStore } from '../../../store/auth'
-import { getPreferences, updatePreferences } from '../../../services/notification-preferences'
+import { authStore } from '../../store/auth'
+import { getPreferences, updatePreferences } from '../../services/notification-preferences'
 
 const PREF_ITEMS = [
   { key: 'instant_enabled', label: '站内即时', desc: '实时接收重要动态的站内提醒' },

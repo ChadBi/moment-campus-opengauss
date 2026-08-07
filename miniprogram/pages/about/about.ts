@@ -52,11 +52,11 @@ Page({
   },
 
   goToAgreement() {
-    wx.navigateTo({ url: '/subpackages/pages/agreement/agreement' })
+    wx.navigateTo({ url: '/pages/agreement/agreement' })
   },
 
   goToPrivacy() {
-    wx.navigateTo({ url: '/subpackages/pages/privacy/privacy' })
+    wx.navigateTo({ url: '/pages/privacy/privacy' })
   },
 
 })
