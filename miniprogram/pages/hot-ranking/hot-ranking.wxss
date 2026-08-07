@@ -70,35 +70,6 @@
   letter-spacing: 2rpx;
 }
 
-.hero-decoration {
-  position: absolute;
-  z-index: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 84rpx;
-  height: 84rpx;
-  border: 4rpx solid rgba(100, 52, 33, 0.88);
-  background: #ffd84d;
-  box-shadow: 6rpx 7rpx 0 rgba(100, 52, 33, 0.2);
-  color: #713723;
-  font-family: var(--font-display);
-  font-size: 58rpx;
-  font-weight: 900;
-  transform: rotate(-3deg);
-}
-
-.hero-decoration-one {
-  right: 160rpx;
-  top: 130rpx;
-}
-
-.hero-decoration-two {
-  right: 50rpx;
-  top: 92rpx;
-  transform: rotate(4deg);
-}
-
 .hero-title-row {
   position: relative;
   z-index: 1;

@@ -7,8 +7,6 @@
       <text class="hero-nav-title">{{schoolName}}</text>
       <view class="hero-nav-placeholder"></view>
     </view>
-    <view class="hero-decoration hero-decoration-one">+</view>
-    <view class="hero-decoration hero-decoration-two">榜</view>
     <view class="hero-title-row">
       <text class="hero-title">大榜单</text>
       <text class="hero-title-mark">校园热榜</text>
@@ -64,4 +62,3 @@
     </block>
   </view>
 </view>
-
