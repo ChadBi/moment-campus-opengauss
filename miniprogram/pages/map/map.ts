@@ -66,6 +66,7 @@ Page({
     locationsLoading: false,
     locationsError: false,
     selectedLocation: null as MapLocationPanel | null,
+    sheetExpanded: false,
   },
 
   onLoad() {
@@ -83,6 +84,7 @@ Page({
         longitude: school?.center_lng || DEFAULT_LNG,
         scale: school?.map_zoom || DEFAULT_ZOOM,
         selectedLocation: null,
+        sheetExpanded: false,
         markers: [],
       })
       void this.loadLocations(version)
@@ -149,6 +151,7 @@ Page({
         loading: true,
         postsLoading: true,
       },
+      sheetExpanded: false,
     })
 
     const schoolCode = campusStore.getState().schoolCode
@@ -194,8 +197,39 @@ Page({
     ;(this as any)._selectedRequestVersion += 1
     this.setData({
       selectedLocation: null,
+      sheetExpanded: false,
       markers: this.data.rawLocations.map(location => buildMarker(location)),
     })
+  },
+
+  onSheetTouchStart(e: any) {
+    const touch = e.touches && e.touches[0]
+    if (!touch) return
+    ;(this as any)._sheetTouchStartY = touch.clientY ?? touch.pageY
+  },
+
+  onSheetTouchMove() {
+    // 仅在拖拽区阻止事件穿透到地图，内容区域仍由 scroll-view 自己滚动。
+  },
+
+  onSheetTouchEnd(e: any) {
+    const touch = e.changedTouches && e.changedTouches[0]
+    const startY = (this as any)._sheetTouchStartY
+    if (!touch || typeof startY !== 'number') return
+    const endY = touch.clientY ?? touch.pageY
+    const deltaY = endY - startY
+    ;(this as any)._sheetTouchStartY = undefined
+    if (Math.abs(deltaY) < 36) return
+
+    if (deltaY < 0) {
+      this.setData({ sheetExpanded: true })
+      return
+    }
+    if (this.data.sheetExpanded) {
+      this.setData({ sheetExpanded: false })
+      return
+    }
+    this.closeLocationCard()
   },
 
   onZoomIn() {

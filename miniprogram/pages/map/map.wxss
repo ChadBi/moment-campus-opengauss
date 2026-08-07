@@ -169,8 +169,8 @@
   position: fixed;
   left: 16rpx;
   right: 16rpx;
-  bottom: calc(112rpx + env(safe-area-inset-bottom));
-  max-height: 68vh;
+  bottom: calc(168rpx + env(safe-area-inset-bottom));
+  height: 52vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -180,7 +180,24 @@
   box-shadow: 0 22rpx 60rpx rgba(21, 38, 41, 0.24);
   backdrop-filter: blur(18rpx);
   z-index: 20;
+  transition: top 280ms cubic-bezier(0.16, 1, 0.3, 1), bottom 280ms cubic-bezier(0.16, 1, 0.3, 1), height 280ms cubic-bezier(0.16, 1, 0.3, 1), border-radius 280ms ease;
   animation: sheet-in 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.location-sheet-half {
+  border-radius: 28rpx;
+}
+
+.location-sheet-expanded {
+  top: 8rpx;
+  bottom: calc(168rpx + env(safe-area-inset-bottom));
+  height: auto;
+  border-radius: 28rpx;
+}
+
+.sheet-drag-area {
+  flex-shrink: 0;
+  touch-action: none;
 }
 
 .sheet-handle {
@@ -291,7 +308,9 @@
 
 .sheet-scroll {
   min-height: 0;
+  height: 0;
   flex: 1;
+  width: 100%;
   padding: 20rpx 24rpx 8rpx;
   box-sizing: border-box;
 }

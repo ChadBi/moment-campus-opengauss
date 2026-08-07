@@ -45,24 +45,30 @@
     <text>地点加载失败，点击重试</text>
   </view>
 
-  <view wx:if="{{selectedLocation}}" class="location-sheet">
-    <view class="sheet-handle"></view>
-    <view class="sheet-header">
-      <view class="sheet-title-wrap">
-        <view class="sheet-pin {{selectedLocation.location.is_verified ? 'verified' : 'unverified'}}">
-          <icon name="map-pin" size="28rpx" color="#ffffff" />
-        </view>
-        <view class="sheet-title-text">
-          <view class="sheet-name-row">
-            <text class="sheet-name">{{selectedLocation.location.name}}</text>
-            <text wx:if="{{selectedLocation.location.is_verified}}" class="verified-badge">官方核验</text>
-            <text wx:else class="pending-badge">待核验</text>
+  <view wx:if="{{selectedLocation}}" class="location-sheet {{sheetExpanded ? 'location-sheet-expanded' : 'location-sheet-half'}}">
+    <view
+      class="sheet-drag-area"
+      catchtouchstart="onSheetTouchStart"
+      catchtouchmove="onSheetTouchMove"
+      catchtouchend="onSheetTouchEnd">
+      <view class="sheet-handle"></view>
+      <view class="sheet-header">
+        <view class="sheet-title-wrap">
+          <view class="sheet-pin {{selectedLocation.location.is_verified ? 'verified' : 'unverified'}}">
+            <icon name="map-pin" size="28rpx" color="#ffffff" />
           </view>
-          <text class="sheet-address">{{selectedLocation.location.building || '校园内'}}{{selectedLocation.location.floor ? ' · ' + selectedLocation.location.floor + '层' : ''}}</text>
+          <view class="sheet-title-text">
+            <view class="sheet-name-row">
+              <text class="sheet-name">{{selectedLocation.location.name}}</text>
+              <text wx:if="{{selectedLocation.location.is_verified}}" class="verified-badge">官方核验</text>
+              <text wx:else class="pending-badge">待核验</text>
+            </view>
+            <text class="sheet-address">{{selectedLocation.location.building || '校园内'}}{{selectedLocation.location.floor ? ' · ' + selectedLocation.location.floor + '层' : ''}}</text>
+          </view>
         </view>
-      </view>
-      <view class="info-close" catchtap="closeLocationCard" hover-class="info-close-hover" hover-stay-time="120">
-        <icon name="x" size="32rpx" color="#6a7d81" />
+        <view class="info-close" catchtap="closeLocationCard" hover-class="info-close-hover" hover-stay-time="120">
+          <icon name="x" size="32rpx" color="#6a7d81" />
+        </view>
       </view>
     </view>
 

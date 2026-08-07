@@ -7,10 +7,6 @@
         <text class="school-slogan">把会消失的校园经验留下来</text>
       </view>
     </view>
-    <view class="search-entry" bindtap="goToSearch" hover-class="search-entry-hover" hover-stay-time="120">
-      <icon name="search" size="28rpx" color="#6a7d81" />
-      <text class="search-text">搜索校园信息...</text>
-    </view>
   </view>
 
   <view class="locations-entry" bindtap="goToLocations" hover-class="locations-entry-hover" hover-stay-time="120">

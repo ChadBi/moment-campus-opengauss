@@ -188,10 +188,6 @@ Page({
     })
   },
 
-  goToSearch() {
-    wx.switchTab({ url: '/pages/search/search' })
-  },
-
   goToMap() {
     wx.switchTab({ url: '/pages/map/map' })
   },

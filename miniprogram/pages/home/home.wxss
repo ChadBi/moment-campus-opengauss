@@ -23,8 +23,8 @@
 }
 
 .school-info {
-  flex-shrink: 0;
-  max-width: 360rpx;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10rpx;
@@ -56,28 +56,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2rpx;
-}
-
-/* === 搜索入口 === */
-.search-entry {
-  flex: 1;
-  height: 64rpx;
-  background: var(--mist);
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  padding: 0 24rpx;
-  transition: background 200ms;
-}
-
-.search-entry-hover {
-  background: var(--paper-hover);
-}
-
-.search-text {
-  font-size: 26rpx;
-  color: var(--muted);
 }
 
 /* === 分类 Tab === */
@@ -607,9 +585,6 @@
 
 /* === reduced motion 降级 === */
 @media (prefers-reduced-motion: reduce) {
-  .search-entry {
-    transition: none;
-  }
   .loading-dot {
     animation: none;
   }
