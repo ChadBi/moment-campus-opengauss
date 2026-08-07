@@ -7,6 +7,13 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.6] - 2026-08-07
+
+### 变更
+
+- `AGENTS.md` 演示账号清单从单行简表扩展为江南大学 + 复旦大学 + 浙江大学完整三校清单，与 `backend/scripts/seed_data.py` 中 `JIANGNAN_USERS` / `FUDAN_USERS` / `ZJU_USERS` 三组常量对齐；标注各校已 `campus_verified=True` 的用户编号，并明确 `@momentcampus.com` 为平台运营专用域名（不受学校 `domain`/`addl_domains` 校验，不参与校园身份认证）
+- `backend/tests/manual/` 7 个手动验证脚本（verify_comments / verify_e2e_extra / verify_governance / verify_notifications / verify_profile / verify_subscription_fix / verify_subscription_flow）中 15 处 `login("user1~3@example.com")` 统一替换为 `login("user1~3@example.jiangnan.edu.cn")`，避免使用与 seed 不一致的旧邮箱，7 个脚本 `py_compile` 语法编译全部通过
+
 ## [2.2.5] - 2026-08-06
 
 ### 修复

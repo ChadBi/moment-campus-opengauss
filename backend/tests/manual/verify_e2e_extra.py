@@ -28,7 +28,7 @@ print("场景1：专题订阅通知链路")
 print("=" * 60)
 
 # user1 登录
-token1 = login("user1@example.com")
+token1 = login("user1@example.jiangnan.edu.cn")
 headers1 = h(token1)
 
 # 列出专题
@@ -72,7 +72,7 @@ if topics:
 
 # 测试用 user2 创建一个属于该 topic 的帖子，触发通知
 print("\n--- 用 user2 创建帖子触发订阅通知 ---")
-token2 = login("user2@example.com")
+token2 = login("user2@example.jiangnan.edu.cn")
 headers2 = h(token2)
 
 # 先获取分类

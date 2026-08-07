@@ -31,9 +31,9 @@ print("专题订阅通知完整链路验证（修复后）")
 print("=" * 60)
 
 # 三个账号登录
-token1 = login("user1@example.com")
+token1 = login("user1@example.jiangnan.edu.cn")
 headers1 = h(token1)
-token2 = login("user2@example.com")
+token2 = login("user2@example.jiangnan.edu.cn")
 headers2 = h(token2)
 token_admin = login("admin@momentcampus.com")
 headers_admin = h(token_admin)

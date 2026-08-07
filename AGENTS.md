@@ -12,7 +12,12 @@
 - Post 状态机：6 态（draft/pending/published/expired/conflict/archived）；协同验证：2 类（confirmation/refutation，互斥且可切换或取消）。
 - 权限：user < admin < super\_admin，统一通过 `app/core/permissions.py` 的 `require_role()` 校验。
 - 启动：后端 `uvicorn app.main:app --reload`（需 `$env:APP_ENV = "opengauss"`）；前端 `npm run dev`。
-- 演示账号：管理员 `admin@momentcampus.com / pass123`；普通用户 `user1@example.com ~ user10@example.com / pass123`。
+- 演示账号（与 [seed_data.py](backend/scripts/seed_data.py) 对齐，统一使用各学校 `addl_domains = "example.xxx.edu.cn"` 作为邮箱后缀，确保通过校园邮箱域名校验）：
+  - **平台级超管（跨三校可见，角色 `super_admin`）**：`admin@momentcampus.com / pass123`
+  - **江南大学（主演示校，code=`jiangnan`）**：校管理员不单独设，由平台超管兼；普通用户 `user1@example.jiangnan.edu.cn ~ user10@example.jiangnan.edu.cn / pass123`（其中 user1/3/4/6/7/9/10 在 seed 时已 `campus_verified=True`）
+  - **复旦大学（多租户演示校 A，code=`fudan`）**：校管理员 `fudan_admin@momentcampus.com / pass123`（角色 `admin`）；普通用户 `fudan_user1@example.fudan.edu.cn ~ fudan_user5@example.fudan.edu.cn / pass123`（fudan_user1/2/4 已 `campus_verified=True`）
+  - **浙江大学（多租户演示校 B，code=`zju`）**：校管理员 `zju_admin@momentcampus.com / pass123`（角色 `admin`）；普通用户 `zju_user1@example.zju.edu.cn ~ zju_user5@example.zju.edu.cn / pass123`（zju_user1/3/5 已 `campus_verified=True`）
+  - 所有普通用户密码统一为 `pass123`；`@momentcampus.com` 为平台运营专用域名，不受学校 `domain`/`addl_domains` 校验，不参与校园身份认证。
 
 ## 工作原则
 

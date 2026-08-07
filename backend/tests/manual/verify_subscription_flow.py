@@ -28,7 +28,7 @@ print("专题订阅通知完整链路（创建→审核→订阅通知触发）"
 print("=" * 60)
 
 # user1 登录（订阅者）
-token1 = login("user1@example.com")
+token1 = login("user1@example.jiangnan.edu.cn")
 headers1 = h(token1)
 
 # 检查 user1 当前订阅与通知数
@@ -48,7 +48,7 @@ notif_before = r.json().get("total", 0) if r.status_code == 200 else 0
 print(f"User1 通知数（操作前）: {notif_before}")
 
 # user2 登录（发帖者）
-token2 = login("user2@example.com")
+token2 = login("user2@example.jiangnan.edu.cn")
 headers2 = h(token2)
 
 # 获取分类

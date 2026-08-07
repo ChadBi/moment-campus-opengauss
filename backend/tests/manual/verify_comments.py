@@ -35,9 +35,9 @@ print("=" * 60)
 print("评论模块 E2E 链路验证")
 print("=" * 60)
 
-token1 = login("user1@example.com")
+token1 = login("user1@example.jiangnan.edu.cn")
 headers1 = h(token1)
-token2 = login("user2@example.com")
+token2 = login("user2@example.jiangnan.edu.cn")
 headers2 = h(token2)
 
 # 0. 找一个 user1 已发布的帖子
