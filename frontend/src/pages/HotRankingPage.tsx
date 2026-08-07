@@ -46,7 +46,7 @@ const HotRankingPage: React.FC = () => {
           <span className="w-9" />
         </div>
         <div className="relative mt-14 flex items-end gap-3">
-          <h1 className="font-display text-5xl font-black tracking-[0.18em] drop-shadow-[3px_3px_0_rgba(145,62,38,.22)]">大榜单</h1>
+          <h1 className="font-display text-5xl font-black tracking-[0.18em] drop-shadow-[3px_3px_0_rgba(145,62,38,.22)]">十大榜单</h1>
           <span className="mb-2 rotate-[-3deg] rounded bg-[#713723]/90 px-2 py-1 text-[11px] tracking-[0.18em] text-[#ffe7a2]">校园热榜</span>
         </div>
         <p className="relative mt-2 text-sm text-white/90 tracking-wide">近 7 天浏览量最高的 10 条校园动态</p>

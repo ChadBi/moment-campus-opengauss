@@ -8,7 +8,7 @@
       <view class="hero-nav-placeholder"></view>
     </view>
     <view class="hero-title-row">
-      <text class="hero-title">大榜单</text>
+      <text class="hero-title">十大榜单</text>
       <text class="hero-title-mark">校园热榜</text>
     </view>
     <text class="hero-subtitle">近 7 天浏览量最高的 10 条校园动态</text>
