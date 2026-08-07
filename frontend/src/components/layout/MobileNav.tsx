@@ -3,8 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { Home, Map, PlusCircle, User } from 'lucide-react';
 
 const navItems = [
-  { path: '/', label: '首页', icon: Home },
   { path: '/map', label: '地图', icon: Map },
+  { path: '/', label: '首页', icon: Home },
   { path: '/publish', label: '发布', icon: PlusCircle },
   { path: '/profile', label: '我的', icon: User },
 ];

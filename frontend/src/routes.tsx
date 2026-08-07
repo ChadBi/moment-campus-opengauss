@@ -92,6 +92,7 @@ const SchoolImportPage = lazy(loadSchoolImportPage);
 const ActivationFunnelPage = lazy(loadActivationFunnelPage);
 
 const commonRouteLoaders = [
+  loadMapPage,        // 地图已成为主页，优先预加载
   loadHomePage,
   loadSearchPage,
   loadPostDetailPage,
@@ -216,7 +217,9 @@ const AnimatedRoutes: React.FC = () => {
 
         {/* Protected Routes with MainLayout */}
         <Route element={<MainLayout />}>
-          <Route path="/" element={<HomePage />} />
+          {/* 默认路由重定向到地图：让地图成为主页 */}
+          <Route path="/" element={<Navigate to="/map" replace />} />
+          <Route path="/home" element={<HomePage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/posts/:id" element={<PostDetailPage />} />

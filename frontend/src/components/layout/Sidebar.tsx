@@ -13,8 +13,8 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { path: '/', label: '首页', icon: Home },
   { path: '/map', label: '地图', icon: Map },
+  { path: '/', label: '首页', icon: Home },
   // A-05: 校园地点（设施资料、AI 摘要与评分评价）
   { path: '/locations', label: '地点', icon: MapPin },
   { path: '/search', label: '搜索', icon: Search },
@@ -41,10 +41,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       >
         <div className="relative mb-6">
           <Link
-            to="/"
+            to="/map"
             onClick={onClose}
             className="block w-[44px] h-[44px] rounded-[12px] bg-paper grid place-items-center text-lake overflow-hidden relative"
-            aria-label="此刻校园首页"
+            aria-label="此刻校园地图主页"
           >
             <span
               className="font-display font-bold leading-none"

@@ -2,7 +2,7 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-07（全局原生 &lt;select&gt; 外框统一美化：放弃自定义下拉展开组件，保留 .select-nice/.select-nice-sm 两档尺寸的外框样式）
+> 最后更新：2026-08-07（地图升级为主页 + Header 学校名显式展示：/ 重定向到 /map，侧边栏地图排首位；Header Logo 旁新增当前学校标签徽章）
 
 ## 当前执行任务：UI 体验精简调整（2026-08-07）
 
@@ -12,6 +12,8 @@
 - [x] **发布页新增地点交互重做：PostForm 地点下拉新增「✚ 新增地点」独立选项（value=__new__）；下方虚线边框整块改为「只在选中『新增地点』或已预填地图点时才显示」；删除手填经纬度两个 Input，改为由「在地图上选择位置/重新选点」按钮 + 已选坐标只读徽章（圆角chip显示；验证改为必须先地图选点才能提交，错误提示「请先在地图上选好位置」
 - [x] **全局原生 <select> 统一美化**：新增 `index.css` 工具类 `.select-nice`（40px 高/圆角10px/纸面/湖蓝焦点环/禁用态灰显/内嵌 SVG ChevronDown 替换浏览器默认箭头） + `.select-nice-sm`（紧凑 36px）；覆盖 `PostForm` 两处（地点/失物类型）、`LocationPage`、`SearchPage` 筛选区 3 处、`RegisterPage` 以外的 admin 全站 8 处（ActivationFunnel / AdminLogs 2 / AdminTopics / Analytics / PlatformPlans 3 / PlatformOverview / PlatformSchools / SchoolImport）共 18+ 个原生 select，不再是浏览器默认「丑框框」
 - [x] **删除页头学校切换按钮**：Header 移除 `<SchoolSwitcher />`（桌面端 + 移动端两处），import 同步清理，标题区与右侧行动按钮布局对齐
+- [x] **地图升级为主页**：侧边栏 `Sidebar` + 底部 `MobileNav` 导航顺序调整（地图 / 首页 / 地点 / 搜索 / 通知 / 我的）；路由 `/` 改为 `<Navigate to="/map" replace />` 301 式重定向，HomePage 移到 `/home`；Sidebar 顶部 Logo 方块 `to="/"` 同步改为 `to="/map"`；`commonRouteLoaders` 预加载顺序 `loadMapPage` 排第一
+- [x] **Header 顶端显式显示当前学校名称**：Logo「此刻校园」右侧新增学校徽章（School 图标 + 名称，圆角 8px / `bg-lake/8` 浅湖蓝底 + `text-lake` 字色 + 1px 湖蓝描边，≥sm 显示）；数据来自 `useCampusStore().currentSchoolName`（由 `useSchoolSync` 五阶段 bootstrap 稳定注入）；`currentSchoolName` 为空（游客/尚未切校）时不渲染空壳徽章
 - [x] **地图弹窗评价/评分内嵌**：MapPage 的地点侧滑面板（`<aside>`）的 `{review_count} 条评价` 改为可点击展开/收起评价列表；内嵌评分表单（5 星点击 + 500 字可选正文 + 提交/撤回），与 LocationPage 表现一致；打开面板时并行拉取 reviews + my_review + detail；提交/撤回后自动回写 avg_score / rating_count / review_count；`ScoreStars` 组件就地实现（含半星）
 - [x] **移除「我的订阅」模块**：ProfilePage 删除 `<SubscriptionsCard />` 引用与 import（订阅功能已下线，避免误导用户）
 - [x] **地点页面加搜索栏**：LocationPage 页头下方、列表容器（`bg-paper rounded-[16px]`）之前加入搜索框；按 `名称/描述/楼栋/楼层` 四个字段做前端过滤；空搜索时显示全量；有搜索词且无匹配时 EmptyState 提示；支持一键清空
