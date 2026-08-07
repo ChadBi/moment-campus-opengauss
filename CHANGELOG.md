@@ -7,6 +7,21 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.12] - 2026-08-07
+
+### 修复
+
+- **小程序校园地点页搜索栏看不清**（用户反馈"有点看不清吧"）：根本原因是 `subpackages/pages/locations/locations.wxml` 引用了 `location-search-wrap` class，但对应 WXSS 文件中完全没有定义该选择器，导致搜索区无背景、无边框、无 padding，图标与文字与 mist 背景混色。修复：
+  - WXSS 补齐 `.location-search-wrap`：88rpx 高度 + 999rpx 胶囊圆角 + 纯白 `var(--paper)` 背景 + 湖蓝描边 `rgba(23,77,94,0.18)` + 淡阴影 `0 8rpx 22rpx`
+  - focus/active 态自动加强为湖蓝描边 + 加深阴影
+  - WXML 同步加强对比度：搜索图标 `color="#6a7d81"→"#174d5e"`，size 28→30rpx；input 字号 28rpx + 500；placeholder 专用 `location-search-ph` 为 `#8a9a9e`（更清晰但仍保留占位语义）；键盘确认按钮改为 `confirm-type="search"`
+
+### 校验
+
+- 微信开发者工具 `simulator_refresh` 编译成功，`simulator_open_page subpackages/pages/locations/locations` 直达目标页
+- 最终截图（365×787 JPEG）验证：搜索框呈现清晰白色胶囊形态——白底、圆角、湖蓝放大镜图标、深灰占位文字，与卡片列表和 mist 背景对比度明显，一眼可识别
+- 运行时 console 无 error/warn 新增
+
 ## [2.2.11] - 2026-08-07
 
 ### 修复

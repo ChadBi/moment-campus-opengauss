@@ -33,6 +33,48 @@
   margin-top: 6rpx;
 }
 
+/* ============== 搜索框 ============== */
+.location-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin: 16rpx 0 22rpx;
+  padding: 18rpx 22rpx;
+  height: 88rpx;
+  box-sizing: border-box;
+  background: var(--paper, #ffffff);
+  border: 1rpx solid rgba(23, 77, 94, 0.18);
+  border-radius: 999rpx;
+  box-shadow: 0 8rpx 22rpx rgba(21, 38, 41, 0.06);
+  transition: all 0.2s ease;
+}
+
+.location-search-wrap:focus-within,
+.location-search-wrap:active {
+  border-color: var(--lake);
+  box-shadow: 0 10rpx 26rpx rgba(47, 127, 143, 0.14);
+}
+
+.location-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  font-size: 28rpx;
+  color: var(--ink, #152629);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.location-search-ph {
+  color: #8a9a9e;
+  font-size: 26rpx;
+  font-weight: 400;
+}
+
+.location-select-hint {
+  margin-bottom: 10rpx;
+}
+
 /* ============== 列表 ============== */
 .list-area {
   padding-bottom: 20rpx;

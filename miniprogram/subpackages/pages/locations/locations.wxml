@@ -10,8 +10,8 @@
 
     <view wx:if="{{mode === 'select'}}" class="knowledge-note location-select-hint">请选择学校静态地点，不需要开启设备定位。</view>
     <view class="location-search-wrap">
-      <icon name="search" size="28rpx" color="#6a7d81" />
-      <input value="{{searchKeyword}}" bindinput="onKeywordInput" placeholder="搜索地点名称、描述、楼栋或楼层" placeholder-class="ph" />
+      <icon name="search" size="30rpx" color="#174d5e" />
+      <input class="location-search-input" value="{{searchKeyword}}" bindinput="onKeywordInput" placeholder="搜索地点名称、描述、楼栋或楼层" placeholder-class="location-search-ph" confirm-type="search" />
     </view>
 
     <!-- 列表状态区 -->

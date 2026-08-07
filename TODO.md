@@ -2,7 +2,14 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-07（小程序地图页点击修复 + 评分界面补齐）
+> 最后更新：2026-08-07（小程序校园地点页搜索栏样式补齐）
+
+## 2026-08-07 执行任务：小程序校园地点页搜索栏样式补齐
+
+- [x] **搜索栏看不清根因定位**：`subpackages/pages/locations/locations.wxml` 中 `<view class="location-search-wrap">` 虽然引用了 class，但 `locations.wxss` 里完全没有对应样式——搜索框等于没有背景、没有边框、没有 padding，图标颜色仅 `#6a7d81`，与页面 mist 背景混在一起导致"看不清"
+- [x] **补齐搜索栏 WXSS 样式**：88rpx 高度 + 999rpx 胶囊圆角 + `var(--paper)` 纯白背景 + 湖蓝 `rgba(23,77,94,0.18)` 描边 + 淡阴影；focus/active 态自动加强描边为 `var(--lake)` + 更大阴影；整体视觉形成明确"输入框"形态，不再与背景融合
+- [x] **WXML 同步加强对比度**：放大镜图标从 28rpx/#6a7d81 加深为 30rpx/湖蓝 `#174d5e`；input 加 `location-search-input` class（28rpx/加粗 500）；placeholder 加专用 `location-search-ph`（#8a9a9e，比原先默认的 `--ink-disabled` 更清晰但仍保持占位符语义）；`confirm-type="search"` 让键盘回车变成搜索
+- [x] **微信开发者工具编译 & 截图验证**：`simulator_refresh` 成功，`simulator_open_page` 直达 `subpackages/pages/locations/locations`，最终截图中搜索框呈现出清晰的白色胶囊形态（白底 / 圆角 / 湖蓝搜索图标 / 灰色占位文字），与下方的卡片和背景对比度明显，用户一眼即可识别
 
 ## 2026-08-07 执行任务：小程序地图页点击修复 + 评分界面补齐
 
