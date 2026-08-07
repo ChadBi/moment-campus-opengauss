@@ -28,7 +28,7 @@
             src="{{item.logoUrl}}"
             mode="aspectFill"></image>
           <view wx:else class="school-logo-default">
-            <text>{{item.name}}</text>
+            <text>{{item.logoText}}</text>
           </view>
         </view>
         <view class="school-info">

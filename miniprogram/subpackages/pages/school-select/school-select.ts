@@ -16,7 +16,14 @@ interface SchoolView {
   map_zoom: number
   is_active: boolean
   logoUrl: string
+  logoText: string
   selected: boolean
+}
+
+function getSchoolLogoText(name: string, code: string): string {
+  const compactName = String(name || '').replace(/大学|学院|学校/g, '')
+  if (compactName) return compactName.slice(0, 2)
+  return String(code || '校').slice(0, 3).toUpperCase()
 }
 
 Page({
@@ -44,6 +51,7 @@ Page({
       const schools: SchoolView[] = res.map(s => ({
         ...s,
         logoUrl: resolveImageUrl(s.logo_url),
+        logoText: getSchoolLogoText(s.name, s.code),
         selected: s.id === currentId,
       }))
       this.setData({
