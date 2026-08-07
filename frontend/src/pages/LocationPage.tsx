@@ -447,22 +447,36 @@ const LocationPage: React.FC = () => {
             {/* 我的评价：常态紧凑单层布局（标题+更新按钮同排，不做内层卡片嵌套）；避免常态裸露编辑表单误触 */}
             <div className="border border-line/60 rounded-[12px] p-3.5">
               {!myReview || editingReview ? (
-                /* 未评价 / 编辑态：标题 + 编辑控件 */
+                /* 未评价 / 编辑态：顶行标题 + 主按钮（提交/更新）同排，与常态「更新评价」布局一致 */
                 <>
-                  <h3 className="font-semibold text-ink text-sm mb-3">
-                    {myReview ? '我的评价' : '给这个地点打个分'}
-                  </h3>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <h3 className="font-semibold text-ink text-[13px] leading-none">
+                      {myReview ? '我的评价' : '给这个地点打个分'}
+                    </h3>
+                    {isAuthenticated && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        loading={submitting}
+                        onClick={() => void handleSubmitReview()}
+                        icon={<Check size={13} />}
+                        className="h-[34px] px-3.5 text-[12px] gap-1 rounded-[9px]"
+                      >
+                        {myReview ? '更新评价' : '提交评价'}
+                      </Button>
+                    )}
+                  </div>
                   {!isAuthenticated ? (
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center justify-between gap-2 mt-1">
                       <p className="text-sm text-ink-muted">登录后即可为校园设施评分评价</p>
                       <Button variant="primary" size="sm" icon={<LogIn size={14} />} onClick={() => navigate('/login')}>
                         去登录
                       </Button>
                     </div>
                   ) : (
-                    /* D4: 编辑态 / 尚未评价：评分 + 文本 + 提交/撤回表单，VerifyGate 保护校园身份认证 */
+                    /* D4: 编辑态 / 尚未评价：评分 + 文本 + 次按钮（取消编辑/撤回放在底部） */
                     <VerifyGate compact message="完成校园身份认证后即可评分评价">
-                      <div className="space-y-3">
+                      <div className="space-y-2 mt-1">
                       <div className="flex items-center gap-1" role="radiogroup" aria-label="评分">
                         {[1, 2, 3, 4, 5].map((value) => (
                           <button
@@ -490,27 +504,25 @@ const LocationPage: React.FC = () => {
                         placeholder="分享你的体验，如排队情况、价格、营业时间等（最多 500 字）"
                         className="w-full rounded-[10px] border border-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-lake/30 resize-none"
                       />
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        {myReview && editingReview && (
-                          <Button
-                            variant="text"
-                            size="sm"
-                            onClick={() => setEditingReview(false)}
-                          >
-                            取消编辑
-                          </Button>
-                        )}
-                        <div className="flex items-center justify-end gap-2 ml-auto">
+                      {/* 次按钮：取消编辑 / 撤回，放在底部右对齐 */}
+                      {(myReview && editingReview) || myReview ? (
+                        <div className="flex items-center justify-end gap-2 pt-0.5">
+                          {myReview && editingReview && (
+                            <Button
+                              variant="text"
+                              size="sm"
+                              onClick={() => setEditingReview(false)}
+                            >
+                              取消编辑
+                            </Button>
+                          )}
                           {myReview && (
                             <Button variant="text" size="sm" loading={submitting} onClick={() => void handleWithdrawReview()}>
                               撤回评价
                             </Button>
                           )}
-                          <Button variant="primary" size="sm" loading={submitting} onClick={() => void handleSubmitReview()} icon={<Check size={14} />}>
-                            {myReview ? '更新评价' : '提交评价'}
-                          </Button>
                         </div>
-                      </div>
+                      ) : null}
                       </div>
                     </VerifyGate>
                   )}
@@ -530,7 +542,8 @@ const LocationPage: React.FC = () => {
                         setContent(myReview.content ?? '');
                         setEditingReview(true);
                       }}
-                      icon={<Edit3 size={14} />}
+                      icon={<Edit3 size={13} />}
+                      className="h-[34px] px-3.5 text-[12px] gap-1 rounded-[9px]"
                     >
                       更新评价
                     </Button>
