@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "订阅管理",
-  "usingComponents": {
-    "icon": "/components/icon/icon",
-    "skeleton": "/components/skeleton/skeleton",
-    "empty-state": "/components/empty-state/empty-state"
-  }
-}

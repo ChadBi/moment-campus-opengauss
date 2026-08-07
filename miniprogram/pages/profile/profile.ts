@@ -719,10 +719,6 @@ Page({
     wx.navigateTo({ url: '/pages/notifications/notifications' })
   },
 
-  goToSubscriptions() {
-    wx.navigateTo({ url: '/pages/subscriptions/subscriptions' })
-  },
-
   goToNotificationPreferences() {
     if (!this.data.isLoggedIn) {
       wx.showModal({

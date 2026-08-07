@@ -436,13 +436,6 @@
       <text class="settings-label">设备管理</text>
       <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-    <view class="settings-item" bindtap="goToSubscriptions" hover-class="settings-item-hover" hover-stay-time="120">
-      <view class="settings-icon-wrap">
-        <icon name="bookmark" size="32rpx" color="#174d5e" />
-      </view>
-      <text class="settings-label">订阅管理</text>
-      <icon name="chevron-right" size="32rpx" color="#9aabae" />
-    </view>
     <view class="settings-item" bindtap="goToNotificationPreferences" hover-class="settings-item-hover" hover-stay-time="120">
       <view class="settings-icon-wrap">
         <icon name="bell" size="32rpx" color="#174d5e" />

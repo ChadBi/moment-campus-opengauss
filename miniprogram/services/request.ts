@@ -52,8 +52,22 @@ export function clearAuthTokens(): void {
 }
 
 function isAuthUrl(url: string): boolean {
-  const authPaths = ['/auth/', '/auth/wechat/']
-  return authPaths.some(p => url.includes(p))
+  // 只有登录、注册、换票据等公开认证接口不携带 Authorization。
+  // `/auth/wechat/identities`、`/auth/wechat/sessions` 是登录后账号安全接口，
+  // 不能被整个 `/auth/` 前缀误判为公开接口，否则会以游客请求返回 401，
+  // 并触发请求层清理登录态。
+  const publicAuthPaths = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/refresh',
+    '/auth/logout',
+    '/auth/forgot-password',
+    '/auth/reset-password',
+    '/auth/wechat/exchange',
+    '/auth/wechat/bind-existing',
+    '/auth/wechat/register',
+  ]
+  return publicAuthPaths.some(path => url === path || url.startsWith(`${path}?`))
 }
 
 function buildFullUrl(path: string): string {
