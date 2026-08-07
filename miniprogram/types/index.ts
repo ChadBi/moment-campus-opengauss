@@ -7,7 +7,6 @@ export interface User {
   school_id: number
   is_active: boolean
   created_at: string
-  // B-01: 校园身份认证（统一教育邮箱，认证用登录邮箱）
   campus_verified?: boolean
   campus_verified_at?: string
 }
@@ -16,53 +15,91 @@ export interface School {
   id: number
   code: string
   name: string
-  short_name: string
   logo_url?: string
   description?: string
-  location?: string
-  latitude?: number
-  longitude?: number
-  map_zoom?: number
+  province?: string
+  city?: string
+  center_lat: number
+  center_lng: number
+  map_zoom: number
   is_active: boolean
+  domains?: string[]
 }
 
 export interface SchoolMembership {
   id: number
   user_id: number
   school_id: number
+  school?: School
   role: 'member' | 'admin' | 'super_admin'
   status: 'active' | 'pending' | 'expired'
-  is_default: boolean
+  is_default?: boolean
   joined_at: string
+}
+
+export interface PostImage {
+  image_url: string
+  thumbnail_url?: string
+}
+
+export interface PostAuthor {
+  id: number
+  nickname: string
+  avatar_url?: string
+  is_verified?: boolean
+}
+
+export interface PostCategory {
+  id: number
+  name: string
+  icon?: string
+}
+
+export interface PostLocation {
+  id: number
+  name: string
+  latitude: number
+  longitude: number
+  building?: string
+  floor?: string
+  is_verified?: boolean
+}
+
+export interface PostGovernance {
+  status?: string
+  valid_count: number
+  invalid_count: number
+  my_validation?: 'confirmation' | 'refutation' | null
 }
 
 export interface Post {
   id: number
   title: string
   content: string
-  images?: string[]
+  cover_image?: string
+  images: PostImage[]
+  location_id?: number | null
   location_name?: string
-  latitude?: number
-  longitude?: number
+  location_lat?: number
+  location_lng?: number
   category_id: number
-  category_name?: string
   status: 'draft' | 'pending' | 'published' | 'expired' | 'conflict' | 'archived'
-  author_id: number
-  author_nickname?: string
-  author_avatar?: string
-  // B-01: 作者是否已通过校园身份认证
-  is_verified?: boolean
   school_id: number
   school_name?: string
-  views_count: number
-  likes_count: number
-  comments_count: number
-  validations_count: number
-  refutations_count: number
-  expires_at?: string
+  author: PostAuthor
+  category?: PostCategory | null
+  location?: PostLocation | null
+  like_count: number
+  comment_count: number
+  view_count: number
+  valid_count: number
+  invalid_count: number
+  expire_at?: string | null
   created_at: string
   updated_at: string
-  governance_status?: string
+  is_liked?: boolean
+  governance?: PostGovernance | null
+  is_verified?: boolean
 }
 
 export interface PostListResponse {
@@ -71,19 +108,29 @@ export interface PostListResponse {
   page: number
   page_size: number
   has_more: boolean
+  total_pages?: number
 }
 
-// B-01: 评论（作者是否已认证）
+export interface CommentAuthor {
+  id: number
+  nickname: string
+  avatar_url?: string
+  is_verified?: boolean
+}
+
 export interface Comment {
   id: number
   post_id: number
-  parent_id?: number
+  parent_id?: number | null
+  reply_to_user_id?: number | null
+  reply_to_user?: CommentAuthor | null
   user_id: number
   content: string
-  author_nickname?: string
-  author_avatar?: string
-  is_verified?: boolean
+  author?: CommentAuthor | null
+  replies?: Comment[]
+  reply_count?: number
   created_at: string
+  updated_at?: string
 }
 
 export interface Category {
@@ -95,57 +142,67 @@ export interface Category {
   is_active: boolean
 }
 
+/** 微信地图 marker 的渲染结构；地点数据本身使用 LocationItem。 */
 export interface MapMarker {
   id: number
-  post_id: number
   latitude: number
   longitude: number
   title: string
-  content_snippet?: string
-  category_name?: string
-  status: string
-  school_id: number
-  created_at: string
+  location_id: number
+  is_verified?: boolean
 }
 
 export interface SearchResult {
-  posts: Post[]
+  items: Post[]
   total: number
-  ai_analysis?: AISearchAnalysis
-}
-
-export interface AISearchAnalysis {
-  intent: string
-  keywords: string[]
-  match_reasons: string[]
-  suggested_filters?: Record<string, string>
+  page: number
+  page_size: number
+  has_more: boolean
+  match_reasons?: Record<string, string[]>
+  scores?: Record<string, number>
+  fallback?: boolean
+  fallback_reason?: string
+  intent?: string
 }
 
 export interface Notification {
   id: number
-  type: 'comment' | 'like' | 'validation' | 'report' | 'system'
+  type: 'comment' | 'like' | 'validation' | 'report' | 'system' | string
   title: string
   content: string
+  target_type?: 'post' | 'comment' | 'location' | 'topic' | 'system' | string
+  target_id?: number | null
+  actor_name?: string
+  actor_avatar?: string
   is_read: boolean
-  related_post_id?: number
-  related_user_id?: number
   created_at: string
 }
 
 export interface NotificationListResponse {
   items: Notification[]
   total: number
-  unread_count: number
+  page: number
+  page_size: number
+  has_more: boolean
 }
 
 export interface Topic {
   id: number
   title: string
   description?: string
-  cover_image?: string
+  cover_url?: string
   post_count: number
-  is_featured: boolean
-  sort_order: number
+  view_count: number
+  is_featured?: boolean
+  sort_order?: number
+}
+
+export interface Subscription {
+  id: number
+  target_type: 'category' | 'location' | 'topic'
+  target_id: number
+  target_name?: string
+  created_at: string
 }
 
 export interface LoginResponse {
@@ -184,6 +241,7 @@ export interface PaginatedResponse<T> {
   page: number
   page_size: number
   has_more: boolean
+  total_pages?: number
 }
 
 export type SessionType = 'web' | 'miniprogram' | 'wechat'
@@ -210,8 +268,6 @@ export interface IdentityInfo {
   created_at: string
   last_used_at?: string
 }
-
-// ============== 校园地点 / 评分评价（对齐 Web services/locations.ts） ==============
 
 export interface LocationAuthor {
   id: number
@@ -248,18 +304,40 @@ export interface LocationFact {
   updated_at: string
 }
 
+export interface LocationSummarySource {
+  source_type: string
+  source_id: number
+  title?: string
+  snippet?: string
+  created_at?: string
+  author_name?: string
+  score?: number
+}
+
+export interface LocationSummaryClaim {
+  claim_id: string
+  text: string
+  confidence_level: string
+  source_refs: Array<{ source_type: string; source_id: number }>
+}
+
+export interface LocationSummaryConflict {
+  text: string
+  source_refs: Array<{ source_type: string; source_id: number }>
+}
+
 export interface LocationSummary {
   id?: number | null
   version?: number | null
-  status: string
+  status: 'pending_review' | 'approved' | 'rejected' | 'failed' | 'archived' | string
   summary_text?: string | null
   confidence_level: string
-  claims: Array<{ claim_id: string; text: string; confidence_level: string; source_refs: Array<{ source_type: string; source_id: number }> }>
-  conflicts: Array<{ text: string; source_refs: Array<{ source_type: string; source_id: number }> }>
+  claims: LocationSummaryClaim[]
+  conflicts: LocationSummaryConflict[]
   source_count: number
   generated_at?: string | null
   stale_at?: string | null
-  sources: Array<{ source_type: string; source_id: number; title?: string; snippet?: string; created_at?: string; author_name?: string; score?: number }>
+  sources: LocationSummarySource[]
 }
 
 export interface LocationReview {

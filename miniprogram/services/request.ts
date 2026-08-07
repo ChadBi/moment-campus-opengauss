@@ -130,11 +130,13 @@ export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
   data?: any
   header?: Record<string, string>
+  /** 临时为学校切换/注册等请求指定租户，不写入本地状态。 */
+  schoolCode?: string
   loading?: boolean
 }
 
 export async function request<T = any>(options: RequestOptions): Promise<T> {
-  const { url, method = 'GET', data, header = {}, loading = false } = options
+  const { url, method = 'GET', data, header = {}, schoolCode, loading = false } = options
   const fullUrl = buildFullUrl(url)
   const authUrl = isAuthUrl(url)
 
@@ -149,7 +151,7 @@ export async function request<T = any>(options: RequestOptions): Promise<T> {
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
-    headers['X-School-Code'] = getSchoolCode()
+    headers['X-School-Code'] = schoolCode || headers['X-School-Code'] || getSchoolCode()
   }
 
   try {
@@ -235,9 +237,9 @@ function handleResponse<T>(statusCode: number, data: any): T {
 }
 
 export const http = {
-  get: <T>(url: string, data?: any) => request<T>({ url, method: 'GET', data }),
-  post: <T>(url: string, data?: any) => request<T>({ url, method: 'POST', data }),
-  put: <T>(url: string, data?: any) => request<T>({ url, method: 'PUT', data }),
-  delete: <T>(url: string, data?: any) => request<T>({ url, method: 'DELETE', data }),
-  patch: <T>(url: string, data?: any) => request<T>({ url, method: 'PATCH', data }),
+  get: <T>(url: string, data?: any, options?: Omit<RequestOptions, 'url' | 'method' | 'data'>) => request<T>({ url, method: 'GET', data, ...options }),
+  post: <T>(url: string, data?: any, options?: Omit<RequestOptions, 'url' | 'method' | 'data'>) => request<T>({ url, method: 'POST', data, ...options }),
+  put: <T>(url: string, data?: any, options?: Omit<RequestOptions, 'url' | 'method' | 'data'>) => request<T>({ url, method: 'PUT', data, ...options }),
+  delete: <T>(url: string, data?: any, options?: Omit<RequestOptions, 'url' | 'method' | 'data'>) => request<T>({ url, method: 'DELETE', data, ...options }),
+  patch: <T>(url: string, data?: any, options?: Omit<RequestOptions, 'url' | 'method' | 'data'>) => request<T>({ url, method: 'PATCH', data, ...options }),
 }

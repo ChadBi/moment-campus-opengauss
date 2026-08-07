@@ -20,8 +20,8 @@ interface WxMarker {
   }
 }
 
-const DEFAULT_LAT = 31.4882
-const DEFAULT_LNG = 120.588
+const DEFAULT_LAT = 31.483652
+const DEFAULT_LNG = 120.27116
 
 function formatStars(score: number): string {
   const full = Math.max(0, Math.min(5, Math.round(score || 0)))
@@ -40,30 +40,41 @@ Page({
   },
 
   onLoad() {
-    campusStore.subscribe(state => {
+    ;(this as any)._locationRequestVersion = 0
+    ;(this as any)._hasLoadedLocations = false
+    ;(this as any)._unsubscribeCampus = campusStore.subscribe(state => {
       const school = state.currentSchool
       const schoolName = (school && school.name) || state.schoolCode
       const update: any = { schoolName }
-      if (school && school.latitude && school.longitude) {
-        update.latitude = school.latitude
-        update.longitude = school.longitude
+      if (school) {
+        update.latitude = school.center_lat
+        update.longitude = school.center_lng
         update.scale = school.map_zoom || 16
       }
       this.setData(update)
-      this.loadLocations()
+      ;(this as any)._locationRequestVersion += 1
+      this.loadLocations((this as any)._locationRequestVersion)
     })
+  },
+
+  onUnload() {
+    const unsubscribe = (this as any)._unsubscribeCampus
+    if (unsubscribe) unsubscribe()
   },
 
   async onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
     }
-    this.loadLocations()
+    if (!(this as any)._hasLoadedLocations) this.loadLocations((this as any)._locationRequestVersion || 0)
   },
 
-  async loadLocations() {
+  async loadLocations(version?: number) {
+    const requestVersion = version ?? ((this as any)._locationRequestVersion || 0)
+    const schoolCode = campusStore.getState().schoolCode
     try {
       const locs = await getLocations()
+      if (schoolCode !== campusStore.getState().schoolCode || requestVersion !== ((this as any)._locationRequestVersion || 0)) return
       const wxMarkers: WxMarker[] = locs.map((loc: LocationItem) => ({
         id: loc.id,
         latitude: loc.latitude,
@@ -82,6 +93,7 @@ Page({
         },
       }))
       this.setData({ markers: wxMarkers, rawLocations: locs, selectedLocation: null })
+      ;(this as any)._hasLoadedLocations = true
     } catch (e: any) {
       console.error('加载地点标记失败', e)
       wx.showToast({ title: e.message || '加载地点标记失败', icon: 'none' })
@@ -118,7 +130,4 @@ Page({
     wx.navigateTo({ url: `/subpackages/pages/locations/locations?id=${loc.id}` })
   },
 
-  goToSchoolSelect() {
-    wx.navigateTo({ url: '/subpackages/pages/school-select/school-select' })
-  },
 })

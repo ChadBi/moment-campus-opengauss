@@ -1,14 +1,9 @@
 import type { School } from '../types'
+import { normalizeSchool } from '../services/normalize'
 
 interface CampusState {
   currentSchool: School | null
   schoolCode: string
-  location: {
-    latitude: number
-    longitude: number
-    accuracy?: number
-  } | null
-  locationAuthorized: boolean
 }
 
 type CampusListener = (state: CampusState) => void
@@ -18,28 +13,36 @@ const DEFAULT_SCHOOL = 'jiangnan'
 const state: CampusState = {
   currentSchool: null,
   schoolCode: DEFAULT_SCHOOL,
-  location: null,
-  locationAuthorized: false,
 }
 
 const listeners: Set<CampusListener> = new Set()
 
+function snapshot(): CampusState {
+  return {
+    currentSchool: state.currentSchool ? { ...state.currentSchool, domains: [...(state.currentSchool.domains || [])] } : null,
+    schoolCode: state.schoolCode,
+  }
+}
+
 function notify() {
-  listeners.forEach(fn => fn({ ...state }))
+  const value = snapshot()
+  listeners.forEach(fn => fn(value))
 }
 
 export const campusStore = {
   subscribe(fn: CampusListener): () => void {
     listeners.add(fn)
-    fn({ ...state })
+    fn(snapshot())
     return () => listeners.delete(fn)
   },
 
   getState(): CampusState {
-    return { ...state }
+    return snapshot()
   },
 
-  setSchool(school: School) {
+  /** 原子写入当前学校对象及租户代码，避免页面读到半更新状态。 */
+  setSchool(rawSchool: School | any) {
+    const school = normalizeSchool(rawSchool, state.schoolCode)
     state.currentSchool = school
     state.schoolCode = school.code
     wx.setStorageSync('school_code', school.code)
@@ -47,30 +50,17 @@ export const campusStore = {
   },
 
   setSchoolCode(code: string) {
-    state.schoolCode = code
-    wx.setStorageSync('school_code', code)
-    notify()
-  },
-
-  setLocation(lat: number, lng: number, accuracy?: number) {
-    state.location = { latitude: lat, longitude: lng, accuracy }
-    state.locationAuthorized = true
-    notify()
-  },
-
-  setLocationAuthorized(authorized: boolean) {
-    state.locationAuthorized = authorized
-    if (!authorized) {
-      state.location = null
-    }
+    const next = String(code || DEFAULT_SCHOOL)
+    state.schoolCode = next
+    wx.setStorageSync('school_code', next)
     notify()
   },
 
   initFromStorage() {
     const code = wx.getStorageSync('school_code')
-    if (code) {
-      state.schoolCode = code
-    }
+    if (code) state.schoolCode = String(code)
     notify()
   },
 }
+
+export type { CampusState }

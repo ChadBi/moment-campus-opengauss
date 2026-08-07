@@ -1,4 +1,7 @@
 import { authStore } from '../../../store/auth'
+import { listSchools, getCurrentSchool } from '../../../services/schools'
+import { campusStore } from '../../../store/campus'
+import type { School } from '../../../types'
 
 Page({
   data: {
@@ -11,7 +14,8 @@ Page({
     schoolName: '',
     loading: false,
     errorMsg: '',
-    schools: [] as Array<{ id: number; name: string; code: string }>,
+    schools: [] as School[],
+    schoolIndex: 0,
   },
 
   onLoad(options: { ticket?: string; mode?: string }) {
@@ -23,9 +27,8 @@ Page({
 
   async loadSchools() {
     try {
-      const { http } = await import('../../../services/request')
-      const res = await http.get<any>('/schools')
-      this.setData({ schools: res.schools || [] })
+      const schools = await listSchools()
+      this.setData({ schools })
     } catch (e) {
       console.error('加载学校列表失败', e)
     }
@@ -38,7 +41,7 @@ Page({
     const index = Number(e.detail.value)
     const school = this.data.schools[index]
     if (school) {
-      this.setData({ schoolId: school.id, schoolName: school.name })
+      this.setData({ schoolId: school.id, schoolName: school.name, schoolIndex: index })
     }
   },
 
@@ -69,6 +72,11 @@ Page({
           email: this.data.email || undefined,
         })
         authStore.setAuth(res)
+        const selected = this.data.schools.find(s => s.id === this.data.schoolId)
+        if (selected) {
+          const school = await getCurrentSchool(selected.code)
+          campusStore.setSchool(school)
+        }
       }
 
       wx.showToast({ title: '成功', icon: 'success' })

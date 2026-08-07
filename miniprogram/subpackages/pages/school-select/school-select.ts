@@ -1,18 +1,19 @@
-import { listSchools, switchSchool } from '../../../services/schools'
+import { getCurrentSchool, joinSchool, listSchools } from '../../../services/schools'
 import { campusStore } from '../../../store/campus'
 import { resolveImageUrl } from '../../../services/request'
+import { clearSchoolCache } from '../../../utils/school-cache'
 
 interface SchoolView {
   id: number
   code: string
   name: string
-  short_name: string
   logo_url?: string
   description?: string
-  location?: string
-  latitude?: number
-  longitude?: number
-  map_zoom?: number
+  province?: string
+  city?: string
+  center_lat: number
+  center_lng: number
+  map_zoom: number
   is_active: boolean
   logoUrl: string
   selected: boolean
@@ -23,6 +24,7 @@ Page({
     mode: '' as string,
     schools: [] as SchoolView[],
     selectedId: 0 as number,
+    selectedCode: '' as string,
     loading: false,
     submitting: false,
   },
@@ -39,7 +41,7 @@ Page({
       const res = await listSchools()
       const current = campusStore.getState().currentSchool
       const currentId = (current && current.id) || 0
-      const schools: SchoolView[] = (res.schools || []).map(s => ({
+      const schools: SchoolView[] = res.map(s => ({
         ...s,
         logoUrl: resolveImageUrl(s.logo_url),
         selected: s.id === currentId,
@@ -47,6 +49,7 @@ Page({
       this.setData({
         schools,
         selectedId: currentId,
+        selectedCode: (current && current.code) || '',
       })
     } catch (e: any) {
       wx.showToast({ title: e.message || '加载学校失败', icon: 'none' })
@@ -64,27 +67,27 @@ Page({
     this.setData({
       schools,
       selectedId: id,
+      selectedCode: (this.data.schools.find(s => s.id === id) || {}).code || '',
     })
   },
 
   async onConfirm() {
-    const id = this.data.selectedId
-    if (!id) {
+    const code = this.data.selectedCode
+    if (!code) {
       wx.showToast({ title: '请先选择学校', icon: 'none' })
       return
     }
     if (this.data.submitting) return
     this.setData({ submitting: true })
     try {
-      const res = await switchSchool(id)
-      campusStore.setSchool(res.school)
+      const oldState = campusStore.getState()
+      await joinSchool(code)
+      const school = await getCurrentSchool(code)
+      clearSchoolCache(oldState.schoolCode)
+      campusStore.setSchool(school)
       wx.showToast({ title: '切换成功', icon: 'success' })
       setTimeout(() => {
-        if (this.data.mode === 'register') {
-          wx.reLaunch({ url: '/pages/home/home' })
-        } else {
-          wx.navigateBack({ delta: 1 })
-        }
+        wx.navigateBack({ delta: 1 })
       }, 600)
     } catch (e: any) {
       wx.showToast({ title: e.message || '切换失败', icon: 'none' })

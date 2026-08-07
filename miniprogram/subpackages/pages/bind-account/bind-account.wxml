@@ -28,7 +28,7 @@
         <icon name="school" size="24rpx" color="#6a7d81" />
         <text class="label">学校</text>
       </view>
-      <picker bindchange="onSchoolSelect" value="{{schoolId}}" range="{{schools}}" range-key="name">
+      <picker bindchange="onSchoolSelect" value="{{schoolIndex}}" range="{{schools}}" range-key="name">
         <view class="picker {{schoolId ? 'has-value' : ''}}">
           <text>{{schoolName || '点击选择学校'}}</text>
           <icon name="chevron-down" size="24rpx" color="#6a7d81" />

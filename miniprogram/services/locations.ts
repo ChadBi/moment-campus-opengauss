@@ -5,13 +5,32 @@ import type {
   LocationReview,
   LocationReviewsResponse,
 } from '../types'
+import { normalizeLocation } from './normalize'
 
 export async function getLocations(): Promise<LocationItem[]> {
-  return http.get<LocationItem[]>('/locations')
+  const raw = await http.get<any>('/locations')
+  const items = Array.isArray(raw) ? raw : (Array.isArray(raw?.items) ? raw.items : [])
+  return items.map(normalizeLocation)
 }
 
 export async function getDetail(id: number): Promise<LocationDetail> {
-  return http.get<LocationDetail>(`/locations/${id}`)
+  const raw = await http.get<any>(`/locations/${id}`)
+  return {
+    location: normalizeLocation(raw?.location || raw),
+    my_review: raw?.my_review || null,
+    facts: Array.isArray(raw?.facts) ? raw.facts : [],
+    summary: raw?.summary || {
+      status: 'pending_review',
+      summary_text: null,
+      confidence_level: 'insufficient',
+      claims: [],
+      conflicts: [],
+      source_count: 0,
+      generated_at: null,
+      stale_at: null,
+      sources: [],
+    },
+  }
 }
 
 export async function getReviews(
@@ -25,7 +44,14 @@ export async function getReviews(
     })
   }
   const qs = query.toString()
-  return http.get<LocationReviewsResponse>(`/locations/${id}/reviews${qs ? `?${qs}` : ''}`)
+  const raw = await http.get<any>(`/locations/${id}/reviews${qs ? `?${qs}` : ''}`)
+  return {
+    items: Array.isArray(raw?.items) ? raw.items : [],
+    total: Number(raw?.total || 0),
+    page: Number(raw?.page || params?.page || 1),
+    page_size: Number(raw?.page_size || params?.page_size || 20),
+    has_more: raw?.has_more === true,
+  }
 }
 
 export async function submitReview(

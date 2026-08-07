@@ -1402,3 +1402,11 @@ R-14 飞书问卷提交（0.5 天，最终步骤，建议 2026-08-08 前完成�
 - [x] **MP-INK-06** 微信开发者工具实机编译验证（2026-07-31 通过 wechatide-skill CLI 完成）：`simulator_refresh` 编译成功；console 日志 grep `error|warn|fail|wxss|compile` 全部返回空（无编译错误）；仅 2 条正常 info（WeChatLib 3.17.0 + Lazy code loading）。截图因 automator 超时未执行（需开启自动化端口）
 - 任务报告：[AIwork/小程序页面水墨风对齐Web端统一改造任务报告.md](AIwork/小程序页面水墨风对齐Web端统一改造任务报告.md)
 
+## 2026-08-07 微信小程序全量契约对齐（执行中）
+
+- [x] **MP-CONTRACT-P0** 建立小程序共享契约归一化层：`types/index.ts` 对齐学校中心坐标、帖子图片/计数、评论嵌套、通知目标、订阅目标和地点摘要；新增 `services/normalize.ts`，数组与图片对象统一在 service 层归一化。
+- [x] **MP-CONTRACT-P1-A** 请求层支持临时 `X-School-Code` 租户，学校接口切换为 `/schools`、`/schools/current`、`/me/memberships` 与 `/schools/{code}/join`，删除旧学校接口调用。
+- [x] **MP-CONTRACT-P1-B** 地图和启动流程使用 `center_lat/center_lng/map_zoom`；移除地图页切校入口，学校切换请求增加版本保护和旧学校缓存清理。
+- [x] **MP-CONTRACT-P1-C** 微信注册恢复“exchange → bind/register”流程，注册选校仅写 `school_id`，不调用 join；补齐游客入口。
+- [ ] **MP-CONTRACT-P2~P5** 帖子、发布/编辑、互动、地点摘要、通知、订阅、专题、定位清理和完整 E2E 待继续。
+

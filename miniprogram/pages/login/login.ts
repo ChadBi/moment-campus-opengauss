@@ -86,7 +86,25 @@ Page({
   },
 
   goToRegister() {
-    wx.navigateTo({ url: '/subpackages/pages/school-select/school-select?mode=register' })
+    if (this.data.loading) return
+    this.setData({ loading: true, errorMsg: '' })
+    new Promise<string>((resolve, reject) => {
+      wx.login({
+        success: res => res.code ? resolve(res.code) : reject(new Error('微信登录失败')),
+        fail: () => reject(new Error('微信登录失败')),
+      })
+    }).then(code => wechatExchange(code)).then(res => {
+      if (res.status !== 'binding_required') throw new Error('该微信已绑定账号，请直接登录')
+      wx.navigateTo({
+        url: `/subpackages/pages/bind-account/bind-account?ticket=${res.binding_ticket}&mode=register`,
+      })
+    }).catch((e: any) => {
+      this.setData({ errorMsg: e.message || '注册入口打开失败' })
+    }).finally(() => this.setData({ loading: false }))
+  },
+
+  goToHome() {
+    wx.switchTab({ url: '/pages/home/home' })
   },
 
   goToForgotPassword() {

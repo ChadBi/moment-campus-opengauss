@@ -28,7 +28,7 @@
             src="{{item.logoUrl}}"
             mode="aspectFill"></image>
           <view wx:else class="school-logo-default">
-            <text>{{item.short_name}}</text>
+            <text>{{item.name}}</text>
           </view>
         </view>
         <view class="school-info">
@@ -41,9 +41,9 @@
           <view wx:if="{{item.description}}" class="school-desc">
             <text>{{item.description}}</text>
           </view>
-          <view wx:if="{{item.location}}" class="school-location">
+          <view wx:if="{{item.city}}" class="school-location">
             <icon name="map-pin" size="22rpx" color="#6a7d81" />
-            <text class="location-text">{{item.location}}</text>
+            <text class="location-text">{{item.province}} {{item.city}}</text>
           </view>
         </view>
       </view>
