@@ -19,10 +19,11 @@
 }
 
 .brand-logo {
-  width: 88rpx;
-  height: 88rpx;
-  border-radius: 24rpx;
-  background: var(--paper);
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 36rpx;
+  background: #e8f3f4;
+  overflow: hidden;
   box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
@@ -30,12 +31,10 @@
   margin-bottom: 32rpx;
 }
 
-.brand-logo-text {
-  font-family: var(--font-display);
-  font-size: 44rpx;
-  font-weight: 700;
-  color: var(--lake);
-  line-height: 1;
+.brand-logo-image {
+  width: 160rpx;
+  height: 160rpx;
+  margin: -16rpx;
 }
 
 .brand-title {

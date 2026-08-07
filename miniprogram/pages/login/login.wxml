@@ -2,7 +2,7 @@
   <!-- ============== 品牌区（对齐 Web LoginPage: brand-logo + 欢迎回来 + slogan） ============== -->
   <view class="brand-area">
     <view class="brand-logo">
-      <text class="brand-logo-text">此</text>
+      <image class="brand-logo-image" src="/assets/logo.png" mode="aspectFit" />
     </view>
     <text class="brand-title">欢迎回来</text>
     <text class="brand-slogan">把会消失的校园经验留下来</text>

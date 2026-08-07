@@ -14,14 +14,20 @@
   padding: 40rpx 0 48rpx;
 }
 .brand-logo {
-  width: 128rpx;
-  height: 128rpx;
-  border-radius: 32rpx;
-  background: linear-gradient(135deg, #174d5e, #2a7a8c);
+  width: 148rpx;
+  height: 148rpx;
+  border-radius: 40rpx;
+  background: #e8f3f4;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 12rpx 28rpx rgba(23, 77, 94, 0.25);
+}
+.brand-logo-image {
+  width: 184rpx;
+  height: 184rpx;
+  margin: -18rpx;
 }
 .brand-name {
   margin-top: 24rpx;

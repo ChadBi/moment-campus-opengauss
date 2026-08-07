@@ -2,7 +2,7 @@
   <!-- 品牌区 -->
   <view class="brand">
     <view class="brand-logo">
-      <icon name="school" size="56rpx" color="#174d5e" />
+      <image class="brand-logo-image" src="/assets/logo.png" mode="aspectFit" />
     </view>
     <text class="brand-name">此刻校园</text>
     <text class="brand-desc">校园生活此刻分享与发现</text>
