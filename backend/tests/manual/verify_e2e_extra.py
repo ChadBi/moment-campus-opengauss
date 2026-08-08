@@ -5,10 +5,10 @@ import json
 BASE = "http://localhost:8000/api/v1"
 
 
-def login(email, password="pass123"):
+def login(phone, password="pass123"):
     r = requests.post(
         f"{BASE}/auth/login",
-        json={"email": email, "password": password},
+        json={"phone": phone, "password": password},
         headers={"X-School-Code": "jiangnan"},
     )
     assert r.status_code == 200, f"Login failed: {r.status_code} {r.text}"
@@ -28,7 +28,7 @@ print("场景1：专题订阅通知链路")
 print("=" * 60)
 
 # user1 登录
-token1 = login("user1@example.jiangnan.edu.cn")
+token1 = login("13900000002")
 headers1 = h(token1)
 
 # 列出专题
@@ -72,7 +72,7 @@ if topics:
 
 # 测试用 user2 创建一个属于该 topic 的帖子，触发通知
 print("\n--- 用 user2 创建帖子触发订阅通知 ---")
-token2 = login("user2@example.jiangnan.edu.cn")
+token2 = login("13900000003")
 headers2 = h(token2)
 
 # 先获取分类

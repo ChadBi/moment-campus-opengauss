@@ -67,7 +67,7 @@ test.describe('多租户：学校目录与切换', () => {
 
 test.describe('多租户：super_admin 平台管理', () => {
   test('4. super_admin 学校开通 - 查看学校列表', async ({ page }) => {
-    // admin@momentcampus.com 为 super_admin
+    // 13900000001 为 super_admin
     await login(page, DEMO_ACCOUNTS.admin);
     await page.waitForLoadState('networkidle');
 

@@ -99,8 +99,8 @@ npx tsc --noEmit    # TypeScript 类型检查
 
 ## 演示账号
 
-- 管理员：`admin@momentcampus.com / pass123`
-- 普通用户：`user1@example.com ~ user10@example.com / pass123`
+- 平台超管：`13900000001 / pass123`
+- 江南大学普通用户：`13900000002 ~ 13900000011 / pass123`
 
 ## 关键设计决策
 

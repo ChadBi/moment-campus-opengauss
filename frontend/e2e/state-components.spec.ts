@@ -28,7 +28,9 @@ async function mockAuthenticatedUser(page: Page, onboardingCompleted = true) {
             isAuthenticated: true,
             user: {
               id: 2,
-              email: 'user1@example.com',
+              phone: '13900000002',
+              education_email: 'user1@example.jiangnan.edu.cn',
+              has_password: true,
               nickname: '状态测试用户',
               school_id: 1,
               role: 'user',

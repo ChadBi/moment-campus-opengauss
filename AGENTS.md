@@ -17,12 +17,13 @@
   # 管理员 PowerShell 执行一次即可（持久生效，已存在则安全忽略）：
   New-NetFirewallRule -DisplayName 'MomentCampus Backend :8000' -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Private,Domain | Out-Null
   ```
-- 演示账号（与 [seed_data.py](backend/scripts/seed_data.py) 对齐，统一使用各学校 `addl_domains = "example.xxx.edu.cn"` 作为邮箱后缀，确保通过校园邮箱域名校验）：
+- 演示账号（与 [seed_data.py](backend/scripts/seed_data.py) 对齐）：
   - **平台级超管（跨三校可见，角色 `super_admin`）**：手机号 `13900000001 / pass123`
-  - **江南大学（主演示校，code=`jiangnan`）**：校管理员不单独设，由平台超管兼；普通用户手机号 `13900000002 ~ 13900000011 / pass123`（其中 user1/3/4/6/7/9/10 在 seed 时已 `campus_verified=True`）
-  - **复旦大学（多租户演示校 A，code=`fudan`）**：校管理员手机号 `13900000101 / pass123`（角色 `admin`）；普通用户手机号 `13900000102 ~ 13900000106 / pass123`（fudan_user1/2/4 已 `campus_verified=True`）
-  - **浙江大学（多租户演示校 B，code=`zju`）**：校管理员手机号 `13900000201 / pass123`（角色 `admin`）；普通用户手机号 `13900000202 ~ 13900000206 / pass123`（zju_user1/3/5 已 `campus_verified=True`）
-  - 所有普通用户密码统一为 `pass123`；教育邮箱仅用于校园认证，不参与登录；`@momentcampus.com` 仅保留为历史平台运营邮箱字段。
+  - **江南大学（主演示校，code=`jiangnan`）**：校管理员不单独设，由平台超管兼；普通用户手机号 `13900000002 ~ 13900000011 / pass123`，其中 `13900000002/04/05/07/08/10/11` 已完成校园认证。
+  - **复旦大学（多租户演示校 A，code=`fudan`）**：校管理员手机号 `13900000101 / pass123`（角色 `admin`）；普通用户手机号 `13900000102 ~ 13900000106 / pass123`，其中 `13900000102/03/05` 已完成校园认证。
+  - **浙江大学（多租户演示校 B，code=`zju`）**：校管理员手机号 `13900000201 / pass123`（角色 `admin`）；普通用户手机号 `13900000202 ~ 13900000206 / pass123`，其中 `13900000202/04/05` 已完成校园认证。
+  - **微信手机号登录演示账号**：`13800138000`，江南大学，未认证，默认无密码；Mock 微信身份为 `MOCK_OPENID_STATIC_20260808_LOCAL_DEV`，登录后可在个人中心设置密码。
+  - 所有普通用户密码统一为 `pass123`；教育邮箱仅用于校园认证，不参与登录；历史 `users.email` 字段在 seed 后全部为空。
 
 ## 工作原则
 

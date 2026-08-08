@@ -4,8 +4,8 @@ import { test as base, expect, type Page } from '@playwright/test';
  * REL-01.3 E2E 测试共享辅助函数
  *
  * 演示账号（来自 AGENTS.md）：
- *   管理员：admin@momentcampus.com / pass123
- *   普通用户：user1@example.com ~ user10@example.com / pass123
+ *   平台超管：13900000001 / pass123
+ *   江南大学普通用户：13900000002 ~ 13900000011 / pass123
  *
  * 演示学校（来自 seed_data.py）：
  *   jiangnan（江南大学，主展示租户）
@@ -14,10 +14,10 @@ import { test as base, expect, type Page } from '@playwright/test';
  */
 
 export const DEMO_ACCOUNTS = {
-  admin: { email: 'admin@momentcampus.com', password: 'pass123' },
-  user1: { email: 'user1@example.com', password: 'pass123' },
-  user2: { email: 'user2@example.com', password: 'pass123' },
-  user3: { email: 'user3@example.com', password: 'pass123' },
+  admin: { phone: '13900000001', password: 'pass123' },
+  user1: { phone: '13900000002', password: 'pass123' },
+  user2: { phone: '13900000003', password: 'pass123' },
+  user3: { phone: '13900000004', password: 'pass123' },
 } as const;
 
 export const DEMO_SCHOOLS = {
@@ -29,10 +29,10 @@ export const DEMO_SCHOOLS = {
 /**
  * 登录指定账号并等待跳转完成
  */
-export async function login(page: Page, account: { email: string; password: string }) {
+export async function login(page: Page, account: { phone: string; password: string }) {
   await page.goto('/login');
   await page.waitForLoadState('networkidle');
-  await page.getByPlaceholder(/邮箱|email/i).fill(account.email);
+  await page.getByPlaceholder(/手机号|手机号码|phone/i).fill(account.phone);
   await page.getByPlaceholder(/密码|password/i).fill(account.password);
   await page.getByRole('button', { name: /登录|登 录|login/i }).click();
   // 等待跳转到首页或后台
@@ -69,7 +69,7 @@ export const API_BASE = 'http://localhost:8000/api/v1';
 /**
  * 通过 API 直接登录获取 token（用于测试前置数据准备）
  */
-export async function apiLogin(account: { email: string; password: string }) {
+export async function apiLogin(account: { phone: string; password: string }) {
   const resp = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -81,7 +81,14 @@ export async function apiLogin(account: { email: string; password: string }) {
   return (await resp.json()) as {
     access_token: string;
     refresh_token: string;
-    user: { id: number; email: string; role: string; school_id: number };
+    user: {
+      id: number;
+      phone: string;
+      education_email: string | null;
+      has_password: boolean;
+      role: string;
+      school_id: number;
+    };
   };
 }
 

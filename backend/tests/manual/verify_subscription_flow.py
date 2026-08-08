@@ -5,10 +5,10 @@ import time
 BASE = "http://localhost:8000/api/v1"
 
 
-def login(email, password="pass123"):
+def login(phone, password="pass123"):
     r = requests.post(
         f"{BASE}/auth/login",
-        json={"email": email, "password": password},
+        json={"phone": phone, "password": password},
         headers={"X-School-Code": "jiangnan"},
     )
     assert r.status_code == 200, f"Login failed: {r.status_code} {r.text}"
@@ -28,7 +28,7 @@ print("专题订阅通知完整链路（创建→审核→订阅通知触发）"
 print("=" * 60)
 
 # user1 登录（订阅者）
-token1 = login("user1@example.jiangnan.edu.cn")
+token1 = login("13900000002")
 headers1 = h(token1)
 
 # 检查 user1 当前订阅与通知数
@@ -48,7 +48,7 @@ notif_before = r.json().get("total", 0) if r.status_code == 200 else 0
 print(f"User1 通知数（操作前）: {notif_before}")
 
 # user2 登录（发帖者）
-token2 = login("user2@example.jiangnan.edu.cn")
+token2 = login("13900000003")
 headers2 = h(token2)
 
 # 获取分类
@@ -75,7 +75,7 @@ if sub_topic_id and cats:
         print(f"  post_id={new_post_id}, status={r.json().get('status')}")
 
         # admin 登录审核
-        token_admin = login("admin@momentcampus.com")
+        token_admin = login("13900000001")
         headers_admin = h(token_admin)
 
         # 审核通过

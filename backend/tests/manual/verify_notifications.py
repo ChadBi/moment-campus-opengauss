@@ -17,10 +17,10 @@ import time
 BASE = "http://localhost:8000/api/v1"
 
 
-def login(email, password="pass123"):
+def login(phone, password="pass123"):
     r = requests.post(
         f"{BASE}/auth/login",
-        json={"email": email, "password": password},
+        json={"phone": phone, "password": password},
         headers={"X-School-Code": "jiangnan"},
     )
     assert r.status_code == 200, f"Login failed: {r.status_code} {r.text}"
@@ -39,9 +39,9 @@ print("=" * 60)
 print("通知中心 E2E 链路验证")
 print("=" * 60)
 
-token1 = login("user1@example.jiangnan.edu.cn")
+token1 = login("13900000002")
 headers1 = h(token1)
-token2 = login("user2@example.jiangnan.edu.cn")
+token2 = login("13900000003")
 headers2 = h(token2)
 
 # ============================================================

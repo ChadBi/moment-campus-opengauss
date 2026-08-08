@@ -15,7 +15,7 @@
 状态样本(6 态各 ≥1) / 两类治理样本(confirmation/refutation) /
 专题(≥1) / 官方发布主体(≥2) / 品牌设置（差异化主题色） / 套餐（运营档 activated）。
 
-TEN-05.3：user1@/user2@ 加入多校（江南大学 + 复旦/浙大）用于演示切换后角色/内容/统计变化。
+TEN-05.3：手机号主账号用于演示学校与内容数据，当前示例用户按手机号关联。
 
 坐标约定：数据库与 API 统一使用 GCJ-02；三校点位来源与质量见
 ``app.data.demo_coordinates``。
@@ -39,7 +39,7 @@ from app.models import (
     Location, Comment, Like, ValidationRecord, Report, Notification,
     TopicCollection, TopicCollectionPost, Draft, BrowseHistory, SearchHistory,
     AdminOperationLog, SchoolMembership, SchoolSettings, SchoolSubscription,
-    ProductPlan, PlanEntitlement, SchoolDomain,
+    ProductPlan, PlanEntitlement, SchoolDomain, UserAuthIdentity,
 )
 from app.models.location_review import LocationReview
 import bcrypt
@@ -113,30 +113,33 @@ JIANGNAN_CATEGORIES = [
 
 JIANGNAN_LOCATIONS = location_tuples("jiangnan")
 
-# 江南大学用户清单（1 管理员 + 10 普通用户，昵称/bio 模拟真实学生身份）
+# 江南大学用户清单（1 管理员 + 10 普通用户 + 1 微信无密码演示账号）
 JIANGNAN_USERS = [
-    {"email": "admin@momentcampus.com", "nickname": "校园运营组", "role": "super_admin",
+    {"phone": "13900000001", "nickname": "校园运营组", "role": "super_admin",
      "bio": "此刻校园平台运营组，负责内容审核与平台维护"},
-    {"email": "user1@example.jiangnan.edu.cn", "nickname": "江南小李", "role": "user",
+    {"phone": "13900000002", "education_email": "user1@example.jiangnan.edu.cn", "nickname": "江南小李", "role": "user",
      "bio": "计算机学院大三 | 校园信息搬运工", "campus_verified": True},
-    {"email": "user2@example.jiangnan.edu.cn", "nickname": "蠡湖钓客", "role": "user",
+    {"phone": "13900000003", "nickname": "蠡湖钓客", "role": "user",
      "bio": "喜欢在蠡湖边发呆的钓鱼佬"},
-    {"email": "user3@example.jiangnan.edu.cn", "nickname": "食堂品鉴师", "role": "user",
+    {"phone": "13900000004", "education_email": "user3@example.jiangnan.edu.cn", "nickname": "食堂品鉴师", "role": "user",
      "bio": "吃过江南大学所有食堂 | 美食地图绘制中", "campus_verified": True},
-    {"email": "user4@example.jiangnan.edu.cn", "nickname": "图书馆常客", "role": "user",
+    {"phone": "13900000005", "education_email": "user4@example.jiangnan.edu.cn", "nickname": "图书馆常客", "role": "user",
      "bio": "图书馆三楼是我的第二卧室", "campus_verified": True},
-    {"email": "user5@example.jiangnan.edu.cn", "nickname": "跑道冲刺手", "role": "user",
+    {"phone": "13900000006", "nickname": "跑道冲刺手", "role": "user",
      "bio": "田径队 | 每天夜跑 5 公里"},
-    {"email": "user6@example.jiangnan.edu.cn", "nickname": "二食堂干饭人", "role": "user",
+    {"phone": "13900000007", "education_email": "user6@example.jiangnan.edu.cn", "nickname": "二食堂干饭人", "role": "user",
      "bio": "干饭不积极思想有问题", "campus_verified": True},
-    {"email": "user7@example.jiangnan.edu.cn", "nickname": "江大摄影师", "role": "user",
+    {"phone": "13900000008", "education_email": "user7@example.jiangnan.edu.cn", "nickname": "江大摄影师", "role": "user",
      "bio": "用镜头记录蠡湖的四季 | 摄影社", "campus_verified": True},
-    {"email": "user8@example.jiangnan.edu.cn", "nickname": "流浪猫救助站", "role": "user",
+    {"phone": "13900000009", "nickname": "流浪猫救助站", "role": "user",
      "bio": "校园流浪猫 TNR 志愿者 | 已绝育 12 只"},
-    {"email": "user9@example.jiangnan.edu.cn", "nickname": "期末突击队", "role": "user",
+    {"phone": "13900000010", "education_email": "user9@example.jiangnan.edu.cn", "nickname": "期末突击队", "role": "user",
      "bio": "靠期末两周创造奇迹的大学生", "campus_verified": True},
-    {"email": "user10@example.jiangnan.edu.cn", "nickname": "无锡学长", "role": "user",
+    {"phone": "13900000011", "education_email": "user10@example.jiangnan.edu.cn", "nickname": "无锡学长", "role": "user",
      "bio": "大四老学长 | 江南生存指南作者", "campus_verified": True},
+    {"phone": "13800138000", "nickname": "微信演示用户", "role": "user",
+     "bio": "通过微信授权手机号登录的演示账号", "auth_mode": "wechat",
+     "wechat_openid": "MOCK_OPENID_STATIC_20260808_LOCAL_DEV", "password": None},
 ]
 
 
@@ -169,17 +172,17 @@ FUDAN_CATEGORIES = [
 FUDAN_LOCATIONS = location_tuples("fudan")
 
 FUDAN_USERS = [
-    {"email": "fudan_admin@momentcampus.com", "nickname": "复旦运营组", "role": "admin",
+    {"phone": "13900000101", "nickname": "复旦运营组", "role": "admin",
      "bio": "复旦此刻校园运营组"},
-    {"email": "fudan_user1@example.fudan.edu.cn", "nickname": "邯郸路书虫", "role": "user",
+    {"phone": "13900000102", "education_email": "fudan_user1@example.fudan.edu.cn", "nickname": "邯郸路书虫", "role": "user",
      "bio": "复旦文科院系 | 喜欢泡文科图书馆", "campus_verified": True},
-    {"email": "fudan_user2@example.fudan.edu.cn", "nickname": "光华楼守夜人", "role": "user",
+    {"phone": "13900000103", "education_email": "fudan_user2@example.fudan.edu.cn", "nickname": "光华楼守夜人", "role": "user",
      "bio": "光华楼自习室常客 | 期末突击选手", "campus_verified": True},
-    {"email": "fudan_user3@example.fudan.edu.cn", "nickname": "南区干饭人", "role": "user",
+    {"phone": "13900000104", "nickname": "南区干饭人", "role": "user",
      "bio": "南区食堂品鉴员"},
-    {"email": "fudan_user4@example.fudan.edu.cn", "nickname": "相辉堂常客", "role": "user",
+    {"phone": "13900000105", "education_email": "fudan_user4@example.fudan.edu.cn", "nickname": "相辉堂常客", "role": "user",
      "bio": "校园话剧爱好者 | 学生艺术团", "campus_verified": True},
-    {"email": "fudan_user5@example.fudan.edu.cn", "nickname": "本部跑者", "role": "user",
+    {"phone": "13900000106", "nickname": "本部跑者", "role": "user",
      "bio": "本部体育场夜跑爱好者"},
 ]
 
@@ -213,24 +216,24 @@ ZJU_CATEGORIES = [
 ZJU_LOCATIONS = location_tuples("zju")
 
 ZJU_USERS = [
-    {"email": "zju_admin@momentcampus.com", "nickname": "浙大运营组", "role": "admin",
+    {"phone": "13900000201", "nickname": "浙大运营组", "role": "admin",
      "bio": "浙大此刻校园运营组"},
-    {"email": "zju_user1@example.zju.edu.cn", "nickname": "紫金港学子", "role": "user",
+    {"phone": "13900000202", "education_email": "zju_user1@example.zju.edu.cn", "nickname": "紫金港学子", "role": "user",
      "bio": "浙大计算机学院 | 紫金港常住居民", "campus_verified": True},
-    {"email": "zju_user2@example.zju.edu.cn", "nickname": "启真湖观察者", "role": "user",
+    {"phone": "13900000203", "nickname": "启真湖观察者", "role": "user",
      "bio": "启真湖生态观察 | 校园鸟类记录"},
-    {"email": "zju_user3@example.zju.edu.cn", "nickname": "西区干饭人", "role": "user",
+    {"phone": "13900000204", "education_email": "zju_user3@example.zju.edu.cn", "nickname": "西区干饭人", "role": "user",
      "bio": "西区食堂常客 | 性价比美食挖掘", "campus_verified": True},
-    {"email": "zju_user4@example.zju.edu.cn", "nickname": "图书馆守门人", "role": "user",
+    {"phone": "13900000205", "education_email": "zju_user4@example.zju.edu.cn", "nickname": "图书馆守门人", "role": "user",
      "bio": "图书馆是我的第二个家", "campus_verified": True},
-    {"email": "zju_user5@example.zju.edu.cn", "nickname": "紫金港跑者", "role": "user",
+    {"phone": "13900000206", "nickname": "紫金港跑者", "role": "user",
      "bio": "紫金港夜跑团成员"},
 ]
 
 
 # =============================================================================
 # 江南大学真实场景帖子（30 条，全部 published，复用既有内容）
-# 字段：title / content / category_code / location_name / user_email
+# 字段：title / content / category_code / location_name / user_phone
 #       is_anonymous / views / likes / is_recommend / comments / validations
 # =============================================================================
 
@@ -246,17 +249,17 @@ JIANGNAN_POSTS = [
             "唯一缺点是中午11:45-12:30排队要15分钟，建议错峰。"
         ),
         "category_code": "share",  # Task 1.2 调整：原 food → share
-        "location_name": "第二食堂", "user_email": "user6@example.jiangnan.edu.cn",
+        "location_name": "第二食堂", "user_phone": "13900000007",
         "is_anonymous": False, "views": 342, "likes": 28, "is_recommend": True,
         "comments": [
-            {"user_email": "user3@example.jiangnan.edu.cn", "content": "昨天刚去吃过，确实不错！午餐肉给得超大方", "likes": 5},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "请问辣度选微辣会踩雷吗？不吃辣星人瑟瑟发抖", "likes": 1},
-            {"user_email": "user6@example.jiangnan.edu.cn", "content": "回复楼上：微辣基本不辣，就是有点麻，可以尝试", "likes": 2},
+            {"user_phone": "13900000004", "content": "昨天刚去吃过，确实不错！午餐肉给得超大方", "likes": 5},
+            {"user_phone": "13900000010", "content": "请问辣度选微辣会踩雷吗？不吃辣星人瑟瑟发抖", "likes": 1},
+            {"user_phone": "13900000007", "content": "回复楼上：微辣基本不辣，就是有点麻，可以尝试", "likes": 2},
         ],
         "validations": [
-            {"user_email": "user3@example.jiangnan.edu.cn", "type": "confirmation", "comment": "今天去验证了，确实好吃"},
-            {"user_email": "user1@example.jiangnan.edu.cn", "type": "confirmation", "comment": "上个月吃过，依然在线"},
-            {"user_email": "user9@example.jiangnan.edu.cn", "type": "confirmation", "comment": "亲测有效"},
+            {"user_phone": "13900000004", "type": "confirmation", "comment": "今天去验证了，确实好吃"},
+            {"user_phone": "13900000002", "type": "confirmation", "comment": "上个月吃过，依然在线"},
+            {"user_phone": "13900000010", "type": "confirmation", "comment": "亲测有效"},
         ],
     },
     {
@@ -269,14 +272,14 @@ JIANGNAN_POSTS = [
             "另外他们家的茶叶蛋也不错，1.5元一个，蛋黄很糯。"
         ),
         "category_code": "share",  # Task 1.2 调整：原 food → share
-        "location_name": "第一食堂", "user_email": "user3@example.jiangnan.edu.cn",
+        "location_name": "第一食堂", "user_phone": "13900000004",
         "is_anonymous": False, "views": 198, "likes": 15, "is_recommend": False,
         "comments": [
-            {"user_email": "user6@example.jiangnan.edu.cn", "content": "我也发现了！茶叶蛋确实好吃", "likes": 3},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "豆浆可以单独买吗？", "likes": 0},
+            {"user_phone": "13900000007", "content": "我也发现了！茶叶蛋确实好吃", "likes": 3},
+            {"user_phone": "13900000010", "content": "豆浆可以单独买吗？", "likes": 0},
         ],
         "validations": [
-            {"user_email": "user6@example.jiangnan.edu.cn", "type": "confirmation", "comment": "今早验证，确实改善了"},
+            {"user_phone": "13900000007", "type": "confirmation", "comment": "今早验证，确实改善了"},
         ],
     },
     {
@@ -291,16 +294,16 @@ JIANGNAN_POSTS = [
             "性价比党可以参考，欢迎补充。"
         ),
         "category_code": "share",  # Task 1.2 调整：原 food → share
-        "location_name": "北门", "user_email": "user3@example.jiangnan.edu.cn",
+        "location_name": "北门", "user_phone": "13900000004",
         "is_anonymous": False, "views": 521, "likes": 42, "is_recommend": True,
         "comments": [
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "沙县拌面真的便宜量大，强推", "likes": 6},
-            {"user_email": "user6@example.jiangnan.edu.cn", "content": "补充一个：南门黄焖鸡米饭小份12块也还行", "likes": 4},
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "兰州拉面老板人超好，会多给汤", "likes": 2},
+            {"user_phone": "13900000010", "content": "沙县拌面真的便宜量大，强推", "likes": 6},
+            {"user_phone": "13900000007", "content": "补充一个：南门黄焖鸡米饭小份12块也还行", "likes": 4},
+            {"user_phone": "13900000002", "content": "兰州拉面老板人超好，会多给汤", "likes": 2},
         ],
         "validations": [
-            {"user_email": "user6@example.jiangnan.edu.cn", "type": "confirmation", "comment": "5家都吃过，确实便宜"},
-            {"user_email": "user9@example.jiangnan.edu.cn", "type": "confirmation", "comment": "沙县拌面验证有效"},
+            {"user_phone": "13900000007", "type": "confirmation", "comment": "5家都吃过，确实便宜"},
+            {"user_phone": "13900000010", "type": "confirmation", "comment": "沙县拌面验证有效"},
         ],
     },
     {
@@ -313,14 +316,14 @@ JIANGNAN_POSTS = [
             "综合评分：7/10，性价比可以，社交场景慎选。"
         ),
         "category_code": "share",  # Task 1.2 调整：原 food → share
-        "location_name": "第二食堂", "user_email": "user6@example.jiangnan.edu.cn",
+        "location_name": "第二食堂", "user_phone": "13900000007",
         "is_anonymous": False, "views": 287, "likes": 19, "is_recommend": False,
         "comments": [
-            {"user_email": "user3@example.jiangnan.edu.cn", "content": "在食堂吃螺蛳粉会被室友追杀吧哈哈哈", "likes": 8},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "打包回宿舍也会被宿管阿姨追杀", "likes": 5},
+            {"user_phone": "13900000004", "content": "在食堂吃螺蛳粉会被室友追杀吧哈哈哈", "likes": 8},
+            {"user_phone": "13900000010", "content": "打包回宿舍也会被宿管阿姨追杀", "likes": 5},
         ],
         "validations": [
-            {"user_email": "user9@example.jiangnan.edu.cn", "type": "refutation", "comment": "今天去没看到螺蛳粉，可能下架了？"},
+            {"user_phone": "13900000010", "type": "refutation", "comment": "今天去没看到螺蛳粉，可能下架了？"},
         ],
     },
 
@@ -338,16 +341,16 @@ JIANGNAN_POSTS = [
             "学士的照片评论区见~"
         ),
         "category_code": "share",  # Task 1.2 调整：原 animal → share
-        "location_name": "图书馆", "user_email": "user8@example.jiangnan.edu.cn",
+        "location_name": "图书馆", "user_phone": "13900000009",
         "is_anonymous": False, "views": 612, "likes": 56, "is_recommend": True,
         "comments": [
-            {"user_email": "user4@example.jiangnan.edu.cn", "content": "学士今天在我书包上睡着了哈哈", "likes": 12},
-            {"user_email": "user7@example.jiangnan.edu.cn", "content": "上周给它拍了组照片，已发朋友圈", "likes": 8},
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "请问门口小卖部的猫粮是什么牌子？想自己买", "likes": 1},
+            {"user_phone": "13900000005", "content": "学士今天在我书包上睡着了哈哈", "likes": 12},
+            {"user_phone": "13900000008", "content": "上周给它拍了组照片，已发朋友圈", "likes": 8},
+            {"user_phone": "13900000002", "content": "请问门口小卖部的猫粮是什么牌子？想自己买", "likes": 1},
         ],
         "validations": [
-            {"user_email": "user4@example.jiangnan.edu.cn", "type": "confirmation", "comment": "今天去图书馆还看到了"},
-            {"user_email": "user7@example.jiangnan.edu.cn", "type": "confirmation", "comment": "照片可以作证"},
+            {"user_phone": "13900000005", "type": "confirmation", "comment": "今天去图书馆还看到了"},
+            {"user_phone": "13900000008", "type": "confirmation", "comment": "照片可以作证"},
         ],
     },
     {
@@ -363,14 +366,14 @@ JIANGNAN_POSTS = [
             "小天鹅大概一个月后会长出成鸟羽毛，喜欢的同学抓紧去看。"
         ),
         "category_code": "share",  # Task 1.2 调整：原 animal → share
-        "location_name": "蠡湖畔", "user_email": "user7@example.jiangnan.edu.cn",
+        "location_name": "蠡湖畔", "user_phone": "13900000008",
         "is_anonymous": False, "views": 478, "likes": 38, "is_recommend": True,
         "comments": [
-            {"user_email": "user2@example.jiangnan.edu.cn", "content": "周末钓鱼时看到了，确实萌", "likes": 4},
-            {"user_email": "user5@example.jiangnan.edu.cn", "content": "夜跑看到有人想靠近被天鹅追着咬哈哈哈", "likes": 15},
+            {"user_phone": "13900000003", "content": "周末钓鱼时看到了，确实萌", "likes": 4},
+            {"user_phone": "13900000006", "content": "夜跑看到有人想靠近被天鹅追着咬哈哈哈", "likes": 15},
         ],
         "validations": [
-            {"user_email": "user2@example.jiangnan.edu.cn", "type": "confirmation", "comment": "亲眼所见"},
+            {"user_phone": "13900000003", "type": "confirmation", "comment": "亲眼所见"},
         ],
     },
     {
@@ -389,14 +392,14 @@ JIANGNAN_POSTS = [
             "联系方式：评论区留言或私信。"
         ),
         "category_code": "share",  # Task 1.2 调整：原 animal → share
-        "location_name": "教学楼A区", "user_email": "user8@example.jiangnan.edu.cn",
+        "location_name": "教学楼A区", "user_phone": "13900000009",
         "is_anonymous": False, "views": 234, "likes": 21, "is_recommend": False,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "已私信！想领养", "likes": 2},
-            {"user_email": "user7@example.jiangnan.edu.cn", "content": "校友群转发了，希望能找到好人家", "likes": 3},
+            {"user_phone": "13900000002", "content": "已私信！想领养", "likes": 2},
+            {"user_phone": "13900000008", "content": "校友群转发了，希望能找到好人家", "likes": 3},
         ],
         "validations": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "type": "confirmation", "comment": "私信后确认领养了，谢谢"},
+            {"user_phone": "13900000002", "type": "confirmation", "comment": "私信后确认领养了，谢谢"},
         ],
     },
 
@@ -413,14 +416,14 @@ JIANGNAN_POSTS = [
             "营业时间：8:00-21:00，周末也开。"
         ),
         "category_code": "other",  # Task 1.2 调整：原 print → other
-        "location_name": "校园超市", "user_email": "user9@example.jiangnan.edu.cn",
+        "location_name": "校园超市", "user_phone": "13900000010",
         "is_anonymous": False, "views": 189, "likes": 14, "is_recommend": False,
         "comments": [
-            {"user_email": "user4@example.jiangnan.edu.cn", "content": "会员卡充值活动持续到什么时候？", "likes": 1},
-            {"user_email": "user10@example.jiangnan.edu.cn", "content": "胶装质量怎么样？毕业论文要打印", "likes": 0},
+            {"user_phone": "13900000005", "content": "会员卡充值活动持续到什么时候？", "likes": 1},
+            {"user_phone": "13900000011", "content": "胶装质量怎么样？毕业论文要打印", "likes": 0},
         ],
         "validations": [
-            {"user_email": "user10@example.jiangnan.edu.cn", "type": "confirmation", "comment": "上周去打印了论文，质量不错"},
+            {"user_phone": "13900000011", "type": "confirmation", "comment": "上周去打印了论文，质量不错"},
         ],
     },
     {
@@ -438,14 +441,14 @@ JIANGNAN_POSTS = [
             "- 打印卡可在北门自助机退卡"
         ),
         "category_code": "other",  # Task 1.2 调整：原 print → other
-        "location_name": "图书馆", "user_email": "user10@example.jiangnan.edu.cn",
+        "location_name": "图书馆", "user_phone": "13900000011",
         "is_anonymous": False, "views": 256, "likes": 22, "is_recommend": False,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "新生感谢学长！已收藏", "likes": 4},
+            {"user_phone": "13900000002", "content": "新生感谢学长！已收藏", "likes": 4},
         ],
         "validations": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "type": "confirmation", "comment": "按教程操作成功"},
-            {"user_email": "user9@example.jiangnan.edu.cn", "type": "confirmation", "comment": "今天用过，流程准确"},
+            {"user_phone": "13900000002", "type": "confirmation", "comment": "按教程操作成功"},
+            {"user_phone": "13900000010", "type": "confirmation", "comment": "今天用过，流程准确"},
         ],
     },
 
@@ -460,14 +463,14 @@ JIANGNAN_POSTS = [
             "喜欢话剧的同学不要错过，结束后还有导演见面会。"
         ),
         "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
-        "location_name": "文浩科学馆", "user_email": "user1@example.jiangnan.edu.cn",
+        "location_name": "文浩科学馆", "user_phone": "13900000002",
         "is_anonymous": False, "views": 423, "likes": 35, "is_recommend": True,
         "comments": [
-            {"user_email": "user3@example.jiangnan.edu.cn", "content": "必须去！《雷雨》是经典", "likes": 5},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "周五晚上正好没课，冲", "likes": 2},
+            {"user_phone": "13900000004", "content": "必须去！《雷雨》是经典", "likes": 5},
+            {"user_phone": "13900000010", "content": "周五晚上正好没课，冲", "likes": 2},
         ],
         "validations": [
-            {"user_email": "user3@example.jiangnan.edu.cn", "type": "confirmation", "comment": "看完了，演技炸裂"},
+            {"user_phone": "13900000004", "type": "confirmation", "comment": "看完了，演技炸裂"},
         ],
     },
     {
@@ -481,11 +484,11 @@ JIANGNAN_POSTS = [
             "学姐说加入街舞社是她大学最不后悔的事，能交到一辈子的朋友。"
         ),
         "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
-        "location_name": "大学生活动中心", "user_email": "user1@example.jiangnan.edu.cn",
+        "location_name": "大学生活动中心", "user_phone": "13900000002",
         "is_anonymous": False, "views": 312, "likes": 27, "is_recommend": True,
         "comments": [
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "零基础真的能进吗？四肢不协调", "likes": 6},
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "回复楼上：完全可以，新人班从零开始教", "likes": 3},
+            {"user_phone": "13900000010", "content": "零基础真的能进吗？四肢不协调", "likes": 6},
+            {"user_phone": "13900000002", "content": "回复楼上：完全可以，新人班从零开始教", "likes": 3},
         ],
         "validations": [],
     },
@@ -505,15 +508,15 @@ JIANGNAN_POSTS = [
             "简历发送到 acm@jiangnan.edu.cn，截止本周日。"
         ),
         "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
-        "location_name": "教学楼A区", "user_email": "user10@example.jiangnan.edu.cn",
+        "location_name": "教学楼A区", "user_phone": "13900000011",
         "is_anonymous": False, "views": 389, "likes": 31, "is_recommend": True,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "已投简历！希望能进", "likes": 4},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "10小时/周会不会影响绩点？", "likes": 2},
-            {"user_email": "user10@example.jiangnan.edu.cn", "content": "回复楼上：时间管理好的话不影响，队里绩点都很高", "likes": 5},
+            {"user_phone": "13900000002", "content": "已投简历！希望能进", "likes": 4},
+            {"user_phone": "13900000010", "content": "10小时/周会不会影响绩点？", "likes": 2},
+            {"user_phone": "13900000011", "content": "回复楼上：时间管理好的话不影响，队里绩点都很高", "likes": 5},
         ],
         "validations": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "type": "confirmation", "comment": "已加入，每周训练很硬核"},
+            {"user_phone": "13900000002", "type": "confirmation", "comment": "已加入，每周训练很硬核"},
         ],
     },
     {
@@ -530,11 +533,11 @@ JIANGNAN_POSTS = [
             "建议带笔记本，可以提问环节互动。"
         ),
         "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
-        "location_name": "文浩科学馆", "user_email": "user4@example.jiangnan.edu.cn",
+        "location_name": "文浩科学馆", "user_phone": "13900000005",
         "is_anonymous": False, "views": 567, "likes": 48, "is_recommend": True,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "已经预约了！冲", "likes": 3},
-            {"user_email": "user10@example.jiangnan.edu.cn", "content": "学长提醒：提前1小时去抢前排", "likes": 7},
+            {"user_phone": "13900000002", "content": "已经预约了！冲", "likes": 3},
+            {"user_phone": "13900000011", "content": "学长提醒：提前1小时去抢前排", "likes": 7},
         ],
         "validations": [],
     },
@@ -552,15 +555,15 @@ JIANGNAN_POSTS = [
             "考试周期间1楼大厅也会开放临时座位，约200个。"
         ),
         "category_code": "teamup",  # Task 1.2 调整：原 study → teamup
-        "location_name": "图书馆", "user_email": "user4@example.jiangnan.edu.cn",
+        "location_name": "图书馆", "user_phone": "13900000005",
         "is_anonymous": False, "views": 678, "likes": 52, "is_recommend": False,
         "comments": [
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "考试周必须早6:30去排队", "likes": 8},
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "三楼24h自习室预约链接有吗？", "likes": 2},
-            {"user_email": "user4@example.jiangnan.edu.cn", "content": "回复楼上：图书馆公众号-座位预约", "likes": 3},
+            {"user_phone": "13900000010", "content": "考试周必须早6:30去排队", "likes": 8},
+            {"user_phone": "13900000002", "content": "三楼24h自习室预约链接有吗？", "likes": 2},
+            {"user_phone": "13900000005", "content": "回复楼上：图书馆公众号-座位预约", "likes": 3},
         ],
         "validations": [
-            {"user_email": "user9@example.jiangnan.edu.cn", "type": "confirmation", "comment": "考试周亲测确实延长到23:00"},
+            {"user_phone": "13900000010", "type": "confirmation", "comment": "考试周亲测确实延长到23:00"},
         ],
     },
     {
@@ -575,13 +578,13 @@ JIANGNAN_POSTS = [
             "阿姨会定时巡视，违规直接拉黑一周。"
         ),
         "category_code": "teamup",  # Task 1.2 调整：原 study → teamup
-        "location_name": "图书馆", "user_email": "user4@example.jiangnan.edu.cn",
+        "location_name": "图书馆", "user_phone": "13900000005",
         "is_anonymous": False, "views": 312, "likes": 18, "is_recommend": False,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "新规好评！以前书包占位太烦人", "likes": 12},
+            {"user_phone": "13900000002", "content": "新规好评！以前书包占位太烦人", "likes": 12},
         ],
         "validations": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "type": "confirmation", "comment": "新规已生效"},
+            {"user_phone": "13900000002", "type": "confirmation", "comment": "新规已生效"},
         ],
     },
     {
@@ -596,16 +599,16 @@ JIANGNAN_POSTS = [
             "希望对学弟学妹有帮助。考完来还愿。"
         ),
         "category_code": "teamup",  # Task 1.2 调整：原 study → teamup
-        "location_name": "教学楼A区", "user_email": "user10@example.jiangnan.edu.cn",
+        "location_name": "教学楼A区", "user_phone": "13900000011",
         "is_anonymous": False, "views": 891, "likes": 87, "is_recommend": True,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "学长牛逼！已下载", "likes": 5},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "救命数据结构渣渣，谢谢学长", "likes": 3},
-            {"user_email": "user4@example.jiangnan.edu.cn", "content": "请问有操作系统版本吗？", "likes": 1},
+            {"user_phone": "13900000002", "content": "学长牛逼！已下载", "likes": 5},
+            {"user_phone": "13900000010", "content": "救命数据结构渣渣，谢谢学长", "likes": 3},
+            {"user_phone": "13900000005", "content": "请问有操作系统版本吗？", "likes": 1},
         ],
         "validations": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "type": "confirmation", "comment": "资料很全，感谢学长"},
-            {"user_email": "user9@example.jiangnan.edu.cn", "type": "confirmation", "comment": "真题有用"},
+            {"user_phone": "13900000002", "type": "confirmation", "comment": "资料很全，感谢学长"},
+            {"user_phone": "13900000010", "type": "confirmation", "comment": "真题有用"},
         ],
     },
 
@@ -624,14 +627,14 @@ JIANGNAN_POSTS = [
             "代取需双方身份证复印件+委托书。"
         ),
         "category_code": "other",  # Task 1.2 调整：原 service → other
-        "location_name": "快递服务中心", "user_email": "user1@example.jiangnan.edu.cn",
+        "location_name": "快递服务中心", "user_phone": "13900000002",
         "is_anonymous": False, "views": 423, "likes": 25, "is_recommend": False,
         "comments": [
-            {"user_email": "user6@example.jiangnan.edu.cn", "content": "上周五饭点排队40分钟，血泪教训", "likes": 8},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "代取委托书模板有吗？", "likes": 1},
+            {"user_phone": "13900000007", "content": "上周五饭点排队40分钟，血泪教训", "likes": 8},
+            {"user_phone": "13900000010", "content": "代取委托书模板有吗？", "likes": 1},
         ],
         "validations": [
-            {"user_email": "user6@example.jiangnan.edu.cn", "type": "confirmation", "comment": "高峰期确实人爆满"},
+            {"user_phone": "13900000007", "type": "confirmation", "comment": "高峰期确实人爆满"},
         ],
     },
     {
@@ -644,14 +647,14 @@ JIANGNAN_POSTS = [
             "洗鞋请用专用洗鞋机（一楼有2台）或者手刷。"
         ),
         "category_code": "other",  # Task 1.2 调整：原 service → other
-        "location_name": "学士公寓", "user_email": "user1@example.jiangnan.edu.cn",
+        "location_name": "学士公寓", "user_phone": "13900000002",
         "is_anonymous": False, "views": 234, "likes": 12, "is_recommend": False,
         "comments": [
-            {"user_email": "user6@example.jiangnan.edu.cn", "content": "在洗衣机洗鞋的人是什么心态", "likes": 15},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "1楼洗鞋机也经常坏", "likes": 2},
+            {"user_phone": "13900000007", "content": "在洗衣机洗鞋的人是什么心态", "likes": 15},
+            {"user_phone": "13900000010", "content": "1楼洗鞋机也经常坏", "likes": 2},
         ],
         "validations": [
-            {"user_email": "user6@example.jiangnan.edu.cn", "type": "refutation", "comment": "今天看修好了，可以删帖了？"},
+            {"user_phone": "13900000007", "type": "refutation", "comment": "今天看修好了，可以删帖了？"},
         ],
     },
     {
@@ -667,14 +670,14 @@ JIANGNAN_POSTS = [
             "活动截止周日22:00。"
         ),
         "category_code": "other",  # Task 1.2 调整：原 service → other
-        "location_name": "校园超市", "user_email": "user9@example.jiangnan.edu.cn",
+        "location_name": "校园超市", "user_phone": "13900000010",
         "is_anonymous": False, "views": 367, "likes": 31, "is_recommend": False,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "咖啡7折冲了，囤了5瓶", "likes": 4},
-            {"user_email": "user6@example.jiangnan.edu.cn", "content": "方便面买二送一等于66折，香", "likes": 3},
+            {"user_phone": "13900000002", "content": "咖啡7折冲了，囤了5瓶", "likes": 4},
+            {"user_phone": "13900000007", "content": "方便面买二送一等于66折，香", "likes": 3},
         ],
         "validations": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "type": "confirmation", "comment": "昨天验证，咖啡确实7折"},
+            {"user_phone": "13900000002", "type": "confirmation", "comment": "昨天验证，咖啡确实7折"},
         ],
     },
 
@@ -696,14 +699,14 @@ JIANGNAN_POSTS = [
             "- 季卡35元更划算"
         ),
         "category_code": "other",  # Task 1.2 调整：原 transport → other
-        "location_name": "北门", "user_email": "user5@example.jiangnan.edu.cn",
+        "location_name": "北门", "user_phone": "13900000006",
         "is_anonymous": False, "views": 289, "likes": 19, "is_recommend": False,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "季卡35元？我去办一张", "likes": 2},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "周末经常找不到车，要提前10分钟预约", "likes": 1},
+            {"user_phone": "13900000002", "content": "季卡35元？我去办一张", "likes": 2},
+            {"user_phone": "13900000010", "content": "周末经常找不到车，要提前10分钟预约", "likes": 1},
         ],
         "validations": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "type": "confirmation", "comment": "已办季卡，价格准确"},
+            {"user_phone": "13900000002", "type": "confirmation", "comment": "已办季卡，价格准确"},
         ],
     },
     {
@@ -718,11 +721,11 @@ JIANGNAN_POSTS = [
             "实时位置可在\"i江大\"App查看。"
         ),
         "category_code": "other",  # Task 1.2 调整：原 transport → other
-        "location_name": "北门", "user_email": "user10@example.jiangnan.edu.cn",
+        "location_name": "北门", "user_phone": "13900000011",
         "is_anonymous": False, "views": 312, "likes": 16, "is_recommend": False,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "i江大App的实时位置经常不准", "likes": 3},
-            {"user_email": "user6@example.jiangnan.edu.cn", "content": "校内环线周六怎么不到南门？", "likes": 1},
+            {"user_phone": "13900000002", "content": "i江大App的实时位置经常不准", "likes": 3},
+            {"user_phone": "13900000007", "content": "校内环线周六怎么不到南门？", "likes": 1},
         ],
         "validations": [],
     },
@@ -745,14 +748,14 @@ JIANGNAN_POSTS = [
             "- 学生证必备"
         ),
         "category_code": "other",  # Task 1.2 调整：原 facility → other
-        "location_name": "体育馆", "user_email": "user5@example.jiangnan.edu.cn",
+        "location_name": "体育馆", "user_phone": "13900000006",
         "is_anonymous": False, "views": 256, "likes": 14, "is_recommend": False,
         "comments": [
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "学期卡300超值，已办", "likes": 3},
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "不会游泳可以去学吗？有教练吗？", "likes": 1},
+            {"user_phone": "13900000010", "content": "学期卡300超值，已办", "likes": 3},
+            {"user_phone": "13900000002", "content": "不会游泳可以去学吗？有教练吗？", "likes": 1},
         ],
         "validations": [
-            {"user_email": "user9@example.jiangnan.edu.cn", "type": "confirmation", "comment": "学期卡已办，价格准确"},
+            {"user_phone": "13900000010", "type": "confirmation", "comment": "学期卡已办，价格准确"},
         ],
     },
     {
@@ -767,13 +770,13 @@ JIANGNAN_POSTS = [
             "后续如果有照明问题可以打后勤电话6666报修。"
         ),
         "category_code": "other",  # Task 1.2 调整：原 facility → other
-        "location_name": "田径场", "user_email": "user5@example.jiangnan.edu.cn",
+        "location_name": "田径场", "user_phone": "13900000006",
         "is_anonymous": False, "views": 178, "likes": 8, "is_recommend": False,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "感谢提醒，今晚改去体育馆", "likes": 2},
+            {"user_phone": "13900000002", "content": "感谢提醒，今晚改去体育馆", "likes": 2},
         ],
         "validations": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "type": "refutation", "comment": "今天下午已经修好了，灯都亮着"},
+            {"user_phone": "13900000002", "type": "refutation", "comment": "今天下午已经修好了，灯都亮着"},
         ],
     },
 
@@ -791,11 +794,11 @@ JIANGNAN_POSTS = [
             "设备需求要写清楚（投影/音响/话筒/灯光），临时加需扣分。"
         ),
         "category_code": "other",  # Task 1.2 调整：原 venue → other
-        "location_name": "大学生活动中心", "user_email": "user1@example.jiangnan.edu.cn",
+        "location_name": "大学生活动中心", "user_phone": "13900000002",
         "is_anonymous": False, "views": 234, "likes": 11, "is_recommend": False,
         "comments": [
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "请问社团外可以预约吗？班级活动", "likes": 1},
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "回复楼上：可以的，走班级活动审批", "likes": 2},
+            {"user_phone": "13900000010", "content": "请问社团外可以预约吗？班级活动", "likes": 1},
+            {"user_phone": "13900000002", "content": "回复楼上：可以的，走班级活动审批", "likes": 2},
         ],
         "validations": [],
     },
@@ -814,7 +817,7 @@ JIANGNAN_POSTS = [
             "- 临时取消需提前4小时"
         ),
         "category_code": "other",  # Task 1.2 调整：原 venue → other
-        "location_name": "文浩科学馆", "user_email": "user10@example.jiangnan.edu.cn",
+        "location_name": "文浩科学馆", "user_phone": "13900000011",
         "is_anonymous": False, "views": 167, "likes": 9, "is_recommend": False,
         "comments": [],
         "validations": [],
@@ -833,14 +836,14 @@ JIANGNAN_POSTS = [
             "拾到者请联系 187xxxx1234，必有重谢。"
             "也可以交到一食堂服务台，已和阿姨说过帮忙留意。"
         ),
-        "category_code": "lost_found", "location_name": "第一食堂", "user_email": "user1@example.jiangnan.edu.cn",
+        "category_code": "lost_found", "location_name": "第一食堂", "user_phone": "13900000002",
         "is_anonymous": False, "views": 312, "likes": 5, "is_recommend": False,
         "comments": [
-            {"user_email": "user6@example.jiangnan.edu.cn", "content": "中午在二楼吃饭没看到，帮你留意", "likes": 2},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "建议挂失身份证和银行卡！", "likes": 8},
+            {"user_phone": "13900000007", "content": "中午在二楼吃饭没看到，帮你留意", "likes": 2},
+            {"user_phone": "13900000010", "content": "建议挂失身份证和银行卡！", "likes": 8},
         ],
         "validations": [
-            {"user_email": "user6@example.jiangnan.edu.cn", "type": "confirmation", "comment": "今天中午确实有人在二楼找东西"},
+            {"user_phone": "13900000007", "type": "confirmation", "comment": "今天中午确实有人在二楼找东西"},
         ],
     },
     {
@@ -853,10 +856,10 @@ JIANGNAN_POSTS = [
             "- 文件夹/文件名描述\n\n"
             "认领。提醒大家重要资料记得备份+在U盘里放一个 contact.txt 留联系方式。"
         ),
-        "category_code": "lost_found", "location_name": "图书馆", "user_email": "user4@example.jiangnan.edu.cn",
+        "category_code": "lost_found", "location_name": "图书馆", "user_phone": "13900000005",
         "is_anonymous": False, "views": 145, "likes": 7, "is_recommend": False,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "感谢同学！U盘放contact.txt这个建议很好", "likes": 3},
+            {"user_phone": "13900000002", "content": "感谢同学！U盘放contact.txt这个建议很好", "likes": 3},
         ],
         "validations": [],
     },
@@ -874,11 +877,11 @@ JIANGNAN_POSTS = [
             "说是江南同学推荐可以优先面试。"
         ),
         "category_code": "other",  # Task 1.2 调整：原 job → other
-        "location_name": "北门", "user_email": "user9@example.jiangnan.edu.cn",
+        "location_name": "北门", "user_phone": "13900000010",
         "is_anonymous": False, "views": 423, "likes": 18, "is_recommend": False,
         "comments": [
-            {"user_email": "user6@example.jiangnan.edu.cn", "content": "18元/时算高的吗？奶茶店普遍15左右", "likes": 4},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "回复楼上：茶颜是连锁，待遇比奶茶店好", "likes": 2},
+            {"user_phone": "13900000007", "content": "18元/时算高的吗？奶茶店普遍15左右", "likes": 4},
+            {"user_phone": "13900000010", "content": "回复楼上：茶颜是连锁，待遇比奶茶店好", "likes": 2},
         ],
         "validations": [],
     },
@@ -895,14 +898,14 @@ JIANGNAN_POSTS = [
             "期末考前2周开始排课，需要的同学私信。"
         ),
         "category_code": "other",  # Task 1.2 调整：原 job → other
-        "location_name": "图书馆", "user_email": "user10@example.jiangnan.edu.cn",
+        "location_name": "图书馆", "user_phone": "13900000011",
         "is_anonymous": False, "views": 289, "likes": 12, "is_recommend": False,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "已私信！下学期高数救命", "likes": 3},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "80元/次算良心价了，外面机构200+", "likes": 5},
+            {"user_phone": "13900000002", "content": "已私信！下学期高数救命", "likes": 3},
+            {"user_phone": "13900000010", "content": "80元/次算良心价了，外面机构200+", "likes": 5},
         ],
         "validations": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "type": "confirmation", "comment": "已联系，学长讲得很好"},
+            {"user_phone": "13900000002", "type": "confirmation", "comment": "已联系，学长讲得很好"},
         ],
     },
 
@@ -927,16 +930,16 @@ JIANGNAN_POSTS = [
             "- 大功率电器（违章会没收）\n"
             "- 贵重物品（注意保管）"
         ),
-        "category_code": "other", "location_name": "学士公寓", "user_email": "user10@example.jiangnan.edu.cn",
+        "category_code": "other", "location_name": "学士公寓", "user_phone": "13900000011",
         "is_anonymous": False, "views": 1234, "likes": 98, "is_recommend": True,
         "comments": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "content": "学长救命！正要买装备", "likes": 8},
-            {"user_email": "user3@example.jiangnan.edu.cn", "content": "补充一个：床帘！必备神器", "likes": 12},
-            {"user_email": "user9@example.jiangnan.edu.cn", "content": "床垫90×200是对的，已验证", "likes": 4},
+            {"user_phone": "13900000002", "content": "学长救命！正要买装备", "likes": 8},
+            {"user_phone": "13900000004", "content": "补充一个：床帘！必备神器", "likes": 12},
+            {"user_phone": "13900000010", "content": "床垫90×200是对的，已验证", "likes": 4},
         ],
         "validations": [
-            {"user_email": "user1@example.jiangnan.edu.cn", "type": "confirmation", "comment": "学长清单很全，照着买就行"},
-            {"user_email": "user9@example.jiangnan.edu.cn", "type": "confirmation", "comment": "床垫尺寸正确"},
+            {"user_phone": "13900000002", "type": "confirmation", "comment": "学长清单很全，照着买就行"},
+            {"user_phone": "13900000010", "type": "confirmation", "comment": "床垫尺寸正确"},
         ],
     },
 ]
@@ -952,35 +955,35 @@ JIANGNAN_STATUS_SAMPLES = [
         "title": "【草稿】北门外新开咖啡店测评（草稿中，未提交）",
         "content": "正在整理北门外新开咖啡店的测评信息，等周末再去试一次再发布。目前信息：店名、价格、营业时间。",
         "category_code": "share",  # Task 1.2 调整：原 food → share
-        "location_name": "北门", "user_email": "user3@example.jiangnan.edu.cn",
+        "location_name": "北门", "user_phone": "13900000004",
         "status": "draft", "views": 0, "likes": 0, "is_recommend": False,
     },
     {
         "title": "【待审核】文浩科学馆下周讲座通知（等待管理员审核）",
         "content": "下周三文浩科学馆有学术讲座，提交审核中，审核通过后大家就可以看到了。",
         "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
-        "location_name": "文浩科学馆", "user_email": "user4@example.jiangnan.edu.cn",
+        "location_name": "文浩科学馆", "user_phone": "13900000005",
         "status": "pending", "views": 0, "likes": 0, "is_recommend": False,
     },
     {
         "title": "【已过期】上学期期末复习资料（已过期归档）",
         "content": "这是上学期的期末复习资料，已过期，仅供参考。",
         "category_code": "teamup",  # Task 1.2 调整：原 study → teamup
-        "location_name": "图书馆", "user_email": "user10@example.jiangnan.edu.cn",
+        "location_name": "图书馆", "user_phone": "13900000011",
         "status": "expired", "views": 156, "likes": 8, "is_recommend": False,
     },
     {
         "title": "【冲突】食堂价格争议帖（信息冲突待处理）",
         "content": "本帖信息与其他帖子存在冲突，已标记为冲突状态，待管理员处理。",
         "category_code": "share",  # Task 1.2 调整：原 food → share
-        "location_name": "第一食堂", "user_email": "user6@example.jiangnan.edu.cn",
+        "location_name": "第一食堂", "user_phone": "13900000007",
         "status": "conflict", "views": 89, "likes": 3, "is_recommend": False,
     },
     {
         "title": "【已归档】已结束的社团招新通知",
         "content": "该招新活动已结束，帖子归档保存。",
         "category_code": "teamup",  # Task 1.2 调整：原 event → teamup
-        "location_name": "大学生活动中心", "user_email": "user1@example.jiangnan.edu.cn",
+        "location_name": "大学生活动中心", "user_phone": "13900000002",
         "status": "archived", "views": 234, "likes": 15, "is_recommend": False,
     },
 ]
@@ -991,7 +994,7 @@ JIANGNAN_STATUS_SAMPLES = [
 # 每校 25 条：20 published + draft/pending/expired/conflict/archived 各 1
 # =============================================================================
 
-def _build_demo_post(title, content, category_code, location_name, user_email,
+def _build_demo_post(title, content, category_code, location_name, user_phone,
                      views=100, likes=5, is_recommend=False, status="published",
                      comments=None, validations=None):
     """构造演示帖子的统一结构（与江南大学 JIANGNAN_POSTS 字段对齐）
@@ -1005,7 +1008,7 @@ def _build_demo_post(title, content, category_code, location_name, user_email,
     return {
         "title": title, "content": content,
         "category_code": category_code, "location_name": location_name,
-        "user_email": user_email, "is_anonymous": False,
+        "user_phone": user_phone, "is_anonymous": False,
         "views": views, "likes": likes, "is_recommend": is_recommend,
         "status": status,
         "comments": comments or [],
@@ -1016,116 +1019,116 @@ def _build_demo_post(title, content, category_code, location_name, user_email,
 FUDAN_POSTS = [
     _build_demo_post(
         "本部食堂二楼麻辣香锅推荐", "本部食堂二楼麻辣香锅，荤素自选，14元/份，加饭免费。",
-        "share", "本部食堂", "fudan_user3@example.fudan.edu.cn", 234, 18, True,
-        comments=[{"user_email": "fudan_user1@example.fudan.edu.cn", "content": "昨天去吃了，确实不错", "likes": 3}],
-        validations=[{"user_email": "fudan_user1@example.fudan.edu.cn", "type": "confirmation", "comment": "亲测好吃"}]
+        "share", "本部食堂", "13900000104", 234, 18, True,
+        comments=[{"user_phone": "13900000102", "content": "昨天去吃了，确实不错", "likes": 3}],
+        validations=[{"user_phone": "13900000102", "type": "confirmation", "comment": "亲测好吃"}]
     ),
     _build_demo_post(
         "南区食堂早餐豆浆油条测评", "南区食堂早餐豆浆1元油条1.5元，性价比之王。",
-        "share", "南区食堂", "fudan_user3@example.fudan.edu.cn", 156, 12
+        "share", "南区食堂", "13900000104", 156, 12
     ),
     _build_demo_post(
         "文科图书馆开放时间汇总", "文科图书馆周一到周日 8:00-22:00，期末延长到23:00。",
-        "teamup", "文科图书馆", "fudan_user1@example.fudan.edu.cn", 432, 34, True,
-        comments=[{"user_email": "fudan_user2@example.fudan.edu.cn", "content": "期末占座要早7点去", "likes": 5}]
+        "teamup", "文科图书馆", "13900000102", 432, 34, True,
+        comments=[{"user_phone": "13900000103", "content": "期末占座要早7点去", "likes": 5}]
     ),
     _build_demo_post(
         "光华楼自习室预约指南", "光华楼3-5层自习室需提前1天预约，扫码签到。",
-        "teamup", "光华楼", "fudan_user2@example.fudan.edu.cn", 289, 22,
-        comments=[{"user_email": "fudan_user1@example.fudan.edu.cn", "content": "预约系统经常卡", "likes": 2}]
+        "teamup", "光华楼", "13900000103", 289, 22,
+        comments=[{"user_phone": "13900000102", "content": "预约系统经常卡", "likes": 2}]
     ),
     _build_demo_post(
         "相辉堂周五话剧《雷雨》演出", "本周五晚7点相辉堂话剧社演《雷雨》，免费入场。",
-        "teamup", "相辉堂", "fudan_user4@example.fudan.edu.cn", 367, 28, True,
-        comments=[{"user_email": "fudan_user3@example.fudan.edu.cn", "content": "期待！必须去", "likes": 4}],
-        validations=[{"user_email": "fudan_user3@example.fudan.edu.cn", "type": "confirmation", "comment": "看完了，演技在线"}]
+        "teamup", "相辉堂", "13900000105", 367, 28, True,
+        comments=[{"user_phone": "13900000104", "content": "期待！必须去", "likes": 4}],
+        validations=[{"user_phone": "13900000104", "type": "confirmation", "comment": "看完了，演技在线"}]
     ),
     _build_demo_post(
         "学生活动中心街舞社招新", "本周一到周五中午学生活动中心一楼街舞社招新。",
-        "teamup", "学生活动中心", "fudan_user4@example.fudan.edu.cn", 298, 21
+        "teamup", "学生活动中心", "13900000105", 298, 21
     ),
     _build_demo_post(
         "复旦大讲堂：人工智能伦理", "下周三晚7点光华楼报告厅，清华教授讲AI伦理。",
-        "teamup", "光华楼", "fudan_user1@example.fudan.edu.cn", 412, 35, True
+        "teamup", "光华楼", "13900000102", 412, 35, True
     ),
     _build_demo_post(
         "南区快递点高峰时段提醒", "南区快递点工作日饭点排队30分钟+，建议错峰。",
-        "other", "南区学生公寓", "fudan_user3@example.fudan.edu.cn", 198, 14
+        "other", "南区学生公寓", "13900000104", 198, 14
     ),
     _build_demo_post(
         "南区学生公寓洗衣机使用规则", "南区公寓每层4台洗衣机，3元/次，禁洗鞋。",
-        "other", "南区学生公寓", "fudan_user5@example.fudan.edu.cn", 167, 9
+        "other", "南区学生公寓", "13900000106", 167, 9
     ),
     _build_demo_post(
         "邯郸路校门到地铁10号线攻略", "邯郸路校门步行8分钟到地铁10号线国权路站。",
-        "other", "邯郸路校门", "fudan_user5@example.fudan.edu.cn", 312, 18
+        "other", "邯郸路校门", "13900000106", 312, 18
     ),
     _build_demo_post(
         "本部体育场夜跑照明维修通知", "本部体育场东侧照明维修中，建议西侧跑道。",
-        "other", "本部体育场", "fudan_user5@example.fudan.edu.cn", 145, 7,
-        validations=[{"user_email": "fudan_user1@example.fudan.edu.cn", "type": "refutation", "comment": "今天看修好了"}]
+        "other", "本部体育场", "13900000106", 145, 7,
+        validations=[{"user_phone": "13900000102", "type": "refutation", "comment": "今天看修好了"}]
     ),
     _build_demo_post(
         "文科图书馆捡到黑色钱包", "文科图书馆三楼捡到黑色钱包，已交服务台。",
-        "lost_found", "文科图书馆", "fudan_user1@example.fudan.edu.cn", 234, 8
+        "lost_found", "文科图书馆", "13900000102", 234, 8
     ),
     _build_demo_post(
         "南区食堂丢失蓝色保温杯", "南区食堂二楼丢失蓝色保温杯，内有刻字。",
-        "lost_found", "南区食堂", "fudan_user3@example.fudan.edu.cn", 156, 5
+        "lost_found", "南区食堂", "13900000104", 156, 5
     ),
     _build_demo_post(
         "邯郸路校门外咖啡店招兼职", "邯郸路校门外星巴克招兼职，时薪20元。",
-        "other", "邯郸路校门", "fudan_user2@example.fudan.edu.cn", 367, 22
+        "other", "邯郸路校门", "13900000103", 367, 22
     ),
     _build_demo_post(
         "接高数家教", "数学系大三接高数家教，80元/次，图书馆面授。",
-        "other", "文科图书馆", "fudan_user1@example.fudan.edu.cn", 289, 14
+        "other", "文科图书馆", "13900000102", 289, 14
     ),
     _build_demo_post(
         "燕园春季樱花观赏指南", "燕园樱花3月底盛开，建议工作日去，周末人爆满。",
-        "other", "燕园", "fudan_user4@example.fudan.edu.cn", 523, 42, True,
-        validations=[{"user_email": "fudan_user3@example.fudan.edu.cn", "type": "confirmation", "comment": "上周去拍过了"}]
+        "other", "燕园", "13900000105", 523, 42, True,
+        validations=[{"user_phone": "13900000104", "type": "confirmation", "comment": "上周去拍过了"}]
     ),
     # 补充 4 条 published 帖子，确保已发布帖 ≥20
     _build_demo_post(
         "南区学生公寓空调使用须知", "南区公寓空调为集中式，遥控器需在宿管处押金借用，电费另算。",
-        "other", "南区学生公寓", "fudan_user5@example.fudan.edu.cn", 178, 11
+        "other", "南区学生公寓", "13900000106", 178, 11
     ),
     _build_demo_post(
         "本部体育场足球场预约规则", "本部体育场足球场需提前2天预约，每场2小时，免费。",
-        "other", "本部体育场", "fudan_user5@example.fudan.edu.cn", 234, 14,
-        comments=[{"user_email": "fudan_user1@example.fudan.edu.cn", "content": "周末基本约不到", "likes": 3}]
+        "other", "本部体育场", "13900000106", 234, 14,
+        comments=[{"user_phone": "13900000102", "content": "周末基本约不到", "likes": 3}]
     ),
     _build_demo_post(
         "文科图书馆期末延长开放通知", "期末期间文科图书馆延长至24:00，需刷校园卡入馆。",
-        "teamup", "文科图书馆", "fudan_user1@example.fudan.edu.cn", 412, 31, True,
-        comments=[{"user_email": "fudan_user2@example.fudan.edu.cn", "content": "终于不用挤理科馆了", "likes": 4}]
+        "teamup", "文科图书馆", "13900000102", 412, 31, True,
+        comments=[{"user_phone": "13900000103", "content": "终于不用挤理科馆了", "likes": 4}]
     ),
     _build_demo_post(
         "邯郸路校门周边早餐车汇总", "邯郸路校门外3个早餐车，5-9点营业，煎饼果子5元最推荐。",
-        "share", "邯郸路校门", "fudan_user3@example.fudan.edu.cn", 289, 19,
-        validations=[{"user_email": "fudan_user1@example.fudan.edu.cn", "type": "confirmation", "comment": "煎饼果子确实好吃"}]
+        "share", "邯郸路校门", "13900000104", 289, 19,
+        validations=[{"user_phone": "13900000102", "type": "confirmation", "comment": "煎饼果子确实好吃"}]
     ),
     # 6 态样本
     _build_demo_post(
         "【草稿】本部食堂新菜测评（草稿中）", "正在整理本部食堂新菜测评，待完善后发布。",
-        "share", "本部食堂", "fudan_user3@example.fudan.edu.cn", 0, 0, status="draft"
+        "share", "本部食堂", "13900000104", 0, 0, status="draft"
     ),
     _build_demo_post(
         "【待审核】光华楼讲座通知", "下周光华楼讲座通知，等待管理员审核。",
-        "teamup", "光华楼", "fudan_user1@example.fudan.edu.cn", 0, 0, status="pending"
+        "teamup", "光华楼", "13900000102", 0, 0, status="pending"
     ),
     _build_demo_post(
         "【已过期】上学期期末复习资料", "上学期期末复习资料，已过期归档。",
-        "teamup", "文科图书馆", "fudan_user2@example.fudan.edu.cn", 134, 6, status="expired"
+        "teamup", "文科图书馆", "13900000103", 134, 6, status="expired"
     ),
     _build_demo_post(
         "【冲突】食堂价格争议帖", "本帖价格信息与其他帖子冲突，待处理。",
-        "share", "本部食堂", "fudan_user3@example.fudan.edu.cn", 67, 2, status="conflict"
+        "share", "本部食堂", "13900000104", 67, 2, status="conflict"
     ),
     _build_demo_post(
         "【已归档】已结束的招新通知", "该招新活动已结束，归档保存。",
-        "teamup", "学生活动中心", "fudan_user4@example.fudan.edu.cn", 198, 11, status="archived"
+        "teamup", "学生活动中心", "13900000105", 198, 11, status="archived"
     ),
 ]
 
@@ -1133,115 +1136,115 @@ FUDAN_POSTS = [
 ZJU_POSTS = [
     _build_demo_post(
         "西区食堂二楼麻辣香锅推荐", "西区食堂二楼麻辣香锅，13元/份，量足味正。",
-        "share", "西区食堂", "zju_user3@example.zju.edu.cn", 256, 19, True,
-        comments=[{"user_email": "zju_user1@example.zju.edu.cn", "content": "经常去，确实不错", "likes": 3}],
-        validations=[{"user_email": "zju_user1@example.zju.edu.cn", "type": "confirmation", "comment": "亲测好吃"}]
+        "share", "西区食堂", "13900000204", 256, 19, True,
+        comments=[{"user_phone": "13900000202", "content": "经常去，确实不错", "likes": 3}],
+        validations=[{"user_phone": "13900000202", "type": "confirmation", "comment": "亲测好吃"}]
     ),
     _build_demo_post(
         "东区食堂早餐小笼包测评", "东区食堂早餐小笼包6元8个，皮薄馅多。",
-        "share", "东区食堂", "zju_user3@example.zju.edu.cn", 178, 13
+        "share", "东区食堂", "13900000204", 178, 13
     ),
     _build_demo_post(
         "紫金港图书馆开放时间汇总", "图书馆周一到周日 8:00-22:30，期末延长到23:30。",
-        "teamup", "图书馆", "zju_user4@example.zju.edu.cn", 478, 38, True,
-        comments=[{"user_email": "zju_user1@example.zju.edu.cn", "content": "期末必须早6:30去排队", "likes": 6}]
+        "teamup", "图书馆", "13900000205", 478, 38, True,
+        comments=[{"user_phone": "13900000202", "content": "期末必须早6:30去排队", "likes": 6}]
     ),
     _build_demo_post(
         "图书馆三楼自习室预约规则", "图书馆三楼需预约，签到制，违约3次扣信用分。",
-        "teamup", "图书馆", "zju_user4@example.zju.edu.cn", 312, 24
+        "teamup", "图书馆", "13900000205", 312, 24
     ),
     _build_demo_post(
         "学生活动中心话剧社演出", "本周末学生活动中心话剧社演《茶馆》，免费入场。",
-        "teamup", "学生活动中心", "zju_user3@example.zju.edu.cn", 345, 27, True,
-        validations=[{"user_email": "zju_user1@example.zju.edu.cn", "type": "confirmation", "comment": "看完了，超棒"}]
+        "teamup", "学生活动中心", "13900000204", 345, 27, True,
+        validations=[{"user_phone": "13900000202", "type": "confirmation", "comment": "看完了，超棒"}]
     ),
     _build_demo_post(
         "紫金港ACM集训队招新", "面向全校招新，每周10小时训练，简历发 acm@zju.edu.cn。",
-        "teamup", "教学楼群", "zju_user1@example.zju.edu.cn", 398, 31, True
+        "teamup", "教学楼群", "13900000202", 398, 31, True
     ),
     _build_demo_post(
         "浙大讲堂：量子计算前沿", "下周三晚7点图书馆报告厅，院士讲座量子计算。",
-        "teamup", "图书馆", "zju_user4@example.zju.edu.cn", 456, 36, True
+        "teamup", "图书馆", "13900000205", 456, 36, True
     ),
     _build_demo_post(
         "快递服务中心取件高峰提醒", "快递中心工作日饭点排队30分钟，建议错峰。",
-        "other", "快递服务中心", "zju_user3@example.zju.edu.cn", 198, 14
+        "other", "快递服务中心", "13900000204", 198, 14
     ),
     _build_demo_post(
         "学生公寓洗衣机使用规则", "学生公寓每层4台洗衣机，3元/次，禁洗鞋。",
-        "other", "学生公寓", "zju_user5@example.zju.edu.cn", 167, 9
+        "other", "学生公寓", "13900000206", 167, 9
     ),
     _build_demo_post(
         "紫金港校门到地铁5号线攻略", "紫金港校门步行10分钟到地铁5号线浙大紫金港站。",
-        "other", "紫金港校门", "zju_user5@example.zju.edu.cn", 289, 16
+        "other", "紫金港校门", "13900000206", 289, 16
     ),
     _build_demo_post(
         "校车冬季时刻表更新", "校车冬季首发延后30分钟，末班不变。",
-        "other", "紫金港校门", "zju_user1@example.zju.edu.cn", 312, 15
+        "other", "紫金港校门", "13900000202", 312, 15
     ),
     _build_demo_post(
         "体育馆游泳馆开放时间", "游泳馆周一到周五16:00-21:00，学期卡300元。",
-        "other", "体育馆", "zju_user5@example.zju.edu.cn", 234, 12,
-        validations=[{"user_email": "zju_user1@example.zju.edu.cn", "type": "confirmation", "comment": "学期卡已办"}]
+        "other", "体育馆", "13900000206", 234, 12,
+        validations=[{"user_phone": "13900000202", "type": "confirmation", "comment": "学期卡已办"}]
     ),
     _build_demo_post(
         "田径场照明维修通知", "田径场东侧照明维修，建议西侧跑道。",
-        "other", "田径场", "zju_user5@example.zju.edu.cn", 134, 6,
-        validations=[{"user_email": "zju_user1@example.zju.edu.cn", "type": "refutation", "comment": "已修好"}]
+        "other", "田径场", "13900000206", 134, 6,
+        validations=[{"user_phone": "13900000202", "type": "refutation", "comment": "已修好"}]
     ),
     _build_demo_post(
         "图书馆捡到银色U盘", "图书馆三楼捡到银色U盘32G，已交服务台。",
-        "lost_found", "图书馆", "zju_user4@example.zju.edu.cn", 198, 8
+        "lost_found", "图书馆", "13900000205", 198, 8
     ),
     _build_demo_post(
         "启真湖黑天鹅孵化幼崽", "启真湖黑天鹅带3只小天鹅，保持5米距离观赏。",
-        "share", "启真湖", "zju_user2@example.zju.edu.cn", 478, 38, True,
-        validations=[{"user_email": "zju_user1@example.zju.edu.cn", "type": "confirmation", "comment": "亲眼所见"}]
+        "share", "启真湖", "13900000203", 478, 38, True,
+        validations=[{"user_phone": "13900000202", "type": "confirmation", "comment": "亲眼所见"}]
     ),
     _build_demo_post(
         "校园流浪猫喂食指南", "校园流浪猫请用专门猫粮，禁喂人类食物。",
-        "share", "学生公寓", "zju_user2@example.zju.edu.cn", 312, 24
+        "share", "学生公寓", "13900000203", 312, 24
     ),
     # 补充 4 条 published 帖子，确保已发布帖 ≥20
     _build_demo_post(
         "启真湖晨跑路线推荐", "启真湖一圈约2.5公里，早晨6-7点人少风景好，适合晨跑。",
-        "other", "启真湖", "zju_user5@example.zju.edu.cn", 267, 21, True,
-        comments=[{"user_email": "zju_user1@example.zju.edu.cn", "content": "亲测2.6公里，很准", "likes": 4}]
+        "other", "启真湖", "13900000206", 267, 21, True,
+        comments=[{"user_phone": "13900000202", "content": "亲测2.6公里，很准", "likes": 4}]
     ),
     _build_demo_post(
         "学生公寓快递代收点汇总", "学生公寓1号楼下快递柜+菜鸟驿站，顺丰在校门口。",
-        "other", "学生公寓", "zju_user3@example.zju.edu.cn", 298, 17
+        "other", "学生公寓", "13900000204", 298, 17
     ),
     _build_demo_post(
         "图书馆考研自习室预约攻略", "图书馆5楼考研自习室需预约，每周一放号，违约2次拉黑。",
-        "teamup", "图书馆", "zju_user4@example.zju.edu.cn", 389, 28, True,
-        comments=[{"user_email": "zju_user1@example.zju.edu.cn", "content": "周一8点抢号必崩", "likes": 6}],
-        validations=[{"user_email": "zju_user1@example.zju.edu.cn", "type": "confirmation", "comment": "违约拉黑属实"}]
+        "teamup", "图书馆", "13900000205", 389, 28, True,
+        comments=[{"user_phone": "13900000202", "content": "周一8点抢号必崩", "likes": 6}],
+        validations=[{"user_phone": "13900000202", "type": "confirmation", "comment": "违约拉黑属实"}]
     ),
     _build_demo_post(
         "紫金港校车早高峰排队提醒", "早8点校车排队30分钟+，建议提前15分钟或骑行。",
-        "other", "紫金港校门", "zju_user5@example.zju.edu.cn", 234, 13
+        "other", "紫金港校门", "13900000206", 234, 13
     ),
     # 6 态样本
     _build_demo_post(
         "【草稿】西区食堂新菜测评（草稿中）", "正在整理西区食堂新菜测评，待完善后发布。",
-        "share", "西区食堂", "zju_user3@example.zju.edu.cn", 0, 0, status="draft"
+        "share", "西区食堂", "13900000204", 0, 0, status="draft"
     ),
     _build_demo_post(
         "【待审核】图书馆讲座通知", "下周图书馆讲座通知，等待管理员审核。",
-        "teamup", "图书馆", "zju_user4@example.zju.edu.cn", 0, 0, status="pending"
+        "teamup", "图书馆", "13900000205", 0, 0, status="pending"
     ),
     _build_demo_post(
         "【已过期】上学期期末复习资料", "上学期期末复习资料，已过期归档。",
-        "teamup", "图书馆", "zju_user4@example.zju.edu.cn", 145, 7, status="expired"
+        "teamup", "图书馆", "13900000205", 145, 7, status="expired"
     ),
     _build_demo_post(
         "【冲突】食堂价格争议帖", "本帖价格信息与其他帖子冲突，待处理。",
-        "share", "西区食堂", "zju_user3@example.zju.edu.cn", 78, 3, status="conflict"
+        "share", "西区食堂", "13900000204", 78, 3, status="conflict"
     ),
     _build_demo_post(
         "【已归档】已结束的招新通知", "该招新活动已结束，归档保存。",
-        "teamup", "学生活动中心", "zju_user3@example.zju.edu.cn", 187, 9, status="archived"
+        "teamup", "学生活动中心", "13900000204", 187, 9, status="archived"
     ),
 ]
 
@@ -1252,41 +1255,41 @@ ZJU_POSTS = [
 
 JIANGNAN_TOPICS = [
     ("新生入学指南", "为新生提供校园生活必备信息：宿舍、食堂、学习、交通一站式攻略",
-     "user10@example.jiangnan.edu.cn"),
+     "13900000011"),
     ("江南美食地图", "学姐学长亲测的校园+周边美食清单，干饭人必备",
-     "user3@example.jiangnan.edu.cn"),
+     "13900000004"),
     ("期末复习资源合集", "历年真题、复习笔记、易错点汇总，期末救命资料",
-     "user10@example.jiangnan.edu.cn"),
+     "13900000011"),
     ("蠡湖校园生态", "记录校园流浪猫、蠡湖天鹅等校园生态观察",
-     "user8@example.jiangnan.edu.cn"),
+     "13900000009"),
     ("社团活动精选", "校园社团招新、活动演出信息一网打尽",
-     "user1@example.jiangnan.edu.cn"),
+     "13900000002"),
     ("校园生活贴士", "快递、打印、洗衣、交通等日常生活实用技巧",
-     "user9@example.jiangnan.edu.cn"),
+     "13900000010"),
 ]
 
 FUDAN_TOPICS = [
     ("复旦新生入学指南", "复旦大学邯郸校区新生必备信息：宿舍、食堂、学习、交通",
-     "fudan_admin@momentcampus.com"),
+     "13900000101"),
     ("邯郸路美食地图", "本校及周边性价比美食清单",
-     "fudan_user3@example.fudan.edu.cn"),
+     "13900000104"),
     ("光华楼自习攻略", "光华楼自习室预约、占座、开放时间完整攻略",
-     "fudan_user2@example.fudan.edu.cn"),
+     "13900000103"),
 ]
 
 ZJU_TOPICS = [
     ("浙大新生入学指南", "浙江大学紫金港校区新生必备信息：宿舍、食堂、学习、交通",
-     "zju_admin@momentcampus.com"),
+     "13900000201"),
     ("紫金港美食地图", "紫金港东西区食堂及周边性价比美食清单",
-     "zju_user3@example.zju.edu.cn"),
+     "13900000204"),
     ("启真湖生态观察", "记录启真湖鸟类、黑天鹅等校园生态",
-     "zju_user2@example.zju.edu.cn"),
+     "13900000203"),
 ]
 
 
 # =============================================================================
 # 跨校成员关系（UC-01 起置空）：严格一对一绑定后普通用户仅能关联一所学校；
-# 多校演示由 super_admin（admin@momentcampus.com 平台级）承载，seed 不再创建跨校普通用户。
+# 多校演示由 super_admin（13900000001 平台级）承载，seed 不再创建跨校普通用户。
 # =============================================================================
 
 CROSS_SCHOOL_MEMBERSHIPS = []
@@ -1373,6 +1376,10 @@ async def init_db():
         "subscriptions",
         "password_reset_tokens",
         "campus_verify_tokens",
+        "sms_verifications",
+        "binding_tickets",
+        "auth_sessions",
+        "user_auth_identities",
         # 日志与事件
         "admin_operation_logs",
         "platform_audit_logs",
@@ -1582,32 +1589,37 @@ async def seed_categories(session: AsyncSession, schools: list):
 
 
 async def seed_users(session: AsyncSession, schools: list):
-    """为每所学校创建用户（每校 1 admin + N 普通用户）
+    """为每所学校创建手机号主账号用户。
 
     用户表的 school_id 字段为该用户的"主校"（默认学校）。
     跨校成员关系由 seed_memberships 单独创建。
     """
     users_by_school = {}  # school_code -> [User]
-    users_by_email = {}
+    users_by_phone = {}
     for school, cfg in zip(schools, SCHOOLS_REGISTRY):
         users = []
         for u in cfg["users"]:
             # B-07/B-07': 演示数据为部分用户标记校园身份认证（campus_verified），
             # 使前端/小程序能展示「已认证」徽标，体现真实校园实名社区氛围。
-            # 手机号主账号：email 仅保留为历史数据索引，教育邮箱只给已认证演示用户绑定。
-            # 演示手机号按学校和清单序号生成，所有演示账号密码统一为 pass123。
+            # 新 seed 数据不再写入历史 email 字段；教育邮箱只给已认证用户绑定。
+            # 微信演示账号通过 auth_mode 标记，不设置密码。
             campus_verified = u.get("campus_verified", False)
             campus_verified_at = datetime.utcnow() if campus_verified else None
             school_offset = {"jiangnan": 0, "fudan": 100, "zju": 200}[school.code]
             phone = u.get("phone") or f"1390000{school_offset + len(users) + 1:04d}"
             u["phone"] = phone
+            education_email = u.get("education_email")
+            if campus_verified != bool(education_email):
+                raise ValueError(f"seed 用户 {phone} 的认证状态与教育邮箱不一致")
+            password = u.get("password", "pass123")
             user = User(
-                email=u["email"],
+                email=None,
                 phone=phone,
-                education_email=u["email"] if campus_verified and u["role"] == "user" else None,
+                education_email=education_email,
                 nickname=u["nickname"],
-                password_hash=get_password_hash("pass123"),
+                password_hash=get_password_hash(password) if password else None,
                 school_id=school.id,
+                registration_school_id=school.id,
                 role=u["role"],
                 bio=u["bio"],
                 is_active=True,
@@ -1618,14 +1630,51 @@ async def seed_users(session: AsyncSession, schools: list):
                 campus_verified_at=campus_verified_at,
             )
             session.add(user)
+            # 先取得数据库主键，再创建固定的微信身份记录。
+            await session.flush()
             users.append(user)
-            users_by_email[u["email"]] = user
+            users_by_phone[phone] = user
+            if u.get("auth_mode") == "wechat":
+                session.add(UserAuthIdentity(
+                    user_id=user.id,
+                    identity_type="wechat_miniprogram",
+                    identity_key=u["wechat_openid"],
+                    openid=u["wechat_openid"],
+                    unionid=None,
+                    last_used_at=datetime.now(),
+                ))
         users_by_school[school.code] = users
     await session.flush()
-    return users_by_school, users_by_email
+    all_users = [user for users in users_by_school.values() for user in users]
+    phones = [user.phone for user in all_users]
+    if len(phones) != len(set(phones)) or any(not phone for phone in phones):
+        raise ValueError("seed 用户手机号必须全部存在且唯一")
+    if any(user.email is not None for user in all_users):
+        raise ValueError("seed 用户不应写入历史 email 字段")
+    for user in all_users:
+        if user.campus_verified != bool(user.education_email):
+            raise ValueError(f"seed 用户 {user.phone} 的认证状态与教育邮箱不一致")
+    wechat_configs = [
+        u for cfg in SCHOOLS_REGISTRY for u in cfg["users"]
+        if u.get("auth_mode") == "wechat"
+    ]
+    for config in wechat_configs:
+        user = users_by_phone[config["phone"]]
+        if user.password_hash is not None:
+            raise ValueError(f"微信示例账号 {user.phone} 不应设置密码")
+        identity_result = await session.execute(
+            select(UserAuthIdentity).where(
+                UserAuthIdentity.user_id == user.id,
+                UserAuthIdentity.identity_type == "wechat_miniprogram",
+                UserAuthIdentity.identity_key == config["wechat_openid"],
+            )
+        )
+        if identity_result.scalar_one_or_none() is None:
+            raise ValueError(f"微信示例账号 {user.phone} 的身份记录缺失")
+    return users_by_school, users_by_phone
 
 
-async def seed_memberships(session: AsyncSession, schools: list, users_by_email: dict):
+async def seed_memberships(session: AsyncSession, schools: list, users_by_phone: dict):
     """为每位用户创建 SchoolMembership（UC-01 严格一对一：每用户仅一条 active）
 
     - 主校：is_default=True，role 与 user.role 一致（admin 或 member）
@@ -1638,7 +1687,7 @@ async def seed_memberships(session: AsyncSession, schools: list, users_by_email:
     # 1. 为每位用户创建主校 membership
     for school, cfg in zip(schools, SCHOOLS_REGISTRY):
         for u in cfg["users"]:
-            user = users_by_email[u["email"]]
+            user = users_by_phone[u["phone"]]
             role_in_school = "admin" if u["role"] == "admin" else "member"
             # super_admin 平台角色映射为 admin（本表不存 super_admin）
             if u["role"] == "super_admin":
@@ -1658,7 +1707,7 @@ async def seed_memberships(session: AsyncSession, schools: list, users_by_email:
 
     # 2. 跨校成员关系（TEN-05.3）
     for cross in CROSS_SCHOOL_MEMBERSHIPS:
-        user = users_by_email.get(cross["user_email"])
+        user = users_by_phone.get(cross["user_phone"])
         school = school_by_code.get(cross["school_code"])
         if user is None or school is None:
             continue
@@ -1819,7 +1868,7 @@ TIME_OFFSETS_DAYS = [
 
 
 async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict,
-                                 users_by_email: dict, categories: list,
+                                 users_by_phone: dict, categories: list,
                                  locations: list):
     """为单所学校创建帖子（含评论、协同验证）+ 状态样本
 
@@ -1827,7 +1876,7 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
 
     返回 (posts, comments, validations)
     """
-    user_by_email = {u.email: u for u in [users_by_email[u["email"]] for u in cfg["users"]]}
+    user_by_phone = {u.phone: u for u in [users_by_phone[u["phone"]] for u in cfg["users"]]}
     category_by_code = {c.code: c for c in categories}
     location_by_name = {l.name: l for l in locations}
 
@@ -1846,10 +1895,10 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
         all_posts_data.append(s)
 
     for i, p in enumerate(all_posts_data):
-        user = user_by_email.get(p["user_email"])
+        user = user_by_phone.get(p["user_phone"])
         if user is None:
             # 跨校用户（如 user1@ 在江南大学发帖但用户对象来自主校）
-            user = users_by_email.get(p["user_email"])
+            user = users_by_phone.get(p["user_phone"])
         if user is None:
             continue
 
@@ -1917,7 +1966,7 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
         if post is None:
             continue
         for j, c in enumerate(p.get("comments", [])):
-            comment_user = users_by_email.get(c["user_email"])
+            comment_user = users_by_phone.get(c["user_phone"])
             if comment_user is None:
                 continue
             comment_time = post.created_at + timedelta(hours=1 + j * 3)
@@ -1946,7 +1995,7 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
         if post is None:
             continue
         for j, v in enumerate(p.get("validations", [])):
-            v_user = users_by_email.get(v["user_email"])
+            v_user = users_by_phone.get(v["user_phone"])
             if v_user is None:
                 continue
             # 唯一约束：每用户对每帖只能有一条验证记录
@@ -1972,7 +2021,7 @@ async def seed_posts_for_school(session: AsyncSession, school: School, cfg: dict
     return posts, all_comments, all_validations
 
 
-async def seed_all_posts(session: AsyncSession, schools: list, users_by_email: dict,
+async def seed_all_posts(session: AsyncSession, schools: list, users_by_phone: dict,
                          categories_by_school: dict,
                          locations_by_school: dict):
     """为三所学校创建全部帖子
@@ -1988,7 +2037,7 @@ async def seed_all_posts(session: AsyncSession, schools: list, users_by_email: d
         cats = categories_by_school.get(school.code, [])
         locs = locations_by_school.get(school.code, [])
         posts, comments, vals = await seed_posts_for_school(
-            session, school, cfg, users_by_email, cats, locs
+            session, school, cfg, users_by_phone, cats, locs
         )
         all_posts.extend(posts)
         all_comments.extend(comments)
@@ -2012,7 +2061,7 @@ async def seed_all_posts(session: AsyncSession, schools: list, users_by_email: d
 # =============================================================================
 
 async def seed_topic_collections(session: AsyncSession, schools: list,
-                                  users_by_email: dict, posts_by_school: dict):
+                                  users_by_phone: dict, posts_by_school: dict):
     """为每所学校创建专题集合（≥1）"""
     topics = []
     topic_posts = []
@@ -2021,8 +2070,8 @@ async def seed_topic_collections(session: AsyncSession, schools: list,
         school_posts = posts_by_school.get(school.code, [])
         published_posts = [p for p in school_posts if p.status == "published"]
 
-        for i, (title, desc, creator_email) in enumerate(cfg["topics"]):
-            creator = users_by_email.get(creator_email)
+        for i, (title, desc, creator_phone) in enumerate(cfg["topics"]):
+            creator = users_by_phone.get(creator_phone)
             if creator is None:
                 continue
             topic = TopicCollection(
@@ -2072,7 +2121,7 @@ async def seed_topic_collections(session: AsyncSession, schools: list,
 # 通知样本（仅江南大学，与既有内容对齐）
 # =============================================================================
 
-async def seed_notifications(session: AsyncSession, schools: list, users_by_email: dict,
+async def seed_notifications(session: AsyncSession, schools: list, users_by_phone: dict,
                               posts_by_school: dict):
     """创建通知数据（基于真实互动场景）"""
     notifications = []
@@ -2083,35 +2132,35 @@ async def seed_notifications(session: AsyncSession, schools: list, users_by_emai
     target_post = jiangnan_posts[0]
 
     notification_templates = [
-        ("user6@example.jiangnan.edu.cn", "comment", "您的帖子有新评论",
+        ("13900000007", "comment", "您的帖子有新评论",
          "江南小李 评论了你的《二食堂三楼麻辣香锅真的绝了》",
-         "user1@example.jiangnan.edu.cn", False),
-        ("user3@example.jiangnan.edu.cn", "like", "您的帖子被点赞",
+         "13900000002", False),
+        ("13900000004", "like", "您的帖子被点赞",
          "二食堂干饭人 等5人 赞了你的《蠡湖周边10块钱吃饱的5家店》",
-         "user6@example.jiangnan.edu.cn", False),
-        ("user8@example.jiangnan.edu.cn", "comment", "您的帖子有新评论",
+         "13900000007", False),
+        ("13900000009", "comment", "您的帖子有新评论",
          "图书馆常客 评论了你的《图书馆门口的橘猫又来蹭饭了》",
-         "user4@example.jiangnan.edu.cn", True),
-        ("user10@example.jiangnan.edu.cn", "system", "您的帖子被推荐",
+         "13900000005", True),
+        ("13900000011", "system", "您的帖子被推荐",
          "您的《计算机组成原理复习资料分享》已被推荐到首页",
-         "admin@momentcampus.com", False),
-        ("user1@example.jiangnan.edu.cn", "system", "管理员审核通过",
+         "13900000001", False),
+        ("13900000002", "system", "管理员审核通过",
          "您发布的《文浩科学馆周五晚话剧《雷雨》演出》已通过审核",
-         "admin@momentcampus.com", True),
-        ("user5@example.jiangnan.edu.cn", "like", "您的帖子被点赞",
+         "13900000001", True),
+        ("13900000006", "like", "您的帖子被点赞",
          "江南小李 赞了你的《体育馆游泳馆开放时间》",
-         "user1@example.jiangnan.edu.cn", False),
-        ("user4@example.jiangnan.edu.cn", "system", "帖子即将过期",
+         "13900000002", False),
+        ("13900000005", "system", "帖子即将过期",
          "您的《图书馆开放时间汇总》还有3天过期，如需保留请更新",
-         "admin@momentcampus.com", False),
-        ("user9@example.jiangnan.edu.cn", "comment", "您的帖子有新评论",
+         "13900000001", False),
+        ("13900000010", "comment", "您的帖子有新评论",
          "无锡学长 评论了你的《校园超市本周打折商品》",
-         "user10@example.jiangnan.edu.cn", True),
+         "13900000011", True),
     ]
 
-    for user_email, ntype, title, content, actor_email, is_read in notification_templates:
-        user = users_by_email.get(user_email)
-        actor = users_by_email.get(actor_email)
+    for user_phone, ntype, title, content, actor_phone, is_read in notification_templates:
+        user = users_by_phone.get(user_phone)
+        actor = users_by_phone.get(actor_phone)
         if user is None or actor is None:
             continue
         notification = Notification(
@@ -2135,28 +2184,28 @@ async def seed_notifications(session: AsyncSession, schools: list, users_by_emai
 # 举报记录样本（仅江南大学）
 # =============================================================================
 
-async def seed_reports(session: AsyncSession, schools: list, users_by_email: dict,
+async def seed_reports(session: AsyncSession, schools: list, users_by_phone: dict,
                         posts_by_school: dict):
     """创建举报记录数据"""
     jiangnan_posts = posts_by_school.get("jiangnan", [])
     if not jiangnan_posts:
         return []
 
-    admin_user = users_by_email.get("admin@momentcampus.com")
+    admin_user = users_by_phone.get("13900000001")
 
     reports_data = [
-        (3, "user2@example.jiangnan.edu.cn", "fake", "螺蛳粉现在还有吗？我去没看到，疑似过期信息", "resolved", "已通知作者更新"),
-        (4, "user9@example.jiangnan.edu.cn", "ad", "评论区有人发外卖广告，请处理", "resolved", "已删除广告评论"),
-        (8, "user1@example.jiangnan.edu.cn", "inappropriate", "打印机价格可能有误，需核实", "processing", None),
-        (10, "user6@example.jiangnan.edu.cn", "other", "话剧演出时间是不是改了？", "pending", None),
-        (14, "user9@example.jiangnan.edu.cn", "fake", "图书馆开放时间跟实际不符", "resolved", "已联系作者更新"),
+        (3, "13900000003", "fake", "螺蛳粉现在还有吗？我去没看到，疑似过期信息", "resolved", "已通知作者更新"),
+        (4, "13900000010", "ad", "评论区有人发外卖广告，请处理", "resolved", "已删除广告评论"),
+        (8, "13900000002", "inappropriate", "打印机价格可能有误，需核实", "processing", None),
+        (10, "13900000007", "other", "话剧演出时间是不是改了？", "pending", None),
+        (14, "13900000010", "fake", "图书馆开放时间跟实际不符", "resolved", "已联系作者更新"),
     ]
 
     reports = []
-    for post_idx, reporter_email, rtype, desc, status, result in reports_data:
+    for post_idx, reporter_phone, rtype, desc, status, result in reports_data:
         if post_idx >= len(jiangnan_posts):
             continue
-        reporter = users_by_email.get(reporter_email)
+        reporter = users_by_phone.get(reporter_phone)
         if reporter is None:
             continue
         report = Report(
@@ -2291,7 +2340,7 @@ async def seed_data(
         print(f"✓ 共创建 {total_cats} 个分类")
 
         print("\n[6/11] 创建三校用户...")
-        users_by_school, users_by_email = await seed_users(session, schools)
+        users_by_school, users_by_phone = await seed_users(session, schools)
         for code, users in users_by_school.items():
             admin_count = sum(1 for u in users if u.role == "admin")
             print(f"  - {code}: {len(users)} 个用户（{admin_count} admin + {len(users) - admin_count} user）")
@@ -2299,7 +2348,7 @@ async def seed_data(
         print(f"✓ 共创建 {total_users} 个用户")
 
         print("\n[7/11] 创建成员关系（UC-01 一对一，每用户仅一条 active）...")
-        memberships = await seed_memberships(session, schools, users_by_email)
+        memberships = await seed_memberships(session, schools, users_by_phone)
         print(f"✓ 创建了 {len(memberships)} 条成员关系（严格一对一，无跨校普通用户）")
 
         print("\n[8/11] 创建三校地点...")
@@ -2317,7 +2366,7 @@ async def seed_data(
         # publishers_by_school = await seed_publishers(...)  # 已移除
 
         # 取 admin 用户作为订阅分配者
-        admin_user = users_by_email.get("admin@momentcampus.com")
+        admin_user = users_by_phone.get("13900000001")
         print("\n[10/11] 为三校分配运营档套餐（activated）...")
         subscriptions = await seed_subscriptions(session, schools, plans, admin_user)
         for sub, school in zip(subscriptions, schools):
@@ -2326,7 +2375,7 @@ async def seed_data(
 
         print("\n[11/11] 创建三校帖子（含 6 态样本 + 治理样本 + 专题）...")
         all_posts, all_comments, all_validations, posts_by_school = await seed_all_posts(
-            session, schools, users_by_email, categories_by_school,
+            session, schools, users_by_phone, categories_by_school,
             locations_by_school
         )
         for code, posts in posts_by_school.items():
@@ -2343,7 +2392,7 @@ async def seed_data(
 
         print("\n创建三校专题集合...")
         topics = await seed_topic_collections(
-            session, schools, users_by_email, posts_by_school
+            session, schools, users_by_phone, posts_by_school
         )
         for school, cfg in zip(schools, SCHOOLS_REGISTRY):
             school_topics = [t for t in topics if t.school_id == school.id]
@@ -2351,8 +2400,8 @@ async def seed_data(
         print(f"✓ 共创建 {len(topics)} 个专题集合")
 
         print("\n创建通知与举报记录（江南大学）...")
-        notifications = await seed_notifications(session, schools, users_by_email, posts_by_school)
-        reports = await seed_reports(session, schools, users_by_email, posts_by_school)
+        notifications = await seed_notifications(session, schools, users_by_phone, posts_by_school)
+        reports = await seed_reports(session, schools, users_by_phone, posts_by_school)
         print(f"✓ 创建了 {len(notifications)} 条通知")
         print(f"✓ 创建了 {len(reports)} 条举报记录")
 
@@ -2376,7 +2425,8 @@ async def seed_data(
         for school, cfg in zip(schools, SCHOOLS_REGISTRY):
             print(f"\n  ▶ {school.name} (code={school.code})")
             for u in cfg["users"]:
-                print(f"    {u.get('phone', ''):11s} | {u['nickname']:15s} | {u['role']:10s} | {u['bio']}")
+                auth_label = "微信授权/无密码" if u.get("auth_mode") == "wechat" else "密码 pass123"
+                print(f"    {u.get('phone', ''):11s} | {u['nickname']:15s} | {u['role']:10s} | {auth_label} | {u['bio']}")
 
         print("\n【学校绑定说明（UC-01）】")
         print("  每个普通用户仅能关联一所学校；平台管理员（super_admin）可跨校管理。")
