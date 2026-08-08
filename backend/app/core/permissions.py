@@ -171,6 +171,20 @@ def require_campus_verified() -> Callable:
     return _check_verified
 
 
+def require_campus_verified_or_admin() -> Callable:
+    """要求校园认证，管理员可凭角色直接执行地点管理操作。"""
+    from app.dependencies import get_current_user
+
+    async def _check_verified_or_admin(user: User = Depends(get_current_user)) -> User:
+        if user.campus_verified or has_role(user, Role.ADMIN):
+            return user
+        raise ForbiddenException(
+            detail="请先完成校园身份认证后再新增地点（管理员可直接操作）"
+        )
+
+    return _check_verified_or_admin
+
+
 # ============================================================
 # TEN-02.2: 租户内有效角色（实际实现位于 app.core.tenant，
 # 避免与 TenantContext 形成循环导入；此处提供委托接口便于从 permissions 导入）

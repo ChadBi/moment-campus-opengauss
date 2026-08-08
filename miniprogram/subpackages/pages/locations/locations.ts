@@ -1,4 +1,4 @@
-import { getLocations, getDetail, getReviews, submitReview, withdrawReview, submitFactProposal } from '../../../services/locations'
+import { getLocations, getDetail, getReviews, submitReview, withdrawReview, submitFactProposal, createLocation } from '../../../services/locations'
 import { formatDate } from '../../../utils/format'
 import { authStore } from '../../../store/auth'
 import { campusStore } from '../../../store/campus'
@@ -23,6 +23,7 @@ Page({
     backTitle: '返回',
     isLoggedIn: false,
     campusVerified: false,
+    canCreateLocation: false,
     schoolName: '',
     mode: '' as string,
     searchKeyword: '',
@@ -38,6 +39,14 @@ Page({
     detailLoading: false,
     detailError: '',
     detailNotice: '',
+    createVisible: false,
+    createSubmitting: false,
+    createName: '',
+    createDescription: '',
+    createBuilding: '',
+    createFloor: '',
+    createLatitude: '',
+    createLongitude: '',
     locationSubscribed: false,
     locationSubscriptionId: 0,
     locationSubscriptionLoading: false,
@@ -81,7 +90,12 @@ Page({
     ;(this as any)._campusReady = false
     this.setData({ mode: options?.mode || '' })
     authStore.subscribe(state => {
-      this.setData({ isLoggedIn: state.isLoggedIn, campusVerified: !!state.user?.campus_verified })
+      const role = state.user?.role || ''
+      this.setData({
+        isLoggedIn: state.isLoggedIn,
+        campusVerified: !!state.user?.campus_verified,
+        canCreateLocation: !!state.user?.campus_verified || role === 'admin' || role === 'super_admin',
+      })
     })
     ;(this as any)._unsubscribeCampus = campusStore.subscribe(state => {
       this.setData({
@@ -96,6 +110,9 @@ Page({
     ;(this as any)._campusReady = true
     if (options && options.id) {
       this.openDetail(Number(options.id))
+    }
+    if (options?.mode === 'create') {
+      setTimeout(() => this.openCreateForm(), 0)
     }
   },
 
@@ -153,6 +170,74 @@ Page({
       ...review,
       starsText: formatStars(review.score),
       created_at_text: formatDate(review.created_at),
+    }
+  },
+
+  // ============== 新增地点 ==============
+  openCreateForm() {
+    if (!requireLogin('登录后即可新增地点')) return
+    if (!this.data.canCreateLocation) {
+      wx.showToast({ title: '请先完成校园认证', icon: 'none' })
+      return
+    }
+    const school = campusStore.getState().currentSchool
+    this.setData({
+      createVisible: true,
+      createName: '',
+      createDescription: '',
+      createBuilding: '',
+      createFloor: '',
+      createLatitude: school?.center_lat ? String(school.center_lat) : '',
+      createLongitude: school?.center_lng ? String(school.center_lng) : '',
+    })
+  },
+
+  closeCreateForm() {
+    if (this.data.createSubmitting) return
+    this.setData({ createVisible: false })
+  },
+
+  onCreateInput(e: any) {
+    const field = e.currentTarget.dataset.field
+    if (!field) return
+    this.setData({ [field]: e.detail.value || '' })
+  },
+
+  async submitCreateLocation() {
+    if (this.data.createSubmitting) return
+    if (!this.data.canCreateLocation) {
+      wx.showToast({ title: '请先完成校园认证', icon: 'none' })
+      return
+    }
+    const name = String(this.data.createName || '').trim()
+    const latitude = Number(this.data.createLatitude)
+    const longitude = Number(this.data.createLongitude)
+    if (!name) {
+      wx.showToast({ title: '请填写地点名称', icon: 'none' })
+      return
+    }
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      wx.showToast({ title: '请填写正确的经纬度', icon: 'none' })
+      return
+    }
+    this.setData({ createSubmitting: true })
+    try {
+      const created = await createLocation({
+        name,
+        latitude,
+        longitude,
+        description: String(this.data.createDescription || '').trim() || undefined,
+        building: String(this.data.createBuilding || '').trim() || undefined,
+        floor: String(this.data.createFloor || '').trim() || undefined,
+      })
+      wx.showToast({ title: '地点已提交，等待核验', icon: 'success' })
+      this.setData({ createVisible: false })
+      await this.loadLocations()
+      if (created?.id) this.openDetail(created.id)
+    } catch (e: any) {
+      wx.showToast({ title: e.message || '新增地点失败', icon: 'none' })
+    } finally {
+      this.setData({ createSubmitting: false })
     }
   },
 

@@ -15,6 +15,18 @@ export async function getLocations(schoolCode?: string): Promise<LocationItem[]>
   return items.map(normalizeLocation)
 }
 
+export async function createLocation(data: {
+  name: string
+  latitude: number
+  longitude: number
+  description?: string
+  building?: string
+  floor?: string
+}): Promise<LocationItem> {
+  const raw = await http.post<any>('/locations', data)
+  return normalizeLocation(raw)
+}
+
 export async function getDetail(id: number, schoolCode?: string): Promise<LocationDetail> {
   const raw = await http.get<any>(`/locations/${id}`, undefined, schoolCode ? { schoolCode } : undefined)
   return {

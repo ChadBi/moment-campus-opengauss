@@ -29,6 +29,10 @@
       <icon name="map-pin" size="28rpx" color="#174d5e" />
       <text>全部地点</text>
     </view>
+    <view class="toolbar-entry toolbar-add-entry" bindtap="goToCreateLocation" hover-class="toolbar-entry-hover" hover-stay-time="120">
+      <icon name="plus" size="28rpx" color="#174d5e" />
+      <text>新增地点</text>
+    </view>
     <view class="zoom-control">
       <view class="zoom-button" bindtap="onZoomIn" hover-class="zoom-button-hover" hover-stay-time="120">
         <text>＋</text>

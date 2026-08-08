@@ -5,13 +5,13 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from app.database import get_db
-from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.category import Category
 from app.models.location import Location
 from app.models.school import School
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.core.exceptions import NotFoundException
+from app.core.permissions import require_campus_verified_or_admin
 
 router = APIRouter(tags=["分类"])
 
@@ -137,7 +137,7 @@ async def get_locations(
 @router.post("/locations", response_model=LocationResponse)
 async def create_location(
     data: LocationCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_campus_verified_or_admin()),
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):

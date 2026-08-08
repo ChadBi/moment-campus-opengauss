@@ -5,6 +5,7 @@ export interface User {
   avatar_url?: string
   bio?: string
   school_id: number
+  role?: string
   is_active: boolean
   created_at: string
   campus_verified?: boolean

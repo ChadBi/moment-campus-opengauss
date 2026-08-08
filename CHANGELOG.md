@@ -11,6 +11,8 @@
 
 ### 新增
 
+- 地图页和全部地点页新增校园地点入口，认证用户可提交名称、坐标及补充资料，管理员用户可直接提交，地点默认进入核验队列。
+
 - **微信小程序真机调试切局域网模式**（解决模拟器正常、真机永远"连接超时/请求失败"的问题）：
   真机环境"localhost/127.0.0.1"指向的是手机自身而非开发电脑，此前**业务代码走 `config/env.ts`（已是局域网 IP），但 AI Skills 的两张 util 仍硬编码 `http://localhost:8000`**，导致真机上图片渲染 404 + 技能内 API 直接 request:fail。本次统一 3 处 DEV_LAN_HOST 常量（当前网段=192.168.3.x → `192.168.3.10`）：
   - [miniprogram/config/env.ts](file:///e:/Project/moment-campus/miniprogram/config/env.ts) 顶部注释列出「换 Wi-Fi 必改 3 件套清单」+ PowerShell 一行式查本机 IP

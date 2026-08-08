@@ -19,6 +19,10 @@
         <text class="page-title">校园地点</text>
         <text class="page-subtitle">全部校园设施 · 打印店 · 食堂 · 图书馆，看评分做选择</text>
       </view>
+      <view wx:if="{{mode !== 'select'}}" class="add-location-btn" bindtap="openCreateForm" hover-class="add-location-btn-hover" hover-stay-time="120">
+        <icon name="plus" size="24rpx" color="#ffffff" />
+        <text>新增地点</text>
+      </view>
     </view>
 
     <view wx:if="{{mode === 'select'}}" class="knowledge-note location-select-hint">请选择学校静态地点，不需要开启设备定位。</view>
@@ -85,6 +89,37 @@
           </view>
         </view>
       </block>
+    </view>
+  </view>
+
+  <!-- ============ 新增地点弹层 ============ -->
+  <view wx:if="{{createVisible}}" class="popup-mask create-mask" bindtap="closeCreateForm">
+    <view class="create-panel" catchtap="noop">
+      <view class="create-header">
+        <view>
+          <text class="panel-title">新增地点</text>
+          <text class="create-subtitle">提交后进入管理员核验队列</text>
+        </view>
+        <view class="panel-close" bindtap="closeCreateForm" hover-class="panel-close-hover" hover-stay-time="120">
+          <icon name="x" size="32rpx" color="#6a7d81" />
+        </view>
+      </view>
+      <scroll-view scroll-y class="create-scroll">
+        <input class="create-input" value="{{createName}}" data-field="createName" bindinput="onCreateInput" maxlength="100" placeholder="地点名称，例如：北门打印店" />
+        <input class="create-input" value="{{createBuilding}}" data-field="createBuilding" bindinput="onCreateInput" maxlength="100" placeholder="楼栋或区域（可选）" />
+        <input class="create-input" value="{{createFloor}}" data-field="createFloor" bindinput="onCreateInput" maxlength="10" placeholder="楼层（可选）" />
+        <textarea class="create-input create-textarea" value="{{createDescription}}" data-field="createDescription" bindinput="onCreateInput" maxlength="500" auto-height placeholder="地点描述（可选）" />
+        <view class="create-coordinate-title">地图坐标</view>
+        <view class="create-coordinate-row">
+          <input class="create-input coordinate-input" value="{{createLatitude}}" data-field="createLatitude" bindinput="onCreateInput" type="text" placeholder="纬度" />
+          <input class="create-input coordinate-input" value="{{createLongitude}}" data-field="createLongitude" bindinput="onCreateInput" type="text" placeholder="经度" />
+        </view>
+        <text class="create-coordinate-hint">默认填入当前学校中心点，可按地图实际位置修改。</text>
+        <view class="create-actions">
+          <view class="create-cancel-btn" bindtap="closeCreateForm">取消</view>
+          <view class="create-submit-btn {{createSubmitting ? 'disabled' : ''}}" bindtap="submitCreateLocation">{{createSubmitting ? '提交中...' : '提交新增地点'}}</view>
+        </view>
+      </scroll-view>
     </view>
   </view>
 

@@ -382,6 +382,10 @@ Page({
     wx.navigateTo({ url: '/subpackages/pages/locations/locations' })
   },
 
+  goToCreateLocation() {
+    wx.navigateTo({ url: '/subpackages/pages/locations/locations?mode=create' })
+  },
+
   goToLocationDetail() {
     const panel = this.data.selectedLocation
     if (!panel) return

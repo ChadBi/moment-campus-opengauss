@@ -87,6 +87,10 @@
 
 /* ============== 顶部标题 ============== */
 .page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
   margin-bottom: 16rpx;
 }
 
@@ -329,6 +333,26 @@
   align-items: flex-end;
 }
 
+.add-location-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  margin-top: 8rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 999rpx;
+  background: var(--lake);
+  color: #ffffff;
+  font-size: 22rpx;
+  font-weight: 600;
+  box-shadow: var(--shadow-lake);
+}
+
+.add-location-btn-hover {
+  opacity: 0.86;
+  transform: translateY(-1rpx);
+}
+
 .detail-panel {
   width: 100%;
   max-height: 88vh;
@@ -400,6 +424,120 @@
   max-height: 76vh;
   padding: 8rpx 32rpx 60rpx;
   box-sizing: border-box;
+}
+
+.create-mask {
+  z-index: 110;
+}
+
+.create-panel {
+  width: 100%;
+  max-height: 82vh;
+  background: var(--paper);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  animation: panelUp 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.create-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 28rpx 32rpx 20rpx;
+  border-bottom: 1rpx solid var(--ink-divider);
+}
+
+.create-subtitle {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--muted);
+  font-size: 22rpx;
+}
+
+.create-scroll {
+  max-height: 68vh;
+  padding: 16rpx 32rpx 40rpx;
+  box-sizing: border-box;
+}
+
+.create-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 76rpx;
+  margin-top: 12rpx;
+  padding: 18rpx;
+  border: 1rpx solid var(--ink-divider);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 26rpx;
+}
+
+.create-textarea {
+  min-height: 120rpx;
+  line-height: 1.5;
+}
+
+.create-coordinate-title {
+  margin-top: 20rpx;
+  color: var(--ink-2);
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.create-coordinate-row {
+  display: flex;
+  gap: 12rpx;
+}
+
+.coordinate-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.create-coordinate-hint {
+  display: block;
+  margin-top: 10rpx;
+  color: var(--muted);
+  font-size: 20rpx;
+  line-height: 1.5;
+}
+
+.create-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 24rpx;
+}
+
+.create-cancel-btn,
+.create-submit-btn {
+  flex: 1;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 40rpx;
+  font-size: 27rpx;
+  font-weight: 600;
+}
+
+.create-cancel-btn {
+  color: var(--ink-2);
+  background: var(--mist);
+}
+
+.create-submit-btn {
+  color: #ffffff;
+  background: var(--lake);
+  box-shadow: var(--shadow-lake);
+}
+
+.create-submit-btn.disabled {
+  opacity: 0.55;
+  pointer-events: none;
 }
 
 .detail-notice {
