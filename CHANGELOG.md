@@ -7,6 +7,28 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.21] - 2026-08-08
+
+### 新增
+
+- **Web 端新增地点双入口方案（修复 E2E 问题 3）**：
+  - **LocationPage 顶部按钮**：校园地点页页头右侧新增蓝色主按钮「新增地点」+ Plus 图标，未登录跳转登录页并 Toast 提示，登录后直接打开 CreateLocationModal；创建成功后刷新地点列表并打开该地点详情弹窗。
+  - **MapPage 浮动圆形 FAB**：地图页右下角（绝对定位 `bottom-5 right-5`，`z-index=60`）新增湖蓝渐变圆形加号浮动按钮（48×48），不遮挡地图缩放控件，点击打开同一 CreateLocationModal；创建成功后 invalidateQueries 刷新列表 + Toast 成功提示并自动跳转 `/locations/{id}` 地点详情页。
+- **可复用 CreateLocationModal 通用组件**：完整 5 字段表单——① 地图选点按钮 + 状态提示（`尚未选择位置` / `已选位置 · lat, lng`）② 地点名称必填输入框 ③ 场所类型 7 枚举下拉框（`LOCATION_TYPE_OPTIONS` SSOT）④ 描述 textarea + `0/480` 字数计数器 + placeholder 引导填写营业时间/入口/规则 ⑤ 取消 + 提交新增地点双按钮；提交接口 `POST /api/v1/locations`，创建成功后 `onCreated(createdId)` 回调交给父页面自定义链路。
+- **发布页 PostForm 联动创建地点两字段补齐（修复 E2E 问题 4）**：PostForm 地点下拉框选「✚ 新增地点（地图选点，提交后进入核验队列）」后展开的 locationCreateSection，与 CreateLocationModal 字段 SSOT 对齐——新增【场所类型】7 枚举可选下拉框 +【描述】textarea（`maxLength={480}`，placeholder 引导填写开放时间/使用规则/联系方式），连同原有的名称 + 地图选点按钮共 4 字段形成完整创建闭环。
+- **SSOT（Single Source of Truth）基建（避免未来两端字段漂移）**：
+  - `frontend/src/constants/locationTypes.ts`：统一 `LOCATION_TYPE_OPTIONS` 7 项常量（教学楼 / 食堂 / 宿舍 / 运动场 / 服务点 / 公共空间 / 其他），CreateLocationModal 和 PostForm 发布页同引用，修改一处两端同步。
+  - `frontend/src/utils/buildLocationDescription.ts`：统一地点描述拼接函数——格式「场所类型：{type}\\n{description}」（留空字段跳过，不会残留空行），CreateLocationModal 和 PostForm 发布页同样调用入库，保证格式一致性。
+
+### 验证
+
+- 前端硬门禁三验零 error：`npm run typecheck`（TS 静态检查 16 警告 0 错误）、`npm run lint`（ESLint 11 警告 0 error）、`npm run build`（Vite 生产构建 3.25 MB 产物一次性通过）。
+- 3 条浏览器 E2E 链路全通过：
+  ① MapPage 浮动 FAB → 填 5 字段 → 成功创建 ID=42「E2E_北区运动场馆」，地图弹窗显示拼接后的场所类型+描述 ✅
+  ② LocationPage 顶部按钮 → 弹出 CreateLocationModal，5 字段完整渲染无异常跳转 ✅
+  ③ PublishPage 选新增地点选项 → locationCreateSection 展开后两字段完整渲染 ✅
+- 后端定向回归 pytest：`tests/test_auth.py` 16 + `tests/test_wechat_auth.py` 22 = **38/38 全绿**（45.26s，零回归）
+
 ## [2.2.20] - 2026-08-08
 
 ### 修复

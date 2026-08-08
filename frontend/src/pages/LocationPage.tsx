@@ -12,6 +12,7 @@ import {
   Search,
   X,
   Edit3,
+  Plus,
 } from 'lucide-react';
 import {
   locationsApi,
@@ -26,6 +27,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 import { useCampusStore } from '../store/useCampusStore';
 import { VerifyGate } from '../components/VerifyGate';
+import CreateLocationModal from '../components/CreateLocationModal';
 import { logger } from '../utils/logger';
 import { formatRelativeTime } from '../utils/date';
 
@@ -78,6 +80,7 @@ const LocationPage: React.FC = () => {
   const [submittingProposal, setSubmittingProposal] = useState(false);
   // 常态不展开编辑表单：已有 myReview 时，点击「更新评价」才进入编辑态
   const [editingReview, setEditingReview] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   // 地点列表搜索栏：按名称/描述/建筑/楼层过滤
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -243,6 +246,22 @@ const LocationPage: React.FC = () => {
             {currentSchoolName || '学校'}全部地点 · 打印店 · 食堂 · 图书馆，看评分做选择
           </p>
         </div>
+        <Button
+          variant="primary"
+          size="sm"
+          icon={<Plus size={13} />}
+          onClick={() => {
+            if (!isAuthenticated) {
+              navigate('/login');
+              showToast('登录后即可新增地点', 'info');
+              return;
+            }
+            setCreateModalOpen(true);
+          }}
+          className="h-[34px] px-3.5 text-[12px] gap-1 rounded-[9px]"
+        >
+          新增地点
+        </Button>
       </header>
 
       {/* 搜索框：放在地点列表的容器（bg-paper 卡片）内，统一搜索名称/描述/楼栋/楼层 */}
@@ -672,6 +691,16 @@ const LocationPage: React.FC = () => {
           </div>
         ) : null}
       </Modal>
+      <CreateLocationModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreated={async (createdId) => {
+          await loadLocations();
+          if (typeof openDetail === 'function') {
+            await openDetail(createdId);
+          }
+        }}
+      />
     </div>
   );
 };

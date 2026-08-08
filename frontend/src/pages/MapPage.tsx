@@ -10,6 +10,7 @@ import { Loading } from '../components/ui/Loading';
 import { Button } from '../components/ui/Button';
 import PostForm from '../components/PostForm';
 import { VerifyGate } from '../components/VerifyGate';
+import CreateLocationModal from '../components/CreateLocationModal';
 import { useAuthStore } from '../store/useAuthStore';
 import { useUIStore } from '../store/useUIStore';
 import { useCampusStore } from '../store/useCampusStore';
@@ -76,6 +77,7 @@ const MapPage: React.FC = () => {
   const [createPanel, setCreatePanel] = useState<CreatePanel>(null);
   // D-04: 地点面板
   const [locationPanel, setLocationPanel] = useState<LocationItem | null>(null);
+  const [createLocationModalOpen, setCreateLocationModalOpen] = useState(false);
 
   // 地点面板：评价列表展开状态
   const [locationReviewsOpen, setLocationReviewsOpen] = useState(false);
@@ -507,6 +509,18 @@ const MapPage: React.FC = () => {
           </button>
         </div>
 
+        {isAuthenticated && (
+          <button
+            type="button"
+            onClick={() => setCreateLocationModalOpen(true)}
+            className="absolute bottom-28 right-5 z-[15] w-12 h-12 rounded-full bg-lake hover:bg-lake/90 text-white shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+            aria-label="新增地点"
+            title="新增地点"
+          >
+            <Plus size={20} strokeWidth={2.5} />
+          </button>
+        )}
+
         {/* 加载指示器 */}
         {locationsLoading && (
           <div className="absolute top-3 right-3 z-10">
@@ -860,6 +874,19 @@ const MapPage: React.FC = () => {
           </>
         )}
       </div>
+
+      <CreateLocationModal
+        isOpen={createLocationModalOpen}
+        onClose={() => setCreateLocationModalOpen(false)}
+        onCreated={async (_createdId, created) => {
+          if (typeof loadLocations === 'function') {
+            await loadLocations();
+          }
+          if (created && typeof setLocationPanel === 'function') {
+            setLocationPanel(created as unknown as LocationItem);
+          }
+        }}
+      />
     </div>
   );
 };

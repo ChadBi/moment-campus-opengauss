@@ -152,3 +152,6 @@ docs/video-assets/**/*.wav
 docs/video-assets/**/*.m4a
 # 临时副本脚本（保留正式脚本 generate_narration.py）
 docs/video-assets/* copy.py
+
+
+messgae.md

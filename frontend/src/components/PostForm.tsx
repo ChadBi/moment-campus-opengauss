@@ -31,6 +31,8 @@ import { ErrorState, LoadingState } from './state';
 import { Modal } from './ui/Modal';
 import MapLocationPicker from './MapLocationPicker';
 import type { AIPublishSuggestionResponse } from '../types';
+import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
+import { buildLocationDescription } from '../utils/buildLocationDescription';
 
 /**
  * PUB-01.1: 统一发布表单（共享子组件）
@@ -72,6 +74,8 @@ interface PublishFormState {
   new_location_name: string;
   new_location_lat: string;
   new_location_lng: string;
+  new_location_type: string;
+  new_location_description: string;
   is_anonymous: boolean;
   /** 【新版】一张图同时携带原图 + 缩略图 URL；提交时传给后端 images 字段，详情页缩略带宽优化才能生效 */
   images: Array<{ image_url: string; thumbnail_url?: string }>;
@@ -89,6 +93,8 @@ const INITIAL_FORM: PublishFormState = {
   new_location_name: '',
   new_location_lat: '',
   new_location_lng: '',
+  new_location_type: '',
+  new_location_description: '',
   is_anonymous: false,
   images: [],
   expire_at: '',
@@ -391,6 +397,8 @@ const PostForm: React.FC<PostFormProps> = ({
         new_location_name: locationCoordsReadOnly ? defaultLocationName : '',
         new_location_lat: locationCoordsReadOnly ? String(defaultLocationLat ?? '') : '',
         new_location_lng: locationCoordsReadOnly ? String(defaultLocationLng ?? '') : '',
+        new_location_type: '',
+        new_location_description: '',
       }));
       // 切校时，若有地图点选默认坐标则保持新增地点模式；否则退出
       setNewLocationMode(locationCoordsReadOnly);
@@ -431,6 +439,8 @@ const PostForm: React.FC<PostFormProps> = ({
           new_location_name: '',
           new_location_lat: '',
           new_location_lng: '',
+          new_location_type: '',
+          new_location_description: '',
           is_anonymous: post.is_anonymous,
           images: (post.images ?? [])
             .slice()
@@ -528,7 +538,9 @@ const PostForm: React.FC<PostFormProps> = ({
       draft.location_id === null &&
       (draft.new_location_name.trim() !== '' ||
         draft.new_location_lat !== '' ||
-        draft.new_location_lng !== '');
+        draft.new_location_lng !== '' ||
+        draft.new_location_type.trim() !== '' ||
+        draft.new_location_description.trim() !== '');
     setNewLocationMode(hasNew);
     setPendingDraft(null);
     showToast(`已恢复未完成草稿（保存于 ${formatSavedAt(pendingDraft.savedAt)}）`, 'info');
@@ -592,6 +604,8 @@ const PostForm: React.FC<PostFormProps> = ({
       handleFieldChange('new_location_name', '');
       handleFieldChange('new_location_lat', '');
       handleFieldChange('new_location_lng', '');
+      handleNewLocationField('new_location_type', '');
+      handleNewLocationField('new_location_description', '');
       return;
     }
     // 选已有地点（含待核验）：退出新增地点模式，清空新地点字段
@@ -600,10 +614,14 @@ const PostForm: React.FC<PostFormProps> = ({
     handleFieldChange('new_location_name', '');
     handleFieldChange('new_location_lat', '');
     handleFieldChange('new_location_lng', '');
+    handleNewLocationField('new_location_type', '');
+    handleNewLocationField('new_location_description', '');
   };
 
   const handleNewLocationField = (
-    field: 'new_location_name' | 'new_location_lat' | 'new_location_lng',
+    field: 'new_location_name' | 'new_location_lat' | 'new_location_lng'
+      | 'new_location_type'
+      | 'new_location_description',
     value: string
   ) => {
     handleFieldChange(field, value);
@@ -818,6 +836,7 @@ const PostForm: React.FC<PostFormProps> = ({
             name: locationName,
             latitude: locationLat,
             longitude: locationLng,
+            description: buildLocationDescription(formData.new_location_type, formData.new_location_description),
           });
           locationId = newLoc.id;
           // 创建后清空新地点字段，避免重复提交
@@ -1409,6 +1428,37 @@ const PostForm: React.FC<PostFormProps> = ({
                 placeholder="例如：南区便利店"
                 maxLength={100}
               />
+              <div className="mt-2">
+                <label className="block text-xs font-medium text-ink mb-1" htmlFor="postform-new-location-type">
+                  场所类型 <span className="text-ink-muted text-xs">（可选）</span>
+                </label>
+                <select
+                  id="postform-new-location-type"
+                  value={formData.new_location_type}
+                  onChange={(e) => handleNewLocationField('new_location_type', e.target.value)}
+                  className={vs.select}
+                >
+                  <option value="">场所类型（可选）</option>
+                  {LOCATION_TYPE_OPTIONS.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mt-2">
+                <label className="block text-xs font-medium text-ink mb-1" htmlFor="postform-new-location-description">
+                  描述 <span className="text-ink-muted text-xs">（可选，最多 480 字）</span>
+                </label>
+                <textarea
+                  id="postform-new-location-description"
+                  value={formData.new_location_description}
+                  onChange={(e) => handleNewLocationField('new_location_description', e.target.value)}
+                  maxLength={480}
+                  rows={3}
+                  placeholder="可补充开放时间、使用规则、联系方式等"
+                  className={vs.textarea}
+                />
+              </div>
               {formData.new_location_lat !== '' && formData.new_location_lng !== '' ? (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1 rounded-[8px] bg-paper border border-line px-2 py-1 text-[11px] text-ink-muted">

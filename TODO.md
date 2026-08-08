@@ -2,7 +2,20 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（阶段七 四流程闭环+教育邮箱自动校园认证修复 v2.2.20）
+> 最后更新：2026-08-08（阶段七 Web端双入口地点创建与发布页字段补齐 v2.2.21）
+
+## 2026-08-08 执行任务：Web端新增地点双入口 + 发布页创建地点两字段补齐（修复 E2E 问题3&4）
+> 用户追加要求：「修复一下问题三和四」（问题3=Web端缺独立新增地点入口；问题4=Web端创建地点字段不全，缺类型/描述）→ 双入口方案（LocationPage按钮+MapPageFAB）+ 两端字段对齐（新增场所类型+描述两字段）
+
+- [x] **SSOT 基础（Task1）**：统一 7 枚举场所类型常量 `frontend/src/constants/locationTypes.ts`（教学楼/食堂/宿舍/运动场/服务点/公共空间/其他）；统一工具函数 `frontend/src/utils/buildLocationDescription.ts`（「场所类型：{type}\\n{description}」拼接格式，CreateLocationModal 与 PostForm 发布页同复用）
+- [x] **CreateLocationModal 通用组件（Task2）**：可复用 Modal 组件，完整 5 字段=①地图选点按钮+状态提示（picked=true/false）/②地点名称 input required/③场所类型 7 枚举下拉框（LOCATION_TYPE_OPTIONS）/④描述 textarea maxlength480+字数计数器/⑤取消+提交新增地点 双按钮；提交走 POST /api/v1/locations；成功后 onCreated(id) 回调由父页面自定义行为
+- [x] **LocationPage 顶部按钮入口（Task3）**：校园地点页 header 右部新增蓝色主按钮「新增地点」+ Plus 小图标；未登录→navigate('/login')+Toast；登录后→setCreateModalOpen(true) 打开 CreateLocationModal；成功后自动 loadLocations() 刷新列表并打开该地点详情 Modal（openDetail）
+- [x] **MapPage 浮动圆形 FAB 入口（Task4）**：地图页右下角 z-index=60 浮动圆形湖蓝渐变加号 FAB（绝对定位 bottom-5 right-5，48×48，不遮挡地图缩放控件）；点击打开 CreateLocationModal；成功后 invalidateQueries(locations list)+Toast 成功提示+自动跳 `/locations/${newId}` 详情页
+- [x] **PublishPage PostForm 发布页联动两字段（Task5）**：PostForm 地点下拉框选「✚ 新增地点（地图选点）」即展开 locationCreateSection，新增 2 字段与 CreateLocationModal SSOT 对齐：场所类型 combobox（7 枚举，可选）+ 描述 textarea maxlength480（可选）placeholder 引导填开放时间/规则/联系；与名称+选点按钮组成 4 字段完整创建表单；提交发布时调用 buildLocationDescription 拼 description 字段后端入库
+- [x] **前端三验硬门禁（Task6-1）**：`npm run typecheck` 16 警告零错误 / `npm run lint` 11 警告零 error / `npm run build` 产物 3.25 MB 全通过 ✅
+- [x] **3 条浏览器 E2E 链路（Task6-2）**：① MapPage FAB→5字段表单→选点+填名称(E2E_北区运动场馆)+类型(运动场)+描述→POST/api/v1/locations创建成功（ID=42）→地图弹窗显示拼接头描述✅ ② LocationPage页头按钮→打开CreateLocationModal全5字段无跳转✅ ③ PublishPage 选新增地点选项→展开两字段完整渲染✅
+- [x] **后端定向回归（Task6-2 附加）**：auth+wechat_auth 38 项 pytest 零回归（45.26s 完成 38/38 全绿）
+- [x] **文档与交付**：任务报告 [AIwork/Web端新增地点双入口与发布页字段补齐_任务报告.md](file:///e:/Project/moment-campus/AIwork/Web端新增地点双入口与发布页字段补齐_任务报告.md) 8 节完整写完；CHANGELOG 升 v2.2.21；本条目更新。
 
 ## 2026-08-08 执行任务：阶段七 注册×登录×发布×新增地点四流程闭环 + 教育邮箱自动认证修复
 > 用户追加要求：「一个功能都不要忘记，后台管理界面要在测试范围之内。发布流程、地点新增流程、注册流程、登录流程全都进行校验，现在是找bug阶段」
