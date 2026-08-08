@@ -1,4 +1,5 @@
 import { getCurrentSchool, joinSchool, listSchools } from '../../../services/schools'
+import { authStore } from '../../../store/auth'
 import { campusStore } from '../../../store/campus'
 import { resolveImageUrl } from '../../../services/request'
 import { clearSchoolCache } from '../../../utils/school-cache'
@@ -93,6 +94,8 @@ Page({
       const school = await getCurrentSchool(code)
       clearSchoolCache(oldState.schoolCode)
       campusStore.setSchool(school)
+      const user = authStore.getState().user
+      if (user) authStore.setUser({ ...user, school_id: school.id })
       wx.showToast({ title: '切换成功', icon: 'success' })
       setTimeout(() => {
         wx.navigateBack({ delta: 1 })

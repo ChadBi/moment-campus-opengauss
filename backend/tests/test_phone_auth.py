@@ -3,7 +3,9 @@
 import pytest
 from sqlalchemy import select
 
+from app.models.school import School
 from app.models.school_domain import SchoolDomain
+from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.user_auth_identity import UserAuthIdentity
 
@@ -89,6 +91,8 @@ async def test_wechat_phone_login_creates_passwordless_account_and_can_set_passw
     user = response.json()["user"]
     assert user["has_password"] is False
     assert user["campus_verified"] is False
+    assert user["school_id"] == test_school["id"]
+    assert user["registration_school_id"] == test_school["id"]
     headers = {"Authorization": f"Bearer {response.json()['access_token']}"}
 
     set_password = await client.post(
@@ -143,10 +147,22 @@ async def test_wechat_sms_login_creates_passwordless_account_and_binds_identity(
         )
     ).scalar_one_or_none()
     assert identity is not None
+    membership = (
+        await db_session.execute(
+            select(SchoolMembership).where(
+                SchoolMembership.user_id == user["id"],
+                SchoolMembership.status == "active",
+            )
+        )
+    ).scalar_one()
+    assert membership.school_id == test_school["id"]
+    assert membership.is_default is True
 
 
 @pytest.mark.asyncio
-async def test_wechat_sms_login_reuses_existing_phone_account(client, test_school):
+async def test_wechat_sms_login_reuses_existing_phone_account_without_switching_school(
+    client, test_school, db_session
+):
     phone = "13820000013"
     register_code = await _send_code(client, phone, "register")
     registered = await client.post(
@@ -161,6 +177,11 @@ async def test_wechat_sms_login_reuses_existing_phone_account(client, test_schoo
     )
     assert registered.status_code == 200, registered.text
 
+    other_school = School(name="其他测试大学", code="other-test-uni", is_active=True)
+    db_session.add(other_school)
+    await db_session.commit()
+    await db_session.refresh(other_school)
+
     login_code = await _send_code(client, phone, "login")
     response = await client.post(
         "/api/v1/auth/wechat/sms-login",
@@ -168,12 +189,22 @@ async def test_wechat_sms_login_reuses_existing_phone_account(client, test_schoo
             "code": "mock-existing-code",
             "phone": phone,
             "sms_code": login_code,
-            "school_code": test_school["code"],
+            "school_code": other_school.code,
         },
     )
     assert response.status_code == 200, response.text
     assert response.json()["user"]["id"] == registered.json()["user"]["id"]
     assert response.json()["user"]["has_password"] is True
+    assert response.json()["user"]["school_id"] == test_school["id"]
+    membership = (
+        await db_session.execute(
+            select(SchoolMembership).where(
+                SchoolMembership.user_id == registered.json()["user"]["id"],
+                SchoolMembership.status == "active",
+            )
+        )
+    ).scalar_one()
+    assert membership.school_id == test_school["id"]
 
 
 @pytest.mark.asyncio

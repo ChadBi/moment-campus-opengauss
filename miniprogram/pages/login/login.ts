@@ -1,6 +1,9 @@
 import { authStore } from '../../store/auth'
 import { campusStore } from '../../store/campus'
 import { sendSms, wechatSmsLogin } from '../../services/auth'
+import { listSchools } from '../../services/schools'
+import type { School } from '../../types'
+import { clearSchoolCache } from '../../utils/school-cache'
 import { navigateToTab } from '../../utils/tab-navigation'
 
 let countdownTimer: number | null = null
@@ -21,6 +24,12 @@ Page({
     wxCodeAt: 0,
     phone: '',
     smsCode: '',
+    schools: [] as School[],
+    schoolNames: [] as string[],
+    schoolIndex: -1,
+    selectedSchoolCode: '',
+    selectedSchoolName: '',
+    schoolLoading: false,
     wechatLoading: false,
     sendingCode: false,
     countdown: 0,
@@ -38,11 +47,55 @@ Page({
         wxCode,
         wxCodeAt: Date.now(),
       })
+      await this.loadSchools()
     } catch (error: any) {
       this.setData({ errorMsg: error?.message || '微信登录失败，请重试' })
     } finally {
       this.setData({ wechatLoading: false })
     }
+  },
+
+  async loadSchools() {
+    if (this.data.schoolLoading) return
+    this.setData({ schoolLoading: true, errorMsg: '' })
+    try {
+      const schools = (await listSchools()).filter(school => school.is_active !== false)
+      if (schools.length === 0) throw new Error('暂无可选学校，请稍后重试')
+      const currentCode = campusStore.getState().schoolCode
+      const matchedIndex = schools.findIndex(school => school.code === currentCode)
+      const schoolIndex = matchedIndex >= 0 ? matchedIndex : 0
+      const selected = schools[schoolIndex]
+      this.setData({
+        schools,
+        schoolNames: schools.map(school => school.name),
+        schoolIndex,
+        selectedSchoolCode: selected.code,
+        selectedSchoolName: selected.name,
+      })
+    } catch (error: any) {
+      this.setData({
+        schools: [],
+        schoolNames: [],
+        schoolIndex: -1,
+        selectedSchoolCode: '',
+        selectedSchoolName: '',
+        errorMsg: error?.message || '学校列表加载失败，请重试',
+      })
+    } finally {
+      this.setData({ schoolLoading: false })
+    }
+  },
+
+  onSchoolChange(e: any) {
+    const schoolIndex = Number(e?.detail?.value)
+    const selected = this.data.schools[schoolIndex]
+    if (!selected) return
+    this.setData({
+      schoolIndex,
+      selectedSchoolCode: selected.code,
+      selectedSchoolName: selected.name,
+      errorMsg: '',
+    })
   },
 
   onPhoneInput(e: any) {
@@ -90,6 +143,10 @@ Page({
 
   async onSubmitWechatSmsLogin() {
     if (this.data.loading) return
+    if (!this.data.selectedSchoolCode) {
+      this.setData({ errorMsg: '请先选择学校' })
+      return
+    }
     if (!/^1\d{10}$/.test(this.data.phone)) {
       this.setData({ errorMsg: '请输入有效的国内 11 位手机号' })
       return
@@ -108,9 +165,14 @@ Page({
         wxCode,
         this.data.phone,
         this.data.smsCode,
-        campusStore.getState().schoolCode || 'jiangnan',
+        this.data.selectedSchoolCode,
       )
+      const boundSchool = this.data.schools.find(school => school.id === response.user.school_id)
+      if (!boundSchool) throw new Error('账号绑定学校不可用，请联系管理员')
       await authStore.setAuth(response)
+      const previousSchoolCode = campusStore.getState().schoolCode
+      if (previousSchoolCode !== boundSchool.code) clearSchoolCache(previousSchoolCode)
+      campusStore.setSchool(boundSchool)
       wx.showToast({ title: '登录成功', icon: 'success' })
       setTimeout(() => navigateToTab('/pages/profile/profile'), 500)
     } catch (error: any) {
@@ -118,10 +180,6 @@ Page({
     } finally {
       this.setData({ loading: false })
     }
-  },
-
-  resetWechatStep() {
-    this.setData({ step: 'wechat', wxCode: '', wxCodeAt: 0, smsCode: '', errorMsg: '' })
   },
 
   onUnload() {

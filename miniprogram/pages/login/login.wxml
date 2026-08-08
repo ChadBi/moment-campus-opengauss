@@ -14,13 +14,24 @@
     </view>
 
     <view wx:else class="phone-bind-form">
-      <view class="wechat-ready">
-        <icon name="check-circle" size="32rpx" color="#3f7d62" />
-        <view class="wechat-ready-copy">
-          <text class="wechat-ready-title">微信身份已确认</text>
-          <text class="wechat-ready-tip">验证手机号后即可进入此刻校园</text>
+      <view class="form-item school-field">
+        <text class="field-label">选择学校</text>
+        <view wx:if="{{schoolLoading}}" class="input-wrap school-picker school-picker-disabled">
+          <icon name="school" size="30rpx" color="#6a7d81" />
+          <text class="school-picker-value placeholder">学校列表加载中...</text>
         </view>
-        <text class="change-wechat" bindtap="resetWechatStep">重新登录</text>
+        <view wx:elif="{{schools.length === 0}}" class="input-wrap school-picker" bindtap="loadSchools">
+          <icon name="school" size="30rpx" color="#6a7d81" />
+          <text class="school-picker-value placeholder">加载失败，点击重试</text>
+        </view>
+        <picker wx:else mode="selector" range="{{schoolNames}}" value="{{schoolIndex}}" bindchange="onSchoolChange">
+          <view class="input-wrap school-picker">
+            <icon name="school" size="30rpx" color="#174d5e" />
+            <text class="school-picker-value">{{selectedSchoolName}}</text>
+            <icon name="chevron-down" size="24rpx" color="#6a7d81" />
+          </view>
+        </picker>
+        <text class="school-binding-tip">新账号将绑定所选学校，登录后只能在个人主页切换</text>
       </view>
 
       <view class="form-item">

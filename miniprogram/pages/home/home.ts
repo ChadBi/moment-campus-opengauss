@@ -42,9 +42,28 @@ Page({
       this.setData({ isLoggedIn: state.isLoggedIn })
     })
     campusStore.subscribe(state => {
+      const previousSchoolCode = (this as any)._homeSchoolCode as string | undefined
+      ;(this as any)._homeSchoolCode = state.schoolCode
       this.setData({
         schoolName: (state.currentSchool && state.currentSchool.name) || state.schoolCode || '此刻校园',
       })
+      if (previousSchoolCode && previousSchoolCode !== state.schoolCode) {
+        this.setData({
+          activeCategoryId: 0,
+          categories: [{ id: 0, name: '全部' }],
+          recommendations: [],
+          featuredRecommendation: null,
+          hotPosts: [],
+          posts: [],
+          totalPosts: 0,
+          formattedTotal: '0',
+          homeLoaded: false,
+          lastRefreshAt: 0,
+          page: 1,
+          hasMore: true,
+        })
+        void this.loadCategories()
+      }
     })
     this.loadCategories()
   },
