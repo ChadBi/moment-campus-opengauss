@@ -117,9 +117,12 @@ Page({
       }
 
       wx.showToast({ title: '成功', icon: 'success' })
-      setTimeout(() => wx.switchTab({ url: '/pages/home/home' }), 500)
+      setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
     } catch (e: any) {
-      this.setData({ errorMsg: e.message || '操作失败' })
+      const msg = e?.message || '操作失败'
+      const status = e?.status || e?.statusCode
+      const prefix = (status === 409 || /已绑定|已被注册/.test(msg)) ? '绑定失败：' : ''
+      this.setData({ errorMsg: prefix + msg })
     } finally {
       this.setData({ loading: false })
     }

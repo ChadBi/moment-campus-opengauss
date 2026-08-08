@@ -2,7 +2,22 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（个人中心页未登录态改为「点击登录」卡片 + 隐藏登录专属菜单）
+> 最后更新：2026-08-08（微信登录链路规范化：首次登录→注册→自动绑定+登录；绑定已存在账号冲突 409 双单向校验）
+
+## 2026-08-08 执行任务：微信登录链路规范化：首次微信→注册→自动绑+登录；绑定已存在账号冲突 409 双单向校验
+
+- [x] **链路 1：首次使用微信登录 → 注册新用户 → 自动绑定微信号 + 登录 + campus_verified=False**：前端微信 Tab → `wx.login()` → `wechatExchange(code)`；当后端 `status=binding_required`（即 openid 在 `user_auth_identities` 里查不到任何账号）时，保留 binding_ticket 到 register 页 → 用户填写教育邮箱/昵称/学校/密码 → `wechatRegister` 创建新 User + 新建 `UserAuthIdentity(openid)` + 直接签发 JWT + 返回 `user` 字段 → 前端 `authStore.setAuth` 接 `user` 直接落全局 → `wx.switchTab('/pages/profile/profile')` 进入个人中心 → 顶部已登录但校园身份徽标仍显示"未认证"（campus_verified=False，符合预期，可在校园认证 Tab 继续走 6 位验证码）
+- [x] **链路 2：已注册/已绑定微信再次登录 → 直接 authenticated**：同一 `wx.login()` code 再次发起 `wechatExchange` → 后端查到 `UserAuthIdentity(wechat_miniprogram, openid)` 存在且 `is_deleted=false` → `status=authenticated`，直接返回 `access_token + refresh_token + user_id + user` → 前端 setAuth → switchTab profile
+- [x] **链路 3：邮箱 Tab「绑定该微信并登录」+ 双向冲突 409**：前端登录页邮箱 Tab 新增描边按钮「绑定该微信并登录」（先在两个 Input 填已有邮箱密码再点） → `wx.login()` → `wechatExchange(code)` → `binding_required`（如果是 authenticated 则直接 setAuth 跳 profile） → `wechatBindExisting(ticket, email, password)`。后端双向唯一检查：
+  ① **账号侧冲突（新增）**：在 `wechat_bind_existing` 加 SELECT `UserAuthIdentity(user_id, identity_type='wechat_miniprogram', is_deleted=false)` 非空 → 抛 `ConflictException(409, "该账号已绑定其他微信，不能重复绑定")`，前端 errorMsg 加前缀"绑定失败："红色显示
+  ② **微信侧冲突（原已有）**：SELECT `UserAuthIdentity(identity_key=openid, is_deleted=false)` 非空 → 抛 409（原 L212-213 已写，由 `test_wechat_bind_existing_wrong_password` 附近回归）
+- [x] **后端响应补 `user` 字段**：`WechatBindExistingResponse`、`WechatRegisterResponse` 两个 Schema 新增 `user: dict`（原 `LoginResponse` 已存在），`setAuth` 缺 user 时调 `GET /users/me` 兜底（防御性编程，见 services/users.ts `getMe`）
+- [x] **前端跳转统一 switchTab profile**：`login.ts` onWechatLogin/onEmailLogin/onBindExistingTap 三处成功分支统一改 `wx.switchTab({ url: '/pages/profile/profile' })`（原代码在跳到首页，用户反馈登录完想看个人中心却回到首页不自然）；`register.ts` 两处成功分支也改 switchTab profile
+- [x] **login.wxml 绑定文案/按钮**：邮箱 Tab 主按钮"登录"下方插入 `divider-or`（── 或 ──）+ `bind-info-text` 说明文案（已有此刻校园账号？可以先输入邮箱密码后点下方按钮，将当前微信绑定到该账号，下次直接用微信登录）+ 描边 `.submit-btn-secondary`「绑定该微信并登录」按钮；绑定错误独立显示为 `bindErrorMsg`（不与邮箱密码登录主错误 errorMsg 混用）
+- [x] **新增 `test_bind_existing_account_already_has_wechat_identity_fails`**：创建 userA → 手动 INSERT 一条绑定的 `UserAuthIdentity(userA.id, wechat_miniprogram, openid=X)` → 再用另一个 openid=Y 的 ticket 调 bind-existing → 断言 409 且 detail 包含"该账号已绑定其他微信"
+- [x] **后端 29 项 pytest 全过**：`tests/test_wechat_auth.py (17) + tests/test_auth.py (12) = 29 passed in 30s`，新增断言覆盖「响应 user 字段」与「409 冲突」
+- [x] **HTTP 端到端 3 条链路用例（AsyncClient ASGITransport）全部 PASS**：CASE A（新微信→注册→campus_verified=False）✅、CASE B（同微信再次 exchange→authenticated 同用户）✅、CASE C-1 userA 首次绑定成功/C-2 新微信再绑同一 userA→409「该账号已绑定其他微信」/C-3 已绑 openid→直接 authenticated ✅
+- [x] **微信开发者工具编译 + 无运行时异常**：`simulator_refresh` 成功；`simulator_open_page pages/login/login` 成功；365×787 JPEG 截图显示登录页正常渲染（微信 Tab + 湖蓝主登录按钮 + 副文案）；`get_simulator_console grep -i error/fail/warn/ts` 空字符串（0 运行时异常、0 TS 静态错误）
 
 ## 2026-08-08 执行任务：个人中心页未登录态改为「点击登录」统一入口
 

@@ -67,6 +67,8 @@ async def test_wechat_exchange_bound(
     assert "access_token" in data
     assert "refresh_token" in data
     assert data["user_id"] == test_user["id"]
+    assert "user" in data
+    assert data["user"]["id"] == test_user["id"]
 
 
 @pytest.mark.asyncio
@@ -96,6 +98,8 @@ async def test_wechat_bind_existing_success(
     assert "access_token" in data
     assert "refresh_token" in data
     assert data["user_id"] == test_user["id"]
+    assert "user" in data
+    assert data["user"]["id"] == test_user["id"]
 
     # 3. 验证身份已创建
     identity_check = await db_session.execute(
@@ -157,6 +161,42 @@ async def test_wechat_bind_existing_expired_ticket(client: AsyncClient, test_use
 
 
 @pytest.mark.asyncio
+async def test_bind_existing_account_already_has_wechat_identity_fails(
+    client: AsyncClient, test_user: dict, db_session: AsyncSession
+):
+    """绑定失败：账号本身已经绑过另一个微信了 → 409。"""
+    # 先给 test_user 预先绑定一个 wechat_miniprogram 身份（模拟"该账号已经绑过微信"）
+    pre_existing_identity = UserAuthIdentity(
+        user_id=test_user["id"],
+        identity_type="wechat_miniprogram",
+        identity_key="pre_bound_openid_for_conflict_test",
+        openid="pre_bound_openid_for_conflict_test",
+    )
+    db_session.add(pre_existing_identity)
+    await db_session.commit()
+
+    # 拿一张新的 binding_ticket（代表另一个微信）
+    exchange_resp = await client.post(
+        "/api/v1/auth/wechat/exchange",
+        json={"code": "conflict_already_bound_account_code"},
+    )
+    assert exchange_resp.status_code == 200
+    ticket = exchange_resp.json()["binding_ticket"]
+
+    # 尝试绑定（同一个账号 userX 已经绑过微信 A，现在要再绑微信 B → 应 409 拒绝）
+    bind_resp = await client.post(
+        "/api/v1/auth/wechat/bind-existing",
+        json={
+            "binding_ticket": ticket,
+            "email": test_user["email"],
+            "password": test_user["password"],
+        },
+    )
+    assert bind_resp.status_code == 409
+    assert "该账号已绑定其他微信" in bind_resp.json()["detail"]
+
+
+@pytest.mark.asyncio
 async def test_wechat_register_success(
     client: AsyncClient, test_school: dict, db_session: AsyncSession
 ):
@@ -183,6 +223,9 @@ async def test_wechat_register_success(
     assert "access_token" in data
     assert "refresh_token" in data
     assert data["message"] == "注册成功"
+    assert "user" in data
+    assert data["user"]["id"] >= 1
+    assert data["user"]["campus_verified"] is False  # 新用户默认未进行校园邮箱验证
 
     # 3. 验证用户已创建
     user_check = await db_session.execute(

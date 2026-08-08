@@ -38,6 +38,7 @@ class WechatBindExistingResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user_id: int
+    user: dict
     message: str = "绑定成功"
 
 
@@ -56,6 +57,7 @@ class WechatRegisterResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user_id: int
+    user: dict
     message: str = "注册成功"
 
 

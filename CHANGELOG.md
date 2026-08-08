@@ -7,6 +7,36 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.15] - 2026-08-08
+
+### 修复
+
+- **微信登录链路规范化：首次微信→注册→自动绑+登录；绑定已存在账号冲突 409 双单向校验**：
+  明确三条标准链路（对应新登录页三个主路径/两个 Tab 组合），解决"登录后不自动登进""账号/微信重复绑定却无提示""注册后没把微信绑上去"三个逻辑问题。
+
+  后端：
+  - `app/api/wechat_auth.py` `wechat_bind_existing` 新增账号侧冲突检查（该账号本身是否已绑了另一个微信？）→ 409 `"该账号已绑定其他微信，不能重复绑定"`；与原 openid 侧冲突检查形成双向唯一校验（1 账号 ↔ 1 微信）
+  - `app/schemas/wechat_auth.py` `WechatBindExistingResponse` / `WechatRegisterResponse` 新增 `user: dict` 字段（与 `LoginResponse` 保持同构）
+  - `app/api/wechat_auth.py` `wechat_bind_existing` / `wechat_register` 响应拼装时补 `user = UserResponse.model_validate(user).model_dump()`
+  - `tests/test_wechat_auth.py` 新增 `test_bind_existing_account_already_has_wechat_identity_fails`；现有 15+ 用例同步断言响应 body 包含 `user` 字段
+
+  前端：
+  - `store/auth.ts` `setAuth` 改异步：优先读响应里的 `user` 直落；只有 `user_id` 没有 `user` 时调 `services/users.ts` 的 `getMe()` → `GET /users/me` 兜底拉一次
+  - `services/users.ts` 新增 `export async function getMe(): Promise<User>`
+  - `pages/login/login.ts`：① onWechatLogin / onEmailLogin / onBindExistingTap 三处成功分支统一 `wx.switchTab('/pages/profile/profile')`；② 新增 `onBindExistingTap`（wx.login → exchange 判 authenticated→直登 / binding_required→调 bind-existing；exchange 其他状态抛错）；③ bindErrorMsg 独立状态（红色），409/含"已绑定"等关键字自动加"绑定失败："前缀
+  - `pages/login/login.wxml` 邮箱 Tab 主按钮下插入：`divider-or` 分割线（── 或 ──）+ `bind-info-text` 说明文案 + 描边「绑定该微信并登录」次级按钮 + form-links 保留
+  - `pages/login/login.wxss` 新增 `submit-btn-secondary`（白底湖蓝描边次按钮）+ `bind-info-text`（24rpx muted 文案）+ `divider-or`（两侧线段 + 中间"或"字）
+  - `pages/register/register.ts` 两处成功分支 `setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)`；catch 409 或"已绑定/已被注册"类错误加"绑定失败："前缀
+
+### 校验
+
+- `$env:APP_ENV opengauss + TEST_DATABASE_URL postgres` → `backend/.venv/Scripts/python -m pytest tests/test_wechat_auth.py tests/test_auth.py -v`：**29/29 全通过（17+12）**，耗时 30.21s
+- HTTP 链路仿真（ASGITransport AsyncClient）3 CASE 全过：
+  ✅ CASE A（新微信→binding_required→register 新用户 C）：响应含 `access_token + refresh_token + user(campus_verified=False, email=新注册)`
+  ✅ CASE B（同 CASE A 同一 code 再次 exchange）→ `status=authenticated` 且 `user.email` 与 CASE A 新邮箱一致
+  ✅ CASE C-1 新 code FLOW_C_WECHAT_FOR_USER_A → 绑定 userA → 200 id=26；C-2 新 code FLOW_C_WECHAT_DIFFERENT 去绑同一 userA → **409 `该账号已绑定其他微信，不能重复绑定`**；C-3 已绑 openid 再次 exchange → authenticated
+- `wechatide simulator_refresh`：编译通过；`simulator_open_page pages/login/login` 成功；365×787 截图登录页正常；`get_simulator_console grep -i error/fail/warn/ts` 空字符串（无运行时异常）
+
 ## [2.2.14] - 2026-08-08
 
 ### 修复

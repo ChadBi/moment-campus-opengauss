@@ -34,14 +34,44 @@ export const authStore = {
     return { ...state }
   },
 
-  setAuth(data: { access_token: string; refresh_token: string; user: User } | WechatExchangeResponse) {
-    if ('user' in data && 'access_token' in data) {
-      state.accessToken = data.access_token
-      state.refreshToken = data.refresh_token
-      state.user = data.user
+  async setAuth(
+    data:
+      | { access_token: string; refresh_token: string; user: User }
+      | WechatExchangeResponse
+      | { access_token: string; refresh_token: string; user_id: number; user?: User }
+  ): Promise<void> {
+    if (!('access_token' in data) || !data.access_token) {
+      console.warn('[authStore] setAuth 缺少 access_token', data)
+      notify()
+      return
+    }
+    state.accessToken = data.access_token
+    state.refreshToken = data.refresh_token || ''
+    syncAuthTokens(data.access_token, data.refresh_token || '')
+
+    if ('user' in data && data.user && (data.user as User).id) {
+      state.user = data.user as User
       state.isLoggedIn = true
-      // 与请求层同步：避免登录/切换账号后继续复用旧用户的内存 token。
-      syncAuthTokens(data.access_token, data.refresh_token)
+      notify()
+      return
+    }
+    if ('user_id' in data) {
+      // 后端没返回 user：自己 /users/me 拉一次
+      state.user = null
+      state.isLoggedIn = false
+      notify()
+      try {
+        const { getMe } = await import('../services/users')
+        const user = await getMe()
+        state.user = user
+        state.isLoggedIn = true
+      } catch (err) {
+        console.warn('[authStore] setAuth 后拉取 user 失败', err)
+        state.user = null
+        state.isLoggedIn = false
+      }
+    } else {
+      state.isLoggedIn = false
     }
     notify()
   },

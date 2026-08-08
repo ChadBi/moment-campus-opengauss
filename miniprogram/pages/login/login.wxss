@@ -216,3 +216,37 @@
 .guest-link-hover {
   color: var(--lake);
 }
+
+/* ============== 绑定并登录副按钮 & 分割线 ============== */
+.submit-btn-secondary {
+  background: transparent;
+  color: var(--lake);
+  border: 2rpx solid var(--lake);
+  box-shadow: none;
+  margin-top: 16rpx;
+}
+
+.bind-info-text {
+  display: block;
+  color: var(--muted);
+  font-size: 24rpx;
+  line-height: 1.6;
+  margin: 32rpx 10rpx 20rpx;
+}
+
+.divider-or {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin: 40rpx 0 10rpx;
+}
+.divider-or .line {
+  flex: 1;
+  height: 2rpx;
+  background: var(--line);
+}
+.divider-or .divider-text {
+  color: var(--muted);
+  font-size: 22rpx;
+  padding: 0 6rpx;
+}

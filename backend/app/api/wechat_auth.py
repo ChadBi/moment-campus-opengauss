@@ -199,6 +199,18 @@ async def wechat_bind_existing(
     if not user.is_active or user.is_deleted:
         raise UnauthorizedException(detail="账号已被禁用或删除")
 
+    # 3.1 防御：该账号本身是否已绑定了另一个微信？
+    # 一个账号只能有一条 wechat_miniprogram 身份（防止一号多绑导致用户下次登录时不知道登到谁）
+    account_already_wechat_check = await db.execute(
+        select(UserAuthIdentity).where(
+            UserAuthIdentity.user_id == user.id,
+            UserAuthIdentity.identity_type == "wechat_miniprogram",
+            UserAuthIdentity.is_deleted == False,
+        )
+    )
+    if account_already_wechat_check.scalar_one_or_none() is not None:
+        raise ConflictException(detail="该账号已绑定其他微信，不能重复绑定")
+
     # 3. 创建微信身份记录
     # 检查是否已绑定同一 openid
     existing = await db.execute(
@@ -251,10 +263,12 @@ async def wechat_bind_existing(
 
     logger.info(f"微信绑定成功: user_id={user.id} openid={bt.openid[:8]}...")
 
+    user_data = UserResponse.model_validate(user).model_dump()
     return WechatBindExistingResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         user_id=user.id,
+        user=user_data,
         message="绑定成功",
     )
 
@@ -363,10 +377,12 @@ async def wechat_register(
 
     logger.info(f"微信注册成功: user_id={user.id} openid={bt.openid[:8]}...")
 
+    user_data = UserResponse.model_validate(user).model_dump()
     return WechatRegisterResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         user_id=user.id,
+        user=user_data,
         message="注册成功",
     )
 

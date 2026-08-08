@@ -1,5 +1,5 @@
 import { authStore } from '../../store/auth'
-import { wechatExchange, emailLogin } from '../../services/auth'
+import { wechatExchange, emailLogin, wechatBindExisting } from '../../services/auth'
 
 Page({
   data: {
@@ -8,12 +8,15 @@ Page({
     email: '',
     password: '',
     errorMsg: '',
+    bindLoading: false,
+    bindErrorMsg: '',
   },
 
   switchMode(e: any) {
     this.setData({
       mode: e.currentTarget.dataset.mode,
       errorMsg: '',
+      bindErrorMsg: '',
     })
   },
 
@@ -46,18 +49,12 @@ Page({
       const exchangeRes = await wechatExchange(loginRes.code)
 
       if (exchangeRes.status === 'authenticated') {
-        authStore.setAuth({
-          access_token: exchangeRes.access_token,
-          refresh_token: exchangeRes.refresh_token,
-          user: exchangeRes.user,
-        })
+        await authStore.setAuth(exchangeRes as any)
         wx.showToast({ title: '登录成功', icon: 'success' })
-        setTimeout(() => wx.switchTab({ url: '/pages/home/home' }), 500)
+        setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
       } else if (exchangeRes.status === 'binding_required') {
-        // 首次微信登录直接进入与普通注册一致的邮箱注册表单，
-        // 不再默认落到“绑定已有账号”的密码表单。
         wx.navigateTo({
-          url: `/pages/register/register?ticket=${exchangeRes.binding_ticket}`,
+          url: `/pages/register/register?ticket=${exchangeRes.binding_ticket}&from=login`,
         })
       }
     } catch (e: any) {
@@ -77,13 +74,54 @@ Page({
 
     try {
       const res = await emailLogin(this.data.email, this.data.password)
-      authStore.setAuth(res)
+      await authStore.setAuth(res)
       wx.showToast({ title: '登录成功', icon: 'success' })
-      setTimeout(() => wx.switchTab({ url: '/pages/home/home' }), 500)
+      setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
     } catch (e: any) {
       this.setData({ errorMsg: e.message || '登录失败' })
     } finally {
       this.setData({ loading: false })
+    }
+  },
+
+  async onBindExistingTap() {
+    if (this.data.loading || this.data.bindLoading) return
+    if (!this.data.email || !this.data.password) {
+      this.setData({ errorMsg: '请先填写邮箱和密码' })
+      return
+    }
+    this.setData({ bindLoading: true, bindErrorMsg: '', errorMsg: '' })
+    try {
+      const code = await new Promise<string>((resolve, reject) => {
+        wx.login({
+          success: res => (res.code ? resolve(res.code) : reject(new Error('微信登录失败'))),
+          fail: () => reject(new Error('微信登录失败')),
+        })
+      })
+      const exchangeRes = await wechatExchange(code)
+      if (exchangeRes.status === 'authenticated') {
+        await authStore.setAuth(exchangeRes as any)
+        wx.showToast({ title: '该微信已直接登录', icon: 'success' })
+        setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
+        return
+      }
+      if (exchangeRes.status !== 'binding_required') {
+        throw new Error('微信状态异常，请重试')
+      }
+      const bindRes = await wechatBindExisting(
+        exchangeRes.binding_ticket,
+        this.data.email,
+        this.data.password,
+      )
+      await authStore.setAuth(bindRes as any)
+      wx.showToast({ title: '绑定并登录成功', icon: 'success' })
+      setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
+    } catch (e: any) {
+      const raw = e?.message || '绑定失败'
+      const prefix = /已绑定|不能重复/.test(raw) ? '绑定失败：' : ''
+      this.setData({ bindErrorMsg: prefix + raw })
+    } finally {
+      this.setData({ bindLoading: false })
     }
   },
 
@@ -98,7 +136,7 @@ Page({
     }).then(code => wechatExchange(code)).then(res => {
       if (res.status !== 'binding_required') throw new Error('该微信已绑定账号，请直接登录')
       wx.navigateTo({
-        url: `/pages/register/register?ticket=${res.binding_ticket}`,
+        url: `/pages/register/register?ticket=${res.binding_ticket}&from=login`,
       })
     }).catch((e: any) => {
       this.setData({ errorMsg: e.message || '注册入口打开失败' })
@@ -107,8 +145,6 @@ Page({
 
   goToHome() {
     const url = '/pages/home/home'
-    // 登录页可能是通过 reLaunch/navigateTo 打开的，部分开发者工具版本
-    // 对此时的 switchTab 不回调；失败时用 reLaunch 保证游客入口可用。
     wx.switchTab({
       url,
       fail: err => {

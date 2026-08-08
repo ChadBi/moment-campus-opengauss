@@ -66,6 +66,15 @@
       <view class="submit-btn {{loading ? 'disabled' : ''}}" bindtap="onEmailLogin" hover-class="submit-btn-hover" hover-stay-time="120">
         <text>{{loading ? '登录中...' : '登录'}}</text>
       </view>
+      <view wx:if="{{bindErrorMsg}}" class="error-msg" style="margin-top: 20rpx;">
+        <icon name="alert-circle" size="24rpx" color="#cd5852" />
+        <text>{{bindErrorMsg}}</text>
+      </view>
+      <view class="divider-or"><view class="line"></view><text class="divider-text">或</text><view class="line"></view></view>
+      <text class="bind-info-text">已有此刻校园账号？可以先输入邮箱密码后点下方按钮，将当前微信绑定到该账号，下次直接用微信登录</text>
+      <view class="submit-btn submit-btn-secondary {{bindLoading ? 'disabled' : ''}}" bindtap="onBindExistingTap" hover-class="submit-btn-hover" hover-stay-time="120">
+        <text>{{bindLoading ? '绑定中...' : '绑定该微信并登录'}}</text>
+      </view>
       <view class="form-links">
         <text class="link-register" bindtap="goToRegister">还没有账号？立即注册</text>
         <text class="link-forgot" bindtap="goToForgotPassword">忘记密码？</text>
