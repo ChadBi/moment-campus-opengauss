@@ -18,7 +18,7 @@ export async function aiSearch(params: {
   page?: number
   page_size?: number
 }): Promise<SearchResult> {
-  return normalizeSearchResult(await http.post<any>('/search/ai', params))
+  return normalizeSearchResult(await http.post<any>('/search/ai', params, { timeout: 60000, loading: true }))
 }
 
 export async function getHotTags(): Promise<{ tags: string[] }> {

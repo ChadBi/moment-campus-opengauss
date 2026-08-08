@@ -158,10 +158,12 @@ export interface RequestOptions {
   /** 临时为学校切换/注册等请求指定租户，不写入本地状态。 */
   schoolCode?: string
   loading?: boolean
+  /** 自定义超时时间（毫秒），默认15秒；AI搜索等慢接口可设为60000 */
+  timeout?: number
 }
 
 export async function request<T = any>(options: RequestOptions): Promise<T> {
-  const { url, method = 'GET', data, header = {}, schoolCode, loading = false } = options
+  const { url, method = 'GET', data, header = {}, schoolCode, loading = false, timeout = REQUEST_TIMEOUT } = options
   const fullUrl = buildFullUrl(url)
   const authUrl = isAuthUrl(url)
 
@@ -192,7 +194,7 @@ export async function request<T = any>(options: RequestOptions): Promise<T> {
         method: method as any,
         data,
         header: headers,
-        timeout: REQUEST_TIMEOUT,
+        timeout,
         success: r => resolve({ statusCode: r.statusCode, data: r.data }),
         fail: err => reject(err),
       })
@@ -213,7 +215,7 @@ export async function request<T = any>(options: RequestOptions): Promise<T> {
             method: method as any,
             data,
             header: headers,
-            timeout: REQUEST_TIMEOUT,
+            timeout,
             success: r => resolve({ statusCode: r.statusCode, data: r.data }),
             fail: reject,
           })
