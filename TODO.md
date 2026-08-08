@@ -2,7 +2,30 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（小程序三页面密码框交互修复：默认隐藏 + 眼睛图标切换明文/密文 + 新增 eye-off 图标 + 找回密码页面同步补齐）
+> 最后更新：2026-08-08（排查修复账号 1030424433@stu.jiangnan.edu.cn 无法直接微信登录：MOCK 模式 openid 恒常化为固定常量 + 清理旧 mock_* 垃圾身份）
+
+## 2026-08-08 执行任务：排查并修复「本地账号无法直接微信登录」Bug（wechat MOCK 模式 openid 每次变化）
+
+- [x] **Phase 1 证据收集（四条线索全部对上）**：
+  - ① `seed_data.py`：演示账号（user1@jiangnan 等）在 seed 阶段未给 UserAuthIdentity 插入任何 wechat_miniprogram 记录，非本次 Bug 根因
+  - ② 登录页 `login.ts onWechatLogin`：exchange 成功后正确判 `status === 'authenticated'` 直接跳首页，`binding_required` 跳注册/绑定，分支逻辑无问题
+  - ③ 后端 `wechat_auth.py`：exchange 用 `identity_type == 'wechat_miniprogram' AND identity_key == openid` 查 UserAuthIdentity，bind_existing 做了「账号已绑微信 / 微信已绑账号」双向唯一校验，逻辑正确
+  - ④ 后端 `wechat.py exchange_wechat_code`：⚠️ **MOCK 模式 Bug 定位** — AppID/AppSecret 未配置时用 `f"mock_openid_{code[:16]}"` 生成 openid，而 wx.login() 的 code 是一次性临时码，每次点微信登录都会变，导致 openid 永远不稳定，永远查不到已绑记录
+- [x] **Phase 1-5 数据库铁证（实锤 openid 不稳定）**：
+  - 目标账号 `1030424433@stu.jiangnan.edu.cn`（user_id=25，昵称 chai_na）存在，密码 hash 已设置，未删除
+  - 该账号在 `user_auth_identities` 表中有 **3 条身份记录**：email_password ×1、wechat_miniprogram ×2（`mock_openid_0e1ox1Ga1QVwcM0Z` / `mock_openid_0d1iymll2gXtci4Q`，分别在 09:59 和 10:27 由同一路径产生，印证每次点击都绑新 openid，形成垃圾记录堆积）
+  - 全局统计共 4 条 mock_* 微信身份（另 2 条属于 flow 测试临时用户 flow_userA / flow_userC）
+- [x] **Phase 2 根因总结**：MOCK 模式下 openid 派生自 wx.login() 临时 code → code 每次都变 → openid 每次都变 → 即便同一个开发者账号反复点「绑定该微信并登录」，也只会不断在 DB 堆积新的 mock_ 身份，下一次点击依然查不到匹配，永远命中 binding_required 分支，永远跳注册页，**模拟模式下的「绑定 → 直接登录」链路从未真正跑通过**。
+- [x] **Phase 3 最小代码修复（wechat.py）**：
+  - 新增模块级常量 `MOCK_STATIC_OPENID = "MOCK_OPENID_STATIC_20260808_LOCAL_DEV"`（大写 `MOCK_` 前缀，与旧小写 `mock_openid_` 不冲突，方便清理）
+  - `exchange_wechat_code` 未配 AppID/Secret 分支改为直接返回 `MOCK_STATIC_OPENID`，**不再依赖 code**，模拟真实微信 code2Session 行为：同一微信用户无论传什么临时 code，openid 都稳定不变
+  - `session_key` 改为进程内仅生成一次（`_MOCK_STATIC_SESSION_KEY`），避免无意义的 secrets 调用
+  - 导出 `MOCK_STATIC_OPENID` 符号，供测试侧直接引用，避免魔法字符串双写
+- [x] **Phase 3 测试侧同步更新（test_wechat_auth.py）**：`test_wechat_exchange_bound` 用例将「根据 code 推导 openid」逻辑改为直接使用 `from app.services.wechat import MOCK_STATIC_OPENID`，注释同步更新为说明「openid 与 code 无关，模拟真实行为」
+- [x] **Phase 4-1 清理数据库垃圾记录**：执行硬删除，清理所有 `identity_type=wechat_miniprogram AND identity_key LIKE 'mock_openid_%'`（小写旧规则）的记录共 4 条（user_id=25 ×2、user_id=26/28 ×1 each）。清理后 user_id=25 仅剩 1 条 email_password 身份，状态干净
+- [x] **Phase 4-2 pytest 微信回归 21/21 通过**：`$env:TEST_DATABASE_URL="postgresql+asyncpg://gaussdb:Gaussdb%40123@localhost:5432/moment_campus_test" ; pytest tests/test_wechat_auth.py -v` 共 21 项全部 PASS（exchange_unbound / exchange_bound / bind_existing_3case / already_has_wechat / register_6case / identities_4case / sessions_3case / email_login / register_creates / login_lazy_creates），修复未引入任何回归
+- [x] **临时脚本清理**：任务过程中创建的 `scripts/check_wechat_binding.py`、`scripts/cleanup_old_mock_wechat.py` 已删除，不污染 scripts 目录
+- [ ] **微信开发者工具手动验证链路**：开发者在微信开发者工具里：① 切「邮箱」Tab → 填 `1030424433@stu.jiangnan.edu.cn + 密码 pass123` → 点次级按钮「绑定该微信并登录」；② 退出登录；③ 再切「微信」Tab 直接点「微信一键登录」—— 应直接进入首页，不再跳注册/绑定页（此步需要人在开发者工具里手动操作并刷新 App，自动化工具无法覆盖）
 
 ## 2026-08-08 执行任务：小程序密码框默认隐藏 + 眼睛图标切换（登录/注册/找回密码三页面）
 

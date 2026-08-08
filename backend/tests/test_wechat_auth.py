@@ -19,6 +19,7 @@ from app.models.user import User
 from app.models.user_auth_identity import UserAuthIdentity
 from app.models.auth_session import AuthSession, BindingTicket
 from app.core.security import get_password_hash, verify_password
+from app.services.wechat import MOCK_STATIC_OPENID
 
 
 @pytest.mark.asyncio
@@ -41,10 +42,10 @@ async def test_wechat_exchange_bound(
     client: AsyncClient, test_user: dict, db_session: AsyncSession
 ):
     """已绑定用户调用 exchange → 直接返回 JWT。"""
-    # mock 模式下 openid = f"mock_openid_{code[:16]}"
-    # 使用已知 code 确定对应 openid
+    # 模拟模式下 openid 固定为 MOCK_STATIC_OPENID（与 code 无关，模拟真实 code2Session 行为：
+    # 同一微信用户无论传什么临时 code 都会返回同一个稳定 openid）
     test_code = "test_code_for_bound_user"
-    expected_openid = f"mock_openid_{test_code[:16]}"
+    expected_openid = MOCK_STATIC_OPENID
 
     # 先给测试用户绑定一个微信身份
     identity = UserAuthIdentity(

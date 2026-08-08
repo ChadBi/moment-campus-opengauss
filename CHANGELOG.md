@@ -41,6 +41,14 @@
 
 ### 修复
 
+- **本地开发模式「微信直接登录」永远失败 Bug 修复（MOCK 模式 openid 恒常化）**：
+  后端未配置 `WECHAT_APPID`/`WECHAT_APPSECRET` 时，`exchange_wechat_code` 的 mock 分支将 openid 从 `f"mock_openid_{code[:16]}"`（派生自 wx.login() 临时 code，每次点击都变）改为**固定常量** `MOCK_OPENID_STATIC_20260808_LOCAL_DEV`，模拟真实微信 code2Session 行为：同一微信用户无论传什么临时 code，openid 都稳定不变。
+  - 修复前：同一开发者反复点微信登录，会在 `user_auth_identities` 表不断堆积 `mock_` 开头的身份记录，但下次点击永远匹配不上，永远跳注册页（链路从未跑通过）
+  - 修复后：绑定一次即可，后续所有「微信 Tab → 一键登录」直接命中 `authenticated` 分支，直接进首页
+  - 修改文件：`app/services/wechat.py`（新增常量 + mock 分支改为常量返回）、`tests/test_wechat_auth.py`（同步更新 `test_wechat_exchange_bound` 用例，从代码推导 openid 改为直接引用导出的常量）
+  - 数据库清理：删除所有旧规则下 `identity_key LIKE 'mock_openid_%'`（小写前缀）的垃圾身份共 4 条（其中 2 条属于账号 `1030424433@stu.jiangnan.edu.cn`），避免再次误命中
+  - 回归：`pytest tests/test_wechat_auth.py -v` → **21/21 全绿**，无任何回归
+
 - **小程序三页面密码框交互修复（默认隐藏小圆点 + 眼睛图标切换明文/密文）**：
   原错误写法 `<input type="password">` 在小程序部分版本/真机中降级为明文显示（密码裸奔），统一改为官方推荐 `<input type="text" password="{{布尔值}}">` + 右侧眼睛图标按钮切换。
 

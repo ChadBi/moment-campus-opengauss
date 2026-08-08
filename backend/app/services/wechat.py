@@ -14,6 +14,13 @@ from app.models.auth_session import BindingTicket
 
 logger = logging.getLogger(__name__)
 
+# 开发模式（未配置微信 AppID/AppSecret）下使用的固定模拟 openid。
+# 必须是跨进程、跨 wx.login() 调用稳定不变的常量，否则「已绑定微信身份 → 直接登录」链路
+# 在本地永远跑不通：wx.login() 返回的临时 code 每次都不同，若 openid 从 code 派生会每次都变。
+# 真实生产环境 code2Session 对同一微信用户返回恒定 openid，与 code 无关，此常量正是模拟此行为。
+MOCK_STATIC_OPENID = "MOCK_OPENID_STATIC_20260808_LOCAL_DEV"
+_MOCK_STATIC_SESSION_KEY = f"mock_session_key_{secrets.token_hex(16)}"  # 进程内稳定即可
+
 
 def _hash_token(token: str) -> str:
     """对明文 token 取 SHA-256 哈希；DB 仅存哈希。"""
@@ -38,10 +45,13 @@ async def exchange_wechat_code(code: str) -> dict:
         BadRequestException: 微信接口返回错误
     """
     if not settings.WECHAT_APPID or not settings.WECHAT_APPSECRET:
-        logger.warning("微信 AppID/AppSecret 未配置，使用模拟模式")
+        logger.warning(
+            "微信 AppID/AppSecret 未配置，使用模拟模式（固定 openid=%s，与 code 无关）。",
+            MOCK_STATIC_OPENID[:16],
+        )
         return {
-            "openid": f"mock_openid_{code[:16]}",
-            "session_key": f"mock_session_key_{secrets.token_hex(16)}",
+            "openid": MOCK_STATIC_OPENID,
+            "session_key": _MOCK_STATIC_SESSION_KEY,
             "unionid": None,
         }
 
