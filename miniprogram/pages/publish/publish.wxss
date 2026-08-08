@@ -389,7 +389,8 @@
   padding: 18rpx 30rpx;
   background: var(--paper);
   box-shadow: 0 -2rpx 12rpx rgba(21, 38, 41, 0.06);
-  padding-bottom: calc(18rpx + env(safe-area-inset-bottom));
+  /* bottom 已包含 TabBar 的安全区，操作栏内部不再重复叠加安全区。 */
+  padding-bottom: 18rpx;
   z-index: 1000;
 }
 
