@@ -16,7 +16,7 @@ interface WxMarker extends MapMarker {
     borderRadius: number
     bgColor: string
     padding: number
-    display: 'BYCLICK'
+    display: 'ALWAYS'
   }
 }
 
@@ -33,9 +33,8 @@ function formatStars(score: number): string {
 }
 
 function formatCallout(location: LocationItem): string {
-  const score = location.avg_score > 0 ? location.avg_score.toFixed(1) : '暂无评分'
-  const verified = location.is_verified ? '已核验' : '待核验'
-  return `${location.name} · ${score} · ${verified}`
+  const score = location.avg_score > 0 ? `★${location.avg_score.toFixed(1)}` : '暂无评分'
+  return `${location.name} · ${score}`
 }
 
 function buildMarker(location: LocationItem, selected = false): WxMarker {
@@ -57,7 +56,7 @@ function buildMarker(location: LocationItem, selected = false): WxMarker {
       borderRadius: 14,
       bgColor: '#fafcfb',
       padding: 8,
-      display: 'BYCLICK',
+      display: 'ALWAYS',
     },
   }
 }
