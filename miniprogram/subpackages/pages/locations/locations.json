@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "校园地点",
+  "navigationStyle": "custom",
   "usingComponents": {
     "icon": "/components/icon/icon",
     "skeleton": "/components/skeleton/skeleton",

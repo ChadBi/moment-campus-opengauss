@@ -16,6 +16,11 @@ function formatStars(score: number): string {
 
 Page({
   data: {
+    // 自定义导航栏
+    statusBarHeight: 0,
+    navBarHeight: 44,
+    navBarTotalHeight: 44,
+    backTitle: '返回',
     isLoggedIn: false,
     campusVerified: false,
     schoolName: '',
@@ -51,6 +56,27 @@ Page({
   },
 
   onLoad(options: Record<string, string | undefined>) {
+    // ============ 自定义导航栏尺寸计算 ============
+    try {
+      const sysInfo = wx.getSystemInfoSync()
+      const statusBarHeight = sysInfo.statusBarHeight || 20
+      let navBarHeight = 44
+      try {
+        const rect = wx.getMenuButtonBoundingClientRect()
+        // 胶囊按钮 top - 状态栏高度 = 胶囊与状态栏间隙；整体高度 = 间隙*2 + 胶囊高度
+        const gap = rect.top - statusBarHeight
+        navBarHeight = Math.max(44, gap * 2 + rect.height)
+      } catch {
+        navBarHeight = 44
+      }
+      this.setData({
+        statusBarHeight,
+        navBarHeight,
+        navBarTotalHeight: statusBarHeight + navBarHeight,
+      })
+    } catch {
+      this.setData({ statusBarHeight: 20, navBarHeight: 44, navBarTotalHeight: 64 })
+    }
     ;(this as any)._locationRequestVersion = 0
     ;(this as any)._campusReady = false
     this.setData({ mode: options?.mode || '' })
@@ -372,6 +398,17 @@ Page({
         }
       },
     })
+  },
+
+  // ============== 自定义导航栏返回 ==============
+  onBackTap() {
+    const pages = getCurrentPages()
+    if (pages && pages.length > 1) {
+      wx.navigateBack({ delta: 1 })
+    } else {
+      // 栈空（分享/扫码/从系统入口进入）：降级回到首页，与🏠原行为等价但视觉是返回箭头
+      wx.switchTab({ url: '/pages/home/home' })
+    }
   },
 
   goToLogin() {

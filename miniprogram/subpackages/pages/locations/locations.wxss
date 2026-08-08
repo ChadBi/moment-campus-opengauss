@@ -1,12 +1,88 @@
 .locations-page {
   min-height: 100vh;
-  padding: 24rpx 24rpx 60rpx;
+  padding: 0 0 60rpx;
   box-sizing: border-box;
+  background: var(--mist, #f3f6f7);
+}
+
+/* ============== 自定义导航栏 ============== */
+.custom-nav {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: var(--paper, #ffffff);
+  z-index: 999;
+  box-sizing: border-box;
+}
+
+.custom-nav-status {
+  width: 100%;
+}
+
+.custom-nav-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12rpx;
+  box-sizing: border-box;
+}
+
+.custom-nav-back {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(21, 38, 41, 0.04);
+  transition: background 0.18s ease, transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.custom-nav-back-hover {
+  background: rgba(23, 77, 94, 0.12);
+  transform: scale(0.92);
+}
+
+.custom-nav-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 55%;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--ink, #152629);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 1rpx;
+}
+
+.custom-nav-placeholder {
+  width: 64rpx;
+  height: 64rpx;
+  flex-shrink: 0;
+}
+
+.custom-nav-shadow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1rpx;
+  height: 1rpx;
+  background: rgba(21, 38, 41, 0.06);
+  box-shadow: 0 6rpx 16rpx rgba(21, 38, 41, 0.05);
 }
 
 /* 页面入场动画不能包住 fixed 弹层，否则 fixed 会以整页文档而非当前视口为定位基准。 */
 .locations-content {
+  padding: 24rpx 24rpx 0;
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* ============== 顶部标题 ============== */

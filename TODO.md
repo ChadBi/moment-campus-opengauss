@@ -2,7 +2,16 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-07（小程序校园地点页搜索栏样式补齐）
+> 最后更新：2026-08-08（校园地点页主页按钮改为返回按钮）
+
+## 2026-08-08 执行任务：校园地点页主页按钮改为返回按钮
+
+- [x] **🏠主页按钮根因定位**：校园地点页（subpackages/pages/locations）使用系统原生 `navigationStyle:default`，当页面通过分享卡片/扫码/外部入口进入时，页面栈为空，微信会在原生导航栏左上角强制显示「返回首页」🏠图标——这是系统行为，**不能通过 JSON 配置改图标**。普通 navigateTo 进入时系统显示"返回<"，两端入口显示不一致。
+- [x] **切换到 navigationStyle:custom**：`locations.json` 删除 `navigationBarTitleText`、新增 `navigationStyle: custom`，接管导航栏绘制权，不再依赖系统返回/主页按钮。
+- [x] **自绘自定义导航栏（精确高度）**：onLoad 中用 `wx.getSystemInfoSync().statusBarHeight` + `wx.getMenuButtonBoundingClientRect()` 计算 `navBarHeight = gap*2 + 胶囊高度`，WXML 三层结构 `.custom-nav-status`（状态栏占位）+ `.custom-nav-content`（返回←+标题+占位）+ `.custom-nav-shadow`（底部分割阴影），高度全部通过 `style="height:{{...}}px"` 精确注入，适配刘海屏、灵动岛、不同尺寸机型。
+- [x] **返回按钮与安全逻辑**：新增 `icon/chevron-left` 图标（lucide 标准路径），圆形 64rpx + 浅灰背景 + hover 缩放反馈；`onBackTap()` 按页面栈长度分支——`getCurrentPages().length > 1` → `navigateBack({delta:1})`；栈空（分享/扫码等系统入口）→ 降级 `switchTab('/pages/home/home')`，与原🏠行为等价但视觉始终是统一的"← 返回"，两端入口一致。
+- [x] **icon 组件补齐 chevron-left**：[icon.ts](miniprogram/components/icon/icon.ts) ICON_PATHS 映射新增 chevron-left 标准 SVG 路径，避免返回箭头图标空白。
+- [x] **微信开发者工具编译 & 截图验证**：`simulator_refresh` + `simulator_open_page locations` 成功；最终截图（365×787）显示：① 左上角 ← 返回圆形按钮（不是🏠！）；② 居中显示"校园地点"加粗标题；③ 状态栏安全区无重叠；④ 搜索胶囊与地点卡片正常；⑤ console grep error/warn 空字符串；⑥ 点击返回按钮后跳回首页（栈空情况下 switchTab 行为正确）。
 
 ## 2026-08-07 执行任务：小程序校园地点页搜索栏样式补齐
 

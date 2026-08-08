@@ -1,4 +1,17 @@
 <view class="locations-page">
+  <!-- ============== 自定义导航栏（替换原生🏠为←返回） ============== -->
+  <view class="custom-nav" style="height: {{navBarTotalHeight}}px;">
+    <view class="custom-nav-status" style="height: {{statusBarHeight}}px;"></view>
+    <view class="custom-nav-content" style="height: {{navBarHeight}}px;">
+      <view class="custom-nav-back" bindtap="onBackTap" hover-class="custom-nav-back-hover" hover-stay-time="120">
+        <icon name="chevron-left" size="36rpx" color="#152629" />
+      </view>
+      <text class="custom-nav-title">校园地点</text>
+      <view class="custom-nav-placeholder"></view>
+    </view>
+    <view class="custom-nav-shadow"></view>
+  </view>
+
   <view class="locations-content page-fade-in">
     <!-- 顶部标题 -->
     <view class="page-header">

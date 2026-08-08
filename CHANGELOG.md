@@ -7,6 +7,27 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.13] - 2026-08-08
+
+### 修复
+
+- **小程序校园地点页原生🏠主页按钮改为统一返回箭头**：
+  问题：当校园地点页（`subpackages/pages/locations`）通过分享卡片/扫码/系统菜单等「栈空入口」进入时，微信原生导航栏左上角会强制显示🏠返回首页图标；而从 navigateTo 常规入口进入时则显示<返回，入口间显示不一致且用户偏好返回语义。
+  由于原生导航栏的🏠图标不可通过 JSON 静态配置替换（经验 ID 310587），采用策略B——自绘自定义导航栏并统一为返回箭头：
+  - `locations.json`：删除 `navigationBarTitleText`，切换 `navigationStyle: custom`
+  - `locations.ts` onLoad：精确计算 `statusBarHeight + navBarHeight`（基于 `getSystemInfoSync + getMenuButtonBoundingClientRect` 胶囊尺寸推导，默认回退 20+44）并注入 data
+  - `locations.wxml`：页面最顶端插入 `.custom-nav`（sticky top0 + z999）→ `.custom-nav-status` 状态栏占位 + `.custom-nav-content` 左返回按钮 + 中央绝对居中标题 + 右对称占位 + `.custom-nav-shadow` 底部分割阴影
+  - `onBackTap` 双分支：`getCurrentPages().length > 1` → `wx.navigateBack({delta:1})`；否则 → `wx.switchTab('/pages/home/home')`（与原🏠行为等价但视觉始终是返回←）
+  - `locations.wxss`：补 `.custom-nav-*` 5 个选择器，返回按钮圆形 64rpx、hover 缩放 0.92 变湖蓝；背景使用 `--paper` 与品牌色一致；.locations-page padding-top 改为 0，内容下移 24rpx padding 由 locations-content 承载
+  - `components/icon/icon.ts`：ICON_PATHS 补齐 `chevron-left` 路径（lucide 标准），避免箭头空白
+
+### 校验
+
+- `wechatide simulator_refresh`：编译通过，无 WXML/WXSS/TS 报错
+- `wechatide simulator_open_page subpackages/pages/locations/locations`：直达校园地点页
+- 截图（365×787 JPEG）验证：① 左上角显示 ← 返回圆形按钮（不再是🏠主页图标）；② "校园地点"标题加粗居中；③ 状态栏与内容不重叠；④ 搜索胶囊与7张地点卡片正常渲染；⑤ 点击返回后返回首页（栈空 switchTab 行为符合预期）
+- `get_simulator_console grep -i error/fail/warn`：空字符串，无运行时异常
+
 ## [2.2.12] - 2026-08-07
 
 ### 修复
