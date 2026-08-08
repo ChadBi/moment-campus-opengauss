@@ -31,8 +31,11 @@ Page({
   data: {
     mode: '' as string,
     schools: [] as SchoolView[],
+    filteredSchools: [] as SchoolView[],
+    searchQuery: '' as string,
     selectedId: 0 as number,
     selectedCode: '' as string,
+    selectedName: '' as string,
     loading: false,
     submitting: false,
   },
@@ -57,8 +60,11 @@ Page({
       }))
       this.setData({
         schools,
+        filteredSchools: schools,
+        searchQuery: '',
         selectedId: currentId,
         selectedCode: (current && current.code) || '',
+        selectedName: (current && current.name) || '',
       })
     } catch (e: any) {
       wx.showToast({ title: e.message || '加载学校失败', icon: 'none' })
@@ -67,16 +73,40 @@ Page({
     }
   },
 
+  onSearchInput(e: any) {
+    const searchQuery = String(e?.detail?.value || '').trim().toLowerCase()
+    const filteredSchools = this.filterSchools(searchQuery)
+    this.setData({ searchQuery, filteredSchools })
+  },
+
+  filterSchools(searchQuery: string, schools = this.data.schools): SchoolView[] {
+    if (!searchQuery) return schools
+    return schools.filter(school => {
+      const searchable = [school.name, school.code, school.province, school.city, school.description]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return searchable.includes(searchQuery)
+    })
+  },
+
+  clearSearch() {
+    this.setData({ searchQuery: '', filteredSchools: this.data.schools })
+  },
+
   onSelectSchool(e: any) {
     const id = Number(e.currentTarget.dataset.id)
     const schools = this.data.schools.map(s => ({
       ...s,
       selected: s.id === id,
     }))
+    const selected = schools.find(s => s.id === id)
     this.setData({
       schools,
+      filteredSchools: this.filterSchools(this.data.searchQuery, schools),
       selectedId: id,
-      selectedCode: (this.data.schools.find(s => s.id === id) || {}).code || '',
+      selectedCode: selected?.code || '',
+      selectedName: selected?.name || '',
     })
   },
 
