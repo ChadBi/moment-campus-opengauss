@@ -7,6 +7,7 @@
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
+from app.models.school import School
 
 
 @pytest_asyncio.fixture
@@ -139,3 +140,66 @@ async def test_verified_user_can_create_post(
         headers=auth_headers,
     )
     assert res.status_code == 201
+
+
+async def test_switch_keeps_registration_auth_but_other_school_is_read_only(
+    client: AsyncClient,
+    auth_headers: dict,
+    test_school: dict,
+    test_category: dict,
+    db_session,
+):
+    """注册学校认证保留；切换到其他学校不开放认证且普通用户只能浏览。"""
+    other_school = School(name="只读演示大学", code="readonly-demo", is_active=True)
+    db_session.add(other_school)
+    await db_session.commit()
+
+    switched = await client.post(
+        f"/api/v1/schools/{other_school.code}/join",
+        headers=auth_headers,
+    )
+    assert switched.status_code == 200, switched.text
+    assert switched.json()["switched"] is True
+
+    other_headers = {**auth_headers, "X-School-Code": other_school.code}
+    send_verify = await client.post(
+        "/api/v1/users/me/verify-campus/send",
+        headers=other_headers,
+    )
+    assert send_verify.status_code == 403
+    assert "注册时选择的学校" in send_verify.json()["detail"]
+
+    post = await client.post(
+        "/api/v1/posts",
+        json={
+            "title": "跨校只读测试帖子",
+            "content": "切换到其他学校后普通用户不能发布内容",
+            "category_id": test_category["id"],
+            "is_anonymous": False,
+        },
+        headers=other_headers,
+    )
+    assert post.status_code == 403
+
+    me = await client.get("/api/v1/users/me", headers=other_headers)
+    assert me.status_code == 200
+    assert me.json()["campus_verified"] is True
+    assert me.json()["registration_school_id"] == test_school["id"]
+
+    switched_back = await client.post(
+        f"/api/v1/schools/{test_school['code']}/join",
+        headers=other_headers,
+    )
+    assert switched_back.status_code == 200, switched_back.text
+
+    restored = await client.post(
+        "/api/v1/posts",
+        json={
+            "title": "切回注册学校后恢复写入",
+            "content": "切回注册学校后原来的校园身份认证仍然有效",
+            "category_id": test_category["id"],
+            "is_anonymous": False,
+        },
+        headers=auth_headers,
+    )
+    assert restored.status_code == 201, restored.text

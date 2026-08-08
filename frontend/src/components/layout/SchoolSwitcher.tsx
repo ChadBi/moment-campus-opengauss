@@ -279,7 +279,7 @@ export const SchoolSwitcher: React.FC = () => {
             <div className="border-t border-line/40 px-3 py-2 text-[11px] text-ink-muted">
               {user?.role === 'super_admin'
                 ? '点击未加入学校将自动申请加入'
-                : '切换学校将重新进行校园身份认证'}
+                : '注册学校可进行校园身份认证，其他学校仅支持浏览'}
             </div>
           )}
         </div>

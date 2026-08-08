@@ -31,7 +31,8 @@ from app.schemas.user import (
 )
 from app.schemas.post import PostListResponse
 from app.schemas.common import MessageResponse, PaginatedResponse
-from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.exceptions import BadRequestException, NotFoundException, ForbiddenException
+from app.core.campus import get_registration_school_id, is_registration_school
 from app.core.tenant import TenantContext, get_tenant_context
 from app.config import settings
 # B-01 注册/认证共用的教育邮箱域名校验（含全局测试域 qq.com 放行）
@@ -113,6 +114,7 @@ async def send_campus_verify(
     request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """发起校园身份认证（统一教育邮箱）。
 
@@ -126,12 +128,16 @@ async def send_campus_verify(
     - SMTP 未配置或本地开发环境（APP_ENV in opengauss/demo/test 或 DEBUG=true）：
       响应中携带 code 供测试链路打通（无邮件服务）
     """
+    registration_school_id = get_registration_school_id(current_user)
+    if current_user.role != "super_admin" and not is_registration_school(current_user, tenant.school_id):
+        raise ForbiddenException(detail="校园身份认证仅适用于注册时选择的学校")
+
     if current_user.campus_verified:
         raise BadRequestException(detail="您已完成校园身份认证，无需重复认证")
 
     # 注册/认证共用域名校验——qq.com（全局测试域）/ momentcampus.com / 学校允许域均放行
     await ensure_email_matches_school_domains(
-        db, current_user.school_id, current_user.email, require_email=True
+        db, registration_school_id, current_user.email, require_email=True
     )
 
     # 生成一次性 6 位验证码
@@ -142,7 +148,7 @@ async def send_campus_verify(
     client_ip = request.client.host if request.client else None
     db.add(CampusVerifyToken(
         user_id=current_user.id,
-        school_id=current_user.school_id,
+        school_id=registration_school_id,
         target_email=current_user.email,
         token_hash=token_hash,
         expires_at=expires_at,
@@ -155,7 +161,7 @@ async def send_campus_verify(
     # 尝试通过 SMTP 发送验证邮件；失败/未配置时回退 dev 展示
     from app.services import email_service
     school_row = await db.scalar(
-        select(School.name).where(School.id == current_user.school_id)
+        select(School.name).where(School.id == registration_school_id)
     )
     school_name = school_row or ""
     sent = email_service.send_verification_email(
@@ -191,6 +197,7 @@ async def confirm_campus_verify(
     data: CampusVerifyConfirmRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """确认校园身份认证（统一教育邮箱）。
 
@@ -199,6 +206,10 @@ async def confirm_campus_verify(
     - 校验通过 → campus_verified=true，记录 campus_verified_at
     - 一次性：标记 used_at = now，防止重复使用
     """
+    registration_school_id = get_registration_school_id(current_user)
+    if current_user.role != "super_admin" and not is_registration_school(current_user, tenant.school_id):
+        raise ForbiddenException(detail="校园身份认证仅适用于注册时选择的学校")
+
     if current_user.campus_verified:
         raise BadRequestException(detail="您已完成校园身份认证，无需重复认证")
 
@@ -209,6 +220,7 @@ async def confirm_campus_verify(
     result = await db.execute(
         select(CampusVerifyToken).where(
             CampusVerifyToken.user_id == current_user.id,
+            CampusVerifyToken.school_id == registration_school_id,
             CampusVerifyToken.token_hash == token_hash,
         ).order_by(CampusVerifyToken.created_at.desc())
     )

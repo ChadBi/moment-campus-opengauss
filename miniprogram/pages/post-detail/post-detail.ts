@@ -9,6 +9,9 @@ import {
   listComments,
 } from '../../services/interactions'
 import { requireLogin } from '../../utils/auth-guard'
+import { authStore } from '../../store/auth'
+import { campusStore } from '../../store/campus'
+import { canWriteInCurrentSchool } from '../../utils/campus-permission'
 import { normalizeComment } from '../../services/normalize'
 import type { PostImage } from '../../types'
 
@@ -77,11 +80,24 @@ Page({
     reportReasons: REPORT_REASONS,
     submittingReport: false,
 
+    // 当前学校写权限（注册学校可写，其他学校只读）
+    canWrite: false,
+
     // 分类色板类名
     categoryClass: 'default',
   },
 
   onLoad(options: any) {
+    ;(this as any)._unsubscribeAuth = authStore.subscribe(state => {
+      this.setData({
+        canWrite: canWriteInCurrentSchool(state.user, campusStore.getState().currentSchool?.id),
+      })
+    })
+    ;(this as any)._unsubscribeCampus = campusStore.subscribe(state => {
+      this.setData({
+        canWrite: canWriteInCurrentSchool(authStore.getState().user, state.currentSchool?.id),
+      })
+    })
     const id = Number(options && options.id)
     if (!id) {
       wx.showToast({ title: '参数错误', icon: 'none' })
@@ -93,9 +109,22 @@ Page({
   },
 
   onUnload() {
+    const unsubscribeAuth = (this as any)._unsubscribeAuth
+    const unsubscribeCampus = (this as any)._unsubscribeCampus
+    if (unsubscribeAuth) unsubscribeAuth()
+    if (unsubscribeCampus) unsubscribeCampus()
     if (this.data.countdownTimer) {
       clearInterval(this.data.countdownTimer)
     }
+  },
+
+  requireWritable(message: string): boolean {
+    if (!requireLogin(message)) return false
+    if (!this.data.canWrite) {
+      wx.showToast({ title: '当前学校仅支持浏览，请切回注册学校后再操作', icon: 'none' })
+      return false
+    }
+    return true
   },
 
   async loadAll() {
@@ -207,7 +236,7 @@ Page({
   },
 
   async onSubmitComment() {
-    if (!requireLogin('登录后即可发表评论')) return
+    if (!this.requireWritable('登录后即可发表评论')) return
     const content = (this.data.commentInput || '').trim()
     if (!content) {
       wx.showToast({ title: '请输入评论内容', icon: 'none' })
@@ -257,7 +286,7 @@ Page({
 
   // ============== 点赞 ==============
   async onLike() {
-    if (!requireLogin('登录后即可点赞')) return
+    if (!this.requireWritable('登录后即可点赞')) return
     if (!this.data.post) return
     try {
       const res: any = await likePost(this.data.postId)
@@ -283,7 +312,7 @@ Page({
 
   // ============== 协同验证 ==============
   async onValidate(e: any) {
-    if (!requireLogin('登录后即可参与协同验证')) return
+    if (!this.requireWritable('登录后即可参与协同验证')) return
     const type: 'confirmation' | 'refutation' = e.currentTarget.dataset.type
     if (!type) return
     try {
@@ -309,7 +338,7 @@ Page({
 
   // ============== 举报 ==============
   openReport() {
-    if (!requireLogin('登录后即可举报')) return
+    if (!this.requireWritable('登录后即可举报')) return
     this.setData({ reportVisible: true, reportReason: '', reportType: 'other' })
   },
 
@@ -327,6 +356,7 @@ Page({
   },
 
   async onSubmitReport() {
+    if (!this.requireWritable('登录后即可举报')) return
     if (this.data.submittingReport) return
     if (!this.data.reportReason.trim()) {
       wx.showToast({ title: '请填写举报理由', icon: 'none' })

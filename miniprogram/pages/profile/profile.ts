@@ -8,6 +8,7 @@ import { logout } from '../../services/auth'
 import { sendCampusVerify, confirmCampusVerify } from '../../services/auth'
 import { uploadAvatar } from '../../services/upload'
 import { navigateToTab, syncTabBarForPage } from '../../utils/tab-navigation'
+import { isRegistrationSchool } from '../../utils/campus-permission'
 
 const STATUS_TABS = [
   { key: 'all', label: '全部' },
@@ -88,6 +89,7 @@ Page({
 
     // 校园身份认证（B-06）
     campusVerified: false,
+    isRegistrationSchool: false,
     verifyStep: 'form', // 'form' | 'code'
     verifyCode: '',
     devCode: '',
@@ -115,7 +117,9 @@ Page({
     campusStore.subscribe(state => {
       this.setData({
         schoolName: (state.currentSchool && state.currentSchool.name) || state.schoolCode || '此刻校园',
+        currentSchoolId: state.currentSchool?.id || 0,
       })
+      if (this.data.user) this.applyUser(this.data.user)
     })
   },
 
@@ -132,6 +136,7 @@ Page({
         email: '',
         createdAtText: '',
         campusVerified: false,
+        isRegistrationSchool: false,
         publishedCount: 0,
         draftCount: 0,
         pendingCount: 0,
@@ -188,13 +193,15 @@ Page({
   // ============== 用户信息 ==============
   applyUser(user: any) {
     if (!user) return
+    const registrationSchool = isRegistrationSchool(user, campusStore.getState().currentSchool?.id)
     this.setData({
       user,
       avatarUrl: resolveAvatar(user.avatar_url),
       nickname: user.nickname || '',
       bio: user.bio || '',
       email: user.email || '',
-      campusVerified: !!user.campus_verified,
+      campusVerified: registrationSchool && !!user.campus_verified,
+      isRegistrationSchool: registrationSchool,
       createdAtText: user.created_at ? formatDate(user.created_at, 'datetime') : '',
     })
   },
@@ -277,6 +284,7 @@ Page({
         memberships: list.map(normalizeMembership),
         currentSchoolId: (campusState.currentSchool && campusState.currentSchool.id) || 0,
       })
+      if (this.data.user) this.applyUser(this.data.user)
     } catch (e: any) {
       console.error('加载学校成员关系失败', e)
     }
@@ -300,6 +308,10 @@ Page({
       wx.showToast({ title: '请先登录', icon: 'none' })
       return
     }
+    if (!this.data.isRegistrationSchool) {
+      wx.showToast({ title: '校园身份认证仅适用于注册时选择的学校', icon: 'none' })
+      return
+    }
     if (this.data.verifySending) return
     this.setData({ verifySending: true })
     try {
@@ -319,6 +331,10 @@ Page({
   async onConfirmVerify() {
     if (!this.data.isLoggedIn) {
       wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    if (!this.data.isRegistrationSchool) {
+      wx.showToast({ title: '校园身份认证仅适用于注册时选择的学校', icon: 'none' })
       return
     }
     const code = (this.data.verifyCode || '').trim()

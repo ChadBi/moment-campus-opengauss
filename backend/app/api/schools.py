@@ -308,7 +308,7 @@ async def join_school(
     1. 学校必须存在且 is_active=true，否则 404
     2. 用户已有 active membership 且目标校相同：幂等返回 already_member=true
     3. 用户已有 active membership 且目标校不同：执行**切换**——
-       成员关系改指向新校、重置校园认证、匿名化原校内容（switched=true）
+       成员关系改指向新校、保留注册学校认证但进入跨校只读、匿名化原校内容（switched=true）
     4. 用户无 active membership：创建（is_default=true）
 
     super_admin 豁免一对一（可保留多校成员关系，供平台跨校管理）。
@@ -385,7 +385,7 @@ async def join_school(
                 membership=_to_membership_response(active),
                 already_member=True,
             )
-        # 切换学校（重置认证 + 匿名化原校内容）
+        # 切换学校（保留注册学校认证 + 跨校只读 + 匿名化原校内容）
         from app.services.school_switch import switch_school
         switched = await switch_school(db, current_user, school.id)
         return JoinSchoolResponse(

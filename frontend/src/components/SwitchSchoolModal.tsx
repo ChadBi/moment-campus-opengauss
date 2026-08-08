@@ -19,7 +19,7 @@ interface SwitchSchoolModalProps {
  * C-03: 切换学校浮窗（UC-01 严格一对一）
  *
  * - 搜索框按名称/代码过滤公开学校目录
- * - 选择目标学校后弹出后果提示（原校认证失效 / 原校内容匿名化 / 需重新认证）
+ * - 选择目标学校后弹出后果提示（注册学校认证保留 / 原校内容匿名化 / 当前学校只读）
  * - 确认后调用 joinSchool（后端按切换语义处理）→ 刷新 memberships → 切换 URL
  * - 切换后回调 onSwitched（供个人中心引导认证）
  */
@@ -72,7 +72,7 @@ export const SwitchSchoolModal: React.FC<SwitchSchoolModalProps> = ({
       await switchSchool(pendingSchool.code);
       showToast(
         res.switched
-          ? `已切换到 ${pendingSchool.name}，请完成新学校邮箱认证`
+          ? `已切换到 ${pendingSchool.name}，当前学校仅支持浏览`
           : `已加入 ${pendingSchool.name}`,
         'success',
       );
@@ -154,9 +154,9 @@ export const SwitchSchoolModal: React.FC<SwitchSchoolModalProps> = ({
                 切换到「{pendingSchool.name}」后：
               </p>
               <ul className="list-disc pl-4 space-y-0.5">
-                <li>原学校身份认证将失效</li>
+                <li>原注册学校的身份认证仍然保留</li>
                 <li>原学校已发布的内容将匿名化显示</li>
-                <li>需完成新学校邮箱认证后才能发布内容</li>
+                <li>在当前学校仅可浏览，切回注册学校后可继续发布和互动</li>
               </ul>
             </div>
           </div>

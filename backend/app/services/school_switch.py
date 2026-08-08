@@ -1,7 +1,7 @@
 """UC-01: 学校切换服务（严格一对一绑定）
 
 切换学校 = 把用户唯一 active membership 指向新学校，并执行副作用：
-1. 重置校园身份认证（campus_verified=False 等）
+1. 保留注册学校与校园身份认证状态，切换到其他学校后仅允许只读
 2. 匿名化用户在原学校的帖子/评论/评价（D2：内容保留，作者身份匿名化）
 
 super_admin 豁免一对一限制（join 仍可创建多 membership，见 schools.py）。
@@ -53,27 +53,17 @@ async def switch_school(
     # 2. 匿名化原校内容（D2）
     await _anonymize_old_school_content(db, user.id, old_school_id)
 
+    # 历史用户没有 registration_school_id 时，在切换前固化原学校，
+    # 避免迁移尚未执行或旧测试数据切校后丢失注册学校。
+    if user.registration_school_id is None:
+        user.registration_school_id = old_school_id
+
     # 3. 切换 membership + 同步 user.school_id
     membership.school_id = new_school_id
     membership.is_default = True
     membership.updated_at = datetime.now()
     user.school_id = new_school_id
     user.updated_at = datetime.now()
-
-    # 4. 重置校园认证（D5：认证状态在 User 全局字段，切校即失效）
-    user.campus_verified = False
-    user.campus_verified_at = None
-
-    # 5. 失效未使用的认证 token（防止旧校 token 复用）
-    from app.models.campus_verify_token import CampusVerifyToken
-    await db.execute(
-        update(CampusVerifyToken)
-        .where(
-            CampusVerifyToken.user_id == user.id,
-            CampusVerifyToken.used_at.is_(None),
-        )
-        .values(used_at=datetime.now())
-    )
 
     await db.commit()
     await db.refresh(membership, attribute_names=["school"])

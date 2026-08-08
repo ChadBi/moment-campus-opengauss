@@ -20,6 +20,7 @@ import { NotificationPreferencesCard } from '../components/NotificationPreferenc
 import { CampusVerifyCard } from '../components/CampusVerifyCard';
 import { VerifiedBadge } from '../components/VerifiedBadge';
 import { SwitchSchoolModal } from '../components/SwitchSchoolModal';
+import { isRegistrationSchool } from '../utils/campus-permission';
 import { logger } from '../utils/logger';
 import {
   Edit,
@@ -397,9 +398,9 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // UC-01: 切换学校完成后刷新数据（认证状态已重置，重新拉取用户信息 + memberships）
+  // UC-01: 切换学校完成后刷新数据（注册学校认证保留，其他学校进入只读）
   const handleSwitchSchoolDone = async () => {
-    setToast({ message: '已切换学校，请完成新学校校园身份认证', type: 'info' });
+    setToast({ message: '已切换学校，当前为只读模式；切回注册学校后可继续操作', type: 'info' });
     try {
       const list = await schoolsApi.listMyMemberships();
       setMemberships(list);
@@ -421,6 +422,8 @@ const ProfilePage: React.FC = () => {
 
   const myPosts = useMemo(() => postsPage?.items ?? [], [postsPage]);
   const historyItems = useMemo(() => historyPage?.items ?? [], [historyPage]);
+  const registrationSchool = isRegistrationSchool(userInfo, currentSchoolId);
+  const campusVerifiedForCurrentSchool = registrationSchool && Boolean(userInfo?.campus_verified);
 
   if (!isAuthenticated) {
     return (
@@ -626,7 +629,7 @@ const ProfilePage: React.FC = () => {
               ) : (
                 <div className="flex items-center gap-1.5 mt-1">
                   <h1 className="text-xl font-display font-bold truncate">{userInfo.nickname}</h1>
-                  {userInfo.campus_verified && <VerifiedBadge />}
+                  {campusVerifiedForCurrentSchool && <VerifiedBadge />}
                 </div>
               )}
               <p className="text-white/75 text-xs mt-0.5 truncate">{userInfo.email}</p>
@@ -716,11 +719,13 @@ const ProfilePage: React.FC = () => {
             <SchoolIcon size={18} className="text-lake" />
             我的学校
           </h2>
-          {userInfo?.campus_verified ? (
+          {campusVerifiedForCurrentSchool ? (
             <Badge variant="success">
               <CheckCircle size={12} className="mr-0.5" />
               已认证
             </Badge>
+          ) : !registrationSchool ? (
+            <Badge variant="info">仅可浏览</Badge>
           ) : (
             <Badge variant="warning">未认证</Badge>
           )}
@@ -747,7 +752,7 @@ const ProfilePage: React.FC = () => {
           </Button>
         </div>
         <p className="mt-3 text-[11px] text-ink-muted">
-          切换学校后：原校认证失效、原校内容匿名化，需完成新校邮箱认证后才能发布内容
+          注册学校可进行校园身份认证；切换到其他学校后仅支持浏览，切回注册学校即可恢复原认证状态
         </p>
       </div>
 
@@ -1052,7 +1057,7 @@ const ProfilePage: React.FC = () => {
                       {STATUS_HINT[status]}
                     </span>
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {status === 'draft' && (
+                      {registrationSchool && status === 'draft' && (
                         <>
                           <Button
                             variant="secondary"

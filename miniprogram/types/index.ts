@@ -5,6 +5,8 @@ export interface User {
   avatar_url?: string
   bio?: string
   school_id: number
+  /** 注册时选择的学校；切换学校后保持不变 */
+  registration_school_id?: number | null
   role?: string
   is_active: boolean
   created_at: string

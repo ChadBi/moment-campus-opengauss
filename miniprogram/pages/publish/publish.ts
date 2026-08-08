@@ -7,6 +7,7 @@ import { createPost, listCategories, suggestPost } from '../../services/posts'
 import { getSchoolSettings } from '../../services/schools'
 import { navigateToTab, syncTabBarForPage } from '../../utils/tab-navigation'
 import type { Category, PostImage } from '../../types'
+import { canWriteInCurrentSchool } from '../../utils/campus-permission'
 
 const DRAFT_KEY_PREFIX = 'publish_draft'
 
@@ -69,6 +70,7 @@ Page({
     loadingCategories: true,
     uploadingImage: false,
     draftRestored: false,
+    canWrite: false,
 
     // AI 助手
     aiLoading: false,
@@ -78,6 +80,12 @@ Page({
 
   onLoad() {
     syncTabBarForPage(3)
+    ;(this as any)._unsubscribeAuth = authStore.subscribe(state => {
+      this.setData({ canWrite: canWriteInCurrentSchool(state.user, campusStore.getState().currentSchool?.id) })
+    })
+    ;(this as any)._unsubscribeCampus = campusStore.subscribe(state => {
+      this.setData({ canWrite: canWriteInCurrentSchool(authStore.getState().user, state.currentSchool?.id) })
+    })
     this.loadCategories()
     this.restoreDraft()
   },
@@ -86,10 +94,17 @@ Page({
     syncTabBarForPage(3)
     // 发布页是纯写操作，进入前就提醒登录（避免填半天表单才发现不能提交）
     guardPageLogin('请先登录后再发布帖子')
+    if (authStore.getState().isLoggedIn && !this.data.canWrite) {
+      wx.showToast({ title: '当前学校仅支持浏览，请切回注册学校后发布', icon: 'none' })
+    }
     this.consumeSelectedLocation()
   },
 
   onUnload() {
+    const unsubscribeAuth = (this as any)._unsubscribeAuth
+    const unsubscribeCampus = (this as any)._unsubscribeCampus
+    if (unsubscribeAuth) unsubscribeAuth()
+    if (unsubscribeCampus) unsubscribeCampus()
     // 离开页面时自动保存草稿（仅在表单有内容时）
     this.saveDraftSilent()
   },
@@ -429,6 +444,10 @@ Page({
 
   async submitPost(status: 'draft' | 'pending') {
     if (!requireLogin(status === 'draft' ? '登录后即可保存草稿' : '登录后即可提交审核')) return
+    if (!this.data.canWrite) {
+      wx.showToast({ title: '当前学校仅支持浏览，请切回注册学校后发布', icon: 'none' })
+      return
+    }
     if (this.data.submitting) return
     const err = this.validate()
     if (err) {

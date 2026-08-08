@@ -70,6 +70,8 @@ export interface User {
   nickname: string;
   avatar_url?: string;
   school_id: number;
+  /** 注册时选择的学校；切换学校后保持不变 */
+  registration_school_id?: number | null;
   role: string;
   bio?: string;
   is_active: boolean;

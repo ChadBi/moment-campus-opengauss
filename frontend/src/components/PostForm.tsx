@@ -22,6 +22,7 @@ import type {
 import { uploadApi } from '../services/upload';
 import { useCampusStore } from '../store/useCampusStore';
 import { useAuthStore } from '../store/useAuthStore';
+import { canWriteInCurrentSchool } from '../utils/campus-permission';
 import { useUIStore } from '../store/useUIStore';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
@@ -279,6 +280,7 @@ const PostForm: React.FC<PostFormProps> = ({
 
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const canAnonymous = allowAnonymous || isAdmin;
+  const canWrite = canWriteInCurrentSchool(user, currentSchoolId);
 
   // PUB-02: 编辑模式标志与按钮文案（编辑草稿时"存为草稿"语义为保存修改）
   const isEditMode = editPostId != null;
@@ -786,6 +788,10 @@ const PostForm: React.FC<PostFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent, status: 'draft' | 'pending') => {
     e.preventDefault();
+    if (!canWrite) {
+      showToast('当前学校仅支持浏览，请切回注册学校后再发布内容', 'warning');
+      return;
+    }
     const validationError = validate();
     if (validationError) {
       showToast(validationError, 'warning');
@@ -891,6 +897,15 @@ const PostForm: React.FC<PostFormProps> = ({
             </Button>
           ) : null}
         </div>
+      </div>
+    );
+  }
+
+  if (!canWrite) {
+    return (
+      <div className="rounded-[12px] border border-lake/20 bg-lake/[0.04] px-4 py-8 text-center">
+        <p className="font-medium text-ink">当前学校仅支持浏览</p>
+        <p className="mt-1 text-sm text-ink-muted">请切回注册学校后再发布内容。</p>
       </div>
     );
   }

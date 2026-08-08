@@ -19,6 +19,7 @@ import { VerifiedBadge } from '../components/VerifiedBadge';
 import { useAuthStore } from '../store/useAuthStore';
 import { VerifyGate } from '../components/VerifyGate';
 import { useCampusStore } from '../store/useCampusStore';
+import { canWriteInCurrentSchool, isRegistrationSchool } from '../utils/campus-permission';
 import {
   Heart,
   MessageCircle,
@@ -113,8 +114,10 @@ const PostDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuthStore();
-  const campusVerified = Boolean(user?.campus_verified);
+  const currentSchoolId = useCampusStore((s) => s.currentSchoolId);
+  const campusVerified = canWriteInCurrentSchool(user, currentSchoolId);
   const canInteract = isAuthenticated && campusVerified;
+  const readOnlyOtherSchool = isAuthenticated && !isRegistrationSchool(user, currentSchoolId);
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -608,7 +611,9 @@ const PostDetailPage: React.FC = () => {
           )}
           {isAuthenticated && !campusVerified && (
             <div className="text-xs text-ink-muted/80 bg-paper-hover rounded-[8px] px-3 py-2 inline-block">
-              完成校园身份认证后可参与投票、点赞、评论与举报
+              {readOnlyOtherSchool
+                ? '当前学校仅支持浏览，请切回注册学校后参与投票、点赞、评论与举报'
+                : '完成校园身份认证后可参与投票、点赞、评论与举报'}
             </div>
           )}
         </div>

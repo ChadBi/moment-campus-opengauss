@@ -2374,8 +2374,8 @@ async def seed_data(
 
         print("\n【学校绑定说明（UC-01）】")
         print("  每个普通用户仅能关联一所学校；平台管理员（super_admin）可跨校管理。")
-        print("  切换学校请使用「我的 → 切换学校」入口：切换后原校认证失效、")
-        print("  原校内容匿名化，需完成新校邮箱认证后才能发布内容。")
+        print("  切换学校请使用「我的 → 切换学校」入口：注册学校认证保留，其他学校仅可浏览、")
+        print("  原校内容匿名化；切回注册学校后可恢复发布和互动。")
 
         print("\n【三校品牌差异化】")
         for school, cfg in zip(schools, SCHOOLS_REGISTRY):

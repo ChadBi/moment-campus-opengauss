@@ -257,7 +257,7 @@
     <view class="bottom-placeholder"></view>
 
     <!-- 评论输入框 -->
-    <view class="comment-input-bar">
+    <view wx:if="{{canWrite}}" class="comment-input-bar">
       <view wx:if="{{replyingTo}}" class="replying-tip">
         <text>回复 @{{replyingTo.nickname}}</text>
         <text class="cancel-reply" bindtap="cancelReply">取消</text>
@@ -275,6 +275,9 @@
           <icon name="send" size="32rpx" color="{{commentInput ? '#ffffff' : '#9aabae'}}" />
         </view>
       </view>
+    </view>
+    <view wx:else class="comment-readonly-hint">
+      <text>当前学校仅支持浏览，切回注册学校后可发表评论</text>
     </view>
   </block>
 

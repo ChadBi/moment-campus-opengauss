@@ -138,7 +138,7 @@
     </view>
 
     <!-- ============== 校园身份认证（对齐 Web CampusVerifyCard，B-06） ============== -->
-    <view class="verify-section">
+    <view wx:if="{{isRegistrationSchool}}" class="verify-section">
       <view class="section-header">
         <view class="section-title-wrap">
           <view class="section-icon-badge">

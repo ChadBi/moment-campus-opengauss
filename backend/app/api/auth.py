@@ -120,6 +120,7 @@ async def register(
         nickname=data.nickname,
         password_hash=password_hash,
         school_id=school_id,
+        registration_school_id=school_id,
     )
     db.add(user)
     await db.flush()

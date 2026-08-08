@@ -8,6 +8,7 @@ import type {
   LocationItem,
   LocationReview,
 } from '../../../types'
+import { canWriteInCurrentSchool } from '../../../utils/campus-permission'
 
 const DEFAULT_PICKER_LATITUDE = 31.483652
 const DEFAULT_PICKER_LONGITUDE = 120.27116
@@ -29,6 +30,12 @@ function buildPickerMarker(latitude: number, longitude: number): any {
 function formatStars(score: number): string {
   const full = Math.max(0, Math.min(5, Math.round(score || 0)))
   return '★'.repeat(full) + '☆'.repeat(5 - full)
+}
+
+function canCreateLocationFor(user: any, schoolId?: number | null): boolean {
+  return canWriteInCurrentSchool(user, schoolId)
+    || user?.role === 'admin'
+    || user?.role === 'super_admin'
 }
 
 Page({
@@ -111,16 +118,20 @@ Page({
     ;(this as any)._campusReady = false
     this.setData({ mode: options?.mode || '' })
     authStore.subscribe(state => {
-      const role = state.user?.role || ''
+      const schoolId = campusStore.getState().currentSchool?.id
       this.setData({
         isLoggedIn: state.isLoggedIn,
-        campusVerified: !!state.user?.campus_verified,
-        canCreateLocation: !!state.user?.campus_verified || role === 'admin' || role === 'super_admin',
+        campusVerified: canWriteInCurrentSchool(state.user, schoolId),
+        canCreateLocation: canCreateLocationFor(state.user, schoolId),
       })
     })
     ;(this as any)._unsubscribeCampus = campusStore.subscribe(state => {
+      const user = authStore.getState().user
+      const schoolId = state.currentSchool?.id
       this.setData({
         schoolName: (state.currentSchool && state.currentSchool.name) || state.schoolCode || '校园中心',
+        campusVerified: canWriteInCurrentSchool(user, schoolId),
+        canCreateLocation: canCreateLocationFor(user, schoolId),
       })
       if ((this as any)._campusReady) {
         const version = ((this as any)._locationRequestVersion || 0) + 1

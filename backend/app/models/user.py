@@ -15,6 +15,15 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     school_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("schools.id"), nullable=False, index=True)
+    # 注册时选择的学校。school_id 仍表示当前租户/默认学校，切校时会变化；
+    # 该字段保持不变，用于限定校园身份认证和普通用户的写权限范围。
+    registration_school_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("schools.id"),
+        nullable=True,
+        index=True,
+        comment="注册时选择的学校；仅该校允许校园身份认证和普通用户写操作",
+    )
     role: Mapped[str] = mapped_column(String(20), default="user", nullable=False, index=True)
     bio: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -62,7 +71,10 @@ class User(Base):
     )
 
     # 关系
-    school: Mapped["School"] = relationship(back_populates="users")
+    school: Mapped["School"] = relationship(
+        back_populates="users",
+        foreign_keys=[school_id],
+    )
     posts: Mapped[list["Post"]] = relationship(back_populates="user")
     comments: Mapped[list["Comment"]] = relationship(back_populates="user", foreign_keys="Comment.user_id")
     likes: Mapped[list["Like"]] = relationship(back_populates="user")
@@ -106,6 +118,7 @@ class User(Base):
 
     __table_args__ = (
         Index("idx_user_school", "school_id"),
+        Index("idx_user_registration_school", "registration_school_id"),
         Index("idx_user_role", "role"),
         Index("idx_user_created", "created_at"),
     )

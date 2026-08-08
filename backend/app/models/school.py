@@ -23,7 +23,10 @@ class School(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
 
     # 关系
-    users: Mapped[list["User"]] = relationship(back_populates="school")
+    users: Mapped[list["User"]] = relationship(
+        back_populates="school",
+        foreign_keys="User.school_id",
+    )
     posts: Mapped[list["Post"]] = relationship(back_populates="school")
     locations: Mapped[list["Location"]] = relationship(back_populates="school")
     topic_collections: Mapped[list["TopicCollection"]] = relationship(back_populates="school")

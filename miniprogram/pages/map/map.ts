@@ -4,6 +4,7 @@ import { listPosts } from '../../services/posts'
 import { authStore } from '../../store/auth'
 import { requireLogin } from '../../utils/auth-guard'
 import { syncTabBarForPage } from '../../utils/tab-navigation'
+import { canWriteInCurrentSchool } from '../../utils/campus-permission'
 import type { LocationItem, LocationReview, MapLocationPanel, MapMarker } from '../../types'
 
 interface WxMarker extends MapMarker {
@@ -96,17 +97,24 @@ Page({
     ;(this as any)._hasLoadedLocations = false
     ;(this as any)._sheetScrollTop = 0
     authStore.subscribe(state => {
-      this.setData({ isLoggedIn: state.isLoggedIn, campusVerified: !!state.user?.campus_verified })
+      const schoolId = campusStore.getState().currentSchool?.id
+      this.setData({
+        isLoggedIn: state.isLoggedIn,
+        campusVerified: canWriteInCurrentSchool(state.user, schoolId),
+      })
     })
     ;(this as any)._unsubscribeCampus = campusStore.subscribe(state => {
       const school = state.currentSchool
       const schoolName = (school && school.name) || state.schoolCode
+      const user = authStore.getState().user
+      const campusVerified = canWriteInCurrentSchool(user, school?.id)
       const schoolChanged = (this as any)._locationSchoolCode !== state.schoolCode
       ;(this as any)._locationSchoolCode = state.schoolCode
 
       if (!schoolChanged) {
         this.setData({
           schoolName,
+          campusVerified,
           latitude: school?.center_lat || DEFAULT_LAT,
           longitude: school?.center_lng || DEFAULT_LNG,
           scale: school?.map_zoom || DEFAULT_ZOOM,
@@ -120,6 +128,7 @@ Page({
       ;(this as any)._sheetScrollTop = 0
       this.setData({
         schoolName,
+        campusVerified,
         latitude: school?.center_lat || DEFAULT_LAT,
         longitude: school?.center_lng || DEFAULT_LNG,
         scale: school?.map_zoom || DEFAULT_ZOOM,

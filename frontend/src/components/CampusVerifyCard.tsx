@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { BadgeCheck, Shield } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
+import { useCampusStore } from '../store/useCampusStore';
+import { isRegistrationSchool } from '../utils/campus-permission';
 import { usersApi } from '../services/users';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -19,13 +21,18 @@ type ToastState = {
  */
 export const CampusVerifyCard: React.FC = () => {
   const { user, updateUser } = useAuthStore();
-  const campusVerified = Boolean(user?.campus_verified);
+  const currentSchoolId = useCampusStore((s) => s.currentSchoolId);
+  const registrationSchool = isRegistrationSchool(user, currentSchoolId);
+  const campusVerified = registrationSchool && Boolean(user?.campus_verified);
 
   const [step, setStep] = useState<'form' | 'code'>('form');
   const [code, setCode] = useState('');
   const [devCode, setDevCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
+
+  // 校园认证只对注册时选择的学校开放，其他学校不展示认证窗口。
+  if (!registrationSchool) return null;
 
   const handleSend = async () => {
     setLoading(true);

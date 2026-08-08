@@ -4,6 +4,8 @@ import { ShieldCheck, LogIn } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { useAuthStore } from '../store/useAuthStore';
+import { useCampusStore } from '../store/useCampusStore';
+import { canWriteInCurrentSchool, isRegistrationSchool } from '../utils/campus-permission';
 
 interface VerifyGateProps {
   children: React.ReactNode;
@@ -28,7 +30,13 @@ export const VerifyGate: React.FC<VerifyGateProps> = ({
 }) => {
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const campusVerified = useAuthStore((s) => Boolean(s.user?.campus_verified));
+  const user = useAuthStore((s) => s.user);
+  const currentSchoolId = useCampusStore((s) => s.currentSchoolId);
+  const campusVerified = canWriteInCurrentSchool(user, currentSchoolId);
+  const readOnlyOtherSchool = isAuthenticated && !isRegistrationSchool(user, currentSchoolId);
+  const gateMessage = readOnlyOtherSchool
+    ? '当前学校仅支持浏览，请切回注册学校后再进行发布、评论和互动'
+    : message;
 
   if (isAuthenticated && campusVerified) {
     return <>{children}</>;
@@ -38,14 +46,14 @@ export const VerifyGate: React.FC<VerifyGateProps> = ({
     return (
       <div className="rounded-[10px] border border-lake/25 bg-lake/[0.04] px-3 py-2.5 flex items-center gap-2">
         <ShieldCheck size={15} className="text-lake flex-shrink-0" />
-        <p className="text-xs text-ink-sub flex-1">{message}</p>
+        <p className="text-xs text-ink-sub flex-1">{gateMessage}</p>
         <Button
           variant="text"
           size="sm"
           onClick={() => navigate(isAuthenticated ? '/profile' : '/login?redirect=/profile')}
           icon={isAuthenticated ? undefined : <LogIn size={12} />}
         >
-          {isAuthenticated ? '去认证' : '去登录'}
+          {isAuthenticated ? (readOnlyOtherSchool ? '切换学校' : '去认证') : '去登录'}
         </Button>
       </div>
     );
@@ -57,15 +65,19 @@ export const VerifyGate: React.FC<VerifyGateProps> = ({
         <ShieldCheck size={30} className="text-lake" />
       </div>
       <h3 className="text-lg font-display font-bold text-ink mb-2">
-        {isAuthenticated ? '完成校园身份认证后即可发布' : '登录后即可发布'}
+        {readOnlyOtherSchool
+          ? '当前学校仅支持浏览'
+          : isAuthenticated
+            ? '完成校园身份认证后即可发布'
+            : '登录后即可发布'}
       </h3>
-      <p className="text-sm text-ink-sub mb-6">{message}</p>
+      <p className="text-sm text-ink-sub mb-6">{gateMessage}</p>
       <Button
         variant="primary"
         onClick={() => navigate(isAuthenticated ? '/profile' : '/login?redirect=/profile')}
         icon={isAuthenticated ? undefined : <LogIn size={16} />}
       >
-        {isAuthenticated ? '前往个人中心认证' : '去登录'}
+        {isAuthenticated ? (readOnlyOtherSchool ? '切换学校' : '前往个人中心认证') : '去登录'}
       </Button>
     </Card>
   );

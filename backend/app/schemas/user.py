@@ -42,6 +42,7 @@ class UserResponse(BaseModel):
     nickname: str
     avatar_url: Optional[str] = None
     school_id: int
+    registration_school_id: Optional[int] = None
     role: str
     bio: Optional[str] = None
     is_active: bool

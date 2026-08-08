@@ -160,8 +160,17 @@ def require_campus_verified() -> Callable:
     """
     # 延迟导入避免循环依赖
     from app.dependencies import get_current_user
+    from app.core.tenant import get_tenant_context
+    from app.core.campus import is_registration_school
 
-    async def _check_verified(user: User = Depends(get_current_user)) -> User:
+    async def _check_verified(
+        user: User = Depends(get_current_user),
+        tenant=Depends(get_tenant_context),
+    ) -> User:
+        if user.role != Role.SUPER_ADMIN and not is_registration_school(user, tenant.school_id):
+            raise ForbiddenException(
+                detail="当前学校仅支持浏览，校园身份认证仅适用于注册时选择的学校"
+            )
         if not user.campus_verified:
             raise ForbiddenException(
                 detail="请先完成校园身份认证后再发布内容（未认证用户仅拥有只读权限）"
@@ -174,8 +183,17 @@ def require_campus_verified() -> Callable:
 def require_campus_verified_or_admin() -> Callable:
     """要求校园认证，管理员可凭角色直接执行地点管理操作。"""
     from app.dependencies import get_current_user
+    from app.core.tenant import get_tenant_context
+    from app.core.campus import is_registration_school
 
-    async def _check_verified_or_admin(user: User = Depends(get_current_user)) -> User:
+    async def _check_verified_or_admin(
+        user: User = Depends(get_current_user),
+        tenant=Depends(get_tenant_context),
+    ) -> User:
+        if user.role != Role.SUPER_ADMIN and not has_role(user, Role.ADMIN) and not is_registration_school(user, tenant.school_id):
+            raise ForbiddenException(
+                detail="当前学校仅支持浏览，普通用户只能在注册学校新增地点"
+            )
         if user.campus_verified or has_role(user, Role.ADMIN):
             return user
         raise ForbiddenException(
