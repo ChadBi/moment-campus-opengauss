@@ -85,7 +85,7 @@ export const CampusVerifyCard: React.FC = () => {
         <div className="space-y-3">
           <p className="text-[12px] text-ink-muted leading-relaxed">
             通过登录邮箱验证身份，昵称旁将显示「已认证」徽标，让同学更信任你的信息。
-            请使用所在学校官方域名注册/登录。
+            支持所在学校官方域名和 qq.com 邮箱注册/登录。
           </p>
 
           {step === 'form' ? (

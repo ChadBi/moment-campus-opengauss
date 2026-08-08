@@ -161,7 +161,7 @@
         </block>
 
         <block wx:else>
-          <text class="verify-desc">通过登录邮箱验证身份，昵称旁将显示「已认证」徽标，让同学更信任你的信息。请使用所在学校的官方邮箱注册/登录。</text>
+          <text class="verify-desc">通过登录邮箱验证身份，昵称旁将显示「已认证」徽标，让同学更信任你的信息。支持所在学校的官方邮箱和 qq.com 邮箱。</text>
 
           <block wx:if="{{verifyStep === 'form'}}">
             <view class="verify-email-box">

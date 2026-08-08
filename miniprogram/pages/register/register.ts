@@ -85,12 +85,13 @@ Page({
         const emailDomain = this.data.email.trim().toLowerCase().split('@')[1]
         const selectedSchool = this.data.schools.find(s => s.id === this.data.schoolId)
         const allowedDomains = (selectedSchool?.domains || []).map(domain => domain.toLowerCase())
+        const isQqEmail = emailDomain === 'qq.com'
         if (!emailDomain || !this.data.email.includes('@')) {
           this.setData({ errorMsg: '请输入有效的教育邮箱' })
           return
         }
-        if (allowedDomains.length > 0 && !allowedDomains.includes(emailDomain)) {
-          this.setData({ errorMsg: `请使用${selectedSchool?.name || '所选学校'}的官方邮箱` })
+        if (allowedDomains.length > 0 && !allowedDomains.includes(emailDomain) && !isQqEmail) {
+          this.setData({ errorMsg: `请使用${selectedSchool?.name || '所选学校'}的官方邮箱，或使用 qq.com 邮箱` })
           return
         }
         if (!this.data.password || !this.data.confirmPassword) {

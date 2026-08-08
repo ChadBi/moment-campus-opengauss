@@ -85,10 +85,11 @@ const RegisterPage: React.FC = () => {
     // B-01': 产品收窄为教育邮箱：邮箱域名须命中所选学校的允许域名
     const emailDomain = formData.email.split('@')[1]?.toLowerCase();
     const allowedDomains = (selectedSchool?.domains ?? []).map((d) => d.toLowerCase());
+    const isQqEmail = emailDomain === 'qq.com';
     if (allowedDomains.length > 0) {
-      if (!emailDomain || !allowedDomains.includes(emailDomain)) {
+      if (!emailDomain || (!allowedDomains.includes(emailDomain) && !isQqEmail)) {
         setError(
-          `请使用 ${selectedSchool?.name ?? '该校'} 的学校官方邮箱注册` +
+          `请使用 ${selectedSchool?.name ?? '该校'} 的学校官方邮箱或 qq.com 邮箱注册` +
             (allowedDomains[0] ? `（如 xxx@${allowedDomains[0]}）` : '')
         );
         return;
@@ -172,7 +173,7 @@ const RegisterPage: React.FC = () => {
               type="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="name@学校官方域名"
+              placeholder="name@学校官方域名或 qq.com"
               icon={<Mail size={16} />}
               required
             />

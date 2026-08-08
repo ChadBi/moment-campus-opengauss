@@ -47,7 +47,7 @@
       </view>
       <input
         type="text"
-        placeholder="{{mode === 'bind' ? '请输入邮箱' : '请输入学校官方邮箱'}}"
+        placeholder="{{mode === 'bind' ? '请输入邮箱' : '请输入学校官方邮箱或 qq.com 邮箱'}}"
         placeholder-class="ph"
         value="{{email}}"
         bindinput="onEmailInput"
