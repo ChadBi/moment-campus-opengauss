@@ -1,6 +1,19 @@
 import { http } from './request'
 import type { LoginResponse, User } from '../types'
 
+export interface WechatQuickLoginResult {
+  status: 'authenticated' | 'binding_required'
+  access_token?: string
+  refresh_token?: string
+  token_type?: string
+  user?: LoginResponse['user']
+  message?: string
+}
+
+export async function wechatLogin(code: string): Promise<WechatQuickLoginResult> {
+  return http.post<WechatQuickLoginResult>('/auth/wechat/login', { code })
+}
+
 export async function wechatPhoneLogin(code: string, phoneCode: string, schoolCode?: string): Promise<LoginResponse> {
   return http.post<LoginResponse>('/auth/wechat/phone-login', {
     code,

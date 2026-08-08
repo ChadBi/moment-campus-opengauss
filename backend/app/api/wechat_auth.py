@@ -27,8 +27,10 @@ from app.schemas.wechat_auth import (
     LogoutAllResponse,
     SessionListResponse,
     SessionResponse,
+    WechatExchangeRequest,
     WechatPhoneLoginRequest,
     WechatPhoneLoginResponse,
+    WechatQuickLoginResponse,
     WechatSmsLoginRequest,
 )
 from app.services.sms import normalize_phone, verify_sms_code
@@ -36,6 +38,48 @@ from app.services.wechat import exchange_wechat_code, exchange_wechat_phone_code
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth/wechat", tags=["微信认证"])
+
+
+@router.post("/login", response_model=WechatQuickLoginResponse, summary="微信 OpenID 快速登录")
+async def quick_login(
+    data: WechatExchangeRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """已绑定微信直接登录，未绑定微信才进入手机号绑定流程。"""
+    wx_result = await exchange_wechat_code(data.code)
+    openid = wx_result["openid"]
+    identity_result = await db.execute(
+        select(UserAuthIdentity).where(
+            UserAuthIdentity.identity_type == "wechat_miniprogram",
+            UserAuthIdentity.identity_key == openid,
+            UserAuthIdentity.is_deleted.is_(False),
+        )
+    )
+    identity = identity_result.scalar_one_or_none()
+    if identity is None:
+        return WechatQuickLoginResponse(
+            status="binding_required",
+            message="首次登录需要绑定手机号",
+        )
+
+    user = await db.get(User, identity.user_id)
+    if user is None or not user.is_active or user.is_deleted:
+        raise UnauthorizedException(detail="账号已被禁用或删除")
+    if not user.phone:
+        return WechatQuickLoginResponse(
+            status="binding_required",
+            message="请先绑定手机号",
+        )
+
+    identity.last_used_at = datetime.now()
+    user.last_login_at = datetime.now()
+    result = await _issue_login(db, user, "miniprogram")
+    return WechatQuickLoginResponse(
+        status="authenticated",
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        user=result.user.model_dump(),
+    )
 
 
 async def _resolve_school(db: AsyncSession, school_code: Optional[str]) -> School:

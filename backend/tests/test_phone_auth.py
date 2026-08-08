@@ -160,6 +160,33 @@ async def test_wechat_sms_login_creates_passwordless_account_and_binds_identity(
 
 
 @pytest.mark.asyncio
+async def test_wechat_quick_login_reuses_bound_identity_without_phone_or_school(
+    client, test_school,
+):
+    phone = "13820000015"
+    sms_code = await _send_code(client, phone, "login")
+    first = await client.post(
+        "/api/v1/auth/wechat/sms-login",
+        json={
+            "code": "mock-first-code",
+            "phone": phone,
+            "sms_code": sms_code,
+            "school_code": test_school["code"],
+        },
+    )
+    assert first.status_code == 200, first.text
+
+    quick = await client.post(
+        "/api/v1/auth/wechat/login",
+        json={"code": "mock-second-code"},
+    )
+    assert quick.status_code == 200, quick.text
+    assert quick.json()["status"] == "authenticated"
+    assert quick.json()["user"]["id"] == first.json()["user"]["id"]
+    assert quick.json()["user"]["school_id"] == test_school["id"]
+
+
+@pytest.mark.asyncio
 async def test_wechat_sms_login_reuses_existing_phone_account_without_switching_school(
     client, test_school, db_session
 ):

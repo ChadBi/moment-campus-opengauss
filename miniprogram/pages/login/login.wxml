@@ -1,8 +1,8 @@
 <view class="login-page {{step === 'phone' ? 'form-mode' : ''}}">
   <view class="brand-area">
     <view class="brand-logo"><image class="brand-logo-image" src="/assets/logo.png" mode="aspectFit" /></view>
-    <text class="brand-title">欢迎回来</text>
-    <text class="brand-slogan">微信登录，手机号就是你的账号</text>
+    <text class="brand-title">{{step === 'wechat' ? '欢迎回来' : '绑定手机'}}</text>
+    <text class="brand-slogan">{{step === 'wechat' ? '微信登录，已绑定账号将直接进入' : '首次登录需要绑定手机号'}}</text>
   </view>
   <view class="login-card">
     <view wx:if="{{step === 'wechat'}}" class="wechat-login">
@@ -10,7 +10,7 @@
         <icon name="message-circle" size="32rpx" color="#ffffff" />
         <text>{{wechatLoading ? '微信登录中...' : '微信登录'}}</text>
       </button>
-      <view class="login-tip"><text>登录后使用短信验证码绑定手机号账号</text></view>
+      <view class="login-tip"><text>已绑定微信账号将直接登录，新用户需要绑定手机号</text></view>
     </view>
 
     <view wx:else class="phone-bind-form">

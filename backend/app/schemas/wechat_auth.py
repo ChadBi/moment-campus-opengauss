@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import Optional
+from typing import Literal, Optional
 from datetime import datetime
 
 
@@ -29,6 +29,17 @@ class WechatPhoneLoginResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user: dict
+
+
+class WechatQuickLoginResponse(BaseModel):
+    """微信 OpenID 快速登录结果；未绑定时引导手机号绑定。"""
+
+    status: Literal["authenticated", "binding_required"]
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    token_type: str = "bearer"
+    user: Optional[dict] = None
+    message: Optional[str] = None
 
 
 class WechatExchangeBoundResponse(BaseModel):

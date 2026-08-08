@@ -1,8 +1,8 @@
 import { authStore } from '../../store/auth'
 import { campusStore } from '../../store/campus'
-import { sendSms, wechatSmsLogin } from '../../services/auth'
+import { sendSms, wechatLogin, wechatSmsLogin } from '../../services/auth'
 import { listSchools } from '../../services/schools'
-import type { School } from '../../types'
+import type { LoginResponse, School } from '../../types'
 import { clearSchoolCache } from '../../utils/school-cache'
 import { navigateToTab } from '../../utils/tab-navigation'
 
@@ -20,8 +20,6 @@ function getWxLoginCode(): Promise<string> {
 Page({
   data: {
     step: 'wechat',
-    wxCode: '',
-    wxCodeAt: 0,
     phone: '',
     smsCode: '',
     schools: [] as School[],
@@ -42,11 +40,13 @@ Page({
     this.setData({ wechatLoading: true, errorMsg: '' })
     try {
       const wxCode = await getWxLoginCode()
-      this.setData({
-        step: 'phone',
-        wxCode,
-        wxCodeAt: Date.now(),
-      })
+      const response = await wechatLogin(wxCode)
+      if (response.status === 'authenticated' && response.access_token && response.refresh_token && response.user) {
+        await this.loadSchools()
+        await this.completeLogin(response as LoginResponse)
+        return
+      }
+      this.setData({ step: 'phone', errorMsg: response.message || '首次登录需要绑定手机号' })
       await this.loadSchools()
     } catch (error: any) {
       this.setData({ errorMsg: error?.message || '微信登录失败，请重试' })
@@ -157,29 +157,31 @@ Page({
     }
     this.setData({ loading: true, errorMsg: '' })
     try {
-      let wxCode = this.data.wxCode
-      if (!wxCode || Date.now() - this.data.wxCodeAt > 4 * 60 * 1000) {
-        wxCode = await getWxLoginCode()
-      }
+      // wx.login code 只能使用一次；每次提交（包括失败重试）都必须重新获取。
+      const wxCode = await getWxLoginCode()
       const response = await wechatSmsLogin(
         wxCode,
         this.data.phone,
         this.data.smsCode,
         this.data.selectedSchoolCode,
       )
-      const boundSchool = this.data.schools.find(school => school.id === response.user.school_id)
-      if (!boundSchool) throw new Error('账号绑定学校不可用，请联系管理员')
-      await authStore.setAuth(response)
-      const previousSchoolCode = campusStore.getState().schoolCode
-      if (previousSchoolCode !== boundSchool.code) clearSchoolCache(previousSchoolCode)
-      campusStore.setSchool(boundSchool)
-      wx.showToast({ title: '登录成功', icon: 'success' })
-      setTimeout(() => navigateToTab('/pages/profile/profile'), 500)
+      await this.completeLogin(response)
     } catch (error: any) {
       this.setData({ errorMsg: error?.message || '绑定登录失败，请重试' })
     } finally {
       this.setData({ loading: false })
     }
+  },
+
+  async completeLogin(response: LoginResponse) {
+    const boundSchool = this.data.schools.find(school => school.id === response.user.school_id)
+    if (!boundSchool) throw new Error('账号绑定学校不可用，请联系管理员')
+    await authStore.setAuth(response)
+    const previousSchoolCode = campusStore.getState().schoolCode
+    if (previousSchoolCode !== boundSchool.code) clearSchoolCache(previousSchoolCode)
+    campusStore.setSchool(boundSchool)
+    wx.showToast({ title: '登录成功', icon: 'success' })
+    setTimeout(() => navigateToTab('/pages/profile/profile'), 500)
   },
 
   onUnload() {
