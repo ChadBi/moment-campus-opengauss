@@ -394,6 +394,39 @@ async def test_wechat_register_example_zju_email_works(client: AsyncClient, db_s
 
 
 @pytest.mark.asyncio
+async def test_wechat_register_qq_com_global_test_domain_returns_200(client: AsyncClient, db_session: AsyncSession):
+    """微信注册：临时学校有严格 SchoolDomain（不含 qq.com）→ qq.com 全局测试邮箱白名单域仍放行，200 成功。"""
+    jn = await _seed_wechat_school_with_domains(
+        db_session,
+        suffix="jnQQ",
+        domains=["jiangnan.edu.cn", "example.jiangnan.edu.cn"],
+    )
+    exchange_resp = await client.post(
+        "/api/v1/auth/wechat/exchange",
+        json={"code": "QQ_TEST_WECHAT_CODE"},
+    )
+    ticket = exchange_resp.json()["binding_ticket"]
+    unique_email = f"wx_qq_tester_{__import__('time').time_ns()}@qq.com"
+
+    register_resp = await client.post(
+        "/api/v1/auth/wechat/register",
+        json={
+            "binding_ticket": ticket,
+            "nickname": "微信QQ邮箱测试者",
+            "school_id": jn["id"],
+            "password": "pass12345",
+            "email": unique_email,
+        },
+    )
+    assert register_resp.status_code == 200, register_resp.text
+    body = register_resp.json()
+    assert body["user"]["email"] == unique_email
+    assert body["user"]["campus_verified"] is False
+    assert "access_token" in body
+    assert "refresh_token" in body
+
+
+@pytest.mark.asyncio
 async def test_list_identities(client: AsyncClient, test_user: dict, auth_headers: dict):
     """查看当前用户身份列表。"""
     response = await client.get(

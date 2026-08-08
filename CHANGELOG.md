@@ -7,9 +7,37 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.17] - 2026-08-08
+
+### 新增
+
+- **校园认证阶段与注册阶段域名校验规则统一**（解决 qq.com 注册用户"能注册但不能认证"的矛盾）：
+  `POST /users/me/verify-campus/send` 的域名校验从原先手写 `SELECT SchoolDomain WHERE domain = 登录邮箱域`，替换为调用注册阶段同款 `ensure_email_matches_school_domains()` helper。
+  自此，运营豁免域 momentcampus.com / 全局测试域 qq.com / 学校配置的允许域，**在注册和认证两个阶段的放行条件完全一致**。
+  - 结果：使用 `@qq.com` 注册的用户，在小程序里点"校园认证→发送验证码"的交互与 `@example.jiangnan.edu.cn` 教育邮箱用户**完全相同**——直接发送，无需任何新增输入框
+  - `CampusVerifySendRequest` 保持空 body 兼容，未引入 target_email；confirm 逻辑零改动
+  - TDD：新增 2 条 qq.com 端到端用例（send 空 body→200+6 位码、send→confirm→campus_verified=True 且 email 保持 qq.com 不被篡改），修复 `test_send_rejects_non_school_domain` 原先用 /register 建 gmail 用户的方式（round1 后 register 对 gmail 本身就 400，前置条件不成立），改为 DB 直接插入用户 + 自签 access_token 精准校验
+
+- **可复用的用户数据清理脚本**：
+  `backend/scripts/reset_user_1030424433_snapshot_and_delete.py`——严格遵循 AGENTS.md 备份→删除→验证三段式流程，
+  仅改顶部 TARGET_EMAIL 常量即可复用到任意账号重置。自动枚举 20 张子表 + users 父表 = 21 张表，JSON 安全序列化（datetime→ISO，bytes→hex）输出到 delete/。
+
+### 变更
+
+- 本人开发账号 `1030424433@stu.jiangnan.edu.cn`（user_id=25）已按规则重置：
+  备份 `delete/user_id25_1030424433_at_stu.jiangnan.edu.cn_backup_20260808_125515.json`（5 条：auth_sessions×2、school_memberships×1、user_auth_identities×1、users×1），
+  DELETE 后重扫 21 张表残留 = 0，VERIFY PASS。备份 JSON 未入 git（delete/ 属私人数据回收站）。
+
 ## [2.2.16] - 2026-08-08
 
 ### 新增
+
+- **全局测试邮箱白名单域 GLOBAL_TEST_EMAIL_DOMAINS**：
+  在 `app/services/school_domain.py` 新增独立于运营豁免域的全局测试域集合，默认包含 `qq.com`，所有学校的 B-01 教育邮箱校验一律放行。
+  解决测试阶段校园邮箱账号数量不足问题，注册者可使用任意 `@qq.com` 邮箱在任意学校注册。
+  - 新增常量 `GLOBAL_TEST_EMAIL_DOMAINS: frozenset[str] = frozenset({"qq.com"})`，未来若需放 163.com/gmail.com 等只要在此集合追加域名即可
+  - `ensure_email_matches_school_domains` Rule 3 放行条件扩展为「运营豁免域 ∪ 全局测试域」命中即直出
+  - Rule 5 的 400 错误文案同步更新，明确提示「或使用测试通用邮箱域（@ qq.com）」
 
 - **注册阶段强制教育邮箱校验（B-01 统一 helper + 双接口接入）**：
   解决用户在注册邮箱时可以填任意 gmail/outlook 等非教育邮箱绕过「校园身份」的问题。

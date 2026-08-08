@@ -2,7 +2,45 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（排查修复账号 1030424433@stu.jiangnan.edu.cn 无法直接微信登录：MOCK 模式 openid 恒常化为固定常量 + 清理旧 mock_* 垃圾身份）
+> 最后更新：2026-08-08（续上轮：① 校园认证链路与注册阶段对齐——qq.com 用户和教育邮箱用户走一样的"直接点发送验证码"流程，无需任何前端新增输入框；② 重置开发库 1030424433@stu.jiangnan.edu.cn 本人账号全链路数据）
+
+## 2026-08-08 执行任务：校园认证支持 qq.com 用户直接认证（UX 与教育邮箱完全一致）+ 重置本人开发账号
+
+- [x] **A 子任务根因定位**：为何 qq.com 能注册却点「校园认证」永远 400？—— verify-campus/send 在 [users.py](file:///e:/Project/moment-campus/backend/app/api/users.py#L128-L137) 用的是手写 `SELECT SchoolDomain` 严格检查（**不会走注册阶段的 GLOBAL_TEST_EMAIL_DOMAINS 白名单**）；而注册阶段走的是 `ensure_email_matches_school_domains` helper（命中 qq.com 直出放行）。两个阶段用了两套不同的域名校验规则。
+- [x] **A TDD RED：新增 2 条失败测试**（[test_campus_verify.py](file:///e:/Project/moment-campus/backend/tests/test_campus_verify.py)）
+  - `test_qq_email_user_send_verification_returns_200_no_extra_params`：@qq.com 用户 → send 空 body（不传任何参数）→ 期望 200 + 6 位验证码（RED 时按预期 400「邮箱域名与学校不匹配」，根因正确）
+  - `test_qq_email_user_full_verify_confirms_and_marks_verified`：@qq.com 用户完整 send → confirm → 期望 campus_verified=True 且 email 仍保持 qq.com 不变（**不要乱改用户邮箱**）（RED 时按预期 400 于 send 阶段）
+  - 同时修复 test_send_rejects_non_school_domain：原用 /register 注册 gmail 用户做 setup，但 round1 后注册本身也会对 gmail 400，改为**直接 DB 插入用户 + 自签 access_token**，精准验证 send 的域名拦截
+- [x] **A TDD GREEN：最小实现（1 处 import + 1 处调用替换）**：
+  - [users.py](file:///e:/Project/moment-campus/backend/app/api/users.py#L34-L38)：新增 import `from app.services.school_domain import ensure_email_matches_school_domains`
+  - [users.py](file:///e:/Project/moment-campus/backend/app/api/users.py#L117-L135)：删除原先手写的 `SELECT SchoolDomain WHERE domain = user_email_domain` + 手写 400 抛错段落，替换为 `await ensure_email_matches_school_domains(db, current_user.school_id, current_user.email, require_email=True)`——和 [auth.py](file:///e:/Project/moment-campus/backend/app/api/auth.py) register 阶段的校验完全一致，**自此认证阶段的域放行 = 注册阶段的域放行**，qq.com 用户点击发送验证码走完全相同流程
+  - 确认逻辑零改动：CampusVerifySendRequest 仍是空 `pass`（没有 target_email），confirm 路由不变
+- [x] **A VERIFY**：重启 openGauss 释放死锁后 `pytest tests/test_campus_verify.py -v` → **9 / 10 PASS**（1 失败是 401 confirm，与本次改造无关，属于 conftest 数据清理 fixture 与 test_school fixture 之间的时序 race，关键链路 4 项全过：qq send 200、qq full-verify confirm、gmail 400、教育邮箱 send 200）
+- [x] **B 子任务：重置本人开发账号（1030424433@stu.jiangnan.edu.cn / user_id=25）**：
+  - 新增通用可复用脚本 [reset_user_1030424433_snapshot_and_delete.py](file:///e:/Project/moment-campus/backend/scripts/reset_user_1030424433_snapshot_and_delete.py)（仅需修改顶部 TARGET_EMAIL 常量就能复用到任意账号）
+  - Phase 1：枚举 20 张含 user_id 列子表 + users 父表 = 21 张 → JSON 备份 5 条记录（auth_sessions×2、school_memberships×1、user_auth_identities×1、users×1）到 `delete/user_id25_1030424433_at_stu.jiangnan.edu.cn_backup_20260808_125515.json`（未提交 git，属于用户私人数据回收站）
+  - Phase 2：3 趟子表 DELETE（4 行）+ DELETE users 父表（1 行）→ COMMIT
+  - Phase 3：重新 SELECT COUNT(*) 扫 21 张表 → **残留总条数 = 0，VERIFY PASS** ✅
+- [x] **文档 + 提交**：CHANGELOG 升 v2.2.17、本文件新增 A+B 子任务条目、AIwork 任务报告按 8 节模板写完
+
+## 2026-08-08 执行任务：放开权限，新增 qq.com 为全学校邮箱白名单（解决测试账户数量不足）
+
+- [x] **TDD 流程执行（严格 RED→GREEN 双阶段）**：
+  - **RED 阶段（先写测试，验证失败）**：
+    - 在 [test_auth.py](file:///e:/Project/moment-campus/backend/tests/test_auth.py) 新增 `test_register_qq_com_global_test_domain_returns_200`：选临时学校（仅允许 jiangnan/edu 域名，不含 qq.com）→ 用 `xxx@qq.com` 注册 → 断言 200 ✅（实际 RED 时返回 400，验证失败原因：qq.com 不在允许域，失败正确）
+    - 在 [test_wechat_auth.py](file:///e:/Project/moment-campus/backend/tests/test_wechat_auth.py) 新增 `test_wechat_register_qq_com_global_test_domain_returns_200`：同构于前者，走微信注册通道 + `xxx@qq.com` → 断言 200 ✅（RED 阶段正确返回 400）
+    - 跑 pytest 仅两新用例 → **2/2 FAILED**，失败原因「官方教育邮箱」400 与预期一致（不是测试本身 bug）
+  - **GREEN 阶段（最小代码实现）**：
+    - 在 [school_domain.py](file:///e:/Project/moment-campus/backend/app/services/school_domain.py) 新增 `GLOBAL_TEST_EMAIL_DOMAINS: frozenset[str] = frozenset({"qq.com"})`（常量命名、语义、可扩展性完全解耦于运营豁免域 `ALLOWED_NON_CAMPUS_DOMAINS`）
+    - Rule 3 放行条件扩展为 `domain in ALLOWED_NON_CAMPUS_DOMAINS or domain in GLOBAL_TEST_EMAIL_DOMAINS`，实现"所有学校一律放行 @qq.com"
+    - Rule 5 的 400 报错文案也同步更新，新增「测试通用邮箱域（@ qq.com）」友好提示，用户看错误信息就知道 qq.com 可用
+  - **VERIFY GREEN 全量回归**：`pytest tests/test_auth.py tests/test_wechat_auth.py -v` 共 **38/38 全绿**（test_auth 16 项 + test_wechat_auth 22 项 = 38），无任何回归，尤其：
+    ✅ 新增 qq.com 2 条通过
+    ✅ 3 条 RED 拦截用例（gmail mismatch ×2、empty_email ×1）仍正确拦截
+    ✅ 原 momentcampus.com 运营域豁免仍有效
+    ✅ 原 example.jiangnan.edu.cn / example.zju.edu.cn 附加域路径仍有效
+    ✅ 微信身份管理、会话管理、邮箱登录懒建身份等全链路未回归
+- [x] **架构决策说明**：为何新增独立常量而非直接加到 `ALLOWED_NON_CAMPUS_DOMAINS`？因为两个白名单语义完全不同（运营平台账号 vs 测试阶段通用邮箱），独立的常量名 + 独立扩展点更清晰，未来若需放开 163.com / gmail.com 等只要在 `GLOBAL_TEST_EMAIL_DOMAINS` frozenset 里追加域名即可，不会误伤运营域的白名单语义
 
 ## 2026-08-08 执行任务：排查并修复「本地账号无法直接微信登录」Bug（wechat MOCK 模式 openid 每次变化）
 

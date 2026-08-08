@@ -34,6 +34,8 @@ from app.schemas.common import MessageResponse, PaginatedResponse
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.core.tenant import TenantContext, get_tenant_context
 from app.config import settings
+# B-01 注册/认证共用的教育邮箱域名校验（含全局测试域 qq.com 放行）
+from app.services.school_domain import ensure_email_matches_school_domains
 
 router = APIRouter(prefix="/users", tags=["用户"])
 
@@ -116,7 +118,9 @@ async def send_campus_verify(
 
     业务规则：
     - 已认证用户不能再发起（返回 400）
-    - 校验当前登录邮箱域名命中该校 `school_domains` 允许域名，否则 400
+    - 域名校验与注册阶段保持完全一致：调用 ensure_email_matches_school_domains，
+      因而运营豁免域（momentcampus.com）+ 全局测试邮箱域（qq.com 等）+ 学校
+      允许域均放行；qq.com 用户和教育邮箱用户走相同流程，无需额外输入框
     - 生成一次性 6 位数字验证码（10 分钟有效），DB 仅存 SHA-256 哈希
     - 通过 SMTP 发送只包含验证码的验证邮件
     - SMTP 未配置或本地开发环境（APP_ENV in opengauss/demo/test 或 DEBUG=true）：
@@ -125,16 +129,10 @@ async def send_campus_verify(
     if current_user.campus_verified:
         raise BadRequestException(detail="您已完成校园身份认证，无需重复认证")
 
-    # 校验当前登录邮箱域名命中该校允许域名
-    email_domain = current_user.email.rsplit("@", 1)[-1].lower()
-    domain_result = await db.execute(
-        select(SchoolDomain).where(
-            SchoolDomain.school_id == current_user.school_id,
-            SchoolDomain.domain == email_domain,
-        )
+    # 注册/认证共用域名校验——qq.com（全局测试域）/ momentcampus.com / 学校允许域均放行
+    await ensure_email_matches_school_domains(
+        db, current_user.school_id, current_user.email, require_email=True
     )
-    if domain_result.scalar_one_or_none() is None:
-        raise BadRequestException(detail="邮箱域名与您的学校不匹配，请使用学校官方邮箱注册/登录")
 
     # 生成一次性 6 位验证码
     code = _generate_verification_code()

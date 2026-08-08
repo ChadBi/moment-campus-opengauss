@@ -6,7 +6,8 @@
     ) -> None
         - 邮箱为空 + require_email=True → 400：请填写所选学校的教育邮箱
         - 邮箱格式非法（无 @）→ 400：请输入有效的邮箱地址
-        - 命中豁免域（momentcampus.com 运营邮箱）→ 放行
+        - 命中运营豁免域（momentcampus.com）→ 放行
+        - 命中全局测试邮箱域（qq.com）→ 放行（测试阶段放宽，方便大量账户注册）
         - 学校不存在/禁用 → 400：所选学校不存在
         - 学校有 SchoolDomain 配置 + 邮箱域名不在其内 → 400：请使用 XX 官方教育邮箱注册
         - 学校未配置任何 SchoolDomain（配置期极端场景）→ 放行，不 400 死锁
@@ -24,6 +25,11 @@ from app.models.school_domain import SchoolDomain
 
 # 运营豁免域：平台自身账号（admin@momentcampus.com 等）不受学校域名限制
 ALLOWED_NON_CAMPUS_DOMAINS: frozenset[str] = frozenset({"momentcampus.com"})
+
+# 全局测试邮箱白名单域：所有学校一律放行，用于开发/联调阶段
+# （测试者账号少，没有足量校园邮箱账户）
+# 若需增加通用域，直接在此 frozenset 添加域名（如 "163.com"、"gmail.com" 等）
+GLOBAL_TEST_EMAIL_DOMAINS: frozenset[str] = frozenset({"qq.com"})
 
 
 def parse_email_domain(email: Optional[str]) -> Optional[str]:
@@ -59,8 +65,8 @@ async def ensure_email_matches_school_domains(
     if domain is None:
         raise BadRequestException(detail="请输入有效的邮箱地址")
 
-    # Rule 3: 豁免域（运营邮箱）直出
-    if domain in ALLOWED_NON_CAMPUS_DOMAINS:
+    # Rule 3: 豁免域（运营邮箱）+ 全局测试邮箱域 → 直出
+    if domain in ALLOWED_NON_CAMPUS_DOMAINS or domain in GLOBAL_TEST_EMAIL_DOMAINS:
         return
 
     # Rule 4: 学校必须存在且激活
@@ -86,10 +92,12 @@ async def ensure_email_matches_school_domains(
     allowed = {d.lower() for d in rows if d}
     if domain not in allowed:
         readable = "、".join(sorted(allowed))
+        test_domains = "、".join(sorted(GLOBAL_TEST_EMAIL_DOMAINS))
         raise BadRequestException(
             detail=(
                 f"请使用{school.name}的官方教育邮箱注册（@ {readable}）"
-                "；或使用 @momentcampus.com 运营邮箱。"
+                "；或使用 @momentcampus.com 运营邮箱"
+                f"；或使用测试通用邮箱域（@ {test_domains}）。"
                 "若为该校学生但邮箱后缀不在列表中，请联系该校管理员添加附加域名。"
             )
         )

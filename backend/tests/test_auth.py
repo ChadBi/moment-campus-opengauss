@@ -282,6 +282,29 @@ async def test_register_momentcampus_com_whitelist_returns_200(client: AsyncClie
 
 
 @pytest.mark.asyncio
+async def test_register_qq_com_global_test_domain_returns_200(client: AsyncClient, db_session: AsyncSession):
+    """邮箱注册：临时学校有严格 SchoolDomain（不含 qq.com）→ qq.com 作为全局测试邮箱白名单域仍放行，200。"""
+    jn = await _seed_school_with_domains(
+        db_session,
+        suffix="jnQQ",
+        domains=["jiangnan.edu.cn", "stu.jiangnan.edu.cn", "example.jiangnan.edu.cn"],
+    )
+    unique_email = f"qq_tester_{__import__('time').time_ns()}@qq.com"
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": unique_email,
+            "password": "pass12345",
+            "nickname": "QQ邮箱测试者",
+            "school_id": jn["id"],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["user"]["email"] == unique_email
+    assert resp.json()["user"]["campus_verified"] is False
+
+
+@pytest.mark.asyncio
 async def test_register_school_with_empty_domains_allows_any_email(client: AsyncClient, test_school: dict, db_session: AsyncSession):
     """邮箱注册：test_school 未配置任何 SchoolDomain（配置期极端场景）→ 允许任意邮箱注册，不 400 死锁。"""
     # 先断言 test_school 确实没配任何 domains（保证用例正确性）

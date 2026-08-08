@@ -8,8 +8,12 @@
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
+from sqlalchemy import select
 
+from app.core.security import get_password_hash, create_access_token
 from app.models.school_domain import SchoolDomain
+from app.models.user import User
+from app.models.school_membership import SchoolMembership
 
 
 @pytest_asyncio.fixture
@@ -67,9 +71,41 @@ async def test_send_returns_six_digit_code_without_link_in_dev(
 
 
 @pytest.mark.asyncio
-async def test_send_rejects_non_school_domain(client, test_school: dict):
-    """登录邮箱域名不在允许域名内 → 400。"""
-    headers = await _register(client, "baduser@gmail.com", test_school["id"])
+async def test_send_rejects_non_school_domain(
+    client, test_school: dict, test_school_domain: dict, db_session
+):
+    """登录邮箱域名不在允许域名内 → send campus verify 400。
+
+    因为注册阶段本身也会对非允许域 400，这里不走 /register，而是直接在
+    DB 中插入 Gmail 用户并签发 access token，从而精准验证 send 接口的
+    域名校验逻辑（而非 register 的）。
+    """
+    # 1. 直接插入用户（跳过注册阶段域名校验）
+    import time
+    from datetime import datetime
+    email = f"baduser_{time.time_ns()}@gmail.com"
+    user = User(
+        email=email,
+        nickname="baduser",
+        password_hash=get_password_hash("testpass123"),
+        school_id=test_school["id"],
+        campus_verified=False,
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    )
+    db_session.add(user)
+    await db_session.flush()
+    uid = user.id
+    db_session.add(SchoolMembership(
+        user_id=uid, school_id=test_school["id"], role="user",
+        joined_at=datetime.now(), created_at=datetime.now(),
+    ))
+    await db_session.commit()
+
+    # 2. 签发 access token 构造鉴权头
+    headers = {"Authorization": f"Bearer {create_access_token(data={'sub': str(uid)})}"}
+
+    # 3. 发起认证 → 400：gmail.com 不在允许域，也不在全局测试域（仅 qq.com）
     resp = await client.post(
         "/api/v1/users/me/verify-campus/send",
         headers=headers,
@@ -188,3 +224,61 @@ async def test_verify_requires_auth(client):
     """未登录发起认证 → 401。"""
     resp = await client.post("/api/v1/users/me/verify-campus/send")
     assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_qq_email_user_send_verification_returns_200_no_extra_params(
+    client: AsyncClient, test_school: dict, test_school_domain: dict
+):
+    """@qq.com 注册用户（全局测试域白名单）：send 空 body/不传参数 → 200 + 6 位数字验证码。
+
+    验证点：认证阶段域名校验必须和注册阶段保持一致（使用同款 allowlist 逻辑）。
+    qq.com 用户应当和教育邮箱用户走完全一致的直接认证流程，不需要额外输入框。
+    """
+    import time
+    headers = await _register(
+        client, f"qq_verify_{time.time_ns()}@qq.com", test_school["id"]
+    )
+    resp = await client.post(
+        "/api/v1/users/me/verify-campus/send",
+        headers=headers,
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["message"]
+    assert body["code"] is not None
+    assert len(body["code"]) == 6
+    assert body["code"].isdigit()
+    assert body.get("verify_link") is None
+
+
+@pytest.mark.asyncio
+async def test_qq_email_user_full_verify_confirms_and_marks_verified(
+    client: AsyncClient, test_school: dict, test_school_domain: dict
+):
+    """@qq.com 注册用户全链路：空 body send → confirm → campus_verified=True 不变更邮箱。
+
+    验证点：confirm 成功后 GET /me 的 email 仍是登录的 qq.com 邮箱（不要乱改用户邮箱），
+    但 campus_verified=True。与教育邮箱注册用户行为完全一致。
+    """
+    import time
+    qq_email = f"qq_verify_full_{time.time_ns()}@qq.com"
+    headers = await _register(client, qq_email, test_school["id"])
+
+    send = (await client.post(
+        "/api/v1/users/me/verify-campus/send",
+        headers=headers,
+    )).json()
+    assert send["code"] is not None
+
+    confirm = await client.post(
+        "/api/v1/users/me/verify-campus/confirm",
+        json={"code": send["code"]},
+        headers=headers,
+    )
+    assert confirm.status_code == 200, confirm.text
+    assert confirm.json()["campus_verified"] is True
+
+    me = (await client.get("/api/v1/users/me", headers=headers)).json()
+    assert me["campus_verified"] is True
+    assert me["email"].lower() == qq_email
