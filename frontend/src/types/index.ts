@@ -66,7 +66,9 @@ export interface PostImageBrief {
 
 export interface User {
   id: number;
-  email: string;
+  phone?: string | null;
+  education_email?: string | null;
+  has_password?: boolean;
   nickname: string;
   avatar_url?: string;
   school_id: number;

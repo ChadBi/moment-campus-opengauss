@@ -8,6 +8,20 @@ class WechatExchangeRequest(BaseModel):
     code: str = Field(..., min_length=6, max_length=128, description="wx.login() 获取的临时 code")
 
 
+class WechatPhoneLoginRequest(BaseModel):
+    """微信登录并授权手机号。"""
+    code: str = Field(..., min_length=1, max_length=128, description="wx.login() 获取的 code")
+    phone_code: str = Field(..., min_length=1, max_length=256, description="getPhoneNumber 返回的 code")
+    school_code: Optional[str] = Field(None, max_length=50)
+
+
+class WechatPhoneLoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user: dict
+
+
 class WechatExchangeBoundResponse(BaseModel):
     """已绑定用户直接登录成功响应。"""
     status: str = "authenticated"

@@ -11,10 +11,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 const SCHOOL_CODE_BYPASS_PATHS = [
   '/schools',
   '/auth/login',
+  '/auth/sms/send',
   '/auth/refresh',
   '/auth/logout',
-  '/auth/forgot-password',
-  '/auth/reset-password',
 ];
 
 function shouldBypassSchoolCode(url: string | undefined): boolean {

@@ -12,8 +12,7 @@
     "pages/agreement/agreement",
     "pages/privacy/privacy",
     "pages/about/about",
-    "pages/login/login",
-    "pages/register/register"
+    "pages/login/login"
   ],
   "tabBar": {
     "custom": true,
@@ -67,7 +66,6 @@
       "root": "subpackages/pages",
       "name": "pagesExtra",
       "pages": [
-        "forgot-password/forgot-password",
         "school-select/school-select",
         "edit-post/edit-post",
         "locations/locations"

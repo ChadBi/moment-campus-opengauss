@@ -57,7 +57,7 @@
             <text class="nickname">{{nickname || '未命名用户'}}</text>
             <text wx:if="{{campusVerified}}" class="verified-badge-header">已认证</text>
           </view>
-          <text wx:if="{{email}}" class="email">{{email}}</text>
+           <text wx:if="{{phone}}" class="email">手机号：{{phone}}</text>
           <text wx:if="{{bio}}" class="bio">{{bio}}</text>
           <text wx:else class="bio bio-empty">这个人很懒，还没有简介</text>
           <view wx:if="{{createdAtText}}" class="meta-line">
@@ -161,14 +161,10 @@
         </block>
 
         <block wx:else>
-          <text class="verify-desc">通过登录邮箱验证身份，昵称旁将显示「已认证」徽标，让同学更信任你的信息。支持所在学校的官方邮箱和 qq.com 邮箱。</text>
+           <text class="verify-desc">提交当前学校教育邮箱并完成验证码校验。认证后昵称旁会显示「已认证」徽标，教育邮箱不会作为登录凭证。</text>
 
           <block wx:if="{{verifyStep === 'form'}}">
-            <view class="verify-email-box">
-              <text class="verify-email-label">认证邮箱</text>
-              <text class="verify-email-val">{{email}}</text>
-              <text class="verify-email-hint">6 位数字验证码将发送至该邮箱</text>
-            </view>
+             <view class="form-item"><text class="form-label">教育邮箱</text><input class="form-input" type="text" placeholder="name@school.edu.cn" placeholder-class="ph" value="{{educationEmail}}" bindinput="onEducationEmailInput" /></view>
             <view
               class="verify-send-btn {{verifySending ? 'disabled' : ''}}"
               bindtap="onSendVerifyCode"
@@ -176,7 +172,7 @@
               hover-stay-time="120"
             >
               <icon name="shield" size="28rpx" color="#ffffff" />
-              <text>{{verifySending ? '发送中...' : '向我的邮箱发送验证码'}}</text>
+               <text>{{verifySending ? '发送中...' : '发送验证码'}}</text>
             </view>
           </block>
 
@@ -475,6 +471,14 @@
       </view>
       <text class="settings-label">通知偏好</text>
       <icon name="chevron-right" size="32rpx" color="#9aabae" />
+    </view>
+    <view wx:if="{{isLoggedIn && !user.has_password}}" class="settings-item" bindtap="onSetPasswordTap" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap"><icon name="lock" size="32rpx" color="#174d5e" /></view>
+      <text class="settings-label">设置密码</text><icon name="chevron-right" size="32rpx" color="#9aabae" />
+    </view>
+    <view wx:if="{{isLoggedIn && educationEmail}}" class="settings-item danger" bindtap="onUnbindEducationEmailTap" hover-class="settings-item-hover" hover-stay-time="120">
+      <view class="settings-icon-wrap"><icon name="link-2" size="32rpx" color="#cd5852" /></view>
+      <text class="settings-label">解除教育邮箱绑定</text><icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
     <view class="settings-item" bindtap="goToAgreement" hover-class="settings-item-hover" hover-stay-time="120">
       <view class="settings-icon-wrap">

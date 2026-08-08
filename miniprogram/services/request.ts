@@ -59,13 +59,10 @@ function isAuthUrl(url: string): boolean {
   const publicAuthPaths = [
     '/auth/login',
     '/auth/register',
+    '/auth/sms/send',
     '/auth/refresh',
     '/auth/logout',
-    '/auth/forgot-password',
-    '/auth/reset-password',
-    '/auth/wechat/exchange',
-    '/auth/wechat/bind-existing',
-    '/auth/wechat/register',
+    '/auth/wechat/phone-login',
   ]
   return publicAuthPaths.some(path => url === path || url.startsWith(`${path}?`))
 }

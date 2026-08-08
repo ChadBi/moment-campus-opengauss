@@ -18,6 +18,7 @@ import { Loading } from '../components/ui/Loading';
 import { Toast } from '../components/ui/Toast';
 import { NotificationPreferencesCard } from '../components/NotificationPreferencesCard';
 import { CampusVerifyCard } from '../components/CampusVerifyCard';
+import { AccountSecurityCard } from '../components/AccountSecurityCard';
 import { VerifiedBadge } from '../components/VerifiedBadge';
 import { SwitchSchoolModal } from '../components/SwitchSchoolModal';
 import { isRegistrationSchool } from '../utils/campus-permission';
@@ -632,7 +633,7 @@ const ProfilePage: React.FC = () => {
                   {campusVerifiedForCurrentSchool && <VerifiedBadge />}
                 </div>
               )}
-              <p className="text-white/75 text-xs mt-0.5 truncate">{userInfo.email}</p>
+              <p className="text-white/75 text-xs mt-0.5 truncate">手机号：{userInfo.phone ? `${userInfo.phone.slice(0, 3)}****${userInfo.phone.slice(-4)}` : '未绑定'}</p>
               {editing ? (
                 <textarea
                   value={editForm.bio}
@@ -758,6 +759,7 @@ const ProfilePage: React.FC = () => {
 
       {/* B-01: 校园身份认证 */}
       <CampusVerifyCard />
+      <AccountSecurityCard />
 
       {/* UC-01: 切换学校确认浮窗 */}
       <SwitchSchoolModal

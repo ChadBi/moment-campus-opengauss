@@ -2727,3 +2727,21 @@ app.include_router(api_router, prefix="/api")
 - [功能范围与优先级](03_feature_scope_and_priority.md)
 - [数据库设计](12_database_design.md)
 - [安全与隐私](14_security_and_privacy.md)
+
+---
+
+## 24. 2026-08 手机号认证 API（当前实现）
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/auth/sms/send` | 发送注册、登录、设置密码或解绑短信验证码 |
+| POST | `/auth/register` | 手机号 + 短信验证码 + 密码 + 学校注册 |
+| POST | `/auth/login` | 手机号 + `sms_code` 或手机号 + `password` |
+| POST | `/auth/password/set` | 已登录且未设置密码的账号设置一次密码 |
+| POST | `/auth/wechat/phone-login` | 微信 `wx.login` code + 手机号授权 code 自动登录/建号 |
+| POST | `/users/me/education-email/send` | 提交教育邮箱并发送认证邮件验证码 |
+| POST | `/users/me/education-email/confirm` | 确认教育邮箱验证码并完成校园认证 |
+| POST | `/users/me/education-email/unbind/send` | 发送解绑手机号短信验证码 |
+| DELETE | `/users/me/education-email` | 携带短信验证码解除教育邮箱绑定 |
+
+旧邮箱登录、邮箱注册、邮箱找回密码、微信邮箱绑定和微信注册接口不再是有效业务入口。

@@ -1051,3 +1051,13 @@ erDiagram
 | NotificationType | comment, reply, like, validation, system, audit | 通知类型 |
 | TopicStatus | draft, published, archived | 专题状态 |
 | LostType | lost, found | 失物类型 |
+
+---
+
+## 7. 2026-08 账号与验证码模型（当前实现）
+
+`users.id` 继续作为数据库物理主键；业务身份改为 `users.phone`，国内 11 位手机号唯一。`users.email` 仅作为历史迁移兼容列保留，不参与登录。`users.education_email` 可空且唯一，只代表已绑定的教育邮箱；`password_hash` 可空，用于区分微信创建但尚未设置密码的账号。
+
+新增 `sms_verifications`：保存手机号、用途、业务流水号 `out_id`、验证码哈希、发送/过期/使用时间和 provider，不保存明文验证码。短信验证码有效期 5 分钟、发送间隔 60 秒。
+
+历史 `email_password` 身份记录由迁移清理；`wechat_miniprogram` 身份记录继续保留。

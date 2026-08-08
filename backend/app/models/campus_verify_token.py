@@ -8,7 +8,7 @@ from app.database import Base
 class CampusVerifyToken(Base):
     """B-01: 校园身份认证验证码 Token
 
-    同学提交「学号 + 校园邮箱」后，系统生成一次性验证码并存储于此表。
+    同学提交教育邮箱后，系统生成一次性验证码并存储于此表。
     验证码限时（默认 10 分钟）单次使用，确认后标记 used_at，使用即失效。
     dev 模式可在 send 响应中直接返回验证码，保证演示闭环。
     """

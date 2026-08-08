@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
 
@@ -22,23 +22,86 @@ class RefreshTokenRequest(BaseModel):
 
 # 用户认证相关
 class UserRegister(BaseModel):
-    email: EmailStr
-    nickname: str = Field(..., min_length=2, max_length=50)
+    phone: str
+    sms_code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
     password: str = Field(..., min_length=6, max_length=50)
+    password_confirm: str = Field(..., min_length=6, max_length=50)
     # 2026-08-01 起：注册时用户自由选择初始加入的学校，通过 school_id 显式指定；
     # 未提供时回退到 X-School-Code 头解析（兼容既有调用方），两者皆无则 400。
     # 注册成功后为该用户创建所选学校的 active membership（is_default=True）。
     school_id: Optional[int] = None
 
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        value = value.strip()
+        if not value.isdigit() or len(value) != 11 or not value.startswith("1"):
+            raise ValueError("请输入有效的国内 11 位手机号")
+        return value
+
+    @model_validator(mode="after")
+    def validate_password_confirmation(self):
+        if self.password != self.password_confirm:
+            raise ValueError("两次输入的密码不一致")
+        return self
+
 
 class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
+    phone: str
+    password: Optional[str] = Field(None, min_length=6, max_length=50)
+    sms_code: Optional[str] = Field(None, min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        value = value.strip()
+        if not value.isdigit() or len(value) != 11 or not value.startswith("1"):
+            raise ValueError("请输入有效的国内 11 位手机号")
+        return value
+
+    @model_validator(mode="after")
+    def require_one_login_method(self):
+        if bool(self.password) == bool(self.sms_code):
+            raise ValueError("请选择密码登录或短信验证码登录")
+        return self
+
+
+class SmsSendRequest(BaseModel):
+    phone: str
+    purpose: str = Field(..., pattern=r"^(register|login|set_password|education_unbind)$")
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        value = value.strip()
+        if not value.isdigit() or len(value) != 11 or not value.startswith("1"):
+            raise ValueError("请输入有效的国内 11 位手机号")
+        return value
+
+
+class SmsSendResponse(BaseModel):
+    message: str
+    out_id: Optional[str] = None
+    code: Optional[str] = Field(None, description="仅 Mock/本地开发返回，生产环境不返回")
+
+
+class PasswordSetRequest(BaseModel):
+    password: str = Field(..., min_length=6, max_length=50)
+    password_confirm: str = Field(..., min_length=6, max_length=50)
+    sms_code: Optional[str] = Field(None, min_length=6, max_length=6, pattern=r"^\d{6}$")
+
+    @model_validator(mode="after")
+    def validate_password_confirmation(self):
+        if self.password != self.password_confirm:
+            raise ValueError("两次输入的密码不一致")
+        return self
 
 
 class UserResponse(BaseModel):
     id: int
-    email: str
+    phone: Optional[str] = None
+    education_email: Optional[str] = None
+    has_password: bool = False
     nickname: str
     avatar_url: Optional[str] = None
     school_id: int
@@ -73,7 +136,7 @@ class ForgotPasswordRequest(BaseModel):
     后端无论邮箱是否存在都返回相同消息，避免泄露账号存在性。
     本地开发环境会在响应中返回 token（无邮件服务）。
     """
-    email: EmailStr
+    phone: str
 
 
 class ResetPasswordRequest(BaseModel):
@@ -99,10 +162,10 @@ class ResetPasswordResponse(BaseModel):
     message: str
 
 
-# B-01: 校园身份认证（统一教育邮箱：认证用登录邮箱发码，无需单独邮箱/学号）
+# B-01: 校园身份认证（教育邮箱只用于认证，不作为登录凭证）
 class CampusVerifySendRequest(BaseModel):
-    """发起校园身份认证：使用当前登录邮箱（须命中该校允许域名）。"""
-    pass
+    """发起校园身份认证：提交当前学校允许的教育邮箱。"""
+    education_email: EmailStr
 
 
 class CampusVerifySendResponse(BaseModel):
@@ -131,3 +194,12 @@ class CampusVerifyConfirmResponse(BaseModel):
     """校园身份认证 confirm 响应。"""
     message: str
     campus_verified: bool = True
+
+
+class EducationEmailUnbindSendRequest(BaseModel):
+    """解除教育邮箱绑定前的手机号短信确认。"""
+    pass
+
+
+class EducationEmailUnbindRequest(BaseModel):
+    sms_code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")

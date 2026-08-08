@@ -108,7 +108,7 @@ const AdminUsersPage: React.FC = () => {
           />
           <div className="min-w-0">
             <p className="font-medium text-ink truncate">{value}</p>
-            <p className="text-xs text-ink-muted truncate">{row.email}</p>
+            <p className="text-xs text-ink-muted truncate">{row.phone ? `${row.phone.slice(0, 3)}****${row.phone.slice(-4)}` : '无手机号'}</p>
           </div>
         </div>
       ),

@@ -1594,11 +1594,17 @@ async def seed_users(session: AsyncSession, schools: list):
         for u in cfg["users"]:
             # B-07/B-07': 演示数据为部分用户标记校园身份认证（campus_verified），
             # 使前端/小程序能展示「已认证」徽标，体现真实校园实名社区氛围。
-            # 统一教育邮箱方案：认证邮箱即登录邮箱（email），无需单独 campus_email/student_id
+            # 手机号主账号：email 仅保留为历史数据索引，教育邮箱只给已认证演示用户绑定。
+            # 演示手机号按学校和清单序号生成，所有演示账号密码统一为 pass123。
             campus_verified = u.get("campus_verified", False)
             campus_verified_at = datetime.utcnow() if campus_verified else None
+            school_offset = {"jiangnan": 0, "fudan": 100, "zju": 200}[school.code]
+            phone = u.get("phone") or f"1390000{school_offset + len(users) + 1:04d}"
+            u["phone"] = phone
             user = User(
                 email=u["email"],
+                phone=phone,
+                education_email=u["email"] if campus_verified and u["role"] == "user" else None,
                 nickname=u["nickname"],
                 password_hash=get_password_hash("pass123"),
                 school_id=school.id,
@@ -2370,7 +2376,7 @@ async def seed_data(
         for school, cfg in zip(schools, SCHOOLS_REGISTRY):
             print(f"\n  ▶ {school.name} (code={school.code})")
             for u in cfg["users"]:
-                print(f"    {u['email']:40s} | {u['nickname']:15s} | {u['role']:10s} | {u['bio']}")
+                print(f"    {u.get('phone', ''):11s} | {u['nickname']:15s} | {u['role']:10s} | {u['bio']}")
 
         print("\n【学校绑定说明（UC-01）】")
         print("  每个普通用户仅能关联一所学校；平台管理员（super_admin）可跨校管理。")

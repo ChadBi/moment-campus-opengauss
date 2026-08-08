@@ -22,21 +22,23 @@ from app.models.browse_history import BrowseHistory
 from app.models.validation_record import ValidationRecord
 # B-01: 校园身份认证
 from app.models.campus_verify_token import CampusVerifyToken
-from app.models.school_domain import SchoolDomain
 from app.models.school import School
 from app.schemas.user import UserResponse, UserUpdate
 from app.schemas.user import (
     CampusVerifySendRequest, CampusVerifySendResponse,
     CampusVerifyConfirmRequest, CampusVerifyConfirmResponse,
+    EducationEmailUnbindSendRequest, EducationEmailUnbindRequest,
+    SmsSendResponse,
 )
 from app.schemas.post import PostListResponse
 from app.schemas.common import MessageResponse, PaginatedResponse
-from app.core.exceptions import BadRequestException, NotFoundException, ForbiddenException
+from app.core.exceptions import BadRequestException, NotFoundException, ForbiddenException, ConflictException
 from app.core.campus import get_registration_school_id, is_registration_school
 from app.core.tenant import TenantContext, get_tenant_context
 from app.config import settings
-# B-01 注册/认证共用的教育邮箱域名校验（含全局测试域 qq.com 放行）
+# B-01 注册/认证共用的教育邮箱域名校验（仅允许学校配置的教育邮箱域名）
 from app.services.school_domain import ensure_email_matches_school_domains
+from app.services.sms import send_sms_code, verify_sms_code
 
 router = APIRouter(prefix="/users", tags=["用户"])
 
@@ -105,24 +107,21 @@ async def complete_onboarding(
     return current_user
 
 
-@router.post(
-    "/me/verify-campus/send",
-    response_model=CampusVerifySendResponse,
-    summary="B-01: 发起校园身份认证（使用登录邮箱发码）",
-)
+@router.post("/me/education-email/send", response_model=CampusVerifySendResponse, summary="发送教育邮箱认证验证码")
+@router.post("/me/verify-campus/send", response_model=CampusVerifySendResponse, include_in_schema=False)
 async def send_campus_verify(
+    data: CampusVerifySendRequest,
     request: Request,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """发起校园身份认证（统一教育邮箱）。
+    """发起教育邮箱认证。
 
     业务规则：
     - 已认证用户不能再发起（返回 400）
-    - 域名校验与注册阶段保持完全一致：调用 ensure_email_matches_school_domains，
-      因而运营豁免域（momentcampus.com）+ 全局测试邮箱域（qq.com 等）+ 学校
-      允许域均放行；qq.com 用户和教育邮箱用户走相同流程，无需额外输入框
+    - 教育邮箱必须命中注册学校允许域名
+    - 教育邮箱全局唯一，一个邮箱只能绑定一个手机号账号
     - 生成一次性 6 位数字验证码（10 分钟有效），DB 仅存 SHA-256 哈希
     - 通过 SMTP 发送只包含验证码的验证邮件
     - SMTP 未配置或本地开发环境（APP_ENV in opengauss/demo/test 或 DEBUG=true）：
@@ -135,10 +134,15 @@ async def send_campus_verify(
     if current_user.campus_verified:
         raise BadRequestException(detail="您已完成校园身份认证，无需重复认证")
 
-    # 注册/认证共用域名校验——qq.com（全局测试域）/ momentcampus.com / 学校允许域均放行
+    education_email = str(data.education_email).strip().lower()
     await ensure_email_matches_school_domains(
-        db, registration_school_id, current_user.email, require_email=True
+        db, registration_school_id, education_email, require_email=True
     )
+
+    existing_email = await db.execute(select(User).where(User.education_email == education_email))
+    existing_owner = existing_email.scalar_one_or_none()
+    if existing_owner is not None and existing_owner.id != current_user.id:
+        raise ConflictException(detail="该教育邮箱已绑定其他账号")
 
     # 生成一次性 6 位验证码
     code = _generate_verification_code()
@@ -149,7 +153,7 @@ async def send_campus_verify(
     db.add(CampusVerifyToken(
         user_id=current_user.id,
         school_id=registration_school_id,
-        target_email=current_user.email,
+        target_email=education_email,
         token_hash=token_hash,
         expires_at=expires_at,
         used_at=None,
@@ -164,14 +168,17 @@ async def send_campus_verify(
         select(School.name).where(School.id == registration_school_id)
     )
     school_name = school_row or ""
-    sent = email_service.send_verification_email(
-        to_email=current_user.email,
-        school_name=school_name,
-        code=code,
-    )
+    # 本地/测试环境直接返回 Mock 验证码，不向真实 SMTP 投递；生产环境才发邮件。
+    sent = False
+    if not _should_return_campus_verify_code() and email_service.smtp_configured():
+        sent = email_service.send_verification_email(
+            to_email=education_email,
+            school_name=school_name,
+            code=code,
+        )
     if sent:
         message = (
-            f"6 位验证码已发送至 {current_user.email}，请查收邮件并在页面输入"
+            f"6 位验证码已发送至 {education_email}，请查收邮件并在页面输入"
             f"（{CAMPUS_VERIFY_CODE_EXPIRE_MINUTES} 分钟内有效）"
         )
     else:
@@ -188,18 +195,15 @@ async def send_campus_verify(
     return CampusVerifySendResponse(message=message)
 
 
-@router.post(
-    "/me/verify-campus/confirm",
-    response_model=CampusVerifyConfirmResponse,
-    summary="B-01: 确认校园身份认证（提交 6 位验证码）",
-)
+@router.post("/me/education-email/confirm", response_model=CampusVerifyConfirmResponse, summary="确认教育邮箱认证")
+@router.post("/me/verify-campus/confirm", response_model=CampusVerifyConfirmResponse, include_in_schema=False)
 async def confirm_campus_verify(
     data: CampusVerifyConfirmRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """确认校园身份认证（统一教育邮箱）。
+    """确认教育邮箱认证。
 
     业务规则：
     - 校验 6 位数字验证码：哈希后查 DB，必须存在 + 未过期 + 未使用 + 属于当前用户
@@ -232,8 +236,9 @@ async def confirm_campus_verify(
     if token.expires_at < datetime.now():
         raise BadRequestException(detail="验证凭证已过期，请重新发起认证")
 
-    # 标记使用 + 记录认证信息
+    # 标记使用 + 记录认证信息，同时把通过验证的邮箱绑定到手机号账号
     token.used_at = datetime.now()
+    current_user.education_email = token.target_email.strip().lower()
     current_user.campus_verified = True
     current_user.campus_verified_at = datetime.now()
     current_user.updated_at = datetime.now()
@@ -241,6 +246,40 @@ async def confirm_campus_verify(
     await db.refresh(current_user)
 
     return CampusVerifyConfirmResponse(message="校园身份认证成功", campus_verified=True)
+
+
+@router.post(
+    "/me/education-email/unbind/send",
+    response_model=SmsSendResponse,
+    summary="发送解除教育邮箱绑定短信验证码",
+)
+async def send_education_email_unbind_code(
+    _data: EducationEmailUnbindSendRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not current_user.education_email:
+        raise BadRequestException(detail="当前账号没有绑定教育邮箱")
+    out_id, code = await send_sms_code(db, current_user.phone or "", "education_unbind")
+    return SmsSendResponse(message="解除绑定验证码已发送", out_id=out_id, code=code)
+
+
+@router.delete("/me/education-email", response_model=UserResponse, summary="解除教育邮箱绑定")
+async def unbind_education_email(
+    data: EducationEmailUnbindRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not current_user.education_email:
+        raise BadRequestException(detail="当前账号没有绑定教育邮箱")
+    await verify_sms_code(db, current_user.phone or "", "education_unbind", data.sms_code)
+    current_user.education_email = None
+    current_user.campus_verified = False
+    current_user.campus_verified_at = None
+    current_user.updated_at = datetime.now()
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
 
 
 @router.post("/me/avatar", response_model=MessageResponse, summary="上传头像")

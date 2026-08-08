@@ -1,6 +1,8 @@
 export interface User {
   id: number
-  email: string
+  phone?: string | null
+  education_email?: string | null
+  has_password?: boolean
   nickname: string
   avatar_url?: string
   bio?: string
@@ -342,6 +344,8 @@ export interface LocationDetail {
   facts: LocationFact[]
   summary: LocationSummary
 }
+
+export interface WechatPhoneLoginResponse extends LoginResponse {}
 
 export interface MapLocationPanel {
   location: LocationItem

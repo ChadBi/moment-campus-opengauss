@@ -85,6 +85,51 @@ async def exchange_wechat_code(code: str) -> dict:
     }
 
 
+async def exchange_wechat_phone_code(phone_code: str) -> str:
+    """使用 getPhoneNumber 返回的 code 换取手机号。
+
+    未配置微信密钥时，返回固定 Mock 手机号，保证本地模拟器可以完整验证
+    自动创建/登录链路；生产环境始终调用微信官方接口。
+    """
+    if not settings.WECHAT_APPID or not settings.WECHAT_APPSECRET:
+        return settings.WECHAT_PHONE_LOGIN_MOCK_PHONE
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            token_resp = await client.get(
+                "https://api.weixin.qq.com/cgi-bin/token",
+                params={
+                    "grant_type": "client_credential",
+                    "appid": settings.WECHAT_APPID,
+                    "secret": settings.WECHAT_APPSECRET,
+                },
+            )
+            token_resp.raise_for_status()
+            token_data = token_resp.json()
+            access_token = token_data.get("access_token")
+            if not access_token:
+                raise ValueError(token_data.get("errmsg", "无法获取微信 access_token"))
+
+            phone_resp = await client.post(
+                "https://api.weixin.qq.com/wxa/business/getuserphonenumber",
+                params={"access_token": access_token},
+                json={"code": phone_code},
+            )
+            phone_resp.raise_for_status()
+            phone_data = phone_resp.json()
+    except Exception as exc:
+        logger.error("微信手机号接口请求失败: %s", exc)
+        raise BadRequestException(detail="微信手机号授权服务暂时不可用，请重试") from exc
+
+    if phone_data.get("errcode", 0) != 0:
+        raise BadRequestException(detail=f"微信手机号授权失败：{phone_data.get('errmsg', '未知错误')}")
+    phone_info = phone_data.get("phone_info") or {}
+    phone = phone_info.get("purePhoneNumber") or phone_info.get("phoneNumber")
+    if not phone:
+        raise BadRequestException(detail="微信未返回有效手机号，请重新授权")
+    return phone
+
+
 async def create_binding_ticket(
     db: AsyncSession,
     openid: str,

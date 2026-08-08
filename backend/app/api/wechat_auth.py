@@ -1,574 +1,203 @@
+"""微信小程序手机号登录与会话管理。"""
+
 import hashlib
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.api.auth import _issue_login
 from app.config import settings
-from app.core.security import (
-    get_password_hash,
-    verify_password,
-    create_access_token,
-    create_refresh_token,
-)
-from app.core.exceptions import (
-    BadRequestException,
-    UnauthorizedException,
-    ConflictException,
-    NotFoundException,
-)
+from app.core.exceptions import BadRequestException, ConflictException, NotFoundException, UnauthorizedException
+from app.database import get_db
 from app.dependencies import get_current_user
-from app.models.user import User
-from app.models.user_auth_identity import UserAuthIdentity
 from app.models.auth_session import AuthSession
 from app.models.school import School
 from app.models.school_membership import SchoolMembership
+from app.models.user import User
+from app.models.user_auth_identity import UserAuthIdentity
+from app.schemas.common import MessageResponse
+from app.schemas.user import UserResponse
 from app.schemas.wechat_auth import (
-    WechatExchangeRequest,
-    WechatExchangeBoundResponse,
-    WechatExchangeUnboundResponse,
-    WechatBindExistingRequest,
-    WechatBindExistingResponse,
-    WechatRegisterRequest,
-    WechatRegisterResponse,
-    IdentityResponse,
     IdentityListResponse,
-    AddEmailIdentityRequest,
-    AddEmailIdentityResponse,
-    SessionResponse,
-    SessionListResponse,
+    IdentityResponse,
     LogoutAllResponse,
+    SessionListResponse,
+    SessionResponse,
+    WechatPhoneLoginRequest,
+    WechatPhoneLoginResponse,
 )
-from app.schemas.user import UserResponse, LoginResponse
-from app.services.wechat import (
-    exchange_wechat_code,
-    create_binding_ticket,
-    consume_binding_ticket,
-)
-from app.services.school_domain import (
-    ensure_email_matches_school_domains,
-    auto_verify_campus_domain_match,
-)
+from app.services.sms import normalize_phone
+from app.services.wechat import exchange_wechat_code, exchange_wechat_phone_code
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/auth/wechat", tags=["微信认证"])
 
 
-def _hash_token(token: str) -> str:
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+async def _resolve_school(db: AsyncSession, school_code: Optional[str]) -> School:
+    code = (school_code or settings.SCHOOL_CODE or "jiangnan").strip()
+    result = await db.execute(select(School).where(School.code == code, School.is_active.is_(True)))
+    school = result.scalar_one_or_none()
+    if school is None:
+        result = await db.execute(select(School).where(School.code == "jiangnan", School.is_active.is_(True)))
+        school = result.scalar_one_or_none()
+    if school is None:
+        raise BadRequestException(detail="暂时无法确定当前学校")
+    return school
 
 
-def _create_session_pair(user_id: int, session_type: str = "web", db: AsyncSession = None, client_ip: str = None):
-    """创建 access_token + refresh_token 对，并记录服务端会话。"""
-    access_token = create_access_token(data={"sub": str(user_id)})
-    refresh_token = create_refresh_token(data={"sub": str(user_id)})
-
-    if db is not None:
-        refresh_hash = _hash_token(refresh_token)
-        session = AuthSession(
-            user_id=user_id,
-            refresh_token_hash=refresh_hash,
-            session_type=session_type,
-            client_ip=client_ip,
-            expires_at=datetime.now() + __import__("datetime").timedelta(
-                days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-            ),
-            last_active_at=datetime.now(),
-        )
-        db.add(session)
-
-    return access_token, refresh_token
-
-
-async def _resolve_client_ip(request: Request) -> Optional[str]:
-    """从请求中提取客户端 IP。"""
-    if request.client:
-        return request.client.host
-    return None
-
-
-@router.post("/exchange", summary="微信 code 换登录态")
-async def wechat_exchange(
-    data: WechatExchangeRequest,
+@router.post("/phone-login", response_model=WechatPhoneLoginResponse, summary="微信授权手机号登录")
+async def phone_login(
+    data: WechatPhoneLoginRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """微信小程序登录：wx.login() code → 换取登录态或 binding_ticket。
-
-    流程：
-    1. 调微信 code2Session → 获取 openid
-    2. 查找 openid 是否已绑定用户
-       - 已绑定 → 直接签发 JWT（status: authenticated）
-       - 未绑定 → 返回 binding_ticket（status: binding_required）
-    """
-    client_ip = await _resolve_client_ip(request)
-
-    # 1. 调用微信 code2Session
     wx_result = await exchange_wechat_code(data.code)
     openid = wx_result["openid"]
-    unionid = wx_result.get("unionid")
+    phone = normalize_phone(await exchange_wechat_phone_code(data.phone_code))
 
-    # 2. 查找 openid 对应的身份
-    result = await db.execute(
+    identity_result = await db.execute(
         select(UserAuthIdentity).where(
             UserAuthIdentity.identity_type == "wechat_miniprogram",
             UserAuthIdentity.identity_key == openid,
-            UserAuthIdentity.is_deleted == False,
+            UserAuthIdentity.is_deleted.is_(False),
         )
     )
-    identity = result.scalar_one_or_none()
+    identity = identity_result.scalar_one_or_none()
 
+    phone_result = await db.execute(select(User).where(User.phone == phone))
+    phone_user = phone_result.scalar_one_or_none()
+    identity_user = None
     if identity is not None:
-        # 已绑定 → 直接签发 JWT
-        user_result = await db.execute(
-            select(User).where(User.id == identity.user_id)
-        )
-        user = user_result.scalar_one_or_none()
+        identity_user_result = await db.execute(select(User).where(User.id == identity.user_id))
+        identity_user = identity_user_result.scalar_one_or_none()
 
-        if user is None or not user.is_active or user.is_deleted:
-            raise UnauthorizedException(detail="账号已被禁用或删除")
+    # 手机号是唯一业务身份：已有手机号优先。若历史微信身份指向另一条旧账号，
+    # 将微信身份迁移到手机号账号并停用旧壳账号，避免一手机号多账号。
+    user = phone_user or identity_user
+    if phone_user is not None and identity_user is not None and phone_user.id != identity_user.id:
+        identity.user_id = phone_user.id
+        identity_user.is_active = False
+        identity_user.is_deleted = True
+        identity_user.deleted_at = datetime.now()
+        user = phone_user
 
-        # 更新身份最后使用时间
-        identity.last_used_at = datetime.now()
-
-        # 创建会话
-        access_token, refresh_token = _create_session_pair(
-            user_id=user.id,
-            session_type="miniprogram",
-            db=db,
-            client_ip=client_ip,
-        )
-        await db.commit()
-
-        logger.info(f"微信登录成功: user_id={user.id} openid={openid[:8]}...")
-
-        user_data = UserResponse.model_validate(user).model_dump()
-        return WechatExchangeBoundResponse(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            user_id=user.id,
-            user=user_data,
-        )
-    else:
-        # 未绑定 → 返回 binding_ticket
-        ticket = await create_binding_ticket(
-            db=db,
-            openid=openid,
-            unionid=unionid,
-            client_ip=client_ip,
-        )
-        logger.info(f"微信用户未绑定，返回 binding_ticket: openid={openid[:8]}...")
-
-        return WechatExchangeUnboundResponse(
-            binding_ticket=ticket,
-            expires_in=settings.BINDING_TICKET_EXPIRE_SECONDS,
-        )
-
-
-@router.post("/bind-existing", response_model=WechatBindExistingResponse, summary="绑定已有 Web 账号")
-async def wechat_bind_existing(
-    data: WechatBindExistingRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    """将微信 openid 绑定到已有 Web 账号。
-
-    流程：
-    1. 验证 binding_ticket（一次性、时效性）
-    2. 验证邮箱密码
-    3. 创建 wechat_miniprogram 身份记录
-    4. 签发 JWT
-    """
-    client_ip = await _resolve_client_ip(request)
-
-    # 1. 验证 binding_ticket
-    bt = await consume_binding_ticket(db, data.binding_ticket)
-    if bt is None:
-        raise BadRequestException(detail="绑定凭证无效或已过期")
-
-    # 2. 查找并验证用户
-    result = await db.execute(select(User).where(User.email == data.email))
-    user = result.scalar_one_or_none()
     if user is None:
-        raise UnauthorizedException(detail="邮箱或密码错误")
-
-    if not verify_password(data.password, user.password_hash):
-        raise UnauthorizedException(detail="邮箱或密码错误")
-
-    if not user.is_active or user.is_deleted:
-        raise UnauthorizedException(detail="账号已被禁用或删除")
-
-    # 3.1 防御：该账号本身是否已绑定了另一个微信？
-    # 一个账号只能有一条 wechat_miniprogram 身份（防止一号多绑导致用户下次登录时不知道登到谁）
-    account_already_wechat_check = await db.execute(
-        select(UserAuthIdentity).where(
-            UserAuthIdentity.user_id == user.id,
-            UserAuthIdentity.identity_type == "wechat_miniprogram",
-            UserAuthIdentity.is_deleted == False,
+        school = await _resolve_school(db, data.school_code)
+        user = User(
+            phone=phone,
+            email=None,
+            education_email=None,
+            nickname="此刻用户",
+            password_hash=None,
+            school_id=school.id,
+            registration_school_id=school.id,
+            campus_verified=False,
         )
-    )
-    if account_already_wechat_check.scalar_one_or_none() is not None:
-        raise ConflictException(detail="该账号已绑定其他微信，不能重复绑定")
-
-    # 3. 创建微信身份记录
-    # 检查是否已绑定同一 openid
-    existing = await db.execute(
-        select(UserAuthIdentity).where(
-            UserAuthIdentity.identity_type == "wechat_miniprogram",
-            UserAuthIdentity.identity_key == bt.openid,
-            UserAuthIdentity.is_deleted == False,
+        db.add(user)
+        await db.flush()
+        db.add(
+            SchoolMembership(
+                user_id=user.id,
+                school_id=school.id,
+                role="member",
+                status="active",
+                is_default=True,
+                joined_at=datetime.now(),
+            )
         )
-    )
-    if existing.scalar_one_or_none() is not None:
-        raise ConflictException(detail="该微信已绑定其他账号")
+    elif user.phone is None:
+        user.phone = phone
 
-    wechat_identity = UserAuthIdentity(
-        user_id=user.id,
-        identity_type="wechat_miniprogram",
-        identity_key=bt.openid,
-        openid=bt.openid,
-        unionid=bt.unionid,
-        last_used_at=datetime.now(),
-    )
-    db.add(wechat_identity)
-
-    # 同时确保用户有 email_password 身份记录
-    email_identity_check = await db.execute(
-        select(UserAuthIdentity).where(
-            UserAuthIdentity.user_id == user.id,
-            UserAuthIdentity.identity_type == "email_password",
-            UserAuthIdentity.identity_key == user.email,
-            UserAuthIdentity.is_deleted == False,
-        )
-    )
-    if email_identity_check.scalar_one_or_none() is None:
-        email_identity = UserAuthIdentity(
+    if identity is None:
+        identity = UserAuthIdentity(
             user_id=user.id,
-            identity_type="email_password",
-            identity_key=user.email,
-            password_hash=user.password_hash,
+            identity_type="wechat_miniprogram",
+            identity_key=openid,
+            openid=openid,
+            unionid=wx_result.get("unionid"),
             last_used_at=datetime.now(),
         )
-        db.add(email_identity)
-
-    # 4. 创建会话并签发 JWT
-    access_token, refresh_token = _create_session_pair(
-        user_id=user.id,
-        session_type="miniprogram",
-        db=db,
-        client_ip=client_ip,
-    )
-    await db.commit()
-
-    logger.info(f"微信绑定成功: user_id={user.id} openid={bt.openid[:8]}...")
-
-    user_data = UserResponse.model_validate(user).model_dump()
-    return WechatBindExistingResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user_id=user.id,
-        user=user_data,
-        message="绑定成功",
+        db.add(identity)
+    else:
+        identity.user_id = user.id
+        identity.last_used_at = datetime.now()
+    user.last_login_at = datetime.now()
+    result = await _issue_login(db, user, "miniprogram")
+    return WechatPhoneLoginResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        user=result.user.model_dump(),
     )
 
 
-@router.post("/register", response_model=WechatRegisterResponse, summary="微信新用户注册")
-async def wechat_register(
-    data: WechatRegisterRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    """微信新用户注册：通过 binding_ticket 创建新用户并绑定微信身份。
-
-    流程：
-    1. 验证 binding_ticket
-    2. 生成邮箱（如果未提供）
-    3. 创建 User + wechat_miniprogram 身份 + email_password 身份
-    4. 创建默认 membership
-    5. 签发 JWT
-    """
-    client_ip = await _resolve_client_ip(request)
-
-    # 1. 验证 binding_ticket
-    bt = await consume_binding_ticket(db, data.binding_ticket)
-    if bt is None:
-        raise BadRequestException(detail="绑定凭证无效或已过期")
-
-    # 2. 检查 openid 是否被注册
-    existing = await db.execute(
-        select(UserAuthIdentity).where(
-            UserAuthIdentity.identity_type == "wechat_miniprogram",
-            UserAuthIdentity.identity_key == bt.openid,
-            UserAuthIdentity.is_deleted == False,
-        )
-    )
-    if existing.scalar_one_or_none() is not None:
-        raise ConflictException(detail="该微信已绑定其他账号")
-
-    # 3. B-01: 注册阶段强制校验教育邮箱域名
-    #    - 空邮箱 → 400「请填写所选学校的教育邮箱」
-    #    - 域名不匹配 → 400「请使用XX官方教育邮箱注册」
-    #    - 豁免域 momentcampus.com / 学校无 SchoolDomain 配置期 → 放行
-    #    （helper 内部还会检查学校存在性，因此不再单独做 School 存在性检查）
-    await ensure_email_matches_school_domains(db, data.school_id, data.email, require_email=True)
-    email = data.email  # 经过 helper 必为非空且格式合法
-
-    # 4. 检查邮箱是否已被注册
-    email_check = await db.execute(select(User).where(User.email == email))
-    if email_check.scalar_one_or_none() is not None:
-        raise ConflictException(detail="该邮箱已被注册")
-
-    # 5. 创建用户
-    password_hash = get_password_hash(data.password)
-    user = User(
-        email=email,
-        nickname=data.nickname,
-        password_hash=password_hash,
-        school_id=data.school_id,
-    )
-    db.add(user)
-    await db.flush()
-
-    # 自动校园认证：邮箱域名命中该校 SchoolDomain 时直接设置 campus_verified=True
-    await auto_verify_campus_domain_match(db, user, data.school_id, email)
-
-    # 6. 创建两种身份
-    wechat_identity = UserAuthIdentity(
-        user_id=user.id,
-        identity_type="wechat_miniprogram",
-        identity_key=bt.openid,
-        openid=bt.openid,
-        unionid=bt.unionid,
-        last_used_at=datetime.now(),
-    )
-    email_identity = UserAuthIdentity(
-        user_id=user.id,
-        identity_type="email_password",
-        identity_key=email,
-        password_hash=password_hash,
-        last_used_at=datetime.now(),
-    )
-    db.add(wechat_identity)
-    db.add(email_identity)
-
-    # 7. 创建默认 membership
-    membership = SchoolMembership(
-        user_id=user.id,
-        school_id=data.school_id,
-        role="member",
-        status="active",
-        is_default=True,
-        joined_at=datetime.now(),
-    )
-    db.add(membership)
-
-    # 8. 创建会话并签发 JWT
-    access_token, refresh_token = _create_session_pair(
-        user_id=user.id,
-        session_type="miniprogram",
-        db=db,
-        client_ip=client_ip,
-    )
-    await db.commit()
-
-    logger.info(f"微信注册成功: user_id={user.id} openid={bt.openid[:8]}...")
-
-    user_data = UserResponse.model_validate(user).model_dump()
-    return WechatRegisterResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user_id=user.id,
-        user=user_data,
-        message="注册成功",
-    )
+@router.api_route("/exchange", methods=["POST"], summary="已废弃：微信邮箱绑定交换")
+async def legacy_exchange():
+    raise BadRequestException(detail="旧微信邮箱绑定流程已下线，请使用微信手机号授权登录")
 
 
-# ============================================================
-# 身份管理
-# ============================================================
-@router.get("/identities", response_model=IdentityListResponse, summary="查看当前用户已绑定身份")
-async def list_identities(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """返回当前用户所有登录方式。"""
+@router.api_route("/bind-existing", methods=["POST"], summary="已废弃：微信绑定邮箱账号")
+async def legacy_bind_existing():
+    raise BadRequestException(detail="旧微信邮箱绑定流程已下线，请使用微信手机号授权登录")
+
+
+@router.api_route("/register", methods=["POST"], summary="已废弃：微信邮箱注册")
+async def legacy_register():
+    raise BadRequestException(detail="旧微信邮箱注册流程已下线，请使用微信手机号授权登录")
+
+
+@router.get("/identities", response_model=IdentityListResponse, summary="查看微信身份")
+async def list_identities(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(UserAuthIdentity).where(
             UserAuthIdentity.user_id == user.id,
-            UserAuthIdentity.is_deleted == False,
+            UserAuthIdentity.is_deleted.is_(False),
         )
     )
-    identities = result.scalars().all()
-    return IdentityListResponse(identities=[
-        IdentityResponse.model_validate(i) for i in identities
-    ])
+    return IdentityListResponse(identities=[IdentityResponse.model_validate(i) for i in result.scalars().all()])
 
 
-@router.post("/identities/email", response_model=AddEmailIdentityResponse, summary="添加邮箱登录方式")
-async def add_email_identity(
-    data: AddEmailIdentityRequest,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """为当前用户添加邮箱密码登录方式（给微信注册用户设置密码）。"""
-    # 检查邮箱是否已被其他用户使用
-    result = await db.execute(
-        select(User).where(User.email == data.email)
-    )
-    existing_user = result.scalar_one_or_none()
-    if existing_user is not None and existing_user.id != user.id:
-        raise ConflictException(detail="该邮箱已被其他账号注册")
-
-    # 检查是否已有 email_password 身份
-    identity_check = await db.execute(
-        select(UserAuthIdentity).where(
-            UserAuthIdentity.user_id == user.id,
-            UserAuthIdentity.identity_type == "email_password",
-            UserAuthIdentity.is_deleted == False,
-        )
-    )
-    existing_identity = identity_check.scalar_one_or_none()
-    if existing_identity is not None:
-        raise ConflictException(detail="已存在邮箱登录方式")
-
-    # 如果用户邮箱与提供的邮箱不同，更新用户邮箱
-    if user.email != data.email:
-        user.email = data.email
-
-    # 创建 email_password 身份
-    email_identity = UserAuthIdentity(
-        user_id=user.id,
-        identity_type="email_password",
-        identity_key=data.email,
-        password_hash=get_password_hash(data.password),
-        last_used_at=datetime.now(),
-    )
-    db.add(email_identity)
-    await db.commit()
-
-    logger.info(f"添加邮箱登录方式: user_id={user.id}")
-    return AddEmailIdentityResponse(message="添加成功", identity_id=email_identity.id)
-
-
-@router.delete("/identities/{identity_id}", summary="解绑登录方式")
-async def delete_identity(
-    identity_id: int,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """解绑指定登录方式。
-
-    规则：
-    - 至少保留一种登录方式（不能全部解绑）
-    - 不能解绑最后一个 email_password（防止用户失去 Web 登录能力）
-    """
-    result = await db.execute(
-        select(UserAuthIdentity).where(
-            UserAuthIdentity.id == identity_id,
-            UserAuthIdentity.user_id == user.id,
-            UserAuthIdentity.is_deleted == False,
-        )
-    )
-    identity = result.scalar_one_or_none()
-    if identity is None:
-        raise NotFoundException(detail="身份记录不存在")
-
-    # 检查是否至少保留一种
-    all_result = await db.execute(
-        select(UserAuthIdentity).where(
-            UserAuthIdentity.user_id == user.id,
-            UserAuthIdentity.is_deleted == False,
-        )
-    )
-    all_identities = all_result.scalars().all()
-    if len(all_identities) <= 1:
-        raise BadRequestException(detail="至少需要保留一种登录方式")
-
-    # 软删除
-    identity.is_deleted = True
-    identity.deleted_at = datetime.now()
-    await db.commit()
-
-    logger.info(f"解绑身份: user_id={user.id} identity_type={identity.identity_type}")
-    return {"message": "解绑成功"}
-
-
-# ============================================================
-# 会话管理
-# ============================================================
 @router.get("/sessions", response_model=SessionListResponse, summary="查看登录设备列表")
-async def list_sessions(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """返回当前用户所有活跃会话。"""
+async def list_sessions(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(AuthSession).where(
+        select(AuthSession)
+        .where(
             AuthSession.user_id == user.id,
-            AuthSession.is_revoked == False,
+            AuthSession.is_revoked.is_(False),
             AuthSession.expires_at > datetime.now(),
-        ).order_by(AuthSession.created_at.desc())
+        )
+        .order_by(AuthSession.created_at.desc())
     )
-    sessions = result.scalars().all()
-    # 标记当前会话（根据 Authorization header 判断较复杂，这里不标记）
-    session_responses = []
-    for s in sessions:
-        sr = SessionResponse.model_validate(s)
-        session_responses.append(sr)
-    return SessionListResponse(sessions=session_responses)
+    return SessionListResponse(sessions=[SessionResponse.model_validate(s) for s in result.scalars().all()])
 
 
-@router.delete("/sessions/{session_id}", summary="撤销指定设备会话")
+@router.delete("/sessions/{session_id}", response_model=MessageResponse, summary="撤销指定设备会话")
 async def revoke_session(
     session_id: int,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """撤销指定设备的会话，不影响其他设备。"""
-    result = await db.execute(
-        select(AuthSession).where(
-            AuthSession.id == session_id,
-            AuthSession.user_id == user.id,
-        )
-    )
+    result = await db.execute(select(AuthSession).where(AuthSession.id == session_id, AuthSession.user_id == user.id))
     session = result.scalar_one_or_none()
     if session is None:
         raise NotFoundException(detail="会话不存在")
-    if session.is_revoked:
-        raise BadRequestException(detail="会话已被撤销")
-
     session.is_revoked = True
     session.revoked_at = datetime.now()
     await db.commit()
-
-    logger.info(f"撤销会话: user_id={user.id} session_id={session_id}")
-    return {"message": "会话已撤销"}
+    return MessageResponse(message="会话已撤销")
 
 
 @router.post("/logout-all", response_model=LogoutAllResponse, summary="退出全部设备")
-async def logout_all(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """撤销用户所有活跃会话。"""
+async def logout_all(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     result = await db.execute(
-        select(AuthSession).where(
-            AuthSession.user_id == user.id,
-            AuthSession.is_revoked == False,
-        )
+        select(AuthSession).where(AuthSession.user_id == user.id, AuthSession.is_revoked.is_(False))
     )
     sessions = result.scalars().all()
-    count = 0
-    for s in sessions:
-        s.is_revoked = True
-        s.revoked_at = datetime.now()
-        count += 1
+    for session in sessions:
+        session.is_revoked = True
+        session.revoked_at = datetime.now()
     await db.commit()
-
-    logger.info(f"退出全部设备: user_id={user.id} count={count}")
-    return LogoutAllResponse(message="已退出所有设备", revoked_count=count)
+    return LogoutAllResponse(message="已退出所有设备", revoked_count=len(sessions))

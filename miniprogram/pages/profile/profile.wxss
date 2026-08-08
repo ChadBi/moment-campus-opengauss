@@ -531,7 +531,7 @@
   line-height: 1.6;
 }
 
-/* 认证邮箱展示（统一教育邮箱：只读展示登录邮箱） */
+/* 教育邮箱认证展示 */
 .verify-email-box {
   display: flex;
   flex-direction: column;

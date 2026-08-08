@@ -9,11 +9,11 @@ class UserAuthIdentity(Base):
     """用户身份表 —— 支持多种登录方式统一账号。
 
     身份类型 (identity_type):
-    - email_password: 邮箱密码登录（现有用户默认身份）
+    - email_password: 历史身份类型（已废弃，不再作为有效登录入口）
     - wechat_miniprogram: 微信小程序登录（openid 标识）
 
     设计原则：
-    - 一个 User 可拥有多个 Identity（如邮箱 + 微信）
+    - 一个 User 可拥有多个 Identity（当前保留微信小程序身份）
     - 同一 identity_type + identity_key 全局唯一（防止重复绑定）
     - 新增身份不影响现有登录流程（双读兼容）
     """
@@ -27,13 +27,13 @@ class UserAuthIdentity(Base):
     )
     identity_type: Mapped[str] = mapped_column(
         String(50), nullable=False,
-        comment="身份类型: email_password / wechat_miniprogram",
+        comment="身份类型: 历史 email_password / wechat_miniprogram",
     )
     identity_key: Mapped[str] = mapped_column(
         String(500), nullable=False,
         comment="身份标识: 邮箱地址 / 微信 openid",
     )
-    # 密码哈希仅用于 email_password 类型，其他类型为 NULL
+    # 历史 email_password 类型曾使用；当前微信身份为 NULL
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # 微信相关字段
     openid: Mapped[str | None] = mapped_column(String(200), nullable=True, index=True)

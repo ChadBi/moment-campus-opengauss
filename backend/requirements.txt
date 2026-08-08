@@ -14,3 +14,6 @@ Pillow>=11.0.0
 # AI-01: Provider 适配层依赖
 openai>=1.50.0
 jsonschema>=4.20.0
+# Aliyun DypnsApi：仅 SMS_PROVIDER=aliyun 时加载
+alibabacloud_dypnsapi20170525>=1.0.0
+alibabacloud_tea_openapi>=0.3.0

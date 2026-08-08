@@ -85,22 +85,26 @@ export const usersApi = {
     await api.delete(`/users/me/view-history/${postId}`);
   },
 
-  /**
-   * B-01: 发起校园身份认证（统一教育邮箱：向当前登录邮箱发码）
-   * 本地开发环境响应中携带 6 位 code（未配置邮件服务），便于演示闭环。
-   */
-  sendCampusVerify: async (): Promise<{ message: string; code?: string }> => {
-    const response = await api.post('/users/me/verify-campus/send');
+  sendEducationEmail: async (education_email: string): Promise<{ message: string; code?: string }> => {
+    const response = await api.post('/users/me/education-email/send', { education_email });
     return response.data;
   },
 
   /**
    * B-01: 确认校园身份认证（提交 6 位数字验证码）
    */
-  confirmCampusVerify: async (data: {
-    code?: string;
-  }): Promise<{ message: string; campus_verified: boolean }> => {
-    const response = await api.post('/users/me/verify-campus/confirm', data);
+  confirmEducationEmail: async (data: { code: string }): Promise<{ message: string; campus_verified: boolean }> => {
+    const response = await api.post('/users/me/education-email/confirm', data);
+    return response.data;
+  },
+
+  sendEducationEmailUnbindCode: async (): Promise<{ message: string; code?: string }> => {
+    const response = await api.post('/users/me/education-email/unbind/send', {});
+    return response.data;
+  },
+
+  unbindEducationEmail: async (sms_code: string) => {
+    const response = await api.delete('/users/me/education-email', { data: { sms_code } });
     return response.data;
   },
 };

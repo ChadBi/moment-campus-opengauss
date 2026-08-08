@@ -94,8 +94,25 @@ class Settings(BaseSettings):
     # ============================================================
     WECHAT_APPID: str = ""
     WECHAT_APPSECRET: str = ""
+    # 微信手机号授权接口需要服务端 access_token；生产环境从微信接口获取，未配置时走 Mock。
+    WECHAT_PHONE_LOGIN_MOCK_PHONE: str = "13800138000"
     # binding_ticket 有效期（秒），默认 300 秒 = 5 分钟
     BINDING_TICKET_EXPIRE_SECONDS: int = 300
+
+    # ============================================================
+    # 短信验证码配置
+    # provider=mock 用于本地/测试；production 必须显式使用 aliyun。
+    # 阿里云密钥仅从环境变量读取，不写入代码、前端、文档或任务报告。
+    # ============================================================
+    SMS_PROVIDER: str = "mock"
+    SMS_CODE_EXPIRE_SECONDS: int = 300
+    SMS_SEND_INTERVAL_SECONDS: int = 60
+    SMS_MOCK_CODE: str = "123456"
+    ALIYUN_SMS_ACCESS_KEY_ID: str = ""
+    ALIYUN_SMS_ACCESS_KEY_SECRET: str = ""
+    ALIYUN_SMS_ENDPOINT: str = "dypnsapi.aliyuncs.com"
+    ALIYUN_SMS_SIGN_NAME: str = ""
+    ALIYUN_SMS_TEMPLATE_CODE: str = ""
 
     # ============================================================
     # B-01: SMTP 邮件配置（校园身份认证验证邮件）

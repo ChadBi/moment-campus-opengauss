@@ -118,7 +118,9 @@ class PostBrief(BaseModel):
 class UserBrief(BaseModel):
     """用户简要信息（用于用户列表）"""
     id: int
-    email: str
+    phone: Optional[str] = None
+    education_email: Optional[str] = None
+    has_password: bool = False
     nickname: str
     role: str
     is_active: bool
@@ -379,7 +381,9 @@ async def get_users(
     items = [
         UserBrief(
             id=user.id,
-            email=user.email,
+            phone=user.phone,
+            education_email=user.education_email,
+            has_password=bool(user.password_hash),
             nickname=user.nickname,
             role=user.role,
             is_active=user.is_active,

@@ -24,7 +24,6 @@ const loadProfilePage = () => import('./pages/ProfilePage');
 const loadNotificationsPage = () => import('./pages/NotificationsPage');
 const loadLoginPage = () => import('./pages/LoginPage');
 const loadRegisterPage = () => import('./pages/RegisterPage');
-const loadForgotPasswordPage = () => import('./pages/ForgotPasswordPage');
 const loadNotFoundPage = () => import('./pages/NotFoundPage');
 // TOPIC-01.1: 用户端专题
 const loadTopicListPage = () => import('./pages/TopicListPage');
@@ -42,7 +41,6 @@ const ProfilePage = lazy(loadProfilePage);
 const NotificationsPage = lazy(loadNotificationsPage);
 const LoginPage = lazy(loadLoginPage);
 const RegisterPage = lazy(loadRegisterPage);
-const ForgotPasswordPage = lazy(loadForgotPasswordPage);
 const NotFoundPage = lazy(loadNotFoundPage);
 const TopicListPage = lazy(loadTopicListPage);
 const TopicDetailPage = lazy(loadTopicDetailPage);
@@ -210,7 +208,6 @@ const AnimatedRoutes: React.FC = () => {
         {/* Public Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         {/* Protected Routes with MainLayout */}
         <Route element={<MainLayout />}>
           {/* 默认路由重定向到地图：让地图成为主页 */}

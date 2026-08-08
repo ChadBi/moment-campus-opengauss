@@ -5,7 +5,13 @@ import { formatDate, formatCount } from '../../utils/format'
 import { normalizePost, normalizeMembership } from '../../services/normalize'
 import { listMemberships } from '../../services/schools'
 import { logout } from '../../services/auth'
-import { sendCampusVerify, confirmCampusVerify } from '../../services/auth'
+import {
+  sendEducationEmail,
+  confirmEducationEmail,
+  sendEducationEmailUnbindCode,
+  unbindEducationEmail,
+  setPassword,
+} from '../../services/auth'
 import { uploadAvatar } from '../../services/upload'
 import { navigateToTab, syncTabBarForPage } from '../../utils/tab-navigation'
 import { isRegistrationSchool } from '../../utils/campus-permission'
@@ -42,7 +48,8 @@ Page({
     avatarUploading: false,
     nickname: '',
     bio: '',
-    email: '',
+    phone: '',
+    educationEmail: '',
     createdAtText: '',
 
     // 统计（对齐 Web ProfilePage: 已发布/草稿/待审核/贡献验证）
@@ -133,7 +140,8 @@ Page({
         avatarUrl: defaultAvatar(),
         nickname: '',
         bio: '',
-        email: '',
+        phone: '',
+        educationEmail: '',
         createdAtText: '',
         campusVerified: false,
         isRegistrationSchool: false,
@@ -199,7 +207,8 @@ Page({
       avatarUrl: resolveAvatar(user.avatar_url),
       nickname: user.nickname || '',
       bio: user.bio || '',
-      email: user.email || '',
+      phone: user.phone ? `${String(user.phone).slice(0, 3)}****${String(user.phone).slice(-4)}` : '',
+      educationEmail: user.education_email || '',
       campusVerified: registrationSchool && !!user.campus_verified,
       isRegistrationSchool: registrationSchool,
       createdAtText: user.created_at ? formatDate(user.created_at, 'datetime') : '',
@@ -295,6 +304,10 @@ Page({
   },
 
   // ============== 校园身份认证（B-06） ==============
+  onEducationEmailInput(e: any) {
+    this.setData({ educationEmail: e.detail.value || '' })
+  },
+
   onVerifyCodeInput(e: any) {
     this.setData({ verifyCode: e.detail.value || '' })
   },
@@ -315,7 +328,12 @@ Page({
     if (this.data.verifySending) return
     this.setData({ verifySending: true })
     try {
-      const res: any = await sendCampusVerify()
+      const educationEmail = (this.data.educationEmail || '').trim().toLowerCase()
+      if (!educationEmail || !educationEmail.includes('@')) {
+        wx.showToast({ title: '请填写教育邮箱', icon: 'none' })
+        return
+      }
+      const res: any = await sendEducationEmail(educationEmail)
       this.setData({
         devCode: res && res.code ? String(res.code) : '',
         verifyStep: 'code',
@@ -345,9 +363,9 @@ Page({
     if (this.data.verifyConfirming) return
     this.setData({ verifyConfirming: true })
     try {
-      const res: any = await confirmCampusVerify({ code })
+      const res: any = await confirmEducationEmail(code)
       // 同步更新本地用户状态
-      const user = this.data.user ? { ...this.data.user, campus_verified: true } : null
+      const user = this.data.user ? { ...this.data.user, education_email: this.data.educationEmail, campus_verified: true } : null
       if (user) {
         authStore.setUser(user)
         this.applyUser(user)
@@ -590,6 +608,71 @@ Page({
 
   // 阻止弹出层冒泡
   noop() {},
+
+  // ============== 账号安全 ==============
+  onSetPasswordTap() {
+    if (this.data.user?.has_password) return
+    wx.showModal({
+      title: '设置密码',
+      editable: true,
+      placeholderText: '请输入至少 6 位密码',
+      success: first => {
+        if (!first.confirm || !first.content || first.content.length < 6) {
+          if (first.confirm) wx.showToast({ title: '密码至少 6 位', icon: 'none' })
+          return
+        }
+        wx.showModal({
+          title: '确认密码',
+          editable: true,
+          placeholderText: '请再次输入密码',
+          success: async second => {
+            if (!second.confirm) return
+            if (second.content !== first.content) {
+              wx.showToast({ title: '两次密码不一致', icon: 'none' })
+              return
+            }
+            try {
+              await setPassword(first.content, second.content)
+              const user = this.data.user ? { ...this.data.user, has_password: true } : null
+              if (user) { authStore.setUser(user); this.applyUser(user) }
+              wx.showToast({ title: '密码设置成功', icon: 'success' })
+            } catch (e: any) {
+              wx.showToast({ title: e.message || '设置失败', icon: 'none' })
+            }
+          },
+        })
+      },
+    })
+  },
+
+  onUnbindEducationEmailTap() {
+    if (!this.data.educationEmail) return
+    wx.showModal({
+      title: '解除教育邮箱绑定',
+      content: '将向当前手机号发送验证码，确认后会恢复未认证状态。',
+      success: async first => {
+        if (!first.confirm) return
+        try {
+          const sent = await sendEducationEmailUnbindCode()
+          if (sent.code) wx.showToast({ title: `演示验证码：${sent.code}`, icon: 'none', duration: 3000 })
+          wx.showModal({
+            title: '输入短信验证码',
+            editable: true,
+            placeholderText: '请输入 6 位验证码',
+            success: async second => {
+              if (!second.confirm) return
+              await unbindEducationEmail(second.content || '')
+              const user = this.data.user ? { ...this.data.user, education_email: null, campus_verified: false } : null
+              if (user) { authStore.setUser(user); this.applyUser(user) }
+              wx.showToast({ title: '已解除绑定', icon: 'success' })
+            },
+          })
+        } catch (e: any) {
+          wx.showToast({ title: e.message || '发送失败', icon: 'none' })
+        }
+      },
+    })
+  },
 
   // ============== 退出登录 ==============
   onLogout() {

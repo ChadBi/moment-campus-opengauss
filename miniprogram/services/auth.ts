@@ -1,68 +1,30 @@
 import { http } from './request'
-import type {
-  WechatExchangeResponse,
-  LoginResponse,
-} from '../types'
+import type { LoginResponse, User } from '../types'
 
-export async function wechatExchange(code: string): Promise<WechatExchangeResponse> {
-  return http.post<WechatExchangeResponse>('/auth/wechat/exchange', { code })
-}
-
-export async function wechatBindExisting(
-  bindingTicket: string,
-  email: string,
-  password: string
-): Promise<LoginResponse> {
-  return http.post<LoginResponse>('/auth/wechat/bind-existing', {
-    binding_ticket: bindingTicket,
-    email,
-    password,
+export async function wechatPhoneLogin(code: string, phoneCode: string, schoolCode?: string): Promise<LoginResponse> {
+  return http.post<LoginResponse>('/auth/wechat/phone-login', {
+    code,
+    phone_code: phoneCode,
+    school_code: schoolCode,
   })
 }
 
-export async function wechatRegister(params: {
-  binding_ticket: string
-  nickname: string
-  school_id: number
-  password: string
-  email?: string
-}): Promise<LoginResponse> {
-  return http.post<LoginResponse>('/auth/wechat/register', params)
-}
-
-export async function emailLogin(email: string, password: string): Promise<LoginResponse> {
-  return http.post<LoginResponse>('/auth/login', { email, password })
-}
-
-export async function emailRegister(params: {
-  email: string
-  nickname: string
-  password: string
-  school_id: number
-}): Promise<LoginResponse> {
-  return http.post<LoginResponse>('/auth/register', params)
-}
-
-export async function forgotPassword(email: string): Promise<{
-  message: string
-  reset_token?: string
-}> {
-  return http.post<{ message: string; reset_token?: string }>('/auth/forgot-password', {
-    email,
+export async function phoneLogin(phone: string, password?: string, smsCode?: string): Promise<LoginResponse> {
+  return http.post<LoginResponse>('/auth/login', {
+    phone,
+    ...(password ? { password } : { sms_code: smsCode }),
   })
 }
 
-export async function resetPassword(params: {
-  token: string
-  new_password: string
-}): Promise<{ message: string }> {
-  return http.post<{ message: string }>('/auth/reset-password', params)
+export async function sendSms(phone: string, purpose: 'register' | 'login' | 'set_password' | 'education_unbind'): Promise<{ message: string; code?: string }> {
+  return http.post('/auth/sms/send', { phone, purpose })
 }
 
-export async function refreshToken(refreshToken: string): Promise<{
-  access_token: string
-  refresh_token: string
-}> {
+export async function setPassword(password: string, passwordConfirm: string): Promise<void> {
+  return http.post('/auth/password/set', { password, password_confirm: passwordConfirm })
+}
+
+export async function refreshToken(refreshToken: string): Promise<{ access_token: string; refresh_token: string }> {
   return http.post('/auth/refresh', { refresh_token: refreshToken })
 }
 
@@ -70,17 +32,18 @@ export async function logout(): Promise<void> {
   return http.post('/auth/logout')
 }
 
-// ============== 校园身份认证（B-01/B-06，统一教育邮箱） ==============
-
-export async function sendCampusVerify(): Promise<{ message: string; code?: string }> {
-  return http.post<{ message: string; code?: string }>('/users/me/verify-campus/send')
+export async function sendEducationEmail(educationEmail: string): Promise<{ message: string; code?: string }> {
+  return http.post('/users/me/education-email/send', { education_email: educationEmail })
 }
 
-export async function confirmCampusVerify(params: {
-  code: string
-}): Promise<{ message: string; campus_verified: boolean }> {
-  return http.post<{ message: string; campus_verified: boolean }>(
-    '/users/me/verify-campus/confirm',
-    params
-  )
+export async function confirmEducationEmail(code: string): Promise<{ message: string; campus_verified: boolean }> {
+  return http.post('/users/me/education-email/confirm', { code })
+}
+
+export async function sendEducationEmailUnbindCode(): Promise<{ message: string; code?: string }> {
+  return http.post('/users/me/education-email/unbind/send', {})
+}
+
+export async function unbindEducationEmail(smsCode: string): Promise<User> {
+  return http.delete('/users/me/education-email', { sms_code: smsCode })
 }

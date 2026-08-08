@@ -347,7 +347,9 @@ export interface PostBrief {
 /** 用户简要 */
 export interface UserBrief {
   id: number;
-  email: string;
+  phone?: string | null;
+  education_email?: string | null;
+  has_password: boolean;
   nickname: string;
   role: string;
   is_active: boolean;

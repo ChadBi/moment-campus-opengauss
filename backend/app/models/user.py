@@ -10,9 +10,19 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    # 业务唯一身份是 phone。email 仅作为历史数据迁移兼容列保留，不参与任何登录查询。
+    # 迁移完成后新建用户该列为 NULL；教育邮箱写入 education_email。
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    phone: Mapped[str | None] = mapped_column(
+        String(11), unique=True, nullable=True, index=True,
+        comment="国内 11 位手机号；业务唯一身份，新账号必填",
+    )
+    education_email: Mapped[str | None] = mapped_column(
+        String(255), unique=True, nullable=True, index=True,
+        comment="教育邮箱；仅用于校园认证，不作为登录凭证",
+    )
     nickname: Mapped[str] = mapped_column(String(50), nullable=False)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     school_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("schools.id"), nullable=False, index=True)
     # 注册时选择的学校。school_id 仍表示当前租户/默认学校，切校时会变化；
@@ -124,4 +134,9 @@ class User(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<User(id={self.id}, email='{self.email}')>"
+        return f"<User(id={self.id}, phone='{self.phone}')>"
+
+    @property
+    def has_password(self) -> bool:
+        """是否已设置可用于 Web/小程序密码登录的密码。"""
+        return bool(self.password_hash)

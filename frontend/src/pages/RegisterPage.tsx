@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCampusStore } from '../store/useCampusStore';
@@ -8,280 +8,100 @@ import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Toast } from '../components/ui/Toast';
-import { Mail, Lock, User, School as SchoolIcon, ChevronDown } from 'lucide-react';
+import { KeyRound, Lock, MessageSquare, Phone, School as SchoolIcon } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { setAuth } = useAuthStore();
   const { schools, setSchools, setCurrentSchool } = useCampusStore();
-  const [formData, setFormData] = useState({
-    email: '',
-    nickname: '',
-    password: '',
-    confirmPassword: '',
-    schoolId: '' as number | '',
-  });
+  const [phone, setPhone] = useState('');
+  const [smsCode, setSmsCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [schoolId, setSchoolId] = useState<number | ''>('');
+  const [cooldown, setCooldown] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
-
-  // ACC-01.1: 读取注册后回跳目标
   const redirectTo = searchParams.get('redirect') || '/';
 
-  // 2026-08-01：注册时自由选择初始加入的学校（从公开目录拉取，供下拉选择）
   useEffect(() => {
     if (schools.length > 0) return;
     let cancelled = false;
-    (async () => {
-      try {
-        const list = await schoolsApi.listSchools();
-        if (!cancelled) setSchools(list);
-      } catch {
-        // 拉取失败不阻塞注册流程（用户仍可进入，仅无学校可选）
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    schoolsApi.listSchools().then((list) => { if (!cancelled) setSchools(list); }).catch(() => undefined);
+    return () => { cancelled = true; };
   }, [schools.length, setSchools]);
 
-  const selectedSchool = schools.find((s) => s.id === formData.schoolId) ?? null;
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldown]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === 'schoolId' ? (value ? Number(value) : '') : value,
-    }));
-    setError(null);
+  const sendCode = async () => {
+    if (!/^1\d{10}$/.test(phone)) { setError('请输入有效的 11 位手机号'); return; }
+    try {
+      const response = await authApi.sendSms(phone, 'register');
+      setCooldown(60);
+      setToast({ message: response.code ? `${response.message}（演示验证码：${response.code}）` : response.message, type: 'success' });
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } };
+      setError(e.response?.data?.detail || '验证码发送失败，请稍后重试');
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setError(null);
-
-    if (!formData.email || !formData.nickname || !formData.password || !formData.confirmPassword) {
-      setError('请填写所有必填项');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('两次输入的密码不一致');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('密码长度至少为6位');
-      return;
-    }
-
-    // 2026-08-01：注册时用户显式选择初始加入的学校（不再默认绑定某所学校）
-    if (typeof formData.schoolId !== 'number') {
-      setError('请选择要加入的学校');
-      return;
-    }
-
-    // B-01': 产品收窄为教育邮箱：邮箱域名须命中所选学校的允许域名
-    const emailDomain = formData.email.split('@')[1]?.toLowerCase();
-    const allowedDomains = (selectedSchool?.domains ?? []).map((d) => d.toLowerCase());
-    const isQqEmail = emailDomain === 'qq.com';
-    if (allowedDomains.length > 0) {
-      if (!emailDomain || (!allowedDomains.includes(emailDomain) && !isQqEmail)) {
-        setError(
-          `请使用 ${selectedSchool?.name ?? '该校'} 的学校官方邮箱或 qq.com 邮箱注册` +
-            (allowedDomains[0] ? `（如 xxx@${allowedDomains[0]}）` : '')
-        );
-        return;
-      }
-    }
+    if (!/^1\d{10}$/.test(phone)) return setError('请输入有效的 11 位手机号');
+    if (!/^\d{6}$/.test(smsCode)) return setError('请输入 6 位短信验证码');
+    if (password.length < 6) return setError('密码长度至少为 6 位');
+    if (password !== passwordConfirm) return setError('两次输入的密码不一致');
+    if (typeof schoolId !== 'number') return setError('请选择注册学校');
 
     setLoading(true);
     try {
-      const response = await authApi.register({
-        email: formData.email,
-        nickname: formData.nickname,
-        password: formData.password,
-        school_id: formData.schoolId,
-      });
+      const response = await authApi.register({ phone, sms_code: smsCode, password, password_confirm: passwordConfirm, school_id: schoolId });
       setAuth(response.user, response.access_token, response.refresh_token);
+      const school = schools.find((item) => item.id === schoolId);
+      if (school) setCurrentSchool(school);
       setToast({ message: '注册成功', type: 'success' });
-
-      // 2026-08-02：注册成功后同步当前学校为注册选择的学校，
-      // 避免 store 持久化/URL 残留其他学校（游客态浏览过的）触发
-      // "您没有该学校的访问权限，已切换回 xxx" 回退提示
-      const targetSchool = schools.find((s) => s.id === formData.schoolId);
-      if (targetSchool) {
-        setCurrentSchool(targetSchool);
-        // 立即同步改写 URL 中的 school 参数（与 store 同一批次）。
-        // 若延迟到跳转时才改写，useSchoolSync 的 URL 监听器会先读到
-        // 残留的旧学校值（如 ?school=fudan），反向覆盖刚设置的当前学校，
-        // 最终由 ensureValidSchool 回退并弹出"无访问权限"提示。
-        const next = new URLSearchParams(searchParams);
-        next.set('school', targetSchool.code);
-        setSearchParams(next, { replace: true });
-      }
-
-      // ACC-01.1: 注册后回跳到原目标页；重写 URL 中的 school 参数为注册学校，
-      // 保证跳转后学校上下文与 membership 一致（无权限回退不再触发）
-      const [path, queryStr = ''] = redirectTo.split('?');
-      const params = new URLSearchParams(queryStr);
-      if (targetSchool) {
-        params.set('school', targetSchool.code);
-      } else {
-        params.delete('school');
-      }
-      const qs = params.toString();
-      const targetUrl = qs ? `${path}?${qs}` : path;
-      setTimeout(() => navigate(targetUrl), 1000);
+      window.setTimeout(() => navigate(redirectTo), 500);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
-      const message = e?.response?.data?.detail || '注册失败，请稍后重试';
-      setError(message);
-      setToast({ message, type: 'error' });
-    } finally {
-      setLoading(false);
-    }
+      setError(e.response?.data?.detail || '注册失败，请稍后重试');
+      setToast({ message: '注册失败', type: 'error' });
+    } finally { setLoading(false); }
   };
 
+  const selectedSchool = schools.find((school) => school.id === schoolId);
   return (
     <div className="min-h-screen flex items-center justify-center bg-mist px-4 py-10">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-7">
-          <div className="relative w-[44px] h-[44px] rounded-[12px] bg-paper grid place-items-center shadow-sm mb-4 overflow-hidden">
-            <span className="font-display font-bold text-[22px] text-lake leading-none">此</span>
-          </div>
+          <div className="w-[44px] h-[44px] rounded-[12px] bg-paper grid place-items-center shadow-sm mb-4"><span className="font-display font-bold text-[22px] text-lake">此</span></div>
           <h1 className="text-xl font-display font-bold text-lake tracking-wide">加入此刻校园</h1>
-          <p className="text-ink-muted text-sm mt-1.5">分享你的校园生活每一刻</p>
+          <p className="text-ink-muted text-sm mt-1.5">手机号注册，认证后获得校园徽标</p>
         </div>
-
         <Card variant="elevated" padding="lg">
-          {/* 2026-08-01：显示用户选择的初始加入学校 */}
-          {selectedSchool && (
-            <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-[10px] bg-lake/5 border border-lake/20">
-              <SchoolIcon size={14} className="text-lake flex-shrink-0" />
-              <span className="text-sm text-ink">
-                将加入：<span className="font-medium">{selectedSchool.name}</span>
-              </span>
+          {selectedSchool && <div className="mb-4 flex items-center gap-2 px-3 py-2 rounded-[10px] bg-lake/5 border border-lake/20 text-sm text-ink"><SchoolIcon size={14} className="text-lake" />将加入：<span className="font-medium">{selectedSchool.name}</span></div>}
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <Input label="手机号" name="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))} placeholder="请输入 11 位手机号" icon={<Phone size={16} />} autoComplete="tel" inputMode="numeric" required />
+            <div className="flex gap-2 items-end">
+              <Input label="短信验证码" name="smsCode" type="text" value={smsCode} onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6 位验证码" icon={<MessageSquare size={16} />} inputMode="numeric" required />
+              <Button type="button" variant="secondary" size="md" disabled={cooldown > 0} onClick={sendCode} className="shrink-0 min-w-[104px]">{cooldown > 0 ? `${cooldown}s 后重发` : '获取验证码'}</Button>
             </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              label="教育邮箱"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="name@学校官方域名或 qq.com"
-              icon={<Mail size={16} />}
-              required
-            />
-
-            <Input
-              label="昵称"
-              name="nickname"
-              type="text"
-              value={formData.nickname}
-              onChange={handleChange}
-              placeholder="请输入昵称"
-              icon={<User size={16} />}
-              required
-            />
-
-            <Input
-              label="密码"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="请输入密码（至少6位）"
-              icon={<Lock size={16} />}
-              required
-            />
-
-            <Input
-              label="确认密码"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="请再次输入密码"
-              icon={<Lock size={16} />}
-              required
-            />
-
-            {/* 2026-08-01：注册时选择初始加入的学校（公开目录下拉） */}
-            <div className="w-full">
-              <label
-                htmlFor="register-school"
-                className="block text-sm font-medium text-ink mb-1.5 font-sans"
-              >
-                选择加入的学校
-                <span className="text-danger ml-1" aria-hidden="true">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" aria-hidden="true">
-                  <SchoolIcon size={16} />
-                </div>
-                <select
-                  id="register-school"
-                  name="schoolId"
-                  value={formData.schoolId}
-                  onChange={handleChange}
-                  required
-                  className={`w-full h-10 pl-10 pr-9 bg-paper border rounded-[10px] text-[14px] text-ink appearance-none transition-[background-color,border-color,box-shadow] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus:outline-none focus:border-lake ${
-                    error ? 'border-danger focus:border-danger' : 'border-line'
-                  } ${formData.schoolId === '' ? 'text-ink-muted/60' : ''}`}
-                >
-                  <option value="" disabled>
-                    {schools.length > 0 ? '请选择学校' : '暂无可选学校'}
-                  </option>
-                  {schools.map((s) => (
-                    <option key={s.id} value={s.id} className="text-ink">
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted pointer-events-none" aria-hidden="true">
-                  <ChevronDown size={16} />
-                </div>
-              </div>
-            </div>
-
-            {error && (
-              <div className="text-danger text-sm text-center bg-danger/8 rounded-[10px] py-2 px-3">
-                {error}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              loading={loading}
-              className="w-full"
-            >
-              注册
-            </Button>
+            <Input label="密码" name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="至少 6 位密码" icon={<Lock size={16} />} autoComplete="new-password" required />
+            <Input label="确认密码" name="passwordConfirm" type="password" value={passwordConfirm} onChange={(e) => setPasswordConfirm(e.target.value)} placeholder="再次输入密码" icon={<KeyRound size={16} />} autoComplete="new-password" required />
+            <div><label htmlFor="register-school" className="block text-sm font-medium text-ink mb-1.5">注册学校<span className="text-danger ml-1">*</span></label><select id="register-school" value={schoolId} onChange={(e) => setSchoolId(e.target.value ? Number(e.target.value) : '')} className="w-full px-3 py-2.5 rounded-[10px] border border-line/60 bg-paper text-sm focus:border-lake focus:outline-none" required><option value="">请选择学校</option>{schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></div>
+            {error && <div role="alert" className="text-danger text-sm text-center bg-danger/8 rounded-[10px] py-2 px-3">{error}</div>}
+            <Button type="submit" variant="primary" size="lg" loading={loading} className="w-full">{loading ? '注册中...' : '注册'}</Button>
           </form>
-
-          <div className="mt-5 text-center text-sm">
-            <span className="text-ink-muted">已有账号？</span>
-            <Link to="/login" className="text-lake font-medium ml-1 hover:underline">
-              立即登录
-            </Link>
-          </div>
+          <p className="mt-5 text-center text-sm text-ink-muted">已有账号？<Link to="/login" className="text-lake font-medium hover:underline ml-1">立即登录</Link></p>
         </Card>
       </div>
-
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   );
 };
