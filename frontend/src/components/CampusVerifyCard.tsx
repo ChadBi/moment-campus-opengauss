@@ -69,7 +69,7 @@ export const CampusVerifyCard: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-[12px] text-ink-muted leading-relaxed">提交当前学校教育邮箱并完成验证码校验。教育邮箱只用于校园认证，不会作为登录凭证。</p>
+          <p className="text-[12px] text-ink-muted leading-relaxed">提交当前学校教育邮箱并完成验证码校验，获得更多权限，教育邮箱只用于校园认证。</p>
           {step === 'email' ? <>
             <label className="block"><span className="text-xs text-ink-sub">教育邮箱</span><div className="relative mt-1"><Mail size={15} className="absolute left-3 top-2.5 text-ink-muted" /><input value={educationEmail} onChange={(event) => setEducationEmail(event.target.value)} type="email" placeholder="name@school.edu.cn" className="w-full pl-9 pr-3 py-2 rounded-[10px] border border-line/60 focus:border-lake focus:outline-none text-sm" /></div></label>
             <Button variant="primary" disabled={loading} onClick={handleSend} icon={<Shield size={14} />}>{loading ? '发送中...' : '发送验证码'}</Button>

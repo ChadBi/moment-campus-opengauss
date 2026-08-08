@@ -22,6 +22,12 @@ def parse_email_domain(email: Optional[str]) -> Optional[str]:
     return value.rsplit("@", 1)[-1]
 
 
+# 全局允许的公共邮箱域名（所有学校都放行，用于复赛演示评委认证）
+GLOBAL_ALLOWED_PUBLIC_DOMAINS = {
+    "qq.com", "vip.qq.com", "foxmail.com",
+}
+
+
 async def ensure_email_matches_school_domains(
     db: AsyncSession,
     school_id: int,
@@ -35,6 +41,10 @@ async def ensure_email_matches_school_domains(
     domain = parse_email_domain(email)
     if domain is None:
         raise BadRequestException(detail="请输入有效的邮箱地址")
+
+    # 全局公共邮箱域名直接放行（复赛演示用，评委可用QQ邮箱认证）
+    if domain in GLOBAL_ALLOWED_PUBLIC_DOMAINS:
+        return
 
     school = (
         await db.execute(
@@ -53,7 +63,7 @@ async def ensure_email_matches_school_domains(
     if domain not in allowed:
         readable = "、".join(sorted(allowed))
         raise BadRequestException(
-            detail=f"请使用{school.name}的官方教育邮箱（@{readable}）完成认证"
+            detail=f"请使用{school.name}的官方教育邮箱（@{readable}）完成认证，或使用QQ邮箱"
         )
 
 

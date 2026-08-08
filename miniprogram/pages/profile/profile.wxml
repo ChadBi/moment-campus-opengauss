@@ -189,10 +189,6 @@
                 bindinput="onVerifyCodeInput"
               />
             </view>
-            <view wx:if="{{devCode}}" class="verify-devcode">
-              <text>👇 演示环境验证码：<text class="verify-devcode-val">{{devCode}}</text></text>
-              <text class="verify-devcode-hint">正式环境验证码将发送至你的校园邮箱</text>
-            </view>
             <view class="verify-actions">
               <view
                 class="verify-confirm-btn {{verifyConfirming ? 'disabled' : ''}}"

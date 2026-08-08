@@ -2,7 +2,17 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-09（微信已绑定账号快速登录修复）
+> 最后更新：2026-08-09（校园认证QQ邮箱白名单+真实验证码邮件）
+
+## 2026-08-09 执行任务：校园认证QQ邮箱白名单与真实验证码
+> 复赛演示调整：所有学校放行QQ/foxmail邮箱认证；取消演示验证码，改用真实SMTP发送邮件。
+
+- [x] **全局QQ邮箱白名单**：`backend/app/services/school_domain.py` 新增 `GLOBAL_ALLOWED_PUBLIC_DOMAINS = {"qq.com", "vip.qq.com", "foxmail.com"}`，所有学校用户（包括复旦、浙大）都可以使用QQ邮箱完成校园认证，域名校验前先查全局白名单，命中直接放行；错误提示更新为「或使用QQ邮箱」友好提示
+- [x] **验证码发送逻辑调整**：`backend/app/api/users.py` 修改 `_should_return_campus_verify_code()`，仅 `APP_ENV == "test"`（pytest自动化测试环境）返回演示验证码，opengauss/demo/生产环境都优先真实发送SMTP邮件；增加try-catch异常捕获，发送失败兜底返回code（弹窗显示），不中断演示
+- [x] **前端移除演示验证码UI**：`miniprogram/pages/profile/profile.wxml` 删除固定显示的「演示环境验证码」区块（`verify-devcode`）；
+- [x] **前端兜底弹窗**：`miniprogram/pages/profile/profile.ts` 调整发送验证码后逻辑，正常发送成功只提示「验证码已发送至邮箱，请查收」；如果后端兜底返回code（邮件发送失败），用 `wx.showModal` 弹窗显示验证码供用户输入；
+- [x] **SMTP配置确认**：`backend/.env.opengauss` 已配置好QQ邮箱SMTP（smtp.qq.com:465 SSL，c***@foxmail.com），复赛可以真实发送验证邮件；
+- [ ] **真实验证邮件验收**：需用户在微信开发者工具/真机实际走一次完整校园认证流程，确认能收到QQ邮箱验证邮件并完成认证。
 
 ## 2026-08-09 执行任务：微信已绑定账号快速登录修复
 > 修复同一微信账号退出后再次登录仍被要求重新绑定手机号和学校的问题。

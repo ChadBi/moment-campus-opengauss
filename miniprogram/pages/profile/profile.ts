@@ -338,7 +338,18 @@ Page({
         devCode: res && res.code ? String(res.code) : '',
         verifyStep: 'code',
       })
-      wx.showToast({ title: (res && res.message) || '验证码已发送', icon: 'none' })
+      const msg = (res && res.message) || '验证码已发送至邮箱，请查收'
+      if (res && res.code) {
+        // 兜底场景：邮件发送失败，直接弹窗显示验证码
+        wx.showModal({
+          title: '验证码',
+          content: `您的验证码是：${res.code}\n\n（邮件发送失败，可直接输入此验证码完成认证）`,
+          showCancel: false,
+          confirmText: '我知道了',
+        })
+      } else {
+        wx.showToast({ title: msg, icon: 'none', duration: 3000 })
+      }
     } catch (e: any) {
       wx.showToast({ title: e.message || '发送失败，请重试', icon: 'none' })
     } finally {

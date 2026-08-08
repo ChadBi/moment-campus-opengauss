@@ -47,9 +47,9 @@ CAMPUS_VERIFY_CODE_EXPIRE_MINUTES = 10
 
 
 def _should_return_campus_verify_code() -> bool:
-    """本地开发环境在响应中返回 6 位验证码（无邮件服务），便于测试与演示闭环。"""
+    """仅pytest自动化测试环境在响应中返回验证码，其他环境（含opengauss复赛演示环境）发送真实邮件。"""
     env = (settings.APP_ENV or "").lower()
-    return env in ("opengauss", "demo", "test") or settings.DEBUG
+    return env == "test"
 
 
 def _hash_token(token: str) -> str:
@@ -162,35 +162,54 @@ async def send_campus_verify(
     ))
     await db.commit()
 
-    # 尝试通过 SMTP 发送验证邮件；失败/未配置时回退 dev 展示
+    # 尝试通过 SMTP 发送验证邮件；仅pytest测试环境直接返回code，其他环境都尝试发邮件
+    import logging
+    logger = logging.getLogger(__name__)
     from app.services import email_service
     school_row = await db.scalar(
         select(School.name).where(School.id == registration_school_id)
     )
     school_name = school_row or ""
-    # 本地/测试环境直接返回 Mock 验证码，不向真实 SMTP 投递；生产环境才发邮件。
+
+    code_in_response = None
     sent = False
-    if not _should_return_campus_verify_code() and email_service.smtp_configured():
-        sent = email_service.send_verification_email(
-            to_email=education_email,
-            school_name=school_name,
-            code=code,
-        )
-    if sent:
+
+    if _should_return_campus_verify_code():
+        # pytest测试环境：直接返回code，不发邮件
+        code_in_response = code
         message = (
-            f"6 位验证码已发送至 {education_email}，请查收邮件并在页面输入"
-            f"（{CAMPUS_VERIFY_CODE_EXPIRE_MINUTES} 分钟内有效）"
+            f"6 位验证码已生成（{CAMPUS_VERIFY_CODE_EXPIRE_MINUTES} 分钟内有效），测试环境直接返回：{code}"
         )
     else:
-        message = (
-            f"6 位验证码已生成（{CAMPUS_VERIFY_CODE_EXPIRE_MINUTES} 分钟内有效）；"
-            f"当前环境未配置邮件服务，请使用页面显示的验证码完成认证"
-        )
+        # 非测试环境（含opengauss复赛演示）：优先发送真实邮件
+        if email_service.smtp_configured():
+            try:
+                sent = email_service.send_verification_email(
+                    to_email=education_email,
+                    school_name=school_name,
+                    code=code,
+                )
+            except Exception as e:
+                logger.error(f"发送验证邮件失败: {e}", exc_info=True)
+                sent = False
 
-    if _should_return_campus_verify_code() or not email_service.smtp_configured():
+        if sent:
+            message = (
+                f"6 位验证码已发送至 {education_email}，请查收邮件并在页面输入"
+                f"（{CAMPUS_VERIFY_CODE_EXPIRE_MINUTES} 分钟内有效）"
+            )
+        else:
+            # SMTP未配置或发送失败：兜底返回code，保证演示不中断
+            code_in_response = code
+            message = (
+                f"6 位验证码已生成（{CAMPUS_VERIFY_CODE_EXPIRE_MINUTES} 分钟内有效）；"
+                f"邮件发送失败，请使用页面显示的验证码完成认证"
+            )
+
+    if code_in_response is not None:
         return CampusVerifySendResponse(
             message=message,
-            code=code,
+            code=code_in_response,
         )
     return CampusVerifySendResponse(message=message)
 
