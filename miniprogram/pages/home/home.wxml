@@ -127,7 +127,7 @@
         post="{{item}}"
         class="stagger-card"
         style="animation-delay: {{index * 40}}ms;"
-        bind:tap="onPostTap" />
+        bind:posttap="onPostTap" />
     </view>
   </view>
 

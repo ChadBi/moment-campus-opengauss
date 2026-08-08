@@ -73,7 +73,8 @@ Component({
     onTap() {
       const post = this.properties.post as any
       if (post && post.id !== undefined) {
-        this.triggerEvent('tap', { id: post.id, post })
+        // 使用独立事件名，避免与组件根节点原生 tap 冒泡事件冲突。
+        this.triggerEvent('posttap', { id: Number(post.id), post })
       }
     },
 

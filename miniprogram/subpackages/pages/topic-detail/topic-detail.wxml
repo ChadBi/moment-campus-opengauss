@@ -54,7 +54,7 @@
         wx:for="{{posts}}"
         wx:key="id"
         post="{{item}}"
-        bind:tap="onPostTap"/>
+        bind:posttap="onPostTap"/>
     </view>
   </block>
 </view>

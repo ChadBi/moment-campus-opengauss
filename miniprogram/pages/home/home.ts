@@ -156,7 +156,8 @@ Page({
   },
 
   onPostTap(e: any) {
-    const id = e.detail.id
+    const id = Number(e.detail && e.detail.id)
+    if (!id) return
     wx.navigateTo({ url: `/pages/post-detail/post-detail?id=${id}` })
   },
 

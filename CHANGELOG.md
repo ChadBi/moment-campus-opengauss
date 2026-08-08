@@ -19,6 +19,8 @@
 
 ### 变更
 
+- 修复小程序校园动态帖子点击时原生 `tap` 与自定义事件冲突导致的“参数错误”，统一改用 `posttap` 并增加帖子 ID 防护。
+
 - 后端启动命令（[AGENTS.md](file:///e:/Project/moment-campus/AGENTS.md#L14-L19)）升级为局域网模式：
   `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`，新增对应防火墙放行规则说明。
 - [miniprogram/project.config.json](file:///e:/Project/moment-campus/miniprogram/project.config.json#L32-L40) `"urlCheck": false` 上方增加中文注释，精准对应微信开发者工具

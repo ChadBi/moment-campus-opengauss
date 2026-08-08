@@ -1,4 +1,4 @@
-<view class="post-card" bindtap="onTap" hover-class="post-card-hover" hover-stay-time="120">
+<view class="post-card" catchtap="onTap" hover-class="post-card-hover" hover-stay-time="120">
   <view class="card-header">
     <image class="author-avatar" src="{{authorAvatar}}" mode="aspectFill" lazy-load/>
     <view class="header-info">

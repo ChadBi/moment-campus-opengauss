@@ -255,7 +255,7 @@
                 wx:for="{{selectedLocation.relatedPosts}}"
                 wx:key="id"
                 post="{{item}}"
-                bind:tap="onRelatedPostTap" />
+                bind:posttap="onRelatedPostTap" />
             </view>
           </view>
         </block>
