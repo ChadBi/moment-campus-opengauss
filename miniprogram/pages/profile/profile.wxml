@@ -1,434 +1,475 @@
 <view class="profile-page">
-  <!-- ============== 顶部用户信息卡片（对齐 Web ProfilePage: bg-gradient-to-br from-lake to-lake-light + ring-3 ring-white/30） ============== -->
-  <view class="user-card">
-    <view class="user-row">
-      <view class="avatar-wrap">
-        <image
-          class="avatar"
-          src="{{avatarUrl}}"
-          mode="aspectFill"
-        />
-        <view class="avatar-edit {{avatarUploading ? 'uploading' : ''}}" bindtap="onAvatarTap" hover-class="avatar-edit-hover" hover-stay-time="120">
-          <icon name="{{avatarUploading ? 'refresh-cw' : 'camera'}}" size="28rpx" color="#fff" />
-        </view>
+  <!-- ============== 未登录态：顶部显示「点击登录」引导卡片（经验 322067：单一 isLoggedIn 布尔驱动，不做占位补丁） ============== -->
+  <block wx:if="{{!isLoggedIn}}">
+    <view class="login-entry-card" bindtap="onGoLoginTap" hover-class="login-entry-card-hover" hover-stay-time="120">
+      <view class="login-entry-icon-wrap">
+        <icon name="user" size="56rpx" color="#ffffff" />
       </view>
-      <view class="user-meta">
-        <view class="nickname-row">
-          <text class="nickname">{{nickname || '未命名用户'}}</text>
-          <text wx:if="{{campusVerified}}" class="verified-badge-header">已认证</text>
-        </view>
-        <text wx:if="{{email}}" class="email">{{email}}</text>
-        <text wx:if="{{bio}}" class="bio">{{bio}}</text>
-        <text wx:else class="bio bio-empty">这个人很懒，还没有简介</text>
-        <view wx:if="{{createdAtText}}" class="meta-line">
-          <icon name="clock" size="20rpx" color="rgba(255,255,255,0.8)" />
-          <text class="meta-text">加入于 {{createdAtText}}</text>
-        </view>
+      <view class="login-entry-text">
+        <text class="login-entry-title">点击登录</text>
+        <text class="login-entry-desc">登录后可查看你的资料、帖子和浏览记录</text>
       </view>
-    </view>
-    <view class="user-actions">
-      <view class="action-btn" bindtap="showEditPopup" hover-class="action-btn-hover" hover-stay-time="120">
-        <icon name="edit" size="28rpx" color="#fff" />
-        <text class="action-text">编辑资料</text>
+      <view class="login-entry-arrow">
+        <icon name="chevron-right" size="36rpx" color="rgba(255,255,255,0.85)" />
       </view>
-      <view class="action-btn" bindtap="goToNotifications" hover-class="action-btn-hover" hover-stay-time="120">
-        <icon name="bell" size="28rpx" color="#fff" />
-        <text class="action-text">通知</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- ============== 统计卡片（对齐 Web ProfilePage: grid-cols-4 + 7x7 icon 框 + DIN 数字） ============== -->
-  <view class="stats-card">
-    <view wx:if="{{statsLoading}}" class="stats-skeleton">
-      <skeleton variant="block" height="96rpx" />
-    </view>
-    <block wx:else>
-      <view class="stat-item">
-        <view class="stat-icon-box stat-icon-published">
-          <icon name="file-text" size="28rpx" color="#174d5e" />
-        </view>
-        <text class="stat-value">{{publishedCountText}}</text>
-        <text class="stat-label">已发布</text>
-      </view>
-      <view class="stat-item">
-        <view class="stat-icon-box stat-icon-draft">
-          <icon name="edit" size="28rpx" color="#6a7d81" />
-        </view>
-        <text class="stat-value">{{draftCountText}}</text>
-        <text class="stat-label">草稿</text>
-      </view>
-      <view class="stat-item">
-        <view class="stat-icon-box stat-icon-pending">
-          <icon name="clock" size="28rpx" color="#dbb352" />
-        </view>
-        <text class="stat-value">{{pendingCountText}}</text>
-        <text class="stat-label">待审核</text>
-      </view>
-      <view class="stat-item">
-        <view class="stat-icon-box stat-icon-confirm">
-          <icon name="check-circle" size="28rpx" color="#73a068" />
-        </view>
-        <text class="stat-value">{{confirmationCountText}}</text>
-        <text class="stat-label">贡献验证</text>
-      </view>
-    </block>
-  </view>
-
-  <!-- ============== 当前学校（普通用户一对一绑定） ============== -->
-  <view class="schools-section">
-    <view class="section-header">
-      <view class="section-title-wrap">
-        <view class="section-icon-badge">
-          <icon name="school" size="28rpx" color="#174d5e" />
-        </view>
-        <text class="section-title">当前学校</text>
-      </view>
-      <text class="section-count">{{schoolName}}</text>
-    </view>
-    <view class="membership-card current">
-      <view class="membership-info">
-        <text class="membership-name">{{schoolName || '加载中...'}}</text>
-        <text class="membership-meta">学校数据、地图与帖子会按当前学校隔离</text>
-      </view>
-      <view class="membership-actions" bindtap="goToSchoolSelect">
-        <text class="action-switch">切换学校</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- ============== 校园身份认证（对齐 Web CampusVerifyCard，B-06） ============== -->
-  <view class="verify-section">
-    <view class="section-header">
-      <view class="section-title-wrap">
-        <view class="section-icon-badge">
-          <icon name="shield" size="28rpx" color="#174d5e" />
-        </view>
-        <text class="section-title">校园身份认证</text>
-      </view>
-      <text wx:if="{{campusVerified}}" class="verify-card-badge">已认证</text>
     </view>
 
-    <view class="verify-body">
-      <block wx:if="{{campusVerified}}">
-        <view class="verify-done">
-          <icon name="check-circle" size="36rpx" color="#73a068" />
-          <view class="verify-done-text">
-            <text class="verify-done-title">你已完成校园身份认证</text>
-            <text class="verify-done-hint">昵称旁会显示「已认证」徽标，帮助同学识别你的信息更可信。</text>
+    <!-- 当前学校卡片：游客也可查看/切换学校，保留显示 -->
+    <view class="schools-section">
+      <view class="section-header">
+        <view class="section-title-wrap">
+          <view class="section-icon-badge">
+            <icon name="school" size="28rpx" color="#174d5e" />
           </view>
+          <text class="section-title">当前学校</text>
+        </view>
+        <text class="section-count">{{schoolName}}</text>
+      </view>
+      <view class="membership-card current">
+        <view class="membership-info">
+          <text class="membership-name">{{schoolName || '加载中...'}}</text>
+          <text class="membership-meta">学校数据、地图与帖子会按当前学校隔离</text>
+        </view>
+        <view class="membership-actions" bindtap="goToSchoolSelect">
+          <text class="action-switch">切换学校</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ============== 已登录态：完整个人中心布局 ============== -->
+  <block wx:else>
+    <!-- ============== 顶部用户信息卡片（对齐 Web ProfilePage: bg-gradient-to-br from-lake to-lake-light + ring-3 ring-white/30） ============== -->
+    <view class="user-card">
+      <view class="user-row">
+        <view class="avatar-wrap">
+          <image
+            class="avatar"
+            src="{{avatarUrl}}"
+            mode="aspectFill"
+          />
+          <view class="avatar-edit {{avatarUploading ? 'uploading' : ''}}" bindtap="onAvatarTap" hover-class="avatar-edit-hover" hover-stay-time="120">
+            <icon name="{{avatarUploading ? 'refresh-cw' : 'camera'}}" size="28rpx" color="#fff" />
+          </view>
+        </view>
+        <view class="user-meta">
+          <view class="nickname-row">
+            <text class="nickname">{{nickname || '未命名用户'}}</text>
+            <text wx:if="{{campusVerified}}" class="verified-badge-header">已认证</text>
+          </view>
+          <text wx:if="{{email}}" class="email">{{email}}</text>
+          <text wx:if="{{bio}}" class="bio">{{bio}}</text>
+          <text wx:else class="bio bio-empty">这个人很懒，还没有简介</text>
+          <view wx:if="{{createdAtText}}" class="meta-line">
+            <icon name="clock" size="20rpx" color="rgba(255,255,255,0.8)" />
+            <text class="meta-text">加入于 {{createdAtText}}</text>
+          </view>
+        </view>
+      </view>
+      <view class="user-actions">
+        <view class="action-btn" bindtap="showEditPopup" hover-class="action-btn-hover" hover-stay-time="120">
+          <icon name="edit" size="28rpx" color="#fff" />
+          <text class="action-text">编辑资料</text>
+        </view>
+        <view class="action-btn" bindtap="goToNotifications" hover-class="action-btn-hover" hover-stay-time="120">
+          <icon name="bell" size="28rpx" color="#fff" />
+          <text class="action-text">通知</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ============== 统计卡片（对齐 Web ProfilePage: grid-cols-4 + 7x7 icon 框 + DIN 数字） ============== -->
+    <view class="stats-card">
+      <view wx:if="{{statsLoading}}" class="stats-skeleton">
+        <skeleton variant="block" height="96rpx" />
+      </view>
+      <block wx:else>
+        <view class="stat-item">
+          <view class="stat-icon-box stat-icon-published">
+            <icon name="file-text" size="28rpx" color="#174d5e" />
+          </view>
+          <text class="stat-value">{{publishedCountText}}</text>
+          <text class="stat-label">已发布</text>
+        </view>
+        <view class="stat-item">
+          <view class="stat-icon-box stat-icon-draft">
+            <icon name="edit" size="28rpx" color="#6a7d81" />
+          </view>
+          <text class="stat-value">{{draftCountText}}</text>
+          <text class="stat-label">草稿</text>
+        </view>
+        <view class="stat-item">
+          <view class="stat-icon-box stat-icon-pending">
+            <icon name="clock" size="28rpx" color="#dbb352" />
+          </view>
+          <text class="stat-value">{{pendingCountText}}</text>
+          <text class="stat-label">待审核</text>
+        </view>
+        <view class="stat-item">
+          <view class="stat-icon-box stat-icon-confirm">
+            <icon name="check-circle" size="28rpx" color="#73a068" />
+          </view>
+          <text class="stat-value">{{confirmationCountText}}</text>
+          <text class="stat-label">贡献验证</text>
         </view>
       </block>
+    </view>
 
-      <block wx:else>
-        <text class="verify-desc">通过登录邮箱验证身份，昵称旁将显示「已认证」徽标，让同学更信任你的信息。请使用所在学校的官方邮箱注册/登录。</text>
-
-        <block wx:if="{{verifyStep === 'form'}}">
-          <view class="verify-email-box">
-            <text class="verify-email-label">认证邮箱</text>
-            <text class="verify-email-val">{{email}}</text>
-            <text class="verify-email-hint">6 位数字验证码将发送至该邮箱</text>
+    <!-- ============== 当前学校（普通用户一对一绑定） ============== -->
+    <view class="schools-section">
+      <view class="section-header">
+        <view class="section-title-wrap">
+          <view class="section-icon-badge">
+            <icon name="school" size="28rpx" color="#174d5e" />
           </view>
-          <view
-            class="verify-send-btn {{verifySending ? 'disabled' : ''}}"
-            bindtap="onSendVerifyCode"
-            hover-class="verify-send-btn-hover"
-            hover-stay-time="120"
-          >
-            <icon name="shield" size="28rpx" color="#ffffff" />
-            <text>{{verifySending ? '发送中...' : '向我的邮箱发送验证码'}}</text>
+          <text class="section-title">当前学校</text>
+        </view>
+        <text class="section-count">{{schoolName}}</text>
+      </view>
+      <view class="membership-card current">
+        <view class="membership-info">
+          <text class="membership-name">{{schoolName || '加载中...'}}</text>
+          <text class="membership-meta">学校数据、地图与帖子会按当前学校隔离</text>
+        </view>
+        <view class="membership-actions" bindtap="goToSchoolSelect">
+          <text class="action-switch">切换学校</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ============== 校园身份认证（对齐 Web CampusVerifyCard，B-06） ============== -->
+    <view class="verify-section">
+      <view class="section-header">
+        <view class="section-title-wrap">
+          <view class="section-icon-badge">
+            <icon name="shield" size="28rpx" color="#174d5e" />
+          </view>
+          <text class="section-title">校园身份认证</text>
+        </view>
+        <text wx:if="{{campusVerified}}" class="verify-card-badge">已认证</text>
+      </view>
+
+      <view class="verify-body">
+        <block wx:if="{{campusVerified}}">
+          <view class="verify-done">
+            <icon name="check-circle" size="36rpx" color="#73a068" />
+            <view class="verify-done-text">
+              <text class="verify-done-title">你已完成校园身份认证</text>
+              <text class="verify-done-hint">昵称旁会显示「已认证」徽标，帮助同学识别你的信息更可信。</text>
+            </view>
           </view>
         </block>
 
         <block wx:else>
-          <view class="form-item">
-            <text class="form-label">验证码（6 位）</text>
-            <input
-              class="form-input"
-              type="number"
-              placeholder="请输入验证码"
-              placeholder-class="ph"
-              value="{{verifyCode}}"
-              maxlength="6"
-              bindinput="onVerifyCodeInput"
-            />
-          </view>
-          <view wx:if="{{devCode}}" class="verify-devcode">
-            <text>👇 演示环境验证码：<text class="verify-devcode-val">{{devCode}}</text></text>
-            <text class="verify-devcode-hint">正式环境验证码将发送至你的校园邮箱</text>
-          </view>
-          <view class="verify-actions">
-            <view
-              class="verify-confirm-btn {{verifyConfirming ? 'disabled' : ''}}"
-              bindtap="onConfirmVerify"
-              hover-class="verify-confirm-btn-hover"
-              hover-stay-time="120"
-            >
-              <icon name="check-circle" size="28rpx" color="#ffffff" />
-              <text>{{verifyConfirming ? '确认中...' : '确认认证'}}</text>
+          <text class="verify-desc">通过登录邮箱验证身份，昵称旁将显示「已认证」徽标，让同学更信任你的信息。请使用所在学校的官方邮箱注册/登录。</text>
+
+          <block wx:if="{{verifyStep === 'form'}}">
+            <view class="verify-email-box">
+              <text class="verify-email-label">认证邮箱</text>
+              <text class="verify-email-val">{{email}}</text>
+              <text class="verify-email-hint">6 位数字验证码将发送至该邮箱</text>
             </view>
             <view
-              class="verify-back-btn"
-              bindtap="onBackVerifyForm"
-              hover-class="verify-back-btn-hover"
+              class="verify-send-btn {{verifySending ? 'disabled' : ''}}"
+              bindtap="onSendVerifyCode"
+              hover-class="verify-send-btn-hover"
               hover-stay-time="120"
             >
-              <text>返回修改</text>
-            </view>
-          </view>
-        </block>
-      </block>
-    </view>
-  </view>
-
-  <!-- ============== 我的帖子 / 浏览历史 ============== -->
-  <view class="posts-section">
-    <!-- 分区切换 Tab -->
-    <view class="section-tabs">
-      <view
-        class="section-tab {{activeSection === 'posts' ? 'active' : ''}}"
-        data-key="posts"
-        bindtap="onSectionTabTap"
-        hover-class="section-tab-hover"
-        hover-stay-time="120"
-      >
-        <text>我的帖子</text>
-      </view>
-      <view
-        class="section-tab {{activeSection === 'history' ? 'active' : ''}}"
-        data-key="history"
-        bindtap="onSectionTabTap"
-        hover-class="section-tab-hover"
-        hover-stay-time="120"
-      >
-        <text>浏览历史</text>
-      </view>
-    </view>
-
-    <!-- 我的帖子区域 -->
-    <block wx:if="{{activeSection === 'posts'}}">
-      <!-- 状态筛选 Tab（6 态 + 全部） -->
-      <scroll-view class="status-tabs" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
-        <view
-          wx:for="{{statusTabs}}"
-          wx:key="key"
-          class="status-tab {{activeStatus === item.key ? 'active' : ''}}"
-          data-key="{{item.key}}"
-          bindtap="onStatusTabTap"
-        >
-          <text>{{item.label}}</text>
-        </view>
-      </scroll-view>
-
-      <!-- 帖子列表 -->
-      <view class="post-list">
-        <block>
-          <!-- 加载中：骨架屏 -->
-          <block wx:if="{{loadingPosts}}">
-            <view class="post-skeleton-wrap">
-              <skeleton variant="post-card" />
-              <skeleton variant="post-card" />
-              <skeleton variant="post-card" />
+              <icon name="shield" size="28rpx" color="#ffffff" />
+              <text>{{verifySending ? '发送中...' : '向我的邮箱发送验证码'}}</text>
             </view>
           </block>
 
-          <!-- 空状态 -->
-          <block wx:elif="{{posts.length === 0}}">
-            <empty-state
-              icon="file-text"
-              title="暂无帖子"
-              hint="来发布第一条校园经验吧"
-              action-text="去发布"
-              bind:action="goToPublish"
-            />
-          </block>
-
-          <!-- 帖子卡片 -->
-          <block wx:if="{{posts.length > 0}}">
-            <view
-              wx:for="{{posts}}"
-              wx:key="id"
-              class="post-card"
-              data-id="{{item.id}}"
-              bindtap="onPostTap"
-              hover-class="post-card-hover"
-              hover-stay-time="120"
-            >
-              <view class="post-top">
-                <view class="post-title-row">
-                  <text class="post-title">{{item.title}}</text>
-                  <text class="post-status status-{{item.status}}">{{item.status_label}}</text>
-                </view>
-                <text class="post-content text-ellipsis-2">{{item.content}}</text>
-              </view>
-              <image wx:if="{{item.cover}}" class="post-cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
-              <view class="post-footer">
-                <text class="post-time">{{item.created_at_text}}</text>
-                <view class="post-stats">
-                  <view class="stat-pill">
-                    <icon name="heart" size="22rpx" color="#6a7d81" />
-                    <text>{{item.like_count_text}}</text>
-                  </view>
-                  <view class="stat-pill">
-                    <icon name="message-circle" size="22rpx" color="#6a7d81" />
-                    <text>{{item.comment_count_text}}</text>
-                  </view>
-                  <view class="stat-pill">
-                    <icon name="check-circle" size="22rpx" color="#6a7d81" />
-                    <text>{{item.valid_count_text}}</text>
-                  </view>
-                  <view class="stat-pill">
-                    <icon name="eye" size="22rpx" color="#6a7d81" />
-                    <text>{{item.view_count_text}}</text>
-                  </view>
-                </view>
-              </view>
+          <block wx:else>
+            <view class="form-item">
+              <text class="form-label">验证码（6 位）</text>
+              <input
+                class="form-input"
+                type="number"
+                placeholder="请输入验证码"
+                placeholder-class="ph"
+                value="{{verifyCode}}"
+                maxlength="6"
+                bindinput="onVerifyCodeInput"
+              />
             </view>
-
-            <!-- 加载更多 -->
-            <view wx:if="{{loadingMorePosts}}" class="loading-more">
-              <view class="loading-dot"></view>
-              <view class="loading-dot loading-dot-delay1"></view>
-              <view class="loading-dot loading-dot-delay2"></view>
+            <view wx:if="{{devCode}}" class="verify-devcode">
+              <text>👇 演示环境验证码：<text class="verify-devcode-val">{{devCode}}</text></text>
+              <text class="verify-devcode-hint">正式环境验证码将发送至你的校园邮箱</text>
             </view>
-            <view wx:if="{{!hasMore && !loadingMorePosts}}" class="no-more">
-              <text>没有更多了</text>
-            </view>
-          </block>
-        </block>
-      </view>
-    </block>
-
-    <!-- 浏览历史区域 -->
-    <block wx:if="{{activeSection === 'history'}}">
-      <!-- 清除历史按钮 -->
-      <view class="history-action-bar">
-        <text class="history-count">共 {{history.length}} 条记录</text>
-        <view
-          class="clear-history-btn {{history.length === 0 ? 'disabled' : ''}}"
-          bindtap="onClearHistory"
-          hover-class="clear-history-hover"
-          hover-stay-time="120"
-        >
-          <icon name="trash2" size="24rpx" color="{{history.length === 0 ? '#9aabae' : '#cd5852'}}" />
-          <text>清空历史</text>
-        </view>
-      </view>
-
-      <!-- 历史列表 -->
-      <view class="history-list">
-        <block>
-          <!-- 加载中：骨架屏 -->
-          <block wx:if="{{loadingHistory}}">
-            <view class="post-skeleton-wrap">
-              <skeleton variant="list-item" />
-              <skeleton variant="list-item" />
-              <skeleton variant="list-item" />
-            </view>
-          </block>
-
-          <!-- 空状态 -->
-          <block wx:elif="{{history.length === 0}}">
-            <empty-state
-              compact
-              icon="clock"
-              title="暂无浏览历史"
-              hint="浏览过的帖子会出现在这里"
-            />
-          </block>
-
-          <!-- 历史卡片 -->
-          <block wx:if="{{history.length > 0}}">
-            <view
-              wx:for="{{history}}"
-              wx:key="post_id"
-              class="history-card"
-              data-id="{{item.post_id}}"
-              bindtap="onHistoryTap"
-              hover-class="history-card-hover"
-              hover-stay-time="120"
-            >
-              <view class="history-info">
-                <text class="history-title">{{item.post_title}}</text>
-                <view class="history-meta">
-                  <text class="history-category">{{item.category_name}}</text>
-                  <text class="history-time">浏览于 {{item.viewed_at_text}}</text>
-                </view>
-              </view>
+            <view class="verify-actions">
               <view
-                class="history-delete"
-                catchtap="onDeleteHistoryItem"
-                data-id="{{item.post_id}}"
-                hover-class="history-delete-hover"
+                class="verify-confirm-btn {{verifyConfirming ? 'disabled' : ''}}"
+                bindtap="onConfirmVerify"
+                hover-class="verify-confirm-btn-hover"
                 hover-stay-time="120"
               >
-                <icon name="trash2" size="28rpx" color="#6a7d81" />
+                <icon name="check-circle" size="28rpx" color="#ffffff" />
+                <text>{{verifyConfirming ? '确认中...' : '确认认证'}}</text>
               </view>
-            </view>
-
-            <view wx:if="{{loadingMoreHistory}}" class="loading-more">
-              <view class="loading-dot"></view>
-              <view class="loading-dot loading-dot-delay1"></view>
-              <view class="loading-dot loading-dot-delay2"></view>
-            </view>
-            <view wx:if="{{!historyHasMore && !loadingMoreHistory}}" class="no-more">
-              <text>没有更多了</text>
+              <view
+                class="verify-back-btn"
+                bindtap="onBackVerifyForm"
+                hover-class="verify-back-btn-hover"
+                hover-stay-time="120"
+              >
+                <text>返回修改</text>
+              </view>
             </view>
           </block>
         </block>
       </view>
-    </block>
-  </view>
+    </view>
 
-  <!-- ============== 推荐隐私（Task 4b） ============== -->
-  <view class="rec-section">
-    <view class="section-header">
-      <view class="section-title-wrap">
-        <view class="section-icon-badge">
-          <icon name="sparkles" size="28rpx" color="#174d5e" />
+    <!-- ============== 我的帖子 / 浏览历史 ============== -->
+    <view class="posts-section">
+      <!-- 分区切换 Tab -->
+      <view class="section-tabs">
+        <view
+          class="section-tab {{activeSection === 'posts' ? 'active' : ''}}"
+          data-key="posts"
+          bindtap="onSectionTabTap"
+          hover-class="section-tab-hover"
+          hover-stay-time="120"
+        >
+          <text>我的帖子</text>
         </view>
-        <text class="section-title">推荐隐私</text>
+        <view
+          class="section-tab {{activeSection === 'history' ? 'active' : ''}}"
+          data-key="history"
+          bindtap="onSectionTabTap"
+          hover-class="section-tab-hover"
+          hover-stay-time="120"
+        >
+          <text>浏览历史</text>
+        </view>
+      </view>
+
+      <!-- 我的帖子区域 -->
+      <block wx:if="{{activeSection === 'posts'}}">
+        <!-- 状态筛选 Tab（6 态 + 全部） -->
+        <scroll-view class="status-tabs" scroll-x="true" enhanced="true" show-scrollbar="{{false}}">
+          <view
+            wx:for="{{statusTabs}}"
+            wx:key="key"
+            class="status-tab {{activeStatus === item.key ? 'active' : ''}}"
+            data-key="{{item.key}}"
+            bindtap="onStatusTabTap"
+          >
+            <text>{{item.label}}</text>
+          </view>
+        </scroll-view>
+
+        <!-- 帖子列表 -->
+        <view class="post-list">
+          <block>
+            <!-- 加载中：骨架屏 -->
+            <block wx:if="{{loadingPosts}}">
+              <view class="post-skeleton-wrap">
+                <skeleton variant="post-card" />
+                <skeleton variant="post-card" />
+                <skeleton variant="post-card" />
+              </view>
+            </block>
+
+            <!-- 空状态 -->
+            <block wx:elif="{{posts.length === 0}}">
+              <empty-state
+                icon="file-text"
+                title="暂无帖子"
+                hint="来发布第一条校园经验吧"
+                action-text="去发布"
+                bind:action="goToPublish"
+              />
+            </block>
+
+            <!-- 帖子卡片 -->
+            <block wx:if="{{posts.length > 0}}">
+              <view
+                wx:for="{{posts}}"
+                wx:key="id"
+                class="post-card"
+                data-id="{{item.id}}"
+                bindtap="onPostTap"
+                hover-class="post-card-hover"
+                hover-stay-time="120"
+              >
+                <view class="post-top">
+                  <view class="post-title-row">
+                    <text class="post-title">{{item.title}}</text>
+                    <text class="post-status status-{{item.status}}">{{item.status_label}}</text>
+                  </view>
+                  <text class="post-content text-ellipsis-2">{{item.content}}</text>
+                </view>
+                <image wx:if="{{item.cover}}" class="post-cover" src="{{item.cover}}" mode="aspectFill" lazy-load />
+                <view class="post-footer">
+                  <text class="post-time">{{item.created_at_text}}</text>
+                  <view class="post-stats">
+                    <view class="stat-pill">
+                      <icon name="heart" size="22rpx" color="#6a7d81" />
+                      <text>{{item.like_count_text}}</text>
+                    </view>
+                    <view class="stat-pill">
+                      <icon name="message-circle" size="22rpx" color="#6a7d81" />
+                      <text>{{item.comment_count_text}}</text>
+                    </view>
+                    <view class="stat-pill">
+                      <icon name="check-circle" size="22rpx" color="#6a7d81" />
+                      <text>{{item.valid_count_text}}</text>
+                    </view>
+                    <view class="stat-pill">
+                      <icon name="eye" size="22rpx" color="#6a7d81" />
+                      <text>{{item.view_count_text}}</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+
+              <!-- 加载更多 -->
+              <view wx:if="{{loadingMorePosts}}" class="loading-more">
+                <view class="loading-dot"></view>
+                <view class="loading-dot loading-dot-delay1"></view>
+                <view class="loading-dot loading-dot-delay2"></view>
+              </view>
+              <view wx:if="{{!hasMore && !loadingMorePosts}}" class="no-more">
+                <text>没有更多了</text>
+              </view>
+            </block>
+          </block>
+        </view>
+      </block>
+
+      <!-- 浏览历史区域 -->
+      <block wx:if="{{activeSection === 'history'}}">
+        <!-- 清除历史按钮 -->
+        <view class="history-action-bar">
+          <text class="history-count">共 {{history.length}} 条记录</text>
+          <view
+            class="clear-history-btn {{history.length === 0 ? 'disabled' : ''}}"
+            bindtap="onClearHistory"
+            hover-class="clear-history-hover"
+            hover-stay-time="120"
+          >
+            <icon name="trash2" size="24rpx" color="{{history.length === 0 ? '#9aabae' : '#cd5852'}}" />
+            <text>清空历史</text>
+          </view>
+        </view>
+
+        <!-- 历史列表 -->
+        <view class="history-list">
+          <block>
+            <!-- 加载中：骨架屏 -->
+            <block wx:if="{{loadingHistory}}">
+              <view class="post-skeleton-wrap">
+                <skeleton variant="list-item" />
+                <skeleton variant="list-item" />
+                <skeleton variant="list-item" />
+              </view>
+            </block>
+
+            <!-- 空状态 -->
+            <block wx:elif="{{history.length === 0}}">
+              <empty-state
+                compact
+                icon="clock"
+                title="暂无浏览历史"
+                hint="浏览过的帖子会出现在这里"
+              />
+            </block>
+
+            <!-- 历史卡片 -->
+            <block wx:if="{{history.length > 0}}">
+              <view
+                wx:for="{{history}}"
+                wx:key="post_id"
+                class="history-card"
+                data-id="{{item.post_id}}"
+                bindtap="onHistoryTap"
+                hover-class="history-card-hover"
+                hover-stay-time="120"
+              >
+                <view class="history-info">
+                  <text class="history-title">{{item.post_title}}</text>
+                  <view class="history-meta">
+                    <text class="history-category">{{item.category_name}}</text>
+                    <text class="history-time">浏览于 {{item.viewed_at_text}}</text>
+                  </view>
+                </view>
+                <view
+                  class="history-delete"
+                  catchtap="onDeleteHistoryItem"
+                  data-id="{{item.post_id}}"
+                  hover-class="history-delete-hover"
+                  hover-stay-time="120"
+                >
+                  <icon name="trash2" size="28rpx" color="#6a7d81" />
+                </view>
+              </view>
+
+              <view wx:if="{{loadingMoreHistory}}" class="loading-more">
+                <view class="loading-dot"></view>
+                <view class="loading-dot loading-dot-delay1"></view>
+                <view class="loading-dot loading-dot-delay2"></view>
+              </view>
+              <view wx:if="{{!historyHasMore && !loadingMoreHistory}}" class="no-more">
+                <text>没有更多了</text>
+              </view>
+            </block>
+          </block>
+        </view>
+      </block>
+    </view>
+
+    <!-- ============== 推荐隐私（Task 4b） ============== -->
+    <view class="rec-section">
+      <view class="section-header">
+        <view class="section-title-wrap">
+          <view class="section-icon-badge">
+            <icon name="sparkles" size="28rpx" color="#174d5e" />
+          </view>
+          <text class="section-title">推荐隐私</text>
+        </view>
+      </view>
+      <view class="rec-item">
+        <view class="rec-info">
+          <text class="rec-label">个性化推荐</text>
+          <text class="rec-desc">根据浏览与搜索记录推荐你可能感兴趣的内容</text>
+        </view>
+        <switch
+          checked="{{recEnabled}}"
+          color="#174d5e"
+          disabled="{{recLoading}}"
+          bindchange="onRecToggle"
+        />
+      </view>
+      <view class="rec-item">
+        <view class="rec-info">
+          <text class="rec-label">清除推荐画像历史</text>
+          <text class="rec-desc">删除浏览与搜索画像，用于重置推荐</text>
+        </view>
+        <view
+          class="rec-clear-btn"
+          bindtap="onClearRecHistory"
+          hover-class="rec-clear-btn-hover"
+          hover-stay-time="120"
+        >
+          <icon name="trash2" size="24rpx" color="#cd5852" />
+          <text>清除</text>
+        </view>
       </view>
     </view>
-    <view class="rec-item">
-      <view class="rec-info">
-        <text class="rec-label">个性化推荐</text>
-        <text class="rec-desc">根据浏览与搜索记录推荐你可能感兴趣的内容</text>
-      </view>
-      <switch
-        checked="{{recEnabled}}"
-        color="#174d5e"
-        disabled="{{recLoading}}"
-        bindchange="onRecToggle"
-      />
-    </view>
-    <view class="rec-item">
-      <view class="rec-info">
-        <text class="rec-label">清除推荐画像历史</text>
-        <text class="rec-desc">删除浏览与搜索画像，用于重置推荐</text>
-      </view>
-      <view
-        class="rec-clear-btn"
-        bindtap="onClearRecHistory"
-        hover-class="rec-clear-btn-hover"
-        hover-stay-time="120"
-      >
-        <icon name="trash2" size="24rpx" color="#cd5852" />
-        <text>清除</text>
-      </view>
-    </view>
-  </view>
+  </block>
 
   <!-- ============== 设置区域 ============== -->
   <view class="settings-section">
-    <view class="settings-item" bindtap="showEditPopup" hover-class="settings-item-hover" hover-stay-time="120">
+    <view wx:if="{{isLoggedIn}}" class="settings-item" bindtap="showEditPopup" hover-class="settings-item-hover" hover-stay-time="120">
       <view class="settings-icon-wrap">
         <icon name="edit" size="32rpx" color="#174d5e" />
       </view>
       <text class="settings-label">编辑资料</text>
       <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-    <view class="settings-item" bindtap="goToNotificationPreferences" hover-class="settings-item-hover" hover-stay-time="120">
+    <view wx:if="{{isLoggedIn}}" class="settings-item" bindtap="goToNotificationPreferences" hover-class="settings-item-hover" hover-stay-time="120">
       <view class="settings-icon-wrap">
         <icon name="bell" size="32rpx" color="#174d5e" />
       </view>
@@ -456,7 +497,7 @@
       <text class="settings-label">关于</text>
       <icon name="chevron-right" size="32rpx" color="#9aabae" />
     </view>
-    <view class="settings-item danger" bindtap="onLogout" hover-class="settings-item-hover" hover-stay-time="120">
+    <view wx:if="{{isLoggedIn}}" class="settings-item danger" bindtap="onLogout" hover-class="settings-item-hover" hover-stay-time="120">
       <view class="settings-icon-wrap settings-icon-danger">
         <icon name="log-out" size="32rpx" color="#cd5852" />
       </view>
@@ -465,7 +506,7 @@
     </view>
   </view>
 </view>
-<!-- ============== 编辑资料弹出层 ============== -->
+<!-- ============== 编辑资料弹出层（仅已登录态可触发，但 WXML 根层 wx:if 保持在 profile-page 内，避免布局错乱） ============== -->
 <view wx:if="{{editVisible}}" class="popup-mask" bindtap="hideEditPopup">
   <view class="popup-container" catchtap="noop">
     <view class="popup-header">

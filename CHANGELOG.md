@@ -7,6 +7,31 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.14] - 2026-08-08
+
+### 修复
+
+- **小程序个人中心页未登录态改为「点击登录」统一卡片**：
+  用户反馈"未登录时顶部不应该是'未命名用户'，要直接统一为点击登录之类的引导，且身份认证/我的帖子/浏览历史/推荐隐私/编辑资料/通知偏好/退出登录全部隐藏"。原实现还有一个问题：`onShow` 里调 `guardPageLogin` 会强制弹 Modal 打断游客浏览（用户只想看学校选择或用户协议也会被跳去登录）——一并解决。
+
+  按经验 322067 单一 `isLoggedIn` 布尔驱动渲染（不做占位补丁）+ 经验 344553 同一判据驱动展示与行为：
+
+  - `profile.ts`：`onShow` 移除 `guardPageLogin` 强制 Modal；未登录分支主动 setData 清空用户残留数据避免闪烁；移除无用的 `guardPageLogin` import；新增 `onGoLoginTap` → `wx.navigateTo('/pages/login/login')`
+  - `profile.wxml`：顶层 `<block wx:if="{{!isLoggedIn}}">` 渲染独立「点击登录」卡片（左 user 圆形图标 + 中 38rpx/700 标题 + 副文案 + 右 chevron-right 箭头），并保留「当前学校」卡片（学校选择游客也可以用）；`<block wx:else>` 包裹原 user-card + 统计卡 + 当前学校卡 + 校园身份认证 + 我的帖子/浏览历史 + 推荐隐私。settings-section 7 个条目中，编辑资料/通知偏好/退出登录 3 条单独加 `wx:if="{{isLoggedIn}}"`，用户协议/隐私政策/关于保留。
+  - `profile.wxss`：新增 `.login-entry-card`（湖蓝背景与原 user-card 一致）+ `.login-entry-icon-wrap/.login-entry-text/.login-entry-title/.login-entry-desc/.login-entry-arrow/.login-entry-card-hover` 共 6 选择器。
+
+### 校验
+
+- `wechatide simulator_refresh`：编译通过，无 WXML/WXSS/TS 报错
+- `wechatide simulator_open_page pages/profile/profile`：直达个人中心 Tab
+- 截图（365×787 JPEG）验证：
+  ✅ 顶部湖蓝「点击登录」大卡片 + 圆形 user 图标 + 标题副文案 + 右箭头 正确显示
+  ✅ 「未命名用户」和「这个人很懒...」占位 彻底消失
+  ✅ 身份认证 / 4 列统计 / 我的帖子 / 浏览历史 / 推荐隐私 7 项全部隐藏
+  ✅ 设置列表仅保留：用户协议、隐私政策、关于（编辑资料/通知偏好/退出登录已隐藏）
+  ✅ 当前学校卡片仍正常保留：江南大学 + 切换学校按钮
+- `get_simulator_console grep -i error/fail/warn`：空字符串，无运行时异常
+
 ## [2.2.13] - 2026-08-08
 
 ### 修复

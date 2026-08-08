@@ -6,7 +6,6 @@ import { normalizePost, normalizeMembership } from '../../services/normalize'
 import { listMemberships } from '../../services/schools'
 import { logout } from '../../services/auth'
 import { sendCampusVerify, confirmCampusVerify } from '../../services/auth'
-import { guardPageLogin } from '../../utils/auth-guard'
 import { uploadAvatar } from '../../services/upload'
 
 const STATUS_TABS = [
@@ -117,17 +116,40 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 4 })
     }
-    // 游客访问「我的」时引导登录（Task 6），不打断浏览上下文
-    if (!guardPageLogin('请先登录后查看个人中心')) {
+    // 未登录时不再弹 Modal 打断，直接渲染「点击登录」空态卡片引导用户主动点击
+    if (!authStore.getState().isLoggedIn) {
+      // 清空旧登录态残留数据，避免页面切换时闪烁展示假数据
+      this.setData({
+        user: null,
+        avatarUrl: defaultAvatar(),
+        nickname: '',
+        bio: '',
+        email: '',
+        createdAtText: '',
+        campusVerified: false,
+        publishedCount: 0,
+        draftCount: 0,
+        pendingCount: 0,
+        confirmationCount: 0,
+        publishedCountText: '0',
+        draftCountText: '0',
+        pendingCountText: '0',
+        confirmationCountText: '0',
+        memberships: [],
+        posts: [],
+        history: [],
+        verifyStep: 'form',
+        verifyCode: '',
+        devCode: '',
+        recEnabled: false,
+      })
       return
     }
-    if (authStore.getState().isLoggedIn) {
-      const tasks: Promise<any>[] = [this.loadUser(), this.loadStats(), this.refreshPosts(), this.loadMemberships(), this.loadRecPreference()]
-      if (this.data.activeSection === 'history') {
-        tasks.push(this.refreshHistory())
-      }
-      await Promise.all(tasks)
+    const tasks: Promise<any>[] = [this.loadUser(), this.loadStats(), this.refreshPosts(), this.loadMemberships(), this.loadRecPreference()]
+    if (this.data.activeSection === 'history') {
+      tasks.push(this.refreshHistory())
     }
+    await Promise.all(tasks)
   },
 
   // ============== 用户信息 ==============
@@ -647,5 +669,10 @@ Page({
 
   goToAbout() {
     wx.navigateTo({ url: '/pages/about/about' })
+  },
+
+  // ============== 未登录态登录引导 ==============
+  onGoLoginTap() {
+    wx.navigateTo({ url: '/pages/login/login' })
   },
 })

@@ -2,7 +2,26 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（校园地点页主页按钮改为返回按钮）
+> 最后更新：2026-08-08（个人中心页未登录态改为「点击登录」卡片 + 隐藏登录专属菜单）
+
+## 2026-08-08 执行任务：个人中心页未登录态改为「点击登录」统一入口
+
+- [x] **需求拆解（对齐经验 322067）**：用户要求未登录时①顶部不显示"未命名用户/这个人很懒"占位；②把顶部替换为语义明确的"点击登录"统一引导；③校园身份认证、我的帖子、浏览历史、推荐隐私、编辑资料、通知偏好、退出登录这 7 个登录专属菜单全部隐藏。原则：用单一 `isLoggedIn` 布尔驱动所有渲染分支，**绝不做文本占位补丁**（经验 322067 Failure 1 教训）。
+- [x] **登录态判定统一使用 authStore.getState().isLoggedIn 做主判据**（经验 344553 Failure 3：不要依赖昵称/头像这些展示字段判断是否已登录），onLoad 里 subscribe authStore 注入 data，onShow 再二次读取——展示与行为两端走同一 isLoggedIn 字段，避免"看起来登录了其实没登录"的割裂。
+- [x] **onShow 移除 guardPageLogin 的强制 Modal 打断**：原实现一进"我的"Tab 就弹"请先登录"弹窗+跳转——对只想看学校选择/协议等游客内容的用户不友好；现在让页面先渲染「点击登录」卡片，用户主动点击卡片才跳登录页，符合"主动引导不打断浏览"的游客模式约定（AGENTS Task 6）。
+- [x] **未登录态顶部「点击登录」卡片**：WXML 顶层 `<block wx:if="{{!isLoggedIn}}">` 承载独立登录引导——湖蓝 `var(--lake)` 背景与原 user-card 风格保持一致；左圆形 user 图标（半透明白圆 + 白 border + 投影）+ 中 38rpx/700"点击登录"标题 + 24rpx/0.85"登录后可查看你的资料、帖子和浏览记录"副文案 + 右 chevron-right 箭头；整卡 bindtap="onGoLoginTap" → `wx.navigateTo('/pages/login/login')`（保留返回栈，用户取消可回到原个人中心）。
+- [x] **7 类登录专属菜单严格 wx:if**（完全从 WXML 层隐藏，不是置灰或显示占位）：
+  ① 顶部 `user-card`（用户头像/昵称/简介/加入时间 + 编辑资料 + 通知按钮）
+  ② `stats-card`（4 列统计：已发布/草稿/待审核/贡献验证 + 骨架屏）
+  ③ `verify-section`（校园身份认证：发送验证码、输入 6 位数字、演示环境 devcode、"已认证"徽标）
+  ④ `posts-section`（我的帖子 / 浏览历史 分区 Tab + 7 态筛选 + 帖子卡片 + 历史卡片 + 清空历史）
+  ⑤ `rec-section`（推荐隐私：个性化推荐 switch + 清除推荐画像历史）
+  ⑥ `settings-item` 中的"编辑资料"和"通知偏好"两条
+  ⑦ `settings-item` 中的"退出登录"（朱砂色危险项）
+- [x] **未登录态仍然保留的 4 项**：①当前学校卡片（学校选择游客也可以用，保证学校隔离不混乱）；②用户协议；③隐私政策；④关于——这 4 项无论登录与否都应该能访问。
+- [x] **TS 配套修复**：onShow 未登录分支主动 `setData` 清空用户残留数据（nickname/bio/email/统计/认证步骤/帖子/历史/推荐开关），防止"上次登录→退出→Tab 切换"时 WXML 还在闪烁显示上一个人的假数据；移除顶部无用的 `guardPageLogin` import（防止未使用警告）；新增 `onGoLoginTap()` 单一登录跳转函数（经验 344553 Failure 1：不要在 WXML 里写 `bindtap="{{cond ? A : B}}"`，统一 handler 内部分流或拆两套 view）。
+- [x] **WXSS 新卡片与原风格一致**：新增 `.login-entry-card` + `.login-entry-icon-wrap` + `.login-entry-text` + `.login-entry-title` + `.login-entry-desc` + `.login-entry-arrow` + hover 态 6 个选择器，湖蓝背景与原 `.user-card`、`.settings-section` 配色 100% 对齐；padding、字号、圆角完全沿用项目设计 token。
+- [x] **微信开发者工具编译 & 截图验证**：`simulator_refresh` 编译通过；`simulator_open_page profile` 成功直达 Tab4；365×787 最终截图显示——顶部「点击登录」湖蓝大卡片 ✅、"未命名用户/这个人很懒"占位彻底消失 ✅、身份认证/我的帖子/历史/推荐隐私/编辑资料/通知偏好/退出登录全部隐藏 ✅、当前学校卡片和 3 个协议项显示正常 ✅、`grep -i error/fail/warn` console 为空 ✅；无 WXML/WXSS/TS 静态错误。
 
 ## 2026-08-08 执行任务：校园地点页主页按钮改为返回按钮
 
