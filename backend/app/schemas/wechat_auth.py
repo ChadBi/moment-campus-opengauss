@@ -15,6 +15,15 @@ class WechatPhoneLoginRequest(BaseModel):
     school_code: Optional[str] = Field(None, max_length=50)
 
 
+class WechatSmsLoginRequest(BaseModel):
+    """微信会话 + 手机号短信验证码绑定登录。"""
+
+    code: str = Field(..., min_length=1, max_length=128, description="wx.login() 获取的 code")
+    phone: str = Field(..., min_length=11, max_length=11, pattern=r"^1\d{10}$")
+    sms_code: str = Field(..., min_length=6, max_length=6, pattern=r"^\d{6}$")
+    school_code: Optional[str] = Field(None, max_length=50)
+
+
 class WechatPhoneLoginResponse(BaseModel):
     access_token: str
     refresh_token: str

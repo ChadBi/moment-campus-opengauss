@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from app.models.school_domain import SchoolDomain
 from app.models.user import User
+from app.models.user_auth_identity import UserAuthIdentity
 
 
 async def _send_code(client, phone: str, purpose: str) -> str:
@@ -109,6 +110,89 @@ async def test_wechat_phone_login_creates_passwordless_account_and_can_set_passw
     )
     assert repeat.status_code == 200
     assert repeat.json()["user"]["id"] == user["id"]
+
+
+@pytest.mark.asyncio
+async def test_wechat_sms_login_creates_passwordless_account_and_binds_identity(
+    client, test_school, db_session
+):
+    phone = "13820000012"
+    sms_code = await _send_code(client, phone, "login")
+    response = await client.post(
+        "/api/v1/auth/wechat/sms-login",
+        json={
+            "code": "mock-sms-code",
+            "phone": phone,
+            "sms_code": sms_code,
+            "school_code": test_school["code"],
+        },
+    )
+    assert response.status_code == 200, response.text
+    user = response.json()["user"]
+    assert user["phone"] == phone
+    assert user["has_password"] is False
+    assert user["campus_verified"] is False
+
+    identity = (
+        await db_session.execute(
+            select(UserAuthIdentity).where(
+                UserAuthIdentity.user_id == user["id"],
+                UserAuthIdentity.identity_type == "wechat_miniprogram",
+                UserAuthIdentity.is_deleted.is_(False),
+            )
+        )
+    ).scalar_one_or_none()
+    assert identity is not None
+
+
+@pytest.mark.asyncio
+async def test_wechat_sms_login_reuses_existing_phone_account(client, test_school):
+    phone = "13820000013"
+    register_code = await _send_code(client, phone, "register")
+    registered = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "phone": phone,
+            "sms_code": register_code,
+            "password": "existing123",
+            "password_confirm": "existing123",
+            "school_id": test_school["id"],
+        },
+    )
+    assert registered.status_code == 200, registered.text
+
+    login_code = await _send_code(client, phone, "login")
+    response = await client.post(
+        "/api/v1/auth/wechat/sms-login",
+        json={
+            "code": "mock-existing-code",
+            "phone": phone,
+            "sms_code": login_code,
+            "school_code": test_school["code"],
+        },
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["user"]["id"] == registered.json()["user"]["id"]
+    assert response.json()["user"]["has_password"] is True
+
+
+@pytest.mark.asyncio
+async def test_wechat_sms_login_rejects_invalid_sms_code(client, test_school, db_session):
+    phone = "13820000014"
+    await _send_code(client, phone, "login")
+    response = await client.post(
+        "/api/v1/auth/wechat/sms-login",
+        json={
+            "code": "mock-invalid-code",
+            "phone": phone,
+            "sms_code": "654321",
+            "school_code": test_school["code"],
+        },
+    )
+    assert response.status_code == 400
+    assert "验证码错误" in response.json()["detail"]
+    user = (await db_session.execute(select(User).where(User.phone == phone))).scalar_one_or_none()
+    assert user is None
 
 
 @pytest.mark.asyncio

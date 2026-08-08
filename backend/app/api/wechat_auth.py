@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Header
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,8 +29,9 @@ from app.schemas.wechat_auth import (
     SessionResponse,
     WechatPhoneLoginRequest,
     WechatPhoneLoginResponse,
+    WechatSmsLoginRequest,
 )
-from app.services.sms import normalize_phone
+from app.services.sms import normalize_phone, verify_sms_code
 from app.services.wechat import exchange_wechat_code, exchange_wechat_phone_code
 
 logger = logging.getLogger(__name__)
@@ -49,15 +50,15 @@ async def _resolve_school(db: AsyncSession, school_code: Optional[str]) -> Schoo
     return school
 
 
-@router.post("/phone-login", response_model=WechatPhoneLoginResponse, summary="微信授权手机号登录")
-async def phone_login(
-    data: WechatPhoneLoginRequest,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
-    wx_result = await exchange_wechat_code(data.code)
+async def _complete_phone_login(
+    db: AsyncSession,
+    wx_result: dict,
+    phone: str,
+    school_code: Optional[str],
+) -> WechatPhoneLoginResponse:
+    """按手机号复用或创建账号，并把当前微信 OpenID 绑定到该账号。"""
+
     openid = wx_result["openid"]
-    phone = normalize_phone(await exchange_wechat_phone_code(data.phone_code))
 
     identity_result = await db.execute(
         select(UserAuthIdentity).where(
@@ -75,18 +76,22 @@ async def phone_login(
         identity_user_result = await db.execute(select(User).where(User.id == identity.user_id))
         identity_user = identity_user_result.scalar_one_or_none()
 
-    # 手机号是唯一业务身份：已有手机号优先。若历史微信身份指向另一条旧账号，
-    # 将微信身份迁移到手机号账号并停用旧壳账号，避免一手机号多账号。
+    # 手机号是唯一业务身份。仅允许把无手机号的历史微信壳账号合并到手机号账号；
+    # 已绑定另一个真实手机号时禁止静默换绑，避免两个手机号账号被错误合并。
     user = phone_user or identity_user
     if phone_user is not None and identity_user is not None and phone_user.id != identity_user.id:
+        if identity_user.phone is not None and identity_user.phone != phone:
+            raise ConflictException(detail="该微信已绑定其他手机号，请使用原手机号登录")
         identity.user_id = phone_user.id
         identity_user.is_active = False
         identity_user.is_deleted = True
         identity_user.deleted_at = datetime.now()
         user = phone_user
+    elif phone_user is None and identity_user is not None and identity_user.phone not in (None, phone):
+        raise ConflictException(detail="该微信已绑定其他手机号，请使用原手机号登录")
 
     if user is None:
-        school = await _resolve_school(db, data.school_code)
+        school = await _resolve_school(db, school_code)
         user = User(
             phone=phone,
             email=None,
@@ -112,6 +117,9 @@ async def phone_login(
     elif user.phone is None:
         user.phone = phone
 
+    if not user.is_active or user.is_deleted:
+        raise UnauthorizedException(detail="账号已被禁用或删除")
+
     if identity is None:
         identity = UserAuthIdentity(
             user_id=user.id,
@@ -132,6 +140,27 @@ async def phone_login(
         refresh_token=result.refresh_token,
         user=result.user.model_dump(),
     )
+
+
+@router.post("/phone-login", response_model=WechatPhoneLoginResponse, summary="微信授权手机号登录")
+async def phone_login(
+    data: WechatPhoneLoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    wx_result = await exchange_wechat_code(data.code)
+    phone = normalize_phone(await exchange_wechat_phone_code(data.phone_code))
+    return await _complete_phone_login(db, wx_result, phone, data.school_code)
+
+
+@router.post("/sms-login", response_model=WechatPhoneLoginResponse, summary="微信短信绑定手机号登录")
+async def sms_login(
+    data: WechatSmsLoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    wx_result = await exchange_wechat_code(data.code)
+    phone = normalize_phone(data.phone)
+    await verify_sms_code(db, phone, "login", data.sms_code)
+    return await _complete_phone_login(db, wx_result, phone, data.school_code)
 
 
 @router.api_route("/exchange", methods=["POST"], summary="已废弃：微信邮箱绑定交换")
