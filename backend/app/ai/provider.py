@@ -616,6 +616,8 @@ class MockAIProvider(AIProvider):
                 {
                     "suggestions": {
                         "title": None,
+                        "optimized_title": None,
+                        "optimized_content": None,
                         "summary": None,
                         "category": None,
                         "tags": [],

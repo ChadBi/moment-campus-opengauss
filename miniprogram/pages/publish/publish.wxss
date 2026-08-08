@@ -593,6 +593,10 @@
   border-bottom: none;
 }
 
+.ai-suggest-item-multiline {
+  align-items: flex-start;
+}
+
 .ai-item-label {
   flex: 0 0 140rpx;
   font-size: 24rpx;
@@ -604,6 +608,7 @@
   font-size: 26rpx;
   color: var(--ink);
   line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 .ai-tags {

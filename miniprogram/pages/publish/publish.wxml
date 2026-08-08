@@ -7,7 +7,7 @@
         <icon name="sparkles" size="30rpx" color="#174d5e" />
         <view class="ai-title-copy">
           <text class="ai-title">AI 辅助发布建议</text>
-          <text class="ai-subtitle">基于草稿生成标题、摘要、分类、有效期及遗漏提醒</text>
+          <text class="ai-subtitle">基于草稿优化标题、正文，并检查分类、有效期和遗漏信息</text>
         </view>
       </view>
       <view class="ai-header-actions">
@@ -40,9 +40,13 @@
 
       <!-- 结构化建议 -->
       <block wx:if="{{aiSuggestion.suggestions}}">
-        <view wx:if="{{aiSuggestion.suggestions.title}}" class="ai-suggest-item">
+        <view wx:if="{{aiSuggestion.suggestions.optimized_title || aiSuggestion.suggestions.title}}" class="ai-suggest-item">
           <text class="ai-item-label">建议标题</text>
-          <text class="ai-item-value">{{aiSuggestion.suggestions.title}}</text>
+          <text class="ai-item-value">{{aiSuggestion.suggestions.optimized_title || aiSuggestion.suggestions.title}}</text>
+        </view>
+        <view wx:if="{{aiSuggestion.suggestions.optimized_content}}" class="ai-suggest-item ai-suggest-item-multiline">
+          <text class="ai-item-label">优化正文</text>
+          <text class="ai-item-value">{{aiSuggestion.suggestions.optimized_content}}</text>
         </view>
         <view wx:if="{{aiSuggestion.suggestions.summary}}" class="ai-suggest-item">
           <text class="ai-item-label">内容摘要</text>

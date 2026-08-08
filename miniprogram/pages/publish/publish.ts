@@ -483,8 +483,12 @@ Page({
     }
     const sug = s.suggestions
     const updates: any = {}
-    if (sug.title && sug.title.trim()) {
-      updates.title = sug.title.trim().slice(0, this.data.titleMaxLen)
+    const optimizedTitle = sug.optimized_title || sug.title
+    if (optimizedTitle && optimizedTitle.trim()) {
+      updates.title = optimizedTitle.trim().slice(0, this.data.titleMaxLen)
+    }
+    if (sug.optimized_content && sug.optimized_content.trim()) {
+      updates.content = sug.optimized_content.trim().slice(0, this.data.contentMaxLen)
     }
     if (sug.category_id) {
       const exists = this.data.categories.find((c: any) => c.id === sug.category_id)
@@ -496,7 +500,7 @@ Page({
     }
     this.setData(updates)
     if (updates.selectedCategoryId) this.updateLostTypeVisibility(updates.selectedCategoryId)
-    wx.showToast({ title: '已应用建议', icon: 'success' })
+    wx.showToast({ title: '已应用标题/正文建议', icon: 'success' })
   },
 
   onCloseAiSuggestion() {

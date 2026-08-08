@@ -668,9 +668,13 @@ export interface AIPublishSuggestRequest {
   expire_at?: string | null;
 }
 
-/** AI 返回的结构化建议（每项均可空，表示无建议） */
+/** AI 返回的结构化建议（每项均可空，表示无建议；优化结果需用户主动采纳） */
 export interface AIPublishSuggestions {
   title?: string | null;
+  /** 基于原文润色后的标题，不改变事实 */
+  optimized_title?: string | null;
+  /** 基于原文润色后的正文，不新增事实 */
+  optimized_content?: string | null;
   summary?: string | null;
   /** 建议分类名（白名单校验前的原始值） */
   category?: string | null;

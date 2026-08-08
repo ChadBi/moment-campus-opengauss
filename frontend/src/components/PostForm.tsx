@@ -707,11 +707,24 @@ const PostForm: React.FC<PostFormProps> = ({
 
   /** 采纳建议标题（覆盖原文标题） */
   const adoptTitle = () => {
-    const t = aiSuggestion?.suggestions?.title;
+    const t =
+      aiSuggestion?.suggestions?.optimized_title || aiSuggestion?.suggestions?.title;
     if (!t) return;
     handleFieldChange('title', t);
     setAdoptedFields((prev) => new Set(prev).add('title'));
-    showToast('已采纳建议标题', 'success');
+    showToast(
+      aiSuggestion?.suggestions?.optimized_title ? '已采纳优化标题' : '已采纳建议标题',
+      'success'
+    );
+  };
+
+  /** 采纳优化后的正文（覆盖原文正文） */
+  const adoptContent = () => {
+    const content = aiSuggestion?.suggestions?.optimized_content;
+    if (!content) return;
+    handleFieldChange('content', content);
+    setAdoptedFields((prev) => new Set(prev).add('optimized_content'));
+    showToast('已采纳优化正文', 'success');
   };
 
   /** 采纳建议分类（必须为白名单内的 category_id） */
@@ -939,7 +952,7 @@ const PostForm: React.FC<PostFormProps> = ({
               <div className="min-w-0">
                 <p className="text-sm text-ink font-medium truncate">AI 辅助发布建议</p>
                 <p className="text-[11px] text-ink-muted truncate">
-                  基于草稿生成结构化建议（标题/摘要/分类/有效期/遗漏/敏感提醒）
+                  基于草稿生成标题、正文、分类、有效期及遗漏/敏感提醒
                 </p>
               </div>
             </div>
@@ -1005,13 +1018,15 @@ const PostForm: React.FC<PostFormProps> = ({
               {aiSuggestion.suggestions ? (
                 <div className="space-y-2">
                   {/* 建议标题 */}
-                  {aiSuggestion.suggestions.title ? (
+                  {aiSuggestion.suggestions.optimized_title || aiSuggestion.suggestions.title ? (
                     <div className="bg-white/60 rounded-md px-3 py-2 border border-line">
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11px] text-ink-muted mb-0.5">建议标题</p>
+                          <p className="text-[11px] text-ink-muted mb-0.5">
+                            {aiSuggestion.suggestions.optimized_title ? '优化后的标题' : '建议标题'}
+                          </p>
                           <p className="text-sm text-ink break-words">
-                            {aiSuggestion.suggestions.title}
+                            {aiSuggestion.suggestions.optimized_title || aiSuggestion.suggestions.title}
                           </p>
                         </div>
                         {adoptedFields.has('title') ? (
@@ -1024,6 +1039,34 @@ const PostForm: React.FC<PostFormProps> = ({
                             variant="secondary"
                             size="sm"
                             onClick={adoptTitle}
+                          >
+                            采纳
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* 优化正文 */}
+                  {aiSuggestion.suggestions.optimized_content ? (
+                    <div className="bg-white/60 rounded-md px-3 py-2 border border-line">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] text-ink-muted mb-0.5">优化后的正文</p>
+                          <p className="text-sm text-ink whitespace-pre-wrap break-words">
+                            {aiSuggestion.suggestions.optimized_content}
+                          </p>
+                        </div>
+                        {adoptedFields.has('optimized_content') ? (
+                          <span className="text-[11px] text-grass flex items-center gap-0.5 flex-shrink-0">
+                            <Check size={12} /> 已采纳
+                          </span>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={adoptContent}
                           >
                             采纳
                           </Button>

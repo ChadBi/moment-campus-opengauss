@@ -2,7 +2,7 @@
 
 定义 AI 辅助发布建议的请求/响应模型：
 - AIPublishSuggestRequest：草稿内容（标题/正文/当前分类/地点等），用于请求 AI 建议
-- AIPublishSuggestions：AI 返回的结构化建议（标题/摘要/分类/标签/默认信息截止天数）
+- AIPublishSuggestions：AI 返回的结构化建议（标题/正文优化、摘要/分类/标签/默认信息截止天数）
 - AIPublishSuggestionResponse：完整响应（建议 + 遗漏信息 + 敏感提醒 + 降级标记）
 
 设计原则：
@@ -51,7 +51,9 @@ class AIPublishSuggestRequest(BaseModel):
 class AIPublishSuggestions(BaseModel):
     """AI 返回的结构化建议（每项均可空，表示无建议）。
 
-    - title：建议标题（仅在原文标题较弱时给出；否则为 null）
+    - title：建议标题（兼容旧版字段；仅在原文标题较弱时给出）
+    - optimized_title：优化后的标题（不改变事实；无需优化时为 null）
+    - optimized_content：优化后的正文（不新增事实；无需优化时为 null）
     - summary：建议摘要（适合列表展示 / SEO）
     - category：建议分类名（白名单校验后转为 category_id；非法值置空）
     - tags：建议标签列表（白名单校验后只保留当前学校存在的标签）
@@ -59,6 +61,12 @@ class AIPublishSuggestions(BaseModel):
     """
 
     title: Optional[str] = Field(None, description="建议标题（仅在原文标题较弱时给出）")
+    optimized_title: Optional[str] = Field(
+        None, description="优化后的标题（不改变事实；无需优化时为空）"
+    )
+    optimized_content: Optional[str] = Field(
+        None, description="优化后的正文（不新增事实；无需优化时为空）"
+    )
     summary: Optional[str] = Field(None, description="建议摘要")
     category: Optional[str] = Field(None, description="建议分类名（白名单校验前的原始值）")
     category_id: Optional[int] = Field(

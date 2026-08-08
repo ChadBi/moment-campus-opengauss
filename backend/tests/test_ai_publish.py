@@ -2,7 +2,7 @@
 
 覆盖：
 - AI-03.1: POST /api/v1/posts/ai-suggest 接口
-    - 成功：返回结构化建议（标题/摘要/分类/默认信息截止天数）+ 遗漏信息 + 敏感提醒
+    - 成功：返回结构化建议（标题/正文优化/摘要/分类/默认信息截止天数）+ 遗漏信息 + 敏感提醒
     - 不修改原文：响应只返回建议，不修改 Post 任何字段
     - 失败不阻塞：Provider 异常 / JSON 解析失败 / 输入过短 → fallback=true，仍返回敏感检测
     - 白名单：分类必须来自当前学校，非法值丢弃
@@ -130,6 +130,8 @@ def _make_provider(
 def _suggestion_json(
     *,
     title: str | None = None,
+    optimized_title: str | None = None,
+    optimized_content: str | None = None,
     summary: str | None = None,
     category: str | None = None,
     tags: list[str] | None = None,
@@ -142,6 +144,8 @@ def _suggestion_json(
         {
             "suggestions": {
                 "title": title,
+                "optimized_title": optimized_title,
+                "optimized_content": optimized_content,
                 "summary": summary,
                 "category": category,
                 "tags": tags or [],
@@ -243,6 +247,8 @@ class TestAIPublishSuggestSuccess:
         provider = _make_provider()
         provider.set_response(_suggestion_json(
             title="校园卡丢失求助",
+            optimized_title="校园卡丢失求助｜图书馆拾取信息",
+            optimized_content="今天在图书馆遗失校园卡一张，如有拾获请通过站内联系我。",
             summary="在图书馆丢失校园卡，请拾到者联系",
             category="失物招领",
             tags=["校园卡", "招领"],
@@ -273,6 +279,8 @@ class TestAIPublishSuggestSuccess:
         sug = data["suggestions"]
         assert sug is not None
         assert sug["title"] == "校园卡丢失求助"
+        assert sug["optimized_title"] == "校园卡丢失求助｜图书馆拾取信息"
+        assert sug["optimized_content"] == "今天在图书馆遗失校园卡一张，如有拾获请通过站内联系我。"
         assert sug["summary"] == "在图书馆丢失校园卡，请拾到者联系"
         # category 白名单校验后保留 category_id
         assert sug["category"] == "失物招领"

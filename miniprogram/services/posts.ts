@@ -81,6 +81,8 @@ export interface AIPublishSuggestion {
   fallback_reason?: string
   suggestions?: {
     title?: string
+    optimized_title?: string
+    optimized_content?: string
     summary?: string
     category_id?: number
     tags?: string[]

@@ -3,14 +3,14 @@
 职责：
 1. 输入校验：标题/内容长度（schema 已强制）+ 敏感信息确定性检测（手机/邮箱/身份证/银行卡）
 2. 三校隔离：school_id 强制取自 TenantContext；分类白名单只来自当前学校
-3. 模型调用：调用 invoke_ai（PUBLISH_SUGGESTION_SCHEMA 约束）→ 白名单校验分类
+3. 模型调用：调用 invoke_ai（PUBLISH_SUGGESTION_SCHEMA 约束）→ 白名单校验分类，并返回标题/正文优化建议
 4. 确定性敏感检测：正则匹配手机/邮箱/身份证/银行卡 → 落 sensitive_warnings + sensitive_findings
 5. 缺失字段检测：根据草稿字段空缺情况生成 missing_info（不调模型）
 6. 日志记录：通过 invoke_ai 自动记录 ai_invocation_logs（成功/失败均记录）
 7. 降级：AI 失败 / 输入过短 → fallback=true，仍返回敏感检测结果（确定性，不依赖模型）
 
 安全约束：
-- 不修改原文：本服务只生成"建议"，不返回修改后的内容
+- 不修改原文：本服务只生成"建议"，标题/正文优化结果也必须由用户主动采纳
 - 不改坐标/状态：不修改 location_id / status / 任何 Post 字段
 - 不自动过审：本服务不调用状态机，不参与审核流程
 - 失败不阻塞：fallback=true 时仍返回可用的敏感检测结果，前端可继续手动发布
@@ -229,7 +229,7 @@ def _build_prompt(
     - 任务说明（返回严格 JSON）
     - 当前学校可用的分类白名单（防止模型编造不存在的分类）
     - 草稿原文（标题/正文/当前已选字段）
-    - 重要约束（不修改原文 / 只返回建议 / 分类必须来自白名单）
+    - 重要约束（不修改原文 / 只返回建议 / 分类必须来自白名单 / 优化不得新增事实）
 
     Task 1.3 调整：Tag 模型已删除，提示词不再展示标签白名单；
     模型仍可在 suggestions.tags 中返回数组（保持 schema 兼容），
@@ -250,13 +250,15 @@ def _build_prompt(
         current_fields.append(f"失物类型：{request.lost_type}")
     current_block = "\n".join(f"- {f}" for f in current_fields) or "- （用户未选择任何字段）"
 
-    return f"""你是校园信息发布助手。请基于用户草稿给出"结构化建议"，但不修改原文。
+    return f"""你是校园信息发布助手。请基于用户草稿给出"结构化建议"，但不直接修改用户草稿。
 
 # 任务
 分析用户草稿，给出 JSON 建议，字段如下：
 {{
   "suggestions": {{
     "title": "建议标题（仅在原文标题较弱或不规范时给出；原文标题已合适则填 null）",
+    "optimized_title": "优化后的标题（只改善清晰度、准确性和可读性，不改变事实；无需优化则填 null）",
+    "optimized_content": "优化后的正文（只改善结构、语句和可读性，不添加草稿中不存在的事实；无需优化则填 null）",
     "category": "建议分类名（必须从下方分类白名单中选取；用户当前已选合适则填 null）",
     "tags": ["建议标签（最多 5 个；无建议则空数组）"],
     "default_validity_days": 建议默认信息截止天数（整数 1-365；来自分类配置或常见场景）
@@ -267,10 +269,11 @@ def _build_prompt(
 
 # 重要约束
 1. category 必须从下方分类白名单中选取，不得编造不存在的分类
-2. 不修改原文：title 字段仅在原文标题明显较弱时给出建议值，否则填 null
-3. 不引用其他学校的地点、词表、分类
-4. missing_info 与 sensitive_warnings 可空数组
-5. 只返回 JSON，不要任何额外文字
+2. title 字段保留兼容旧版；optimized_title 和 optimized_content 只能基于草稿润色，不得新增、删除或推断事实
+3. 原文已经清晰完整时，optimized_title 和 optimized_content 填 null
+4. 不引用其他学校的地点、词表、分类
+5. missing_info 与 sensitive_warnings 可空数组
+6. 只返回 JSON，不要任何额外文字
 
 # 上下文
 - 当前学校可用分类：{cat_list}
@@ -295,7 +298,9 @@ def _validate_suggestions(
     """对模型解析结果做白名单校验，并构造最终建议对象。
 
     校验规则：
-    - title：截断 200 字符；原文标题已合格（>=5 字符）时模型应返回 null，否则采纳建议
+    - title：截断 200 字符；兼容旧版建议字段
+    - optimized_title：截断 200 字符；只保留模型返回的非空优化结果
+    - optimized_content：截断 5000 字符；只保留模型返回的非空优化结果
     - summary：截断 200 字符
     - category：必须在白名单中（按 name 或 code 匹配）；非法值置空
     - tags：Task 1.3 后恒定返回空列表（Tag 模型已删除，schema 字段保留向后兼容）
@@ -314,6 +319,20 @@ def _validate_suggestions(
         title_sug = title_sug.strip()[:200] or None
     else:
         title_sug = None
+
+    # ---- optimized_title ----
+    optimized_title = sug_data.get("optimized_title")
+    if isinstance(optimized_title, str):
+        optimized_title = optimized_title.strip()[:200] or None
+    else:
+        optimized_title = None
+
+    # ---- optimized_content ----
+    optimized_content = sug_data.get("optimized_content")
+    if isinstance(optimized_content, str):
+        optimized_content = optimized_content.strip()[:5000] or None
+    else:
+        optimized_content = None
 
     # ---- summary ----
     summary_sug = sug_data.get("summary")
@@ -356,6 +375,8 @@ def _validate_suggestions(
 
     suggestions = AIPublishSuggestions(
         title=title_sug,
+        optimized_title=optimized_title,
+        optimized_content=optimized_content,
         summary=summary_sug,
         category=category_name,
         category_id=category_id,
@@ -461,7 +482,7 @@ async def execute_publish_suggestion(
         tenant=tenant,
         db=db,
         user=user,
-        options=AIInvokeOptions(temperature=0.3, max_tokens=800),
+        options=AIInvokeOptions(temperature=0.3, max_tokens=1200),
         trace_id=trace_id,
         provider=provider,
     )
@@ -544,10 +565,12 @@ async def execute_publish_suggestion(
     # ---- 9. 更新日志 result_count ----
     if ai_log_id is not None:
         try:
-            # result_count：建议项数（title/summary/category/tags/days 有值的数量）
+            # result_count：建议项数（兼容旧建议，并统计标题/正文优化结果）
             suggestion_count = sum(
                 1 for v in (
                     suggestions.title,
+                    suggestions.optimized_title,
+                    suggestions.optimized_content,
                     suggestions.summary,
                     suggestions.category_id,
                     suggestions.tags,

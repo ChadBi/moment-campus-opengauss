@@ -88,6 +88,8 @@ PUBLISH_SUGGESTION_SCHEMA: dict[str, Any] = {
             ],
             "properties": {
                 "title": {"type": ["string", "null"]},
+                "optimized_title": {"type": ["string", "null"]},
+                "optimized_content": {"type": ["string", "null"]},
                 "summary": {"type": ["string", "null"]},
                 "category": {"type": ["string", "null"]},
                 "tags": {
