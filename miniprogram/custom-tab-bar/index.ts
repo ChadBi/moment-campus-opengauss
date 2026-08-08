@@ -1,4 +1,5 @@
 import { getCurrentPageTabBarIndex, getPreparedTabBarPath, getTabBarIndex, getTabBarPath, prepareTabBarSwitch, setPreparedTabBarPath, setTabBarIndex } from '../utils/tab-navigation'
+import { authStore } from '../store/auth'
 
 Component({
   data: {
@@ -33,6 +34,18 @@ Component({
       const path = String(e.currentTarget.dataset.path || '')
       const index = Number(e.currentTarget.dataset.index)
       if (!path || !Number.isInteger(index) || index < 0 || index > 4) return
+
+      // 游客不能进入发布页：点击发布按钮只提示登录，不改变当前页面。
+      if (index === 3 && !authStore.getState().isLoggedIn) {
+        wx.showModal({
+          title: '请先登录',
+          content: '登录后才能发布帖子',
+          showCancel: false,
+          confirmText: '知道了',
+        })
+        return
+      }
+
       if ((this as any)._switching || this.data.selected === index) return
 
       const previousSelected = this.data.selected
