@@ -4,10 +4,10 @@
   <view class="ai-section">
     <view class="ai-header">
       <view class="ai-title-wrap">
-        <icon name="sparkles" size="30rpx" color="#174d5e" />
+        <icon name="sparkles" size="28rpx" color="#174d5e" />
         <view class="ai-title-copy">
           <text class="ai-title">AI 辅助发布建议</text>
-          <text class="ai-subtitle">基于草稿优化标题、正文，并检查分类、有效期和遗漏信息</text>
+          <text class="ai-subtitle">优化标题与正文，检查分类、有效期和遗漏信息</text>
         </view>
       </view>
       <view class="ai-header-actions">

@@ -435,24 +435,26 @@
 
 /* ============== AI 助手（对齐 Web: Sparkles icon + lake 背景） ============== */
 .ai-section {
-  border: 1rpx solid rgba(232, 167, 65, 0.3);
-  border-radius: 24rpx;
-  background: linear-gradient(135deg, rgba(232, 167, 65, 0.08), rgba(23, 77, 94, 0.05));
-  padding: 24rpx 30rpx;
-  margin-bottom: 16rpx;
+  border: 1rpx solid rgba(23, 77, 94, 0.16);
+  border-radius: 22rpx;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.96), rgba(232, 242, 239, 0.82));
+  padding: 22rpx 26rpx;
+  margin-bottom: 18rpx;
+  box-shadow: 0 10rpx 24rpx rgba(23, 77, 94, 0.06);
 }
 
 .ai-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: 20rpx;
 }
 
 .ai-title-wrap {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 10rpx;
+  flex: 1;
   min-width: 0;
 }
 
@@ -464,16 +466,17 @@
 
 .ai-title {
   color: var(--ink);
-  font-size: 27rpx;
+  font-size: 28rpx;
+  line-height: 1.25;
   font-weight: 600;
 }
 
 .ai-subtitle {
-  margin-top: 4rpx;
+  margin-top: 6rpx;
   overflow: hidden;
-  color: var(--muted);
-  font-size: 20rpx;
-  line-height: 1.35;
+  color: rgba(23, 33, 28, 0.58);
+  font-size: 21rpx;
+  line-height: 1.4;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -497,13 +500,14 @@
   justify-content: center;
   gap: 12rpx;
   flex-shrink: 0;
-  height: 64rpx;
-  padding: 0 20rpx;
-  border-radius: 32rpx;
+  height: 68rpx;
+  padding: 0 22rpx;
+  border-radius: 34rpx;
   background: var(--lake);
   color: #ffffff;
-  font-size: 23rpx;
+  font-size: 22rpx;
   font-weight: 600;
+  letter-spacing: 0.5rpx;
   box-shadow: var(--shadow-lake);
   transition: all 0.2s;
 }
