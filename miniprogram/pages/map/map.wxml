@@ -226,7 +226,13 @@
           </view>
 
           <view wx:if="{{selectedLocation.detail && selectedLocation.detail.facts.length > 0}}" class="facts-block">
-            <text class="block-title">已审核资料</text>
+            <view class="block-title-row">
+              <text class="block-title">已审核资料</text>
+              <view class="fact-proposal-map-btn" bindtap="goToFactProposal" hover-class="fact-proposal-map-btn-hover" hover-stay-time="120">
+                <icon name="edit-3" size="20rpx" color="#2f7f8f" />
+                <text>补充/修改</text>
+              </view>
+            </view>
             <view wx:for="{{selectedLocation.detail.facts}}" wx:key="id" class="fact-row">
               <text class="fact-label">{{item.label}}</text>
               <text class="fact-value">{{item.value}}</text>

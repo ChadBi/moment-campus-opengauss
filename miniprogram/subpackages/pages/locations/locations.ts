@@ -46,6 +46,7 @@ Page({
     createFloor: '',
     createLatitude: '',
     createLongitude: '',
+    proposalVisible: false,
     myReview: null as LocationReview | null,
     // 评价表单
     score: 5,
@@ -260,6 +261,7 @@ Page({
       detailNotice: '',
       detail: null,
       myReview: null,
+      proposalVisible: false,
       score: 5,
       content: '',
       factValue: '',
@@ -328,7 +330,7 @@ Page({
   },
 
   closeDetail() {
-    this.setData({ detailVisible: false, detail: null, myReview: null, activeDetailId: 0, detailNotice: '' })
+    this.setData({ detailVisible: false, detail: null, myReview: null, activeDetailId: 0, detailNotice: '', proposalVisible: false })
   },
 
   retryDetail() {
@@ -365,6 +367,15 @@ Page({
     this.setData({ factReason: e.detail.value || '' })
   },
 
+  openFactProposal() {
+    this.setData({ proposalVisible: true })
+  },
+
+  closeFactProposal() {
+    if (this.data.proposalSubmitting) return
+    this.setData({ proposalVisible: false })
+  },
+
   async submitFactProposal() {
     if (!requireLogin('登录后即可补充地点资料')) return
     if (!this.data.campusVerified) {
@@ -384,7 +395,7 @@ Page({
         reason: (this.data.factReason || '').trim() || undefined,
       })
       wx.showToast({ title: '已提交，等待管理员审核', icon: 'success' })
-      this.setData({ factValue: '', factReason: '' })
+      this.setData({ proposalVisible: false, factValue: '', factReason: '' })
     } catch (e: any) {
       wx.showToast({ title: e.message || '提交失败', icon: 'none' })
     } finally {

@@ -392,6 +392,12 @@ Page({
     wx.navigateTo({ url: `/subpackages/pages/locations/locations?id=${panel.location.id}` })
   },
 
+  goToFactProposal() {
+    const panel = this.data.selectedLocation
+    if (!panel) return
+    wx.navigateTo({ url: `/subpackages/pages/locations/locations?id=${panel.location.id}` })
+  },
+
   onRelatedPostTap(e: any) {
     const id = Number(e.detail.id)
     if (!id) return

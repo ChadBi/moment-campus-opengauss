@@ -551,6 +551,20 @@
 }
 .summary-card { background: rgba(47, 127, 143, 0.06); border-color: rgba(47, 127, 143, 0.25); }
 .knowledge-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; margin-bottom: 12rpx; }
+.knowledge-title-row .section-title { margin-bottom: 0; }
+.fact-proposal-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  flex-shrink: 0;
+  padding: 8rpx 12rpx;
+  border: 1rpx solid rgba(47, 127, 143, 0.28);
+  border-radius: 999rpx;
+  color: var(--lake);
+  font-size: 20rpx;
+  background: rgba(47, 127, 143, 0.06);
+}
+.fact-proposal-trigger-hover { background: rgba(47, 127, 143, 0.14); }
 .knowledge-note { font-size: 20rpx; color: var(--muted); }
 .knowledge-empty { display: block; font-size: 24rpx; color: var(--muted); line-height: 1.6; }
 .fact-row { padding: 14rpx 16rpx; background: var(--mist); border-radius: var(--radius-md); margin-top: 10rpx; }
@@ -563,7 +577,28 @@
 .claim-row { padding: 12rpx 14rpx; background: var(--paper); border-radius: var(--radius-md); margin-top: 8rpx; }
 .claim-text { display: block; font-size: 24rpx; color: var(--ink); line-height: 1.5; }
 .conflict-box { margin-top: 12rpx; padding: 12rpx 14rpx; color: var(--ink-2); background: rgba(232, 167, 65, 0.12); border-radius: var(--radius-md); font-size: 22rpx; line-height: 1.5; }
-.proposal-hint { display: block; margin-top: 4rpx; margin-bottom: 12rpx; }
+.proposal-mask { z-index: 120; }
+.proposal-panel {
+  width: 100%;
+  max-height: 82vh;
+  background: var(--paper);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  animation: panelUp 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.proposal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 28rpx 32rpx 20rpx;
+  border-bottom: 1rpx solid var(--ink-divider);
+}
+.proposal-header .panel-title { display: block; }
+.proposal-hint { display: block; margin-top: 6rpx; }
+.proposal-scroll { max-height: 68vh; padding: 20rpx 32rpx 44rpx; box-sizing: border-box; }
 .proposal-form { margin-top: 12rpx; }
 .fact-picker, .proposal-input { box-sizing: border-box; width: 100%; min-height: 72rpx; margin-top: 10rpx; padding: 16rpx; border: 1rpx solid var(--ink-divider); border-radius: var(--radius-md); background: var(--paper); color: var(--ink); font-size: 24rpx; }
 .proposal-input { min-height: auto; }
