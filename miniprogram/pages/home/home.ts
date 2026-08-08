@@ -6,6 +6,8 @@ import { getRecommendations } from '../../services/schools'
 import { listCategories, listHotPosts, listPosts } from '../../services/posts'
 import type { Category, Post } from '../../types'
 
+const HOME_REFRESH_INTERVAL_MS = 60 * 1000
+
 Page({
   data: {
     isLoggedIn: false,
@@ -29,6 +31,8 @@ Page({
     totalPosts: 0,
     formattedTotal: '0',
     formattedRefreshTime: '',
+    homeLoaded: false,
+    lastRefreshAt: 0,
   },
 
   onLoad() {
@@ -43,11 +47,16 @@ Page({
     this.loadCategories()
   },
 
-  async onShow() {
+  onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 0 })
     }
-    await this.refreshHome()
+    const now = Date.now()
+    const needsRefresh =
+      !this.data.homeLoaded || now - this.data.lastRefreshAt >= HOME_REFRESH_INTERVAL_MS
+    if (needsRefresh && !this.data.loading && !this.data.loadingMore) {
+      void this.refreshHome()
+    }
   },
 
   async loadCategories() {
@@ -67,8 +76,14 @@ Page({
   },
 
   async refreshHome() {
-    this.setData({ page: 1, hasMore: true, posts: [] })
-    await Promise.all([this.loadRecommendations(), this.loadHotPosts(), this.loadFeed()])
+    // 保留旧列表到新数据返回，避免从帖子详情返回时先白屏再重绘。
+    this.setData({ page: 1, hasMore: true })
+    await Promise.all([
+      this.loadRecommendations(),
+      this.loadHotPosts(),
+      this.loadFeed(true),
+    ])
+    this.setData({ homeLoaded: true, lastRefreshAt: Date.now() })
   },
 
   async loadRecommendations() {
@@ -101,24 +116,25 @@ Page({
     }
   },
 
-  async loadFeed() {
+  async loadFeed(reset = false) {
     if (this.data.loading || this.data.loadingMore) return
-    const isFirstPage = this.data.page === 1
+    const requestPage = reset ? 1 : this.data.page
+    const isFirstPage = requestPage === 1
     this.setData({ loading: isFirstPage, loadingMore: !isFirstPage })
     try {
-      const { activeCategoryId, page, pageSize } = this.data
+      const { activeCategoryId, pageSize } = this.data
       const result = await listPosts({
-        page,
+        page: requestPage,
         page_size: pageSize,
         category_id: activeCategoryId > 0 ? activeCategoryId : undefined,
         status: 'published',
         sort: 'latest',
       })
-      const total = result.total || (this.data.posts.length + result.items.length)
+      const total = result.total || ((reset ? 0 : this.data.posts.length) + result.items.length)
       this.setData({
-        posts: [...this.data.posts, ...result.items],
+        posts: [...(reset ? [] : this.data.posts), ...result.items],
         hasMore: result.has_more,
-        page: page + 1,
+        page: requestPage + 1,
         totalPosts: total,
         formattedTotal: formatCount(total),
         formattedRefreshTime: formatDate(new Date()),
