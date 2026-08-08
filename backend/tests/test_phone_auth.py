@@ -8,6 +8,7 @@ from app.models.school_domain import SchoolDomain
 from app.models.school_membership import SchoolMembership
 from app.models.user import User
 from app.models.user_auth_identity import UserAuthIdentity
+from app.services import sms as sms_service
 
 
 async def _send_code(client, phone: str, purpose: str) -> str:
@@ -251,6 +252,38 @@ async def test_wechat_sms_login_rejects_invalid_sms_code(client, test_school, db
     assert "验证码错误" in response.json()["detail"]
     user = (await db_session.execute(select(User).where(User.phone == phone))).scalar_one_or_none()
     assert user is None
+
+
+@pytest.mark.asyncio
+async def test_aliyun_invalid_sms_code_returns_bad_request(client, test_school, monkeypatch):
+    class InvalidCodeProvider:
+        name = "aliyun"
+
+        async def send(self, phone, out_id, code, purpose=""):
+            return None
+
+        async def check(self, phone, out_id, code):
+            raise RuntimeError("Error: isv.ValidateFail code: 400, 验证失败")
+
+    monkeypatch.setattr(sms_service, "get_sms_provider", lambda: InvalidCodeProvider())
+    phone = "13820000016"
+    sent = await client.post(
+        "/api/v1/auth/sms/send",
+        json={"phone": phone, "purpose": "login"},
+    )
+    assert sent.status_code == 200, sent.text
+
+    response = await client.post(
+        "/api/v1/auth/wechat/sms-login",
+        json={
+            "code": "mock-code",
+            "phone": phone,
+            "sms_code": "000000",
+            "school_code": test_school["code"],
+        },
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "验证码错误"
 
 
 @pytest.mark.asyncio

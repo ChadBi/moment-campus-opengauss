@@ -34,6 +34,14 @@ def _hash_code(code: str) -> str:
     return hashlib.sha256(code.encode("utf-8")).hexdigest()
 
 
+def _is_aliyun_invalid_code_error(exc: Exception) -> bool:
+    """识别阿里云将错误验证码作为 SDK 异常抛出的响应。"""
+
+    code = str(getattr(exc, "code", ""))
+    message = str(exc)
+    return code == "isv.ValidateFail" or "isv.ValidateFail" in message or "验证失败" in message
+
+
 class SmsProvider(Protocol):
     name: str
 
@@ -207,7 +215,15 @@ async def verify_sms_code(
         raise BadRequestException(detail="验证码无效或已过期")
 
     provider = get_sms_provider()
-    valid = await provider.check(phone, record.out_id, code)
+    try:
+        valid = await provider.check(phone, record.out_id, code)
+    except Exception as exc:
+        # 阿里云 DypnsApi 对错误验证码可能直接抛出 isv.ValidateFail，
+        # 不能让它穿透到全局异常处理器变成 500。
+        if provider.name == "aliyun" and _is_aliyun_invalid_code_error(exc):
+            raise BadRequestException(detail="验证码错误") from exc
+        logger.exception("短信验证码核验服务异常 provider=%s", provider.name)
+        raise BadRequestException(detail="短信服务暂时不可用，请稍后重试") from exc
     if not valid:
         raise BadRequestException(detail="验证码错误")
 
