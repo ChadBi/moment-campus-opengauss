@@ -143,6 +143,21 @@
   color: var(--ink);
 }
 
+.pwd-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  margin-left: 8rpx;
+  transition: background 0.15s;
+}
+
+.pwd-toggle-hover {
+  background: rgba(23, 77, 94, 0.08);
+}
+
 .ph {
   color: var(--ink-disabled);
 }

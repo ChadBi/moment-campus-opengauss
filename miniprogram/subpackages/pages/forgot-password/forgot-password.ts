@@ -6,7 +6,9 @@ Page({
     email: '',
     resetToken: '',
     newPassword: '',
+    showNewPassword: false,
     confirmPassword: '',
+    showConfirmPassword: false,
     loading: false,
     errorMsg: '',
     infoMsg: '',
@@ -26,6 +28,14 @@ Page({
 
   onConfirmPasswordInput(e: any) {
     this.setData({ confirmPassword: e.detail.value })
+  },
+
+  toggleShowNewPassword() {
+    this.setData({ showNewPassword: !this.data.showNewPassword })
+  },
+
+  toggleShowConfirmPassword() {
+    this.setData({ showConfirmPassword: !this.data.showConfirmPassword })
   },
 
   async onSendResetEmail() {

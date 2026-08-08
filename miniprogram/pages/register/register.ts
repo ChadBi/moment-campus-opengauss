@@ -10,7 +10,9 @@ Page({
     mode: 'register' as 'bind' | 'register',
     email: '',
     password: '',
+    showPassword: false,
     confirmPassword: '',
+    showConfirmPassword: false,
     nickname: '',
     schoolId: 0,
     schoolName: '',
@@ -40,6 +42,8 @@ Page({
   onPasswordInput(e: any) { this.setData({ password: e.detail.value }) },
   onConfirmPasswordInput(e: any) { this.setData({ confirmPassword: e.detail.value }) },
   onNicknameInput(e: any) { this.setData({ nickname: e.detail.value }) },
+  toggleShowPassword() { this.setData({ showPassword: !this.data.showPassword }) },
+  toggleShowConfirmPassword() { this.setData({ showConfirmPassword: !this.data.showConfirmPassword }) },
   switchMode(e: any) {
     const mode = e.currentTarget.dataset.mode === 'bind' ? 'bind' : 'register'
     this.setData({ mode, errorMsg: '', confirmPassword: '' })

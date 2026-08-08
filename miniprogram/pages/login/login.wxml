@@ -51,12 +51,16 @@
           <icon name="lock" size="32rpx" color="#6a7d81" />
           <input
             class="form-input"
-            type="password"
+            type="text"
+            password="{{!showPassword}}"
             placeholder="请输入密码"
             placeholder-class="ph"
             value="{{password}}"
             bindinput="onPasswordInput"
           />
+          <view class="pwd-toggle" bindtap="toggleShowPassword" hover-class="pwd-toggle-hover" hover-stay-time="80">
+            <icon name="{{showPassword ? 'eye-off' : 'eye'}}" size="32rpx" color="#6a7d81" />
+          </view>
         </view>
       </view>
       <view wx:if="{{errorMsg}}" class="error-msg">

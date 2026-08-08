@@ -7,6 +7,7 @@ Page({
     loading: false,
     email: '',
     password: '',
+    showPassword: false,
     errorMsg: '',
     bindLoading: false,
     bindErrorMsg: '',
@@ -18,6 +19,10 @@ Page({
       errorMsg: '',
       bindErrorMsg: '',
     })
+  },
+
+  toggleShowPassword() {
+    this.setData({ showPassword: !this.data.showPassword })
   },
 
   onEmailInput(e: any) {

@@ -2,7 +2,31 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（注册阶段强制教育邮箱校验：统一 helper + 邮箱注册 + 微信注册 + 豁免域 WHITELIST）
+> 最后更新：2026-08-08（小程序三页面密码框交互修复：默认隐藏 + 眼睛图标切换明文/密文 + 新增 eye-off 图标 + 找回密码页面同步补齐）
+
+## 2026-08-08 执行任务：小程序密码框默认隐藏 + 眼睛图标切换（登录/注册/找回密码三页面）
+
+- [x] **问题定位（根因：小程序输入框 `type="password"` 语义失效）**：微信小程序 `<input>` 组件若使用 `type="password"`，部分版本/真机/开发者工具会将其当作文本类型处理，导致密码始终以明文显示；正确做法是使用 `type="text"` 并绑定布尔属性 `password="{{true/false}}"`（小程序官方文档推荐），再配合状态切换图标按钮。
+- [x] **登录页修复（pages/login）**：
+  - `login.ts`：新增 `showPassword: false` 数据 + `toggleShowPassword()` 取反方法
+  - `login.wxml`：密码框 `type="password"` → `type="text"`，新增属性 `password="{{!showPassword}}"`（默认隐藏），右侧新增 `.pwd-toggle` 容器 + `icon name="{{showPassword ? 'eye-off' : 'eye'}}"` 眼睛图标，`bindtap="toggleShowPassword"` 切换
+  - `login.wxss`：新增 `.pwd-toggle`（56rpx 圆形居中容器 + 过渡）和 `.pwd-toggle-hover`（点击反馈半透明湖蓝背景）
+- [x] **注册页修复（pages/register）**：
+  - `register.ts`：新增 `showPassword: false`、`showConfirmPassword: false` 两个独立状态 + 对应 `toggleShowPassword()`、`toggleShowConfirmPassword()` 方法
+  - `register.wxml`：密码 + 确认密码两个 Input，全部改为 `type="text"`，新增 `password="{{!showPassword}}"` 和 `password="{{!showConfirmPassword}}"`，外层统一用 `.pwd-input-wrap` 容器包裹（flex 横向布局 Input + 眼睛 Toggle），每个输入框右侧独立眼睛图标按钮（`28rpx` 小图标尺寸匹配注册页）
+  - `register.wxss`：新增 `.pwd-input-wrap`（88rpx 高度，匹配原 `.input-wrap` 视觉规范）、`.pwd-input`（flex:1，透明背景）、`.pwd-toggle`、`.pwd-toggle-hover`
+- [x] **找回密码页修复（subpackages/pages/forgot-password）**：
+  - `forgot-password.ts`：新增 `showNewPassword: false`、`showConfirmPassword: false` 双字段 + 对应 `toggleShowNewPassword()`、`toggleShowConfirmPassword()`
+  - `forgot-password.wxml`：新密码 Input + 再次输入新密码 Input，全部改为 `type="text"` + `password="{{!showXxx}}"` 属性绑定，每个 `.input-wrap` 右端嵌入 `.pwd-toggle` 眼睛切换按钮（32rpx 图标匹配登录页尺寸）
+  - `forgot-password.wxss`：补录 `.pwd-toggle` / `.pwd-toggle-hover` 样式（与登录页完全同构，避免子包样式缺失）
+- [x] **图标组件补齐 eye-off**：`components/icon/icon.ts` ICON_PATHS 映射新增 `'eye-off'` 完整 lucide SVG path（4 段 path + 1 条 斜线 ×1 → ×22 / y1=2 y2=22 的删除线），与已存在的 `'eye'`（睁眼）图标配对，保证两个状态图标都能正常渲染，不出现「闭眼时显示空白图标」
+- [x] **全页面 WXML/WXSS 编译验证**：使用 `wechatide-skill` 门禁 `check_wechatide_status` 通过（登录未过期，用户 chai_na）；`compile_wxml` 和 `compile_wxss` 工具分别跑：
+  - pages/login/login.wxml ✅ / login.wxss ✅
+  - pages/register/register.wxml ✅ / register.wxss ✅
+  - subpackages/pages/forgot-password/forgot-password.wxml ✅ / forgot-password.wxss ✅
+  6 项编译全部 `success: true`，0 语法错误、0 模板错误、0 样式错误
+- [x] **静态代码巡检（grep 全量校验）**：对 miniprogram 全目录执行 grep `showPassword` / `showConfirmPassword` / `showNewPassword` —— 共命中 20 处引用（login: 4 处；register: 8 处；forgot-password: 8 处），数据字段、切换方法、模板绑定、图标条件四类引用全部对应齐全，无遗漏页面；另 grep `password="{{!show` 确认 5 个密码输入框（login 1 + register 2 + forgot-password 2）全部正确绑定 password 属性，不再裸露 type="password"
+- [ ] 微信开发者工具真机验证：需开发者真实账号在开发者工具打开项目，手动前往登录/注册/找回密码页，点击眼睛图标确认密码在圆点和明文之间切换
 
 ## 2026-08-08 执行任务：注册阶段强制教育邮箱校验（B-01）
 

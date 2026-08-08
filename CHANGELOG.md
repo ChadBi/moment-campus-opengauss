@@ -39,6 +39,22 @@
   ✅ 微信注册 3 条：不传 email 字段→400「请填写所选学校的教育邮箱」| gmail 域名→400 官方教育邮箱 + 校名 | @example.zju.edu.cn 合法附加域→200 campus_verified=False + access_token
   ✅ 回归 37 条：注册成功/冲突、微信 bind 成功/错密码/过期 ticket/双单向 409 冲突、identity 增删、session 管理、校园认证 send/confirm/错码/一次性/已认证拦截/鉴权
 
+### 修复
+
+- **小程序三页面密码框交互修复（默认隐藏小圆点 + 眼睛图标切换明文/密文）**：
+  原错误写法 `<input type="password">` 在小程序部分版本/真机中降级为明文显示（密码裸奔），统一改为官方推荐 `<input type="text" password="{{布尔值}}">` + 右侧眼睛图标按钮切换。
+
+  修改范围：
+  - 修复登录页（pages/login）：1 个密码框 + 新增 `showPassword` 状态/切换方法 + `.pwd-toggle` 眼睛按钮样式
+  - 修复注册页（pages/register）：密码 + 确认密码 2 个密码框 + 双独立状态 + `.pwd-input-wrap` 容器 + `.pwd-toggle` 样式
+  - 修复找回密码页（subpackages/pages/forgot-password）：新密码 + 再次输入 2 个密码框 + 双独立状态 + 眼睛按钮
+  - icon 组件新增 `eye-off`（闭眼）图标，与 `eye` 配对，保证隐藏态不显示空白图标
+
+  验证：
+  - wechatide-skill `check_wechatide_status` 门禁通过（chai_na 登录未过期）
+  - `compile_wxml` / `compile_wxss` 分别编译 3 页面 6 份文件全部 success：0 语法错误 / 0 样式错误
+  - grep 全量巡检：20 处 showPassword 相关引用（字段/方法/绑定/图标）完全对应，5 个密码框 password 属性绑定齐全
+
 ## [2.2.15] - 2026-08-08
 
 ### 修复

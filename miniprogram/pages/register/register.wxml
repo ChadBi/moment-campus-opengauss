@@ -58,13 +58,19 @@
         <icon name="lock" size="24rpx" color="#6a7d81" />
         <text class="label">密码</text>
       </view>
-      <input
-        type="password"
-        placeholder="请输入密码"
-        placeholder-class="ph"
-        value="{{password}}"
-        bindinput="onPasswordInput"
-        class="input"/>
+      <view class="pwd-input-wrap">
+        <input
+          type="text"
+          password="{{!showPassword}}"
+          placeholder="请输入密码"
+          placeholder-class="ph"
+          value="{{password}}"
+          bindinput="onPasswordInput"
+          class="pwd-input"/>
+        <view class="pwd-toggle" bindtap="toggleShowPassword" hover-class="pwd-toggle-hover" hover-stay-time="80">
+          <icon name="{{showPassword ? 'eye-off' : 'eye'}}" size="28rpx" color="#6a7d81" />
+        </view>
+      </view>
     </view>
 
     <!-- 注册模式：确认密码 -->
@@ -73,13 +79,19 @@
         <icon name="lock" size="24rpx" color="#6a7d81" />
         <text class="label">确认密码</text>
       </view>
-      <input
-        type="password"
-        placeholder="请再次输入密码"
-        placeholder-class="ph"
-        value="{{confirmPassword}}"
-        bindinput="onConfirmPasswordInput"
-        class="input"/>
+      <view class="pwd-input-wrap">
+        <input
+          type="text"
+          password="{{!showConfirmPassword}}"
+          placeholder="请再次输入密码"
+          placeholder-class="ph"
+          value="{{confirmPassword}}"
+          bindinput="onConfirmPasswordInput"
+          class="pwd-input"/>
+        <view class="pwd-toggle" bindtap="toggleShowConfirmPassword" hover-class="pwd-toggle-hover" hover-stay-time="80">
+          <icon name="{{showConfirmPassword ? 'eye-off' : 'eye'}}" size="28rpx" color="#6a7d81" />
+        </view>
+      </view>
     </view>
   </view>
 
