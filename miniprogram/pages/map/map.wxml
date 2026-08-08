@@ -19,7 +19,6 @@
       <text class="school-subtitle">静态校园地图 · 点击地点查看动态</text>
     </view>
     <view class="toolbar-entry map-header-add" bindtap="goToCreateLocation" hover-class="toolbar-entry-hover" hover-stay-time="120">
-      <icon name="plus" size="28rpx" color="#174d5e" />
       <text>新增地点</text>
     </view>
   </view>

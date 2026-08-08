@@ -106,6 +106,10 @@
   line-height: 1;
 }
 
+.map-header-add {
+  gap: 0;
+}
+
 .toolbar-entry-hover,
 .zoom-button-hover {
   background: #ffffff;

@@ -20,7 +20,6 @@
         <text class="page-subtitle">全部校园设施 · 打印店 · 食堂 · 图书馆，看评分做选择</text>
       </view>
       <view wx:if="{{mode !== 'select'}}" class="add-location-btn" bindtap="openCreateForm" hover-class="add-location-btn-hover" hover-stay-time="120">
-        <icon name="plus" size="24rpx" color="#ffffff" />
         <text>新增地点</text>
       </view>
     </view>
