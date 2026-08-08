@@ -11,7 +11,7 @@ from app.models.location import Location
 from app.models.school import School
 from app.core.tenant import TenantContext, get_tenant_context, check_resource_in_tenant
 from app.core.exceptions import NotFoundException
-from app.core.permissions import require_campus_verified_or_admin
+from app.core.permissions import require_campus_verified_or_admin, require_role
 
 router = APIRouter(tags=["分类"])
 
@@ -98,16 +98,18 @@ async def get_locations(
     tenant: TenantContext = Depends(get_tenant_context),
 ):
     """
-    获取地点列表
+    获取地点列表（公开接口，仅返回已通过管理员核验的地点）
 
     TEN-02.3：按当前学校过滤，跨校地点不会出现
     PUB-01.2：返回 is_verified 字段，前端用于区分已核验地点与用户自建地点
+    用户提交的新地点需管理员在后台核验通过后才会出现在此列表中。
     """
     query = (
         select(Location)
         .where(
             Location.is_deleted == False,
             Location.school_id == tenant.school_id,
+            Location.is_verified == True,
         )
         .order_by(Location.name)
     )
@@ -134,7 +136,14 @@ async def get_locations(
     ]
 
 
-@router.post("/locations", response_model=LocationResponse)
+class LocationCreateResponse(BaseModel):
+    """创建地点响应"""
+    location: LocationResponse
+    message: str = Field(..., description="提示信息")
+    needs_review: bool = Field(..., description="是否需要管理员审核")
+
+
+@router.post("/locations", response_model=LocationCreateResponse)
 async def create_location(
     data: LocationCreate,
     current_user: User = Depends(require_campus_verified_or_admin()),
@@ -143,10 +152,12 @@ async def create_location(
 ):
     """
     创建地点
-    需要用户认证
-
-    TEN-02.1: 忽略 body 里的 school_id，强制使用 TenantContext 解析的学校
+    - 管理员（admin/super_admin）创建的地点直接核验通过，立即在列表中显示
+    - 普通用户创建的地点默认为未核验状态，需管理员在后台审核通过后才会公开显示
+    - TEN-02.1: 忽略 body 里的 school_id，强制使用 TenantContext 解析的学校
     """
+    # 管理员创建直接核验通过，普通用户提交后待审核
+    is_admin = current_user.role in ("admin", "super_admin")
     # TEN-02.1: 强制使用 tenant.school_id（忽略 body 里的 school_id 字段）
     location = Location(
         school_id=tenant.school_id,
@@ -156,13 +167,13 @@ async def create_location(
         description=data.description,
         building=data.building,
         floor=data.floor,
-        is_verified=False,
+        is_verified=is_admin,
     )
     db.add(location)
     await db.commit()
     await db.refresh(location)
 
-    return LocationResponse(
+    loc_resp = LocationResponse(
         id=location.id,
         name=location.name,
         latitude=float(location.latitude),
@@ -171,6 +182,19 @@ async def create_location(
         building=location.building,
         floor=location.floor,
         is_verified=location.is_verified,
+    )
+
+    if is_admin:
+        message = "地点创建成功，已直接核验通过"
+        needs_review = False
+    else:
+        message = "地点提交成功，等待管理员审核通过后将在列表中显示"
+        needs_review = True
+
+    return LocationCreateResponse(
+        location=loc_resp,
+        message=message,
+        needs_review=needs_review,
     )
 
 

@@ -107,12 +107,16 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
 
     try {
       setSubmitLoading(true);
-      const created = await categoriesApi.createLocation(payload);
-      showToast('地点已提交，等待核验', 'success');
+      const result = await categoriesApi.createLocation(payload);
       resetAll();
       onClose();
-      if (onCreated) {
-        await onCreated(created.id, created);
+      if (result.needs_review) {
+        showToast(result.message || '地点已提交，等待管理员审核', 'success');
+      } else {
+        showToast(result.message || '地点创建成功', 'success');
+        if (onCreated) {
+          await onCreated(result.location.id, result.location);
+        }
       }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };

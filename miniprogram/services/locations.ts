@@ -15,6 +15,12 @@ export async function getLocations(schoolCode?: string): Promise<LocationItem[]>
   return items.map(normalizeLocation)
 }
 
+export interface CreateLocationResult {
+  location: LocationItem
+  message: string
+  needs_review: boolean
+}
+
 export async function createLocation(data: {
   name: string
   latitude: number
@@ -22,9 +28,13 @@ export async function createLocation(data: {
   description?: string
   building?: string
   floor?: string
-}): Promise<LocationItem> {
+}): Promise<CreateLocationResult> {
   const raw = await http.post<any>('/locations', data)
-  return normalizeLocation(raw)
+  return {
+    location: normalizeLocation(raw.location || raw),
+    message: raw.message || '提交成功',
+    needs_review: raw.needs_review !== false,
+  }
 }
 
 export async function getDetail(id: number, schoolCode?: string): Promise<LocationDetail> {

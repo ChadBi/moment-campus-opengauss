@@ -292,16 +292,32 @@ Page({
     ].filter(Boolean).join('\n') || undefined
     this.setData({ createSubmitting: true })
     try {
-      const created = await createLocation({
+      const result = await createLocation({
         name,
         latitude,
         longitude,
         description: normalizedDescription,
       })
-      wx.showToast({ title: '地点已提交，等待核验', icon: 'success' })
-      this.setData({ createVisible: false })
-      await this.loadLocations()
-      if (created?.id) this.openDetail(created.id)
+      const created = result.location
+      this.setData({
+        createVisible: false,
+        createName: '',
+        createDescription: '',
+        createLocationType: '',
+      })
+      if (result.needs_review) {
+        wx.showModal({
+          title: '提交成功',
+          content: result.message || '地点已提交，等待管理员审核通过后将在列表中显示',
+          showCancel: false,
+          confirmText: '我知道了',
+        })
+        await this.loadLocations()
+      } else {
+        wx.showToast({ title: result.message || '地点创建成功', icon: 'success' })
+        await this.loadLocations()
+        if (created?.id) this.openDetail(created.id)
+      }
     } catch (e: any) {
       wx.showToast({ title: e.message || '新增地点失败', icon: 'none' })
     } finally {

@@ -52,6 +52,13 @@ export interface CreateLocationRequest {
   floor?: string;
 }
 
+/** 创建地点响应 */
+export interface CreateLocationResponse {
+  location: LocationListItem;
+  message: string;
+  needs_review: boolean;
+}
+
 // 注：PostTemplateListItem 与 listPublicTemplates 已随发布主体功能移除
 // （后端 /categories/templates 接口与 post_templates 表已删除）。
 
@@ -62,14 +69,14 @@ export const categoriesApi = {
     return response.data;
   },
 
-  /** 获取当前学校地点列表（含 is_verified 字段） */
+  /** 获取当前学校已核验通过的地点列表 */
   listLocations: async (): Promise<LocationListItem[]> => {
     const response = await api.get('/locations');
     return response.data;
   },
 
-  /** 创建新地点（自动归入当前学校，is_verified=false 进核验队列） */
-  createLocation: async (data: CreateLocationRequest): Promise<LocationListItem> => {
+  /** 创建新地点：管理员直接通过，普通用户提交后待审核 */
+  createLocation: async (data: CreateLocationRequest): Promise<CreateLocationResponse> => {
     const response = await api.post('/locations', data);
     return response.data;
   },

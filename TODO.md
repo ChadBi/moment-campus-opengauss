@@ -2,7 +2,18 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-09（修复小程序AI搜索超时问题）
+> 最后更新：2026-08-09（修复新增地点无需审核直接上线问题）
+
+## 2026-08-09 修复：新增地点审核机制
+> **问题原因**：公开地点列表接口未过滤`is_verified`字段，普通用户新增地点后直接出现在公开列表中，跳过了管理员审核环节。
+
+- [x] **后端地点列表过滤**：`backend/app/api/categories.py` 的 `get_locations` 接口查询条件新增 `Location.is_verified == True`，公开列表只返回管理员审核通过的地点
+- [x] **后端创建地点权限区分**：`create_location` 接口判断用户角色，`admin/super_admin` 创建的地点 `is_verified=True` 直接通过核验，返回`needs_review=False`；普通用户创建的地点 `is_verified=False` 进入审核队列，返回`needs_review=True`和提示信息
+- [x] **新增响应结构**：`LocationCreateResponse` 新增 `message`（提示文案）和 `needs_review`（是否需要审核）字段，前端据此展示不同结果
+- [x] **发帖自动创建设置**：确认`posts.py`中创建/编辑帖子时通过`location_name`自动创建的地点已正确设置`is_verified=False`，符合审核规则
+- [x] **小程序端适配**：`miniprogram/services/locations.ts` 更新`createLocation`返回类型为`CreateLocationResult`；`miniprogram/subpackages/pages/locations/locations.ts` 提交成功后，待审核状态显示Modal提示"等待管理员审核通过后将在列表中显示"，不尝试打开地点详情（因为不在公开列表）；管理员创建成功则正常打开详情
+- [x] **Web端适配**：`frontend/src/services/categories.ts` 更新`createLocation`返回类型为`CreateLocationResponse`；`frontend/src/components/CreateLocationModal.tsx` 适配新响应，待审核显示Toast提示，管理员创建成功才调用onCreated回调
+- [x] **API测试验证**：普通用户创建→is_verified=false/needs_review=true/不出现列表 ✅；管理员创建→is_verified=true/needs_review=false/直接出现列表 ✅；所有公开地点查询均已过滤未核验 ✅
 
 ## 2026-08-09 修复：小程序AI搜索请求超时问题
 > **问题原因**：后端AI搜索实际耗时仅4-5秒（DeepSeek意图解析+Embedding生成+向量检索），但小程序全局请求超时硬编码为15秒，AI搜索需要串行调用两个外部AI服务，冷启动或网络波动时容易超过15秒被前端直接断开，显示"没有找到相关内容"。
