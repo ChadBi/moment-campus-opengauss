@@ -36,8 +36,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     ALGORITHM: str = "HS256"
 
-    # 文件上传
-    UPLOAD_DIR: str = "./uploads"
+    # 文件上传（绝对路径，基于 backend/ 目录，确保启动目录不影响路径解析）
+    UPLOAD_DIR: str = os.path.join(_BASE_DIR, "uploads")
     MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
 
     # CORS

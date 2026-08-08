@@ -115,6 +115,7 @@ Page({
     ;(this as any)._profileLoaded = false
     ;(this as any)._lastProfileRefreshAt = 0
     ;(this as any)._profileRefreshPromise = null
+    ;(this as any)._lastSchoolId = 0
     authStore.subscribe(state => {
       this.setData({ isLoggedIn: state.isLoggedIn })
       if (state.isLoggedIn && state.user) {
@@ -122,11 +123,37 @@ Page({
       }
     })
     campusStore.subscribe(state => {
+      const nextSchoolId = state.currentSchool?.id || 0
+      const prevSchoolId = (this as any)._lastSchoolId || 0
+      const schoolChanged = prevSchoolId !== 0 && nextSchoolId !== prevSchoolId
       this.setData({
         schoolName: (state.currentSchool && state.currentSchool.name) || state.schoolCode || '此刻校园',
-        currentSchoolId: state.currentSchool?.id || 0,
+        currentSchoolId: nextSchoolId,
       })
+      ;(this as any)._lastSchoolId = nextSchoolId
       if (this.data.user) this.applyUser(this.data.user)
+      // 切换学校后强制刷新个人主页数据（清空旧学校帖子/历史，加载新学校数据）
+      if (schoolChanged && authStore.getState().isLoggedIn) {
+        ;(this as any)._profileLoaded = false
+        ;(this as any)._lastProfileRefreshAt = 0
+        this.setData({
+          posts: [],
+          history: [],
+          page: 1,
+          hasMore: true,
+          historyPage: 1,
+          historyHasMore: true,
+          publishedCount: 0,
+          draftCount: 0,
+          pendingCount: 0,
+          confirmationCount: 0,
+          publishedCountText: '0',
+          draftCountText: '0',
+          pendingCountText: '0',
+          confirmationCountText: '0',
+        })
+        this.refreshProfile(true)
+      }
     })
   },
 

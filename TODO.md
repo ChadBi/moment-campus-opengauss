@@ -2,7 +2,15 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-09（修复新增地点无需审核直接上线问题）
+> 最后更新：2026-08-09（修复图片不显示和切换学校后个人主页数据问题）
+
+## 2026-08-09 修复：图片静态文件路径与切换学校个人主页刷新问题
+> **问题原因**：①后端`UPLOAD_DIR`配置为相对路径`./uploads`，如果启动目录不是`backend/`会导致上传文件保存位置和静态文件挂载位置不一致，图片/头像无法访问；②个人主页切换学校后只更新学校名称，没有清空旧学校帖子并重新加载新学校数据，导致点击跨校帖子提示"资源不存在"。
+
+- [x] **后端UPLOAD_DIR改为绝对路径**：`backend/app/config.py` 中`UPLOAD_DIR`从相对路径`./uploads`改为基于`_BASE_DIR`（backend目录）的绝对路径`os.path.join(_BASE_DIR, "uploads")`，确保无论从哪个目录启动后端，上传文件保存位置和静态文件挂载位置都一致
+- [x] **头像上传路径兼容**：修改后`users.py`中头像上传（保存到`uploads/avatars/`）和`upload.py`中图片上传（保存到`uploads/`）都使用同一绝对路径基准，静态文件`/uploads`挂载也指向同一目录
+- [x] **个人主页切换学校强制刷新**：`miniprogram/pages/profile/profile.ts` 中`campusStore.subscribe`回调增加学校变化检测，记录`_lastSchoolId`，当学校ID真正变化时：清空旧学校的`posts`/`history`列表、重置分页状态（page=1/hasMore=true）、清零统计数字（publishedCount/draftCount等），然后调用`refreshProfile(true)`强制重新加载当前学校的所有数据
+- [x] **后端接口已正确过滤学校**：确认`/users/me/posts`、`/users/me/stats`、`/users/me/view-history`、`GET /posts/{post_id}` 等接口都已按`tenant.school_id`过滤，跨校帖子返回404是预期安全行为
 
 ## 2026-08-09 修复：新增地点审核机制
 > **问题原因**：公开地点列表接口未过滤`is_verified`字段，普通用户新增地点后直接出现在公开列表中，跳过了管理员审核环节。
