@@ -18,9 +18,9 @@
       </view>
       <text class="school-subtitle">静态校园地图 · 点击地点查看动态</text>
     </view>
-    <view class="map-status {{locationsLoading ? 'loading' : ''}}">
-      <view class="status-dot"></view>
-      <text>{{locationsLoading ? '加载中' : '已更新'}}</text>
+    <view class="toolbar-entry map-header-add" bindtap="goToCreateLocation" hover-class="toolbar-entry-hover" hover-stay-time="120">
+      <icon name="plus" size="28rpx" color="#174d5e" />
+      <text>新增地点</text>
     </view>
   </view>
 
@@ -28,10 +28,6 @@
     <view class="toolbar-entry" bindtap="goToLocationsPage" hover-class="toolbar-entry-hover" hover-stay-time="120">
       <icon name="map-pin" size="28rpx" color="#174d5e" />
       <text>全部地点</text>
-    </view>
-    <view class="toolbar-entry toolbar-add-entry" bindtap="goToCreateLocation" hover-class="toolbar-entry-hover" hover-stay-time="120">
-      <icon name="plus" size="28rpx" color="#174d5e" />
-      <text>新增地点</text>
     </view>
     <view class="zoom-control">
       <view class="zoom-button" bindtap="onZoomIn" hover-class="zoom-button-hover" hover-stay-time="120">

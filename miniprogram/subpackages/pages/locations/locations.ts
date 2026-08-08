@@ -9,6 +9,23 @@ import type {
   LocationReview,
 } from '../../../types'
 
+const DEFAULT_PICKER_LATITUDE = 31.483652
+const DEFAULT_PICKER_LONGITUDE = 120.27116
+const PICKER_MARKER_ICON = '/assets/map-marker-selected.svg'
+const LOCATION_TYPE_OPTIONS = ['教学楼', '食堂', '宿舍', '运动场', '服务点', '公共空间', '其他']
+
+function buildPickerMarker(latitude: number, longitude: number): any {
+  return {
+    id: 99999,
+    latitude,
+    longitude,
+    iconPath: PICKER_MARKER_ICON,
+    width: 36,
+    height: 42,
+    anchor: { x: 0.5, y: 1 },
+  }
+}
+
 function formatStars(score: number): string {
   const full = Math.max(0, Math.min(5, Math.round(score || 0)))
   return '★'.repeat(full) + '☆'.repeat(5 - full)
@@ -43,10 +60,16 @@ Page({
     createSubmitting: false,
     createName: '',
     createDescription: '',
-    createBuilding: '',
-    createFloor: '',
+    createLocationType: '',
+    createLocationTypeIndex: 0,
+    createLocationTypeOptions: LOCATION_TYPE_OPTIONS,
     createLatitude: '',
     createLongitude: '',
+    createMapLatitude: DEFAULT_PICKER_LATITUDE,
+    createMapLongitude: DEFAULT_PICKER_LONGITUDE,
+    createMapScale: 17,
+    createMapMarkers: [] as any[],
+    createLocationPicked: false,
     proposalVisible: false,
     myReview: null as LocationReview | null,
     // 评价表单
@@ -179,14 +202,20 @@ Page({
       return
     }
     const school = campusStore.getState().currentSchool
+    const latitude = Number(school?.center_lat) || DEFAULT_PICKER_LATITUDE
+    const longitude = Number(school?.center_lng) || DEFAULT_PICKER_LONGITUDE
     this.setData({
       createVisible: true,
       createName: '',
       createDescription: '',
-      createBuilding: '',
-      createFloor: '',
-      createLatitude: school?.center_lat ? String(school.center_lat) : '',
-      createLongitude: school?.center_lng ? String(school.center_lng) : '',
+      createLocationType: '',
+      createLocationTypeIndex: 0,
+      createLatitude: latitude.toFixed(6),
+      createLongitude: longitude.toFixed(6),
+      createMapLatitude: latitude,
+      createMapLongitude: longitude,
+      createMapMarkers: [],
+      createLocationPicked: false,
     })
   },
 
@@ -199,6 +228,28 @@ Page({
     const field = e.currentTarget.dataset.field
     if (!field) return
     this.setData({ [field]: e.detail.value || '' })
+  },
+
+  onCreateLocationTypeChange(e: any) {
+    const index = Number(e.detail?.value)
+    this.setData({
+      createLocationTypeIndex: Number.isFinite(index) ? index : 0,
+      createLocationType: LOCATION_TYPE_OPTIONS[index] || '',
+    })
+  },
+
+  onCreateMapTap(e: any) {
+    const latitude = Number(e.detail?.latitude)
+    const longitude = Number(e.detail?.longitude)
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return
+    this.setData({
+      createLatitude: latitude.toFixed(6),
+      createLongitude: longitude.toFixed(6),
+      createMapLatitude: latitude,
+      createMapLongitude: longitude,
+      createMapMarkers: [buildPickerMarker(latitude, longitude)],
+      createLocationPicked: true,
+    })
   },
 
   async submitCreateLocation() {
@@ -214,19 +265,27 @@ Page({
       wx.showToast({ title: '请填写地点名称', icon: 'none' })
       return
     }
-    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
-      wx.showToast({ title: '请填写正确的经纬度', icon: 'none' })
+    if (!this.data.createLocationPicked) {
+      wx.showToast({ title: '请先在地图上点击选择地点位置', icon: 'none' })
       return
     }
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      wx.showToast({ title: '请在地图上重新选择地点位置', icon: 'none' })
+      return
+    }
+    const description = String(this.data.createDescription || '').trim()
+    const locationType = String(this.data.createLocationType || '').trim()
+    const normalizedDescription = [
+      locationType ? `场所类型：${locationType}` : '',
+      description,
+    ].filter(Boolean).join('\n') || undefined
     this.setData({ createSubmitting: true })
     try {
       const created = await createLocation({
         name,
         latitude,
         longitude,
-        description: String(this.data.createDescription || '').trim() || undefined,
-        building: String(this.data.createBuilding || '').trim() || undefined,
-        floor: String(this.data.createFloor || '').trim() || undefined,
+        description: normalizedDescription,
       })
       wx.showToast({ title: '地点已提交，等待核验', icon: 'success' })
       this.setData({ createVisible: false })

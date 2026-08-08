@@ -41,8 +41,7 @@
   gap: 10rpx;
 }
 
-.school-dot,
-.status-dot {
+.school-dot {
   width: 12rpx;
   height: 12rpx;
   border-radius: 50%;
@@ -68,26 +67,8 @@
   font-size: 21rpx;
 }
 
-.map-status {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  padding: 9rpx 14rpx;
-  border-radius: 999rpx;
-  background: rgba(115, 160, 104, 0.12);
-  color: var(--success);
-  font-size: 20rpx;
+.map-header-add {
   flex-shrink: 0;
-}
-
-.map-status.loading {
-  background: rgba(47, 127, 143, 0.1);
-  color: var(--lake);
-}
-
-.map-status.loading .status-dot {
-  background: var(--lake);
-  animation: map-pulse 1.2s ease-in-out infinite;
 }
 
 .map-toolbar {
@@ -113,11 +94,16 @@
 
 .toolbar-entry {
   gap: 9rpx;
-  padding: 13rpx 18rpx;
+  min-height: 64rpx;
+  padding: 0 18rpx;
   border-radius: 999rpx;
   color: var(--lake);
   font-size: 24rpx;
   font-weight: 600;
+}
+
+.toolbar-entry text {
+  line-height: 1;
 }
 
 .toolbar-entry-hover,
@@ -754,11 +740,6 @@
 @keyframes sheet-in {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-@keyframes map-pulse {
-  0%, 100% { opacity: 0.45; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1); }
 }
 
 @keyframes map-loading-dot {

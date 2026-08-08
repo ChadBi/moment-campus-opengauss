@@ -28,7 +28,7 @@
     <view wx:if="{{mode === 'select'}}" class="knowledge-note location-select-hint">请选择学校静态地点，不需要开启设备定位。</view>
     <view class="location-search-wrap">
       <icon name="search" size="30rpx" color="#174d5e" />
-      <input class="location-search-input" value="{{searchKeyword}}" bindinput="onKeywordInput" placeholder="搜索地点名称、描述、楼栋或楼层" placeholder-class="location-search-ph" confirm-type="search" />
+      <input class="location-search-input" value="{{searchKeyword}}" bindinput="onKeywordInput" placeholder="搜索地点名称、描述或场所类型" placeholder-class="location-search-ph" confirm-type="search" />
     </view>
 
     <!-- 列表状态区 -->
@@ -105,16 +105,36 @@
         </view>
       </view>
       <scroll-view scroll-y class="create-scroll">
-        <input class="create-input" value="{{createName}}" data-field="createName" bindinput="onCreateInput" maxlength="100" placeholder="地点名称，例如：北门打印店" />
-        <input class="create-input" value="{{createBuilding}}" data-field="createBuilding" bindinput="onCreateInput" maxlength="100" placeholder="楼栋或区域（可选）" />
-        <input class="create-input" value="{{createFloor}}" data-field="createFloor" bindinput="onCreateInput" maxlength="10" placeholder="楼层（可选）" />
-        <textarea class="create-input create-textarea" value="{{createDescription}}" data-field="createDescription" bindinput="onCreateInput" maxlength="500" auto-height placeholder="地点描述（可选）" />
-        <view class="create-coordinate-title">地图坐标</view>
-        <view class="create-coordinate-row">
-          <input class="create-input coordinate-input" value="{{createLatitude}}" data-field="createLatitude" bindinput="onCreateInput" type="text" placeholder="纬度" />
-          <input class="create-input coordinate-input" value="{{createLongitude}}" data-field="createLongitude" bindinput="onCreateInput" type="text" placeholder="经度" />
+        <view class="create-map-heading">
+          <view class="create-map-heading-text">
+            <text class="create-coordinate-title">选择地点位置</text>
+            <text class="create-map-heading-hint">点击地图选择准确位置</text>
+          </view>
+          <view class="create-picked-badge {{createLocationPicked ? 'is-picked' : ''}}">
+            <text>{{createLocationPicked ? '已选位置' : '待选择'}}</text>
+          </view>
         </view>
-        <text class="create-coordinate-hint">默认填入当前学校中心点，可按地图实际位置修改。</text>
+        <map
+          class="create-location-map"
+          latitude="{{createMapLatitude}}"
+          longitude="{{createMapLongitude}}"
+          scale="{{createMapScale}}"
+          markers="{{createMapMarkers}}"
+          enable-zoom
+          enable-scroll
+          bindtap="onCreateMapTap"
+        ></map>
+        <text class="create-coordinate-hint {{createLocationPicked ? 'is-picked' : ''}}">
+          {{createLocationPicked ? ('已选择：' + createLatitude + '，' + createLongitude) : '点击地图后自动生成坐标，无需手动填写'}}
+        </text>
+        <input class="create-input" value="{{createName}}" data-field="createName" bindinput="onCreateInput" maxlength="100" placeholder="地点名称，例如：北门打印店" />
+        <picker mode="selector" range="{{createLocationTypeOptions}}" value="{{createLocationTypeIndex}}" bindchange="onCreateLocationTypeChange">
+          <view class="create-select {{createLocationType ? 'has-value' : ''}}">
+            <text>{{createLocationType || '场所类型（可选）'}}</text>
+            <icon name="chevron-right" size="28rpx" color="#8a9a9e" />
+          </view>
+        </picker>
+        <textarea class="create-input create-textarea" value="{{createDescription}}" data-field="createDescription" bindinput="onCreateInput" maxlength="480" auto-height placeholder="地点描述（可选），可补充开放时间、使用规则、联系方式等" />
         <view class="create-actions">
           <view class="create-cancel-btn" bindtap="closeCreateForm">取消</view>
           <view class="create-submit-btn {{createSubmitting ? 'disabled' : ''}}" bindtap="submitCreateLocation">{{createSubmitting ? '提交中...' : '提交新增地点'}}</view>
