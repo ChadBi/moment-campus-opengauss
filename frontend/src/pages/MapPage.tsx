@@ -856,10 +856,7 @@ const MapPage: React.FC = () => {
               {/* PUB-01.1：表单复用 PostForm（variant='panel'） */}
               <div className="flex-1 overflow-y-auto px-5 py-4">
                 <PostForm
-                  key={`${createPanel.lngLat.lat.toFixed(6)},${createPanel.lngLat.lng.toFixed(6)}`}
                   variant="panel"
-                  defaultLocationLat={createPanel.lngLat.lat}
-                  defaultLocationLng={createPanel.lngLat.lng}
                   showCancelButton={false}
                   onSuccess={() => {
                     setCreatePanel(null);

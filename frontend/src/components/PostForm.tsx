@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  MapPin,
   X,
   Image as ImageIcon,
   AlertTriangle,
@@ -11,7 +10,6 @@ import {
   Check,
   Info,
   ShieldAlert,
-  Map as MapIcon,
 } from 'lucide-react';
 import { postsApi } from '../services/posts';
 import { categoriesApi } from '../services/categories';
@@ -28,11 +26,7 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Loading } from './ui/Loading';
 import { ErrorState, LoadingState } from './state';
-import { Modal } from './ui/Modal';
-import MapLocationPicker from './MapLocationPicker';
 import type { AIPublishSuggestionResponse } from '../types';
-import { LOCATION_TYPE_OPTIONS } from '../constants/locationTypes';
-import { buildLocationDescription } from '../utils/buildLocationDescription';
 
 /**
  * PUB-01.1: 统一发布表单（共享子组件）
@@ -70,12 +64,6 @@ interface PublishFormState {
   content: string;
   category_id: number | null;
   location_id: number | null;
-  // 新增地点字段（与 location_id 互斥；填写后自动创建 is_verified=false 的地点）
-  new_location_name: string;
-  new_location_lat: string;
-  new_location_lng: string;
-  new_location_type: string;
-  new_location_description: string;
   is_anonymous: boolean;
   /** 【新版】一张图同时携带原图 + 缩略图 URL；提交时传给后端 images 字段，详情页缩略带宽优化才能生效 */
   images: Array<{ image_url: string; thumbnail_url?: string }>;
@@ -90,11 +78,6 @@ const INITIAL_FORM: PublishFormState = {
   content: '',
   category_id: null,
   location_id: null,
-  new_location_name: '',
-  new_location_lat: '',
-  new_location_lng: '',
-  new_location_type: '',
-  new_location_description: '',
   is_anonymous: false,
   images: [],
   expire_at: '',
@@ -135,7 +118,6 @@ function isFormEffectivelyEmpty(form: PublishFormState): boolean {
     !form.content.trim() &&
     form.images.length === 0 &&
     !form.location_id &&
-    !form.new_location_name.trim() &&
     !form.contact_info.trim()
   );
 }
@@ -243,10 +225,6 @@ export interface PostFormProps {
   onSuccess?: (status: 'draft' | 'pending') => void;
   /** 取消回调（不传则隐藏取消按钮） */
   onCancel?: () => void;
-  /** 地图点选默认地点：传入后新地点 lat/lng 只读预填，name 可编辑 */
-  defaultLocationName?: string;
-  defaultLocationLat?: number;
-  defaultLocationLng?: number;
   /** 是否显示草稿恢复横幅（默认 true） */
   enableDraftBanner?: boolean;
   /** 是否显示"存为草稿"按钮（默认 true） */
@@ -269,9 +247,6 @@ const PostForm: React.FC<PostFormProps> = ({
   variant = 'page',
   onSuccess,
   onCancel,
-  defaultLocationName = '',
-  defaultLocationLat,
-  defaultLocationLng,
   enableDraftBanner = true,
   showDraftButton = true,
   showCancelButton = true,
@@ -294,29 +269,12 @@ const PostForm: React.FC<PostFormProps> = ({
   const effectiveDraftLabel = draftLabel ?? (isEditMode ? '保存修改' : '存为草稿');
 
   const vs = getVariantStyles(variant);
-  // 地图点选传入坐标时，新地点 lat/lng 只读
-  const locationCoordsReadOnly =
-    defaultLocationLat != null && defaultLocationLng != null;
 
-  // 表单初始值：若传入地图点选坐标，预填新地点字段
   const getInitialForm = useMemo(() => {
-    return (): PublishFormState => {
-      if (locationCoordsReadOnly) {
-        return {
-          ...INITIAL_FORM,
-          new_location_name: defaultLocationName,
-          new_location_lat: String(defaultLocationLat),
-          new_location_lng: String(defaultLocationLng),
-        };
-      }
-      return { ...INITIAL_FORM };
-    };
-  }, [locationCoordsReadOnly, defaultLocationName, defaultLocationLat, defaultLocationLng]);
+    return (): PublishFormState => ({ ...INITIAL_FORM });
+  }, []);
 
   const [formData, setFormData] = useState<PublishFormState>(getInitialForm);
-  // 用户是否显式切换到「新增地点」模式（下拉选「✚ 新增地点...」）
-  // —— 用独立显式状态保存，避免「刚选但字段还空 → 立刻跳回空值 → 显示上像选不中」
-  const [newLocationMode, setNewLocationMode] = useState(locationCoordsReadOnly);
   const [categories, setCategories] = useState<CategoryListItem[]>([]);
   const [locations, setLocations] = useState<LocationListItem[]>([]);
   const [metaLoading, setMetaLoading] = useState(true);
@@ -326,9 +284,6 @@ const PostForm: React.FC<PostFormProps> = ({
 
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  // Task 3.1: 地图选点 Modal 弹窗状态
-  const [mapPickerOpen, setMapPickerOpen] = useState(false);
 
   // AI-03: AI 辅助发布建议状态
   const [aiSuggesting, setAiSuggesting] = useState(false);
@@ -387,21 +342,13 @@ const PostForm: React.FC<PostFormProps> = ({
     void Promise.resolve().then(loadMetadata);
   }, [currentSchoolId, loadMetadata]);
 
-  // 切换学校时清空已选地点（避免跨校残留），但保留地图点选坐标（MapPage 面板传 defaultLocationLat/Lng）
+  // 切换学校时清空已选地点（避免跨校残留）
   useEffect(() => {
     void Promise.resolve().then(() => {
       setFormData((prev) => ({
         ...prev,
         location_id: null,
-        // 若有地图点选坐标，恢复时保留；否则清空
-        new_location_name: locationCoordsReadOnly ? defaultLocationName : '',
-        new_location_lat: locationCoordsReadOnly ? String(defaultLocationLat ?? '') : '',
-        new_location_lng: locationCoordsReadOnly ? String(defaultLocationLng ?? '') : '',
-        new_location_type: '',
-        new_location_description: '',
       }));
-      // 切校时，若有地图点选默认坐标则保持新增地点模式；否则退出
-      setNewLocationMode(locationCoordsReadOnly);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSchoolId]);
@@ -436,11 +383,6 @@ const PostForm: React.FC<PostFormProps> = ({
           content: post.content,
           category_id: post.category_id ?? null,
           location_id: post.location_id ?? null,
-          new_location_name: '',
-          new_location_lat: '',
-          new_location_lng: '',
-          new_location_type: '',
-          new_location_description: '',
           is_anonymous: post.is_anonymous,
           images: (post.images ?? [])
             .slice()
@@ -453,8 +395,6 @@ const PostForm: React.FC<PostFormProps> = ({
           contact_info: post.contact_info ?? '',
           lost_type: (post.lost_type as '' | 'lost' | 'found') ?? '',
         });
-        // 编辑已有帖子时，新地点模式默认关闭（因为编辑场景一定是已有 location_id 或不选）
-        setNewLocationMode(false);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -532,16 +472,6 @@ const PostForm: React.FC<PostFormProps> = ({
   const handleRestoreDraft = () => {
     if (!pendingDraft) return;
     setFormData(pendingDraft.form);
-    // 恢复草稿时，根据草稿内容判断是否进入新增地点模式
-    const draft = pendingDraft.form;
-    const hasNew =
-      draft.location_id === null &&
-      (draft.new_location_name.trim() !== '' ||
-        draft.new_location_lat !== '' ||
-        draft.new_location_lng !== '' ||
-        draft.new_location_type.trim() !== '' ||
-        draft.new_location_description.trim() !== '');
-    setNewLocationMode(hasNew);
     setPendingDraft(null);
     showToast(`已恢复未完成草稿（保存于 ${formatSavedAt(pendingDraft.savedAt)}）`, 'info');
   };
@@ -581,67 +511,12 @@ const PostForm: React.FC<PostFormProps> = ({
 
   // ============ ORG-01.3: 发布模板一键补全（已下线，整段移除） ============
 
-  const LOCATION_OPTION_NEW = '__new__';
-  // 是否展示「新增地点」虚线卡片：newLocationMode（用户显式选） 或 已有地图点选坐标（MapPage 面板传入 defaultLocationLat/Lng）
-  const isNewLocationSelected =
-    newLocationMode ||
-    (formData.location_id === null &&
-      (formData.new_location_name.trim() !== '' ||
-        formData.new_location_lat !== '' ||
-        formData.new_location_lng !== ''));
-
   const handleLocationSelect = (idStr: string) => {
-    if (idStr === LOCATION_OPTION_NEW) {
-      // 选「新增地点」：保持 location_id=null，不清空已点选坐标，显式标记 newLocationMode
-      setNewLocationMode(true);
-      handleFieldChange('location_id', null);
-      return;
-    }
     if (!idStr) {
-      // 选「不选/空白」：退出新增地点模式，清空新地点字段
-      setNewLocationMode(false);
       handleFieldChange('location_id', null);
-      handleFieldChange('new_location_name', '');
-      handleFieldChange('new_location_lat', '');
-      handleFieldChange('new_location_lng', '');
-      handleNewLocationField('new_location_type', '');
-      handleNewLocationField('new_location_description', '');
       return;
     }
-    // 选已有地点（含待核验）：退出新增地点模式，清空新地点字段
-    setNewLocationMode(false);
     handleFieldChange('location_id', Number(idStr));
-    handleFieldChange('new_location_name', '');
-    handleFieldChange('new_location_lat', '');
-    handleFieldChange('new_location_lng', '');
-    handleNewLocationField('new_location_type', '');
-    handleNewLocationField('new_location_description', '');
-  };
-
-  const handleNewLocationField = (
-    field: 'new_location_name' | 'new_location_lat' | 'new_location_lng'
-      | 'new_location_type'
-      | 'new_location_description',
-    value: string
-  ) => {
-    handleFieldChange(field, value);
-    // 填写新地点时清空已选 location_id
-    if (formData.location_id !== null) {
-      handleFieldChange('location_id', null);
-    }
-  };
-
-  // Task 3.1: 打开地图选点弹窗
-  const handleOpenMapPicker = () => {
-    setMapPickerOpen(true);
-  };
-
-  // Task 3.1: 地图选点回调
-  const handleMapPick = (lat: number, lng: number) => {
-    handleNewLocationField('new_location_lat', String(lat));
-    handleNewLocationField('new_location_lng', String(lng));
-    setMapPickerOpen(false);
-    showToast('已选点，可继续填写地点名称', 'success');
   };
 
   // ============ 图片上传 ============
@@ -788,19 +663,6 @@ const PostForm: React.FC<PostFormProps> = ({
       return '内容长度必须在 10-5000 字符之间';
     }
     if (!formData.category_id) return '请选择分类';
-    // Task 3.1: 地点改为非必填；若进入「新增地点」模式，需提供名称并完成地图选点
-    if (isNewLocationSelected) {
-      if (!formData.new_location_name.trim()) {
-        return '新增地点请填写名称';
-      }
-      if (formData.new_location_lat === '' || formData.new_location_lng === '') {
-        return '请先在地图上选好位置';
-      }
-      const lat = Number(formData.new_location_lat);
-      const lng = Number(formData.new_location_lng);
-      if (Number.isNaN(lat) || lat < -90 || lat > 90) return '纬度必须在 -90 ~ 90 之间';
-      if (Number.isNaN(lng) || lng < -180 || lng > 180) return '经度必须在 -180 ~ 180 之间';
-    }
     return null;
   };
 
@@ -817,44 +679,11 @@ const PostForm: React.FC<PostFormProps> = ({
     }
     setSubmitting(true);
     try {
-      // 若进入「新增地点」模式且信息齐备，先 createLocation 创建 is_verified=false 的地点
-      let locationId = formData.location_id;
-      let locationName: string | undefined;
-      let locationLat: number | undefined;
-      let locationLng: number | undefined;
-      if (
-        isNewLocationSelected &&
-        formData.new_location_name.trim() &&
-        formData.new_location_lat !== '' &&
-        formData.new_location_lng !== ''
-      ) {
-        locationName = formData.new_location_name.trim();
-        locationLat = Number(formData.new_location_lat);
-        locationLng = Number(formData.new_location_lng);
-        try {
-          const newLoc = await categoriesApi.createLocation({
-            name: locationName,
-            latitude: locationLat,
-            longitude: locationLng,
-            description: buildLocationDescription(formData.new_location_type, formData.new_location_description),
-          });
-          locationId = newLoc.id;
-          // 创建后清空新地点字段，避免重复提交
-          locationName = undefined;
-          locationLat = undefined;
-          locationLng = undefined;
-        } catch {
-          // 后端 POST /posts 也支持 location_name+lat+lng 自动创建，作为兜底
-        }
-      }
       const payload = {
         title: formData.title.trim(),
         content: formData.content.trim(),
         category_id: formData.category_id as number,
-        location_id: locationId ?? undefined,
-        location_name: locationName,
-        location_lat: locationLat,
-        location_lng: locationLng,
+        location_id: formData.location_id ?? undefined,
         is_anonymous: formData.is_anonymous,
         // 新版 images 字段（原图+缩略图 URL 一起带）；后端同时兼容旧版 image_urls 字符串数组
         images: formData.images.length > 0 ? formData.images : undefined,
@@ -1359,23 +1188,18 @@ const PostForm: React.FC<PostFormProps> = ({
           />
         </div>
 
-        {/* 地点选择（本校校验） + 新增地点（is_verified=false 队列） */}
+        {/* 地点选择（本校校验） */}
         <div>
           <label className={vs.label} htmlFor="post-location-select">
             地点 <span className="text-ink-muted text-xs">（可选；不选则发布为无地点信息）</span>
           </label>
           <select
             id="post-location-select"
-            value={
-              isNewLocationSelected
-                ? LOCATION_OPTION_NEW
-                : (formData.location_id ?? '')
-            }
+            value={formData.location_id ?? ''}
             onChange={(e) => handleLocationSelect(e.target.value)}
             className={vs.select}
           >
             <option value="">— 不选或选择已有地点 —</option>
-            <option value={LOCATION_OPTION_NEW}>✚ 新增地点（地图选点，提交后进入核验队列）</option>
             {verifiedLocations.length > 0 ? (
               <optgroup label="已核验地点">
                 {verifiedLocations.map((loc) => (
@@ -1395,88 +1219,6 @@ const PostForm: React.FC<PostFormProps> = ({
               </optgroup>
             ) : null}
           </select>
-          {isNewLocationSelected ? (
-            <div className="mt-2 rounded-[10px] border border-dashed border-line p-3 bg-mist/40">
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-1.5 text-xs text-ink-muted min-w-0">
-                  <MapPin size={12} className="flex-shrink-0" />
-                  <span className="truncate">
-                    {locationCoordsReadOnly
-                      ? '坐标来自地图点选（只读），可修改名称或改选上方已有地点'
-                      : '点击下方按钮在地图上选好位置；新增地点将进入核验队列（is_verified=false），管理员核验后合并'}
-                  </span>
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  icon={<MapIcon size={13} />}
-                  onClick={handleOpenMapPicker}
-                  className="flex-shrink-0"
-                >
-                  {formData.new_location_lat !== '' && formData.new_location_lng !== ''
-                    ? '重新选点'
-                    : '在地图上选择位置'}
-                </Button>
-              </div>
-              <Input
-                label="新地点名称"
-                name="new_location_name"
-                type="text"
-                value={formData.new_location_name}
-                onChange={(e) => handleNewLocationField('new_location_name', e.target.value)}
-                placeholder="例如：南区便利店"
-                maxLength={100}
-              />
-              <div className="mt-2">
-                <label className="block text-xs font-medium text-ink mb-1" htmlFor="postform-new-location-type">
-                  场所类型 <span className="text-ink-muted text-xs">（可选）</span>
-                </label>
-                <select
-                  id="postform-new-location-type"
-                  value={formData.new_location_type}
-                  onChange={(e) => handleNewLocationField('new_location_type', e.target.value)}
-                  className={vs.select}
-                >
-                  <option value="">场所类型（可选）</option>
-                  {LOCATION_TYPE_OPTIONS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mt-2">
-                <label className="block text-xs font-medium text-ink mb-1" htmlFor="postform-new-location-description">
-                  描述 <span className="text-ink-muted text-xs">（可选，最多 480 字）</span>
-                </label>
-                <textarea
-                  id="postform-new-location-description"
-                  value={formData.new_location_description}
-                  onChange={(e) => handleNewLocationField('new_location_description', e.target.value)}
-                  maxLength={480}
-                  rows={3}
-                  placeholder="可补充开放时间、使用规则、联系方式等"
-                  className={vs.textarea}
-                />
-              </div>
-              {formData.new_location_lat !== '' && formData.new_location_lng !== '' ? (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-[8px] bg-paper border border-line px-2 py-1 text-[11px] text-ink-muted">
-                    <MapIcon size={11} />
-                    GCJ-02 · 纬度 {Number(formData.new_location_lat).toFixed(4)}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-[8px] bg-paper border border-line px-2 py-1 text-[11px] text-ink-muted">
-                    <MapIcon size={11} />
-                    GCJ-02 · 经度 {Number(formData.new_location_lng).toFixed(4)}
-                  </span>
-                </div>
-              ) : (
-                <div className="mt-2 rounded-[8px] border border-dashed border-line bg-paper/60 px-3 py-2 text-[11px] text-ink-muted">
-                  尚未选点 —— 请点击右上角「在地图上选择位置」完成选点
-                </div>
-              )}
-            </div>
-          ) : null}
         </div>
 
         {/* 信息截止时间（原"有效期"） */}
@@ -1585,45 +1327,6 @@ const PostForm: React.FC<PostFormProps> = ({
           ) : null}
         </div>
       </form>
-
-      {/* Task 3.1: 地图选点弹窗 */}
-      <Modal
-        isOpen={mapPickerOpen}
-        onClose={() => setMapPickerOpen(false)}
-        title="在地图上选择位置"
-        size="lg"
-      >
-        <div className="p-4">
-          <p className="text-xs text-ink-muted mb-3">
-            点击地图设置标记，选点后将自动填充 GCJ-02（高德坐标）经纬度（可继续编辑地点名称）。
-          </p>
-          <MapLocationPicker
-            initialLat={
-              formData.new_location_lat
-                ? Number(formData.new_location_lat)
-                : defaultLocationLat
-            }
-            initialLng={
-              formData.new_location_lng
-                ? Number(formData.new_location_lng)
-                : defaultLocationLng
-            }
-            initialName={formData.new_location_name}
-            onPick={handleMapPick}
-            height={400}
-          />
-          <div className="mt-3 flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="text"
-              size="sm"
-              onClick={() => setMapPickerOpen(false)}
-            >
-              取消
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 };

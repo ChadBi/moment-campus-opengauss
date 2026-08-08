@@ -2,7 +2,18 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（手机号体系示例数据同步 v2.2.23）
+> 最后更新：2026-08-08（账号安全位置调整+发布页移除新增地点 v2.2.24）
+
+## 2026-08-08 执行任务：账号安全位置调整+发布页移除新增地点
+> 用户反馈：①Web端账号安全部分太显眼，要移到靠下、隐蔽的位置，不要默认展示输入框；②发布帖子页面的"新增地点"下拉选项和表单全部移除，只保留选择已有地点
+
+- [x] **账号安全默认折叠**：`AccountSecurityCard` 新增 `expanded` 状态（默认 `false`）；折叠时仅显示小字号标题栏（`variant='outlined'` + `opacity-90` + 文字灰 `text-ink-sub`），右侧 ChevronDown 图标；点击才展开显示设置密码/解除教育邮箱绑定表单；标题旁附带小字说明当前可用动作（设置密码 / 解除邮箱绑定）
+- [x] **账号安全移到最底部**：`ProfilePage` 中 `<AccountSecurityCard />` 从 `CampusVerifyCard` 之后移到 `<我的发布>` 区块之后的页面最末尾（Toast 之前），放在浏览历史、我的发布等所有主要内容之后，视觉上更靠下更隐蔽
+- [x] **发布页移除新增地点选项**：`PostForm.tsx` 地点下拉框中删除 `✚ 新增地点（地图选点，提交后进入核验队列）` option；删除 `LOCATION_OPTION_NEW` 常量；`handleLocationSelect` 简化为仅处理 `空值` 和 `已有地点ID` 两种情况
+- [x] **发布页移除新增地点虚线卡片**：删除 PostForm 中 `isNewLocationSelected` 条件渲染的整个新增地点表单块（地图选点按钮、新地点名称 Input、场所类型 select、描述 textarea、经纬度只读展示/未选点提示全部删除）
+- [x] **PostForm 状态与类型清理**：`PublishFormState` 删除 5 个 `new_location_*` 字段；`INITIAL_FORM` 对应删除；`isFormEffectivelyEmpty` 去掉 `new_location_name` 判断；`切校useEffect`/`编辑模式加载`/`草稿恢复` 中新增地点的重置/判断逻辑全部清理；`validate` 去掉新增地点校验；`handleSubmit` 删除 createLocation 先行创建逻辑，payload 仅保留 `location_id`
+- [x] **Prop 与 import 清理**：`PostFormProps` 删除 `defaultLocationName`/`defaultLocationLat`/`defaultLocationLng` 三个地图点选默认坐标 props；删除 `LOCATION_TYPE_OPTIONS`、`buildLocationDescription`、`MapPin`、`MapIcon`、`Modal`、`MapLocationPicker` 等不再需要的 import；`MapPage` 中调用 PostForm 处移除三个 defaultLocation prop 和 key 属性
+- [x] **前端构建验证**：`frontend npm run build` 全量 TS 类型检查+Vite 生产构建 0 错误 0 warning（除 maplibre 大 chunk 提示，不影响功能）✅
 
 ## 2026-08-08 执行任务：手机号体系示例数据同步改造
 > 在认证改造提交后重构演示 seed：所有业务引用使用手机号，教育邮箱只表示已完成校园认证，新增可复用的无密码微信手机号登录账号。

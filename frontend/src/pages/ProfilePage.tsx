@@ -759,7 +759,6 @@ const ProfilePage: React.FC = () => {
 
       {/* B-01: 校园身份认证 */}
       <CampusVerifyCard />
-      <AccountSecurityCard />
 
       {/* UC-01: 切换学校确认浮窗 */}
       <SwitchSchoolModal
@@ -1126,6 +1125,9 @@ const ProfilePage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 账号安全 —— 放在最底部，位置更靠下更隐蔽 */}
+      <AccountSecurityCard />
 
       {toast && (
         <Toast
