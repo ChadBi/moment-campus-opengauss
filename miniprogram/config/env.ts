@@ -5,7 +5,11 @@ declare const __ENV__: string | undefined
 export type MiniProgramEnv = 'dev' | 'experience' | 'prod'
 
 // 真机调试时手机无法访问电脑的 localhost，开发环境统一走当前电脑的局域网地址。
-// 如果更换 Wi-Fi，请把这里改成电脑在同一局域网中的 IPv4 地址。
+// ⚠️ 如果你换了 Wi-Fi / 网段，必须同时改 3 处（否则小程序 AI Skills 里的图片/请求仍然连 localhost 真机失败）：
+//   1. miniprogram/config/env.ts              → DEV_LAN_HOST
+//   2. miniprogram/skills/moment-campus/utils/util.js    → DEV_LAN_HOST 常量（resolveImageUrl 拼接 /uploads/）
+//   3. miniprogram/skills/moment-campus/utils/request.js → DEV_LAN_HOST 常量（BASE_URL 拼接）
+// 一键查本机局域网 IP：Get-NetIPAddress -AddressFamily IPv4 | ? IPAddress -notlike '127.*' | ? IPAddress -notlike '169.254.*' | select InterfaceAlias,IPAddress
 const DEV_LAN_HOST = '192.168.3.10'
 
 const HOSTS: Record<MiniProgramEnv, { api: string; image: string }> = {
@@ -15,7 +19,6 @@ const HOSTS: Record<MiniProgramEnv, { api: string; image: string }> = {
 }
 
 function resolveEnv(): MiniProgramEnv {
-  // 保留构建时显式覆盖，便于需要时固定指向某个环境。
   const override = typeof __ENV__ !== 'undefined' ? __ENV__ : ''
   if (override === 'dev' || override === 'experience' || override === 'prod') return override
 

@@ -1,7 +1,10 @@
 // skills/moment-campus/utils/request.js
 // Network request wrapper for moment-campus skill
 
-var BASE_URL = 'http://localhost:8000/api/v1';
+// ⚠️ 真机调试时手机无法访问电脑的 localhost，开发环境必须用电脑的局域网地址。
+// 与 miniprogram/config/env.ts 的 DEV_LAN_HOST 保持一致，换 Wi-Fi/网段时同步修改。
+const DEV_LAN_HOST = '192.168.3.10'
+var BASE_URL = `http://${DEV_LAN_HOST}:8000/api/v1`;
 var REQUEST_TIMEOUT = 15000;
 
 function getAccessToken() {

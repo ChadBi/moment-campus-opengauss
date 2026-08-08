@@ -1,8 +1,12 @@
 // skills/moment-campus/utils/util.js
 // Utility functions for moment-campus skill
 
+// ⚠️ 真机调试时手机无法访问电脑的 localhost，开发环境必须用电脑的局域网地址。
+// 与 miniprogram/config/env.ts 的 DEV_LAN_HOST 保持一致，换 Wi-Fi/网段时同步修改。
+const DEV_LAN_HOST = '192.168.3.10'
+const DEV_API_HOST = `http://${DEV_LAN_HOST}:8000`
+
 function ensureStorageInit() {
-  // Ensure school_code has a default
   var schoolCode = wx.getStorageSync('school_code');
   if (!schoolCode) {
     wx.setStorageSync('school_code', 'jiangnan');
@@ -21,7 +25,7 @@ function resolveImageUrl(url) {
   if (!url) return '';
   if (url.indexOf('http') === 0) return url;
   if (url.indexOf('/uploads/') === 0) {
-    return url.replace('/uploads/', 'http://localhost:8000/uploads/');
+    return DEV_API_HOST + url;
   }
   return url;
 }

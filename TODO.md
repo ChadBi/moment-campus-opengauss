@@ -2,7 +2,21 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（续上轮：① 校园认证链路与注册阶段对齐——qq.com 用户和教育邮箱用户走一样的"直接点发送验证码"流程，无需任何前端新增输入框；② 重置开发库 1030424433@stu.jiangnan.edu.cn 本人账号全链路数据）
+> 最后更新：2026-08-08（③ 微信小程序真机调试局域网模式全链路改造：后端 0.0.0.0 + 小程序 3 处 DEV_LAN_HOST 对齐 + project.config.urlCheck=false 显式说明 + 防火墙放行命令）
+
+## 2026-08-08 执行任务：微信小程序真机调试切换局域网模式（HTTP + 同网段 IP + 不校验域名）
+
+- [x] **本机局域网 IPv4 探测**：WLAN 网卡当前地址 `192.168.3.10/24`（非虚拟机 WSL Hyper-V 的 172.24.128.1，非 169.254 APIPA）。作为 `DEV_LAN_HOST` 常量写入三处（env.ts / skills/util.js / skills/request.js）；换 Wi-Fi 时统一同步修改。
+- [x] **后端启动命令升级为局域网模式**：[AGENTS.md](file:///e:/Project/moment-campus/AGENTS.md#L14-L19) 启动命令从 `uvicorn app.main:app --reload` 改为 `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`（uvicorn 默认 127.0.0.1，真机根本连不上）；同段落补充：
+  - 微信开发者工具 UI 要勾选「详情→本地设置→不校验合法域名/TLS/HTTPS 证书」
+  - Windows 防火墙 8000/TCP 入站一次性放行命令（管理员 PowerShell）
+- [x] **小程序 3 处 DEV_LAN_HOST 全链路对齐**（之前仅 config/env.ts 改了，AI Skills 两个 util 仍硬编码 localhost→真机必然失败）：
+  1. [miniprogram/config/env.ts](file:///e:/Project/moment-campus/miniprogram/config/env.ts#L7-L40)：保留原结构，注释中**明确列出 3 处需要同步修改的文件清单**，并给出一行式查本机局域网 IP 的 PowerShell 命令
+  2. [miniprogram/skills/moment-campus/utils/util.js](file:///e:/Project/moment-campus/miniprogram/skills/moment-campus/utils/util.js#L4-L31)：新增 `DEV_LAN_HOST=192.168.3.10` 常量，`resolveImageUrl('/uploads/xxx')` 从 `localhost:8000` 替换为 `http://${DEV_LAN_HOST}:8000` 直接拼接，真机图片不裂
+  3. [miniprogram/skills/moment-campus/utils/request.js](file:///e:/Project/moment-campus/miniprogram/skills/moment-campus/utils/request.js#L4-L8)：新增 `DEV_LAN_HOST=192.168.3.10` 常量，`BASE_URL` 从 `http://localhost:8000/api/v1` 改为模板字符串拼接，真机 AI 技能的网络请求不再连手机自己
+- [x] **project.config.json 不校验域名显式语义化**：[miniprogram/project.config.json](file:///e:/Project/moment-campus/miniprogram/project.config.json#L32-L40) 中原本已有 `"urlCheck": false`（L35），在其上方加中文注释明确对应「微信开发者工具 UI 哪一个复选框」，避免新换电脑的开发者工具默认勾选开启导致真机出现「不在 request 合法域名」白屏错误；结构上仍完全兼容微信官方 JSON 解析（允许 `//` 注释由工具在读取时处理，不会上送小程序后台）
+- [x] **防火墙**：本机以非管理员权限尝试 `New-NetFirewallRule` 创建 `MomentCampus Backend :8000` 失败（拒绝访问），已在 AGENTS 文档与本任务报告交付段落中明确指示「开一个管理员 PowerShell 跑一次命令」即可持久生效；重复执行幂等。
+- [x] **文档 + 提交**：CHANGELOG 升 v2.2.18、本文件新增第三项小节、AIwork 按 8 节模板 → git commit。
 
 ## 2026-08-08 执行任务：校园认证支持 qq.com 用户直接认证（UX 与教育邮箱完全一致）+ 重置本人开发账号
 

@@ -32,6 +32,8 @@
     "swc": false,
     "disableSWC": true,
     "disableUseStrict": false,
+    // 开发期真机调试使用 http://局域网IP:8000，强制关闭合法域名/TLS 校验。
+    // 对应微信开发者工具 UI：详情 → 本地设置 → ✅ 不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书
     "urlCheck": false,
     "checkInvalidKey": true,
     "checkSiteMap": true

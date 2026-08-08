@@ -11,7 +11,12 @@
 - 演示学校：江南大学为主（code=`jiangnan`，map\_zoom=16），附带 fudan/zju 两所学校用于多租户演示（共 3 校，详见 docs/project-audit/此刻校园项目全量排查报告.md §6.2）。
 - Post 状态机：6 态（draft/pending/published/expired/conflict/archived）；协同验证：2 类（confirmation/refutation，互斥且可切换或取消）。
 - 权限：user < admin < super\_admin，统一通过 `app/core/permissions.py` 的 `require_role()` 校验。
-- 启动：后端 `uvicorn app.main:app --reload`（需 `$env:APP_ENV = "opengauss"`）；前端 `npm run dev`。
+- 启动：后端 `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`（需 `$env:APP_ENV = "opengauss"`；--host 0.0.0.0 用于微信小程序真机调试同局域网访问）；前端 `npm run dev`；小程序走微信开发者工具 + 确认「详情 → 本地设置 → 不校验合法域名」勾选。
+- 微信小程序开发环境局域网地址：当前电脑 Wi-Fi 段 `192.168.3.x` 时 `DEV_LAN_HOST=192.168.3.10` 已在 [miniprogram/config/env.ts](miniprogram/config/env.ts) 配置；若换 Wi-Fi/网段，更新该常量并重编译小程序即可。配套需放行 Windows 防火墙 8000/TCP 入站（见下 PowerShell 命令）：
+  ```powershell
+  # 管理员 PowerShell 执行一次即可（持久生效，已存在则安全忽略）：
+  New-NetFirewallRule -DisplayName 'MomentCampus Backend :8000' -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Private,Domain | Out-Null
+  ```
 - 演示账号（与 [seed_data.py](backend/scripts/seed_data.py) 对齐，统一使用各学校 `addl_domains = "example.xxx.edu.cn"` 作为邮箱后缀，确保通过校园邮箱域名校验）：
   - **平台级超管（跨三校可见，角色 `super_admin`）**：`admin@momentcampus.com / pass123`
   - **江南大学（主演示校，code=`jiangnan`）**：校管理员不单独设，由平台超管兼；普通用户 `user1@example.jiangnan.edu.cn ~ user10@example.jiangnan.edu.cn / pass123`（其中 user1/3/4/6/7/9/10 在 seed 时已 `campus_verified=True`）

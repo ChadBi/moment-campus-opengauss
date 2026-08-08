@@ -7,6 +7,23 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.18] - 2026-08-08
+
+### 新增
+
+- **微信小程序真机调试切局域网模式**（解决模拟器正常、真机永远"连接超时/请求失败"的问题）：
+  真机环境"localhost/127.0.0.1"指向的是手机自身而非开发电脑，此前**业务代码走 `config/env.ts`（已是局域网 IP），但 AI Skills 的两张 util 仍硬编码 `http://localhost:8000`**，导致真机上图片渲染 404 + 技能内 API 直接 request:fail。本次统一 3 处 DEV_LAN_HOST 常量（当前网段=192.168.3.x → `192.168.3.10`）：
+  - [miniprogram/config/env.ts](file:///e:/Project/moment-campus/miniprogram/config/env.ts) 顶部注释列出「换 Wi-Fi 必改 3 件套清单」+ PowerShell 一行式查本机 IP
+  - [miniprogram/skills/moment-campus/utils/util.js](file:///e:/Project/moment-campus/miniprogram/skills/moment-campus/utils/util.js) resolveImageUrl 不再 replace 为 localhost，改用 `DEV_API_HOST + url`
+  - [miniprogram/skills/moment-campus/utils/request.js](file:///e:/Project/moment-campus/miniprogram/skills/moment-campus/utils/request.js) BASE_URL 从硬编码 localhost 改为模板字符串 `${DEV_LAN_HOST}:8000`
+
+### 变更
+
+- 后端启动命令（[AGENTS.md](file:///e:/Project/moment-campus/AGENTS.md#L14-L19)）升级为局域网模式：
+  `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`，新增对应防火墙放行规则说明。
+- [miniprogram/project.config.json](file:///e:/Project/moment-campus/miniprogram/project.config.json#L32-L40) `"urlCheck": false` 上方增加中文注释，精准对应微信开发者工具
+  「详情 → 本地设置 → ✅ 不校验合法域名、web-view、TLS 版本以及 HTTPS 证书」复选框，帮助新环境快速定位开关。
+
 ## [2.2.17] - 2026-08-08
 
 ### 新增
