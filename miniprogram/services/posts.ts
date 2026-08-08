@@ -92,8 +92,18 @@ export interface AIPublishSuggestion {
   sensitive_warnings?: string[]
 }
 
-export async function suggestPost(title: string, content: string): Promise<AIPublishSuggestion> {
-  return http.post<AIPublishSuggestion>('/posts/ai-suggest', { title, content })
+export interface AIPublishSuggestRequest {
+  title: string
+  content: string
+  category_id?: number
+  location_id?: number
+  contact_info?: string
+  lost_type?: 'lost' | 'found' | string
+  expire_at?: string
+}
+
+export async function suggestPost(request: AIPublishSuggestRequest): Promise<AIPublishSuggestion> {
+  return http.post<AIPublishSuggestion>('/posts/ai-suggest', request)
 }
 
 export async function deletePost(id: number): Promise<void> {

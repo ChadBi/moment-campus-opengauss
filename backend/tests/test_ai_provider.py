@@ -200,6 +200,20 @@ class TestInvokeFallbackLogging:
         assert outcome.fallback is True
         assert outcome.output_status == "json_parse_error"
 
+    async def test_publish_json_parse_fallback_reason_is_publish_specific(
+        self, db_session: AsyncSession, test_school: dict,
+    ):
+        """发布建议失败时不能显示搜索场景的降级文案。"""
+        provider = _make_provider()
+        provider.set_response("not json")
+        tenant = _guest_tenant(test_school["id"], test_school["code"])
+        outcome = await invoke_ai(
+            prompt="x", schema=SEARCH_INTENT_SCHEMA, scene="publish_suggestion",
+            tenant=tenant, db=db_session, provider=provider,
+        )
+        assert outcome.fallback is True
+        assert outcome.fallback_reason == "AI 输出解析失败，已降级为仅返回敏感信息检测结果"
+
     async def test_invoke_circuit_breaker_fallback_logs(
         self, db_session: AsyncSession, test_school: dict,
     ):

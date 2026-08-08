@@ -325,7 +325,9 @@ class TestAIPublishSuggestSuccess:
         )
         assert resp.status_code == 200
         # 默认信息截止天数应回退到 cat_lost.default_validity_days = 14
-        assert resp.json()["suggestions"]["default_validity_days"] == cat_lost.default_validity_days
+        suggestions = resp.json()["suggestions"]
+        assert suggestions["default_validity_days"] == cat_lost.default_validity_days
+        assert suggestions["category_id"] == cat_lost.id
 
     @pytest.mark.asyncio
     async def test_logs_invocation_on_success(
@@ -547,6 +549,8 @@ class TestAIPublishSensitiveDetection:
         # sensitive_findings 含 phone 类型
         assert "phone" in data["sensitive_findings"]
         assert "13800138000" in data["sensitive_findings"]["phone"]
+        # 手机号不能被 QQ 的 5-12 位数字规则重复命中
+        assert "qq" not in data["sensitive_findings"]
 
     @pytest.mark.asyncio
     async def test_detect_email(

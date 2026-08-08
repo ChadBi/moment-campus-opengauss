@@ -498,7 +498,17 @@ Page({
     }
     this.setData({ aiLoading: true, showAiSuggestion: true, aiSuggestion: null })
     try {
-      const res = await suggestPost(title, content)
+      const res = await suggestPost({
+        title,
+        content,
+        category_id: this.data.selectedCategoryId || undefined,
+        location_id: this.data.hasLocation && this.data.locationId
+          ? this.data.locationId
+          : undefined,
+        contact_info: this.data.contactInfo.trim() || undefined,
+        lost_type: this.isLostFoundCategory() ? (this.data.lostType || undefined) : undefined,
+        expire_at: this.computeExpiresAt(),
+      })
       this.setData({ aiSuggestion: res || {}, aiLoading: false })
     } catch (e: any) {
       this.setData({ aiLoading: false, showAiSuggestion: false })

@@ -76,6 +76,25 @@ _FALLBACK_REASONS = {
 }
 
 
+def _fallback_reason(scene: str, output_status: str) -> str:
+    """按业务场景生成用户可见的降级文案。"""
+    if scene == "publish_suggestion":
+        if output_status == "timeout":
+            return "AI 响应超时，已降级为仅返回敏感信息检测结果"
+        if output_status == "rate_limit":
+            return "AI 服务限流，已降级为仅返回敏感信息检测结果"
+        if output_status == "insufficient_quota":
+            return "AI 配额不足，已降级为仅返回敏感信息检测结果"
+        if output_status == "network_error":
+            return "AI 网络异常，已降级为仅返回敏感信息检测结果"
+        if output_status == "json_parse_error":
+            return "AI 输出解析失败，已降级为仅返回敏感信息检测结果"
+        if output_status == "circuit_breaker":
+            return "AI 服务熔断中，已降级为仅返回敏感信息检测结果"
+        return "AI 调用失败，已降级为仅返回敏感信息检测结果"
+    return _FALLBACK_REASONS.get(output_status, _FALLBACK_REASONS["error"])
+
+
 async def invoke_ai(
     prompt: str,
     schema: Optional[dict[str, Any]],
@@ -126,7 +145,7 @@ async def invoke_ai(
     except AIError as exc:
         output_status = exc.output_status
         latency_ms = 0  # 失败时延迟由 provider 内部计时，此处记 0（状态已是失败）
-        fallback_reason = _FALLBACK_REASONS.get(exc.output_status, _FALLBACK_REASONS["error"])
+        fallback_reason = _fallback_reason(scene, exc.output_status)
         error_msg = str(exc)[:200]
         logger.warning(
             "ai_invoke_failed school_id=%s scene=%s status=%s msg=%.200s trace=%s",
@@ -134,7 +153,7 @@ async def invoke_ai(
         )
     except Exception as exc:  # noqa: BLE001  兜底：任何未预期异常都降级
         output_status = "error"
-        fallback_reason = _FALLBACK_REASONS["error"]
+        fallback_reason = _fallback_reason(scene, "error")
         error_msg = f"{type(exc).__name__}: {str(exc)[:200]}"
         logger.exception(
             "ai_invoke_unexpected school_id=%s scene=%s trace=%s",

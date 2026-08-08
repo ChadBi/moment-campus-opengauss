@@ -125,10 +125,17 @@ def detect_sensitive_info(text: str) -> _SensitiveResult:
     warnings: list[str] = []
     findings: dict[str, list[str]] = {}
 
+    # 手机号本身也是 11 位数字，不能再次被宽松的 QQ 号规则重复命中。
+    phone_values: set[str] = set()
+    for pattern in _SENSITIVE_PATTERNS["phone"]:
+        phone_values.update(m.group(0) for m in pattern.finditer(text))
+
     for stype, patterns in _SENSITIVE_PATTERNS.items():
         matched_set: set[str] = set()
         for pattern in patterns:
             for m in pattern.finditer(text):
+                if stype == "qq" and m.group(0) in phone_values:
+                    continue
                 matched_set.add(m.group(0))
         if matched_set:
             matched_list = sorted(matched_set)
@@ -246,8 +253,15 @@ def _build_prompt(
         cat = next((c for c in categories if c.id == request.category_id), None)
         if cat is not None:
             current_fields.append(f"当前已选分类：{cat.name}")
+    if request.location_id is not None:
+        current_fields.append("当前已选择地点")
     if request.lost_type:
         current_fields.append(f"失物类型：{request.lost_type}")
+    if request.contact_info:
+        # 不把联系方式原文发送给模型；敏感信息检测由服务端确定性规则完成。
+        current_fields.append("当前已填写联系方式（无需在建议中重复）")
+    if request.expire_at:
+        current_fields.append("当前已设置信息截止时间")
     current_block = "\n".join(f"- {f}" for f in current_fields) or "- （用户未选择任何字段）"
 
     return f"""你是校园信息发布助手。请基于用户草稿给出"结构化建议"，但不直接修改用户草稿。
@@ -355,6 +369,18 @@ def _validate_suggestions(
             category_name = matched.name
             category_id = matched.id
         # 非法值直接丢弃（不向用户报错）
+
+    # 用户已经选择分类时，模型未返回或返回了无法识别的分类，保留当前选择。
+    # 这样 AI 只负责补充建议，不会让前端因为模型输出差异丢失已有表单状态。
+    if (
+        category_id is None
+        and request.category_id is not None
+        and not (isinstance(raw_category, str) and raw_category.strip())
+    ):
+        current_category = next((c for c in categories if c.id == request.category_id), None)
+        if current_category is not None:
+            category_name = current_category.name
+            category_id = current_category.id
 
     # ---- tags 字段：Task 1.3 后恒定返回空列表（不再校验白名单） ----
 
@@ -482,7 +508,9 @@ async def execute_publish_suggestion(
         tenant=tenant,
         db=db,
         user=user,
-        options=AIInvokeOptions(temperature=0.3, max_tokens=1200),
+        # DeepSeek 等推理模型会把隐藏推理 token 计入 max_tokens。
+        # 1200 可能在返回 JSON 前耗尽，导致 content 为空且 finish_reason=length。
+        options=AIInvokeOptions(temperature=0.3, max_tokens=2400),
         trace_id=trace_id,
         provider=provider,
     )
