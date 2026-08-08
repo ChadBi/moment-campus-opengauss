@@ -10,6 +10,8 @@ App({
     userInfo: null,
     version: '1.0.0',
     baseUrl: BASE_URL,
+    tabBarSelected: 0,
+    tabBarSelectedPath: '',
   },
 
   onLaunch() {

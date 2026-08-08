@@ -1,5 +1,6 @@
 import { authStore } from '../../store/auth'
 import { wechatExchange, emailLogin, wechatBindExisting } from '../../services/auth'
+import { navigateToTab } from '../../utils/tab-navigation'
 
 Page({
   data: {
@@ -56,7 +57,7 @@ Page({
       if (exchangeRes.status === 'authenticated') {
         await authStore.setAuth(exchangeRes as any)
         wx.showToast({ title: '登录成功', icon: 'success' })
-        setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
+        setTimeout(() => navigateToTab('/pages/profile/profile'), 500)
       } else if (exchangeRes.status === 'binding_required') {
         wx.navigateTo({
           url: `/pages/register/register?ticket=${exchangeRes.binding_ticket}&from=login`,
@@ -81,7 +82,7 @@ Page({
       const res = await emailLogin(this.data.email, this.data.password)
       await authStore.setAuth(res)
       wx.showToast({ title: '登录成功', icon: 'success' })
-      setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
+      setTimeout(() => navigateToTab('/pages/profile/profile'), 500)
     } catch (e: any) {
       this.setData({ errorMsg: e.message || '登录失败' })
     } finally {
@@ -107,7 +108,7 @@ Page({
       if (exchangeRes.status === 'authenticated') {
         await authStore.setAuth(exchangeRes as any)
         wx.showToast({ title: '该微信已直接登录', icon: 'success' })
-        setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
+        setTimeout(() => navigateToTab('/pages/profile/profile'), 500)
         return
       }
       if (exchangeRes.status !== 'binding_required') {
@@ -120,7 +121,7 @@ Page({
       )
       await authStore.setAuth(bindRes as any)
       wx.showToast({ title: '绑定并登录成功', icon: 'success' })
-      setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
+      setTimeout(() => navigateToTab('/pages/profile/profile'), 500)
     } catch (e: any) {
       const raw = e?.message || '绑定失败'
       const prefix = /已绑定|不能重复/.test(raw) ? '绑定失败：' : ''
@@ -150,13 +151,12 @@ Page({
 
   goToHome() {
     const url = '/pages/home/home'
-    wx.switchTab({
-      url,
-      fail: err => {
+    navigateToTab(url, {
+      fail: (err: any) => {
         console.warn('游客入口切换首页失败，改用重启导航', err)
         wx.reLaunch({
           url,
-          fail: relaunchError => {
+          fail: (relaunchError: any) => {
             console.error('游客入口导航失败', relaunchError)
             wx.showToast({ title: '首页打开失败，请重试', icon: 'none' })
           },

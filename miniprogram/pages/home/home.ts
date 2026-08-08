@@ -4,6 +4,7 @@ import { campusStore } from '../../store/campus'
 import { cachedFetch } from '../../utils/cache'
 import { getRecommendations } from '../../services/schools'
 import { listCategories, listHotPosts, listPosts } from '../../services/posts'
+import { navigateToTab, syncTabBarForPage } from '../../utils/tab-navigation'
 import type { Category, Post } from '../../types'
 
 const HOME_REFRESH_INTERVAL_MS = 60 * 1000
@@ -36,6 +37,7 @@ Page({
   },
 
   onLoad() {
+    syncTabBarForPage(0)
     authStore.subscribe(state => {
       this.setData({ isLoggedIn: state.isLoggedIn })
     })
@@ -48,9 +50,7 @@ Page({
   },
 
   onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 0 })
-    }
+    syncTabBarForPage(0)
     const now = Date.now()
     const needsRefresh =
       !this.data.homeLoaded || now - this.data.lastRefreshAt >= HOME_REFRESH_INTERVAL_MS
@@ -206,7 +206,7 @@ Page({
   },
 
   goToMap() {
-    wx.switchTab({ url: '/pages/map/map' })
+    navigateToTab('/pages/map/map')
   },
 
   goToLocations() {
@@ -214,10 +214,10 @@ Page({
   },
 
   goToPublish() {
-    wx.switchTab({ url: '/pages/publish/publish' })
+    navigateToTab('/pages/publish/publish')
   },
 
   goToProfile() {
-    wx.switchTab({ url: '/pages/profile/profile' })
+    navigateToTab('/pages/profile/profile')
   },
 })

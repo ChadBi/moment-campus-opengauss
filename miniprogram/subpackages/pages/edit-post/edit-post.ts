@@ -1,6 +1,7 @@
 import { chooseAndUploadImage } from '../../../services/upload'
 import { getPost, listCategories, transitionPost, updatePost } from '../../../services/posts'
 import { getSchoolSettings } from '../../../services/schools'
+import { navigateToTab } from '../../../utils/tab-navigation'
 import type { Category, PostImage } from '../../../types'
 
 const DAY_MS = 86400000
@@ -389,7 +390,7 @@ Page({
       setTimeout(() => {
         wx.navigateBack({
           fail: () => {
-            wx.switchTab({ url: '/pages/home/home' } as any)
+            navigateToTab('/pages/home/home')
           },
         })
       }, 1000)

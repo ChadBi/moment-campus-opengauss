@@ -5,6 +5,7 @@ import { campusStore } from '../../store/campus'
 import { authStore } from '../../store/auth'
 import { createPost, listCategories, suggestPost } from '../../services/posts'
 import { getSchoolSettings } from '../../services/schools'
+import { navigateToTab, syncTabBarForPage } from '../../utils/tab-navigation'
 import type { Category, PostImage } from '../../types'
 
 const DRAFT_KEY_PREFIX = 'publish_draft'
@@ -76,14 +77,13 @@ Page({
   },
 
   onLoad() {
+    syncTabBarForPage(3)
     this.loadCategories()
     this.restoreDraft()
   },
 
   onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 3 })
-    }
+    syncTabBarForPage(3)
     // 发布页是纯写操作，进入前就提醒登录（避免填半天表单才发现不能提交）
     guardPageLogin('请先登录后再发布帖子')
     this.consumeSelectedLocation()
@@ -446,7 +446,7 @@ Page({
       })
       setTimeout(() => {
         wx.navigateBack({
-          fail: () => wx.switchTab({ url: '/pages/home/home' } as any),
+          fail: () => navigateToTab('/pages/home/home'),
         })
       }, 1000)
     } catch (e: any) {

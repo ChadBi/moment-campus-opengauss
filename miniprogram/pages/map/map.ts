@@ -3,6 +3,7 @@ import { getLocations, getDetail, getReviews, submitReview, withdrawReview } fro
 import { listPosts } from '../../services/posts'
 import { authStore } from '../../store/auth'
 import { requireLogin } from '../../utils/auth-guard'
+import { syncTabBarForPage } from '../../utils/tab-navigation'
 import type { LocationItem, LocationReview, MapLocationPanel, MapMarker } from '../../types'
 
 interface WxMarker extends MapMarker {
@@ -87,6 +88,7 @@ Page({
   },
 
   onLoad() {
+    syncTabBarForPage(1)
     ;(this as any)._locationRequestVersion = 0
     ;(this as any)._selectedRequestVersion = 0
     ;(this as any)._hasLoadedLocations = false
@@ -123,9 +125,7 @@ Page({
   },
 
   onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 1 })
-    }
+    syncTabBarForPage(1)
     if (!(this as any)._hasLoadedLocations) {
       void this.loadLocations((this as any)._locationRequestVersion || 0)
     }

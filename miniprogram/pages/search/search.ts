@@ -2,6 +2,7 @@ import { searchPosts, aiSearch, getHotTags } from '../../services/search'
 import { formatDate, formatCount, truncateText, getRemainingTime } from '../../utils/format'
 import { campusStore } from '../../store/campus'
 import { normalizePost } from '../../services/normalize'
+import { syncTabBarForPage } from '../../utils/tab-navigation'
 
 const HISTORY_PREFIX = 'search_history_'
 const MAX_HISTORY = 20
@@ -40,14 +41,13 @@ Page({
   },
 
   onLoad() {
+    syncTabBarForPage(2)
     this.loadHistory()
     this.loadHotTags()
   },
 
   onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 2 })
-    }
+    syncTabBarForPage(2)
   },
 
   // ============== 历史与热门标签 ==============

@@ -7,6 +7,7 @@ import { listMemberships } from '../../services/schools'
 import { logout } from '../../services/auth'
 import { sendCampusVerify, confirmCampusVerify } from '../../services/auth'
 import { uploadAvatar } from '../../services/upload'
+import { navigateToTab, syncTabBarForPage } from '../../utils/tab-navigation'
 
 const STATUS_TABS = [
   { key: 'all', label: '全部' },
@@ -99,6 +100,7 @@ Page({
   },
 
   onLoad() {
+    syncTabBarForPage(4)
     authStore.subscribe(state => {
       this.setData({ isLoggedIn: state.isLoggedIn })
       if (state.isLoggedIn && state.user) {
@@ -113,9 +115,7 @@ Page({
   },
 
   async onShow() {
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ selected: 4 })
-    }
+    syncTabBarForPage(4)
     // 未登录时不再弹 Modal 打断，直接渲染「点击登录」空态卡片引导用户主动点击
     if (!authStore.getState().isLoggedIn) {
       // 清空旧登录态残留数据，避免页面切换时闪烁展示假数据
@@ -625,19 +625,19 @@ Page({
 
   // ============== tab bar 跳转 ==============
   goToHome() {
-    wx.switchTab({ url: '/pages/home/home' })
+    navigateToTab('/pages/home/home')
   },
 
   goToMap() {
-    wx.switchTab({ url: '/pages/map/map' })
+    navigateToTab('/pages/map/map')
   },
 
   goToPublish() {
-    wx.switchTab({ url: '/pages/publish/publish' })
+    navigateToTab('/pages/publish/publish')
   },
 
   goToSearch() {
-    wx.switchTab({ url: '/pages/search/search' })
+    navigateToTab('/pages/search/search')
   },
 
   goToNotifications() {

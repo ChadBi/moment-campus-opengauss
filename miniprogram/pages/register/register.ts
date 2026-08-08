@@ -2,6 +2,7 @@ import { authStore } from '../../store/auth'
 import { wechatBindExisting, wechatRegister } from '../../services/auth'
 import { listSchools, getCurrentSchool } from '../../services/schools'
 import { campusStore } from '../../store/campus'
+import { navigateToTab } from '../../utils/tab-navigation'
 import type { School } from '../../types'
 
 Page({
@@ -122,7 +123,7 @@ Page({
       }
 
       wx.showToast({ title: '成功', icon: 'success' })
-      setTimeout(() => wx.switchTab({ url: '/pages/profile/profile' }), 500)
+      setTimeout(() => navigateToTab('/pages/profile/profile'), 500)
     } catch (e: any) {
       const msg = e?.message || '操作失败'
       const status = e?.status || e?.statusCode

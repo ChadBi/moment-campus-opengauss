@@ -3,6 +3,7 @@ import { formatDate } from '../../../utils/format'
 import { authStore } from '../../../store/auth'
 import { campusStore } from '../../../store/campus'
 import { requireLogin } from '../../../utils/auth-guard'
+import { navigateToTab } from '../../../utils/tab-navigation'
 import type {
   LocationItem,
   LocationReview,
@@ -456,7 +457,7 @@ Page({
       wx.navigateBack({ delta: 1 })
     } else {
       // 栈空（分享/扫码/从系统入口进入）：降级回到首页，与🏠原行为等价但视觉是返回箭头
-      wx.switchTab({ url: '/pages/home/home' })
+      navigateToTab('/pages/home/home')
     }
   },
 
