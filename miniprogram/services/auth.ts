@@ -9,6 +9,20 @@ export async function wechatPhoneLogin(code: string, phoneCode: string, schoolCo
   })
 }
 
+export async function wechatSmsLogin(
+  code: string,
+  phone: string,
+  smsCode: string,
+  schoolCode?: string,
+): Promise<LoginResponse> {
+  return http.post<LoginResponse>('/auth/wechat/sms-login', {
+    code,
+    phone,
+    sms_code: smsCode,
+    school_code: schoolCode,
+  })
+}
+
 export async function phoneLogin(phone: string, password?: string, smsCode?: string): Promise<LoginResponse> {
   return http.post<LoginResponse>('/auth/login', {
     phone,

@@ -63,6 +63,7 @@ function isAuthUrl(url: string): boolean {
     '/auth/refresh',
     '/auth/logout',
     '/auth/wechat/phone-login',
+    '/auth/wechat/sms-login',
   ]
   return publicAuthPaths.some(path => url === path || url.startsWith(`${path}?`))
 }

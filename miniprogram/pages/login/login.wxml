@@ -1,18 +1,52 @@
-<view class="login-page">
+<view class="login-page {{step === 'phone' ? 'form-mode' : ''}}">
   <view class="brand-area">
     <view class="brand-logo"><image class="brand-logo-image" src="/assets/logo.png" mode="aspectFit" /></view>
     <text class="brand-title">欢迎回来</text>
     <text class="brand-slogan">微信登录，手机号就是你的账号</text>
   </view>
   <view class="login-card">
-    <view class="wechat-login">
-      <button class="wechat-btn {{loading ? 'disabled' : ''}}" open-type="getPhoneNumber" bindgetphonenumber="onGetPhoneNumber" disabled="{{loading}}">
+    <view wx:if="{{step === 'wechat'}}" class="wechat-login">
+      <button class="wechat-btn {{wechatLoading ? 'disabled' : ''}}" bindtap="onWechatLogin" disabled="{{wechatLoading}}" hover-class="wechat-btn-hover">
         <icon name="message-circle" size="32rpx" color="#ffffff" />
-        <text>{{loading ? '登录中...' : '微信登录并授权手机号'}}</text>
+        <text>{{wechatLoading ? '微信登录中...' : '微信登录'}}</text>
       </button>
-      <view class="login-tip"><text>首次登录自动创建账号，登录后即可浏览</text></view>
-      <view wx:if="{{errorMsg}}" class="error-msg"><icon name="alert-circle" size="24rpx" color="#cd5852" /><text>{{errorMsg}}</text></view>
+      <view class="login-tip"><text>登录后使用短信验证码绑定手机号账号</text></view>
     </view>
+
+    <view wx:else class="phone-bind-form">
+      <view class="wechat-ready">
+        <icon name="check-circle" size="32rpx" color="#3f7d62" />
+        <view class="wechat-ready-copy">
+          <text class="wechat-ready-title">微信身份已确认</text>
+          <text class="wechat-ready-tip">验证手机号后即可进入此刻校园</text>
+        </view>
+        <text class="change-wechat" bindtap="resetWechatStep">重新登录</text>
+      </view>
+
+      <view class="form-item">
+        <view class="input-wrap">
+          <icon name="phone" size="30rpx" color="#6a7d81" />
+          <input class="form-input" type="number" maxlength="11" value="{{phone}}" placeholder="请输入手机号" placeholder-class="ph" bindinput="onPhoneInput" />
+        </view>
+      </view>
+
+      <view class="form-item sms-row">
+        <view class="input-wrap sms-input-wrap">
+          <icon name="message-circle" size="30rpx" color="#6a7d81" />
+          <input class="form-input" type="number" maxlength="6" value="{{smsCode}}" placeholder="6 位短信验证码" placeholder-class="ph" bindinput="onSmsCodeInput" />
+        </view>
+        <button class="sms-code-btn {{sendingCode || countdown > 0 ? 'disabled' : ''}}" bindtap="onSendSms" disabled="{{sendingCode || countdown > 0}}">
+          {{sendingCode ? '发送中' : (countdown > 0 ? countdown + 's' : '获取验证码')}}
+        </button>
+      </view>
+
+      <button class="submit-btn {{loading ? 'disabled' : ''}}" bindtap="onSubmitWechatSmsLogin" disabled="{{loading}}" hover-class="submit-btn-hover">
+        {{loading ? '绑定登录中...' : '绑定手机号并登录'}}
+      </button>
+      <view class="login-tip"><text>首次使用将自动创建未认证账号</text></view>
+    </view>
+
+    <view wx:if="{{errorMsg}}" class="error-msg login-error"><icon name="alert-circle" size="24rpx" color="#cd5852" /><text>{{errorMsg}}</text></view>
   </view>
   <view class="guest-link" bindtap="goToHome" hover-class="guest-link-hover" hover-stay-time="120"><icon name="arrow-left" size="24rpx" color="#6a7d81" /><text>以访客身份继续浏览</text></view>
 </view>
