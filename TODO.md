@@ -2,7 +2,16 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（③ 微信小程序真机调试局域网模式全链路改造：后端 0.0.0.0 + 小程序 3 处 DEV_LAN_HOST 对齐 + project.config.urlCheck=false 显式说明 + 防火墙放行命令）
+> 最后更新：2026-08-08（④ 实际启动局域网调试环境：后端 0.0.0.0:8000 + 微信开发者工具刷新 + 局域网健康/租户接口验证）
+
+## 2026-08-08 执行任务：启动微信小程序与后端局域网调试环境
+
+- [x] **后端启动**：使用 `backend/.venv`、`APP_ENV=opengauss` 启动 Uvicorn，监听 `0.0.0.0:8000`；`http://192.168.3.10:8000/health` 返回 `{"status":"ok"}`。
+- [x] **局域网接口验证**：携带 `X-School-Code: jiangnan` 请求 `/api/v1/schools/current` 返回江南大学、`map_zoom=16`，分类接口返回 5 项。
+- [x] **小程序启动与刷新**：微信开发者工具已打开 `miniprogram/`，执行 `simulator_refresh` 并切换到 `pages/home/home`；console 的 error/warn/fail/wxss/compile 检索为空。
+- [ ] **Windows 防火墙规则**：普通权限创建 `MomentCampus Backend :8000` 被拒绝访问；需管理员 PowerShell 执行 AGENTS.md 中的幂等放行命令。
+- [ ] **真实手机链路**：尚未代替开发者完成扫码真机调试、登录、地图和发帖操作；手机需与电脑同一 Wi-Fi。
+- [x] **本次记录**：新增 [AIwork/微信小程序局域网调试环境启动任务报告.md](AIwork/微信小程序局域网调试环境启动任务报告.md)。
 
 ## 2026-08-08 执行任务：微信小程序真机调试切换局域网模式（HTTP + 同网段 IP + 不校验域名）
 
