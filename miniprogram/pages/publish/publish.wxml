@@ -286,21 +286,21 @@
     </view>
   </view>
 
-  <!-- 占位高度，避免按钮挡住内容 -->
+  <!-- 内容末端间距 -->
   <view class="bottom-placeholder"></view>
-</view>
 
-<!-- ============== 底部操作栏 ============== -->
-<view class="action-bar">
-  <view class="action-btn btn-secondary" bindtap="onSaveDraft" hover-class="action-btn-hover" hover-stay-time="120">
-    <text>{{submitting ? '保存中...' : '存为草稿'}}</text>
-  </view>
-  <view
-    class="action-btn btn-primary {{submitting ? 'disabled' : ''}}"
-    bindtap="onSubmit"
-    hover-class="action-btn-hover"
-    hover-stay-time="120">
-    <text wx:if="{{submitting}}" class="btn-loading"></text>
-    <text>{{submitting ? '提交中...' : '提交审核'}}</text>
+  <!-- ============== 页面内容末端操作栏 ============== -->
+  <view class="action-bar">
+    <view class="action-btn btn-secondary" bindtap="onSaveDraft" hover-class="action-btn-hover" hover-stay-time="120">
+      <text>{{submitting ? '保存中...' : '存为草稿'}}</text>
+    </view>
+    <view
+      class="action-btn btn-primary {{submitting ? 'disabled' : ''}}"
+      bindtap="onSubmit"
+      hover-class="action-btn-hover"
+      hover-stay-time="120">
+      <text wx:if="{{submitting}}" class="btn-loading"></text>
+      <text>{{submitting ? '提交中...' : '提交审核'}}</text>
+    </view>
   </view>
 </view>

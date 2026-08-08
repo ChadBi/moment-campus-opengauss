@@ -5,8 +5,8 @@
 
 .publish-page {
   min-height: 100vh;
-  /* 操作栏位于自定义 TabBar 上方，页面底部需同时预留两层固定元素空间。 */
-  padding: 0 0 calc(320rpx + env(safe-area-inset-bottom));
+  /* 操作栏属于页面内容末端；仅为固定 TabBar 预留滚动空间。 */
+  padding: 0 0 calc(180rpx + env(safe-area-inset-bottom));
 }
 
 /* ============== 通用 Section ============== */
@@ -378,20 +378,13 @@
 
 /* ============== 底部操作栏 ============== */
 .action-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  /* TabBar 高度约为 152rpx（含上下留白），避免提交按钮被其覆盖。 */
-  bottom: calc(152rpx + env(safe-area-inset-bottom));
   display: flex;
   align-items: center;
   gap: 20rpx;
   padding: 18rpx 30rpx;
+  margin: 0 0 24rpx;
   background: var(--paper);
   box-shadow: 0 -2rpx 12rpx rgba(21, 38, 41, 0.06);
-  /* bottom 已包含 TabBar 的安全区，操作栏内部不再重复叠加安全区。 */
-  padding-bottom: 18rpx;
-  z-index: 1000;
 }
 
 .action-btn {
