@@ -112,7 +112,12 @@ class Settings(BaseSettings):
     ALIYUN_SMS_ACCESS_KEY_SECRET: str = ""
     ALIYUN_SMS_ENDPOINT: str = "dypnsapi.aliyuncs.com"
     ALIYUN_SMS_SIGN_NAME: str = ""
+    # 按业务用途配置阿里云短信模板；旧通用字段保留作兼容兜底。
     ALIYUN_SMS_TEMPLATE_CODE: str = ""
+    ALIYUN_SMS_REGISTER_TEMPLATE_CODE: str = ""
+    ALIYUN_SMS_LOGIN_TEMPLATE_CODE: str = ""
+    ALIYUN_SMS_SET_PASSWORD_TEMPLATE_CODE: str = ""
+    ALIYUN_SMS_EDUCATION_UNBIND_TEMPLATE_CODE: str = ""
 
     # ============================================================
     # B-01: SMTP 邮件配置（校园身份认证验证邮件）

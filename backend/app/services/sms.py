@@ -37,7 +37,7 @@ def _hash_code(code: str) -> str:
 class SmsProvider(Protocol):
     name: str
 
-    async def send(self, phone: str, out_id: str, code: str | None) -> None: ...
+    async def send(self, phone: str, out_id: str, code: str | None, purpose: str = "") -> None: ...
 
     async def check(self, phone: str, out_id: str, code: str) -> bool: ...
 
@@ -45,7 +45,7 @@ class SmsProvider(Protocol):
 class MockSmsProvider:
     name = "mock"
 
-    async def send(self, phone: str, out_id: str, code: str | None) -> None:
+    async def send(self, phone: str, out_id: str, code: str | None, purpose: str = "") -> None:
         logger.info("Mock SMS sent phone=%s out_id=%s", phone[-4:], out_id)
 
     async def check(self, phone: str, out_id: str, code: str) -> bool:
@@ -55,6 +55,22 @@ class MockSmsProvider:
 
 class AliyunSmsProvider:
     name = "aliyun"
+
+    @staticmethod
+    def _template_code(purpose: str) -> str:
+        """按短信用途选择阿里云模板，兼容旧版通用模板配置。"""
+        purpose_settings = {
+            "register": "ALIYUN_SMS_REGISTER_TEMPLATE_CODE",
+            "login": "ALIYUN_SMS_LOGIN_TEMPLATE_CODE",
+            "set_password": "ALIYUN_SMS_SET_PASSWORD_TEMPLATE_CODE",
+            "education_unbind": "ALIYUN_SMS_EDUCATION_UNBIND_TEMPLATE_CODE",
+        }
+        setting_name = purpose_settings.get(purpose)
+        template_code = getattr(settings, setting_name, "") if setting_name else ""
+        template_code = template_code or settings.ALIYUN_SMS_TEMPLATE_CODE
+        if not template_code:
+            raise RuntimeError(f"未配置短信用途 {purpose} 的阿里云模板 CODE")
+        return template_code
 
     def _client(self):
         try:
@@ -69,17 +85,19 @@ class AliyunSmsProvider:
         )
         return Client(config)
 
-    async def send(self, phone: str, out_id: str, code: str | None) -> None:
+    async def send(self, phone: str, out_id: str, code: str | None, purpose: str = "") -> None:
         if not settings.ALIYUN_SMS_ACCESS_KEY_ID or not settings.ALIYUN_SMS_ACCESS_KEY_SECRET:
             raise RuntimeError("生产短信 Provider 未配置阿里云密钥")
         from alibabacloud_dypnsapi20170525 import models as dypns_models
+
+        template_code = self._template_code(purpose)
 
         # 不传明文 code，使用阿里云动态验证码机制，由 CheckSmsVerifyCode 核验。
         request = dypns_models.SendSmsVerifyCodeRequest(
             country_code="86",
             phone_number=phone,
             sign_name=settings.ALIYUN_SMS_SIGN_NAME,
-            template_code=settings.ALIYUN_SMS_TEMPLATE_CODE,
+            template_code=template_code,
             template_param=json.dumps({"code": "##code##", "min": "5"}),
             out_id=out_id,
             code_length=6,
@@ -157,7 +175,7 @@ async def send_sms_code(db: AsyncSession, phone: str, purpose: str) -> tuple[str
     )
     db.add(record)
     try:
-        await provider.send(phone, out_id, mock_code)
+        await provider.send(phone, out_id, mock_code, purpose)
         await db.commit()
     except Exception as exc:
         await db.rollback()
