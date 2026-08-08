@@ -5,7 +5,8 @@
 
 .publish-page {
   min-height: 100vh;
-  padding: 0 0 160rpx;
+  /* 操作栏位于自定义 TabBar 上方，页面底部需同时预留两层固定元素空间。 */
+  padding: 0 0 calc(320rpx + env(safe-area-inset-bottom));
 }
 
 /* ============== 通用 Section ============== */
@@ -372,7 +373,7 @@
 
 /* ============== 底部占位 ============== */
 .bottom-placeholder {
-  height: 20rpx;
+  height: 24rpx;
 }
 
 /* ============== 底部操作栏 ============== */
@@ -380,7 +381,8 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  /* TabBar 高度约为 152rpx（含上下留白），避免提交按钮被其覆盖。 */
+  bottom: calc(152rpx + env(safe-area-inset-bottom));
   display: flex;
   align-items: center;
   gap: 20rpx;
@@ -388,7 +390,7 @@
   background: var(--paper);
   box-shadow: 0 -2rpx 12rpx rgba(21, 38, 41, 0.06);
   padding-bottom: calc(18rpx + env(safe-area-inset-bottom));
-  z-index: 100;
+  z-index: 1000;
 }
 
 .action-btn {
