@@ -11,7 +11,7 @@ import { logger } from '../utils/logger';
 /**
  * UX-01.5: 通知偏好卡片
  *
- * 6 类开关：站内即时 / 订阅 / 互动 / 审核 / 治理 / 系统
+ * 5 类开关：站内即时 / 互动 / 审核 / 治理 / 系统
  * 安全账号通知（system / audit）不可全关：若将 system/audit/instant 全部关闭，
  * 后端返回 400 拒绝，前端回滚到上次保存值并提示。
  *
@@ -22,7 +22,6 @@ interface PrefRow {
   key: keyof Pick<
     NotificationPreference,
     | 'instant_enabled'
-    | 'subscription_enabled'
     | 'interaction_enabled'
     | 'audit_enabled'
     | 'governance_enabled'
@@ -41,11 +40,6 @@ const PREF_ROWS: PrefRow[] = [
     label: '站内即时通知',
     desc: '评论、点赞、审核结果等即时推送至站内通知中心',
     isSecurity: true,
-  },
-  {
-    key: 'subscription_enabled',
-    label: '订阅类',
-    desc: '订阅的话题/帖子有更新时通知',
   },
   {
     key: 'interaction_enabled',
@@ -209,7 +203,7 @@ export const NotificationPreferencesCard: React.FC<
         </span>
       </div>
 
-      {/* 6 类开关列表 */}
+      {/* 5 类开关列表 */}
       <ul className="space-y-1" role="list">
         {PREF_ROWS.map((row) => {
           const checked = preferences[row.key];

@@ -10,7 +10,7 @@
  * 使用方式：
  *   import { logger } from '@/utils/logger';
  *   logger.error('加载失败:', error);
- *   logger.warn('订阅状态查询失败:', err);
+ *   logger.warn('状态查询失败:', err);
  */
 
 type LogArgs = unknown[];

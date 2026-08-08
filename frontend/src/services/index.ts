@@ -87,5 +87,3 @@ export type {
   TopicUpdateRequest,
   TopicStatus as AdminTopicStatus,
 } from './admin';
-// SUB-01: 用户级内容订阅（分类/地点/专题）
-export { subscriptionsApi } from './subscriptions';

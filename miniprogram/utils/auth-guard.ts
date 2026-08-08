@@ -24,7 +24,7 @@ export function requireLogin(hint = '该操作需要登录后才能使用'): boo
 
 /**
  * 游客浏览入口守卫（Task 6）
- * 需要登录的页面（我的/通知/订阅/反馈/通知偏好等）在 onShow 中调用。
+ * 需要登录的页面（我的/通知/反馈/通知偏好等）在 onShow 中调用。
  * 未登录时提示并用 navigateTo 跳登录，保留返回上下文。
  */
 export function guardPageLogin(hint = '请先登录后使用'): boolean {

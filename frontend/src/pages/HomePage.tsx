@@ -90,7 +90,7 @@ const HomePage: React.FC = () => {
   const getModeHint = () => {
     if (!recMode) return null;
     if (recMode.personalized) {
-      return '基于你的浏览/搜索/订阅偏好';
+      return '基于你的浏览/搜索偏好';
     }
     switch (recMode.reason_code) {
       case 'cold_start_guest':

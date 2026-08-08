@@ -3,7 +3,6 @@ import { getPreferences, updatePreferences } from '../../services/notification-p
 
 const PREF_ITEMS = [
   { key: 'instant_enabled', label: '站内即时', desc: '实时接收重要动态的站内提醒' },
-  { key: 'subscription_enabled', label: '订阅', desc: '订阅内容更新时及时通知' },
   { key: 'interaction_enabled', label: '互动', desc: '点赞、评论、关注等互动通知' },
   { key: 'audit_enabled', label: '审核', desc: '内容审核状态与结果通知' },
   { key: 'governance_enabled', label: '治理', desc: '内容治理与举报处理结果通知' },

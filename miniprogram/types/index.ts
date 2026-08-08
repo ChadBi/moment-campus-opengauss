@@ -211,14 +211,6 @@ export interface Topic {
   sort_order?: number
 }
 
-export interface Subscription {
-  id: number
-  target_type: 'category' | 'location'
-  target_id: number
-  target_name?: string
-  created_at: string
-}
-
 export interface LoginResponse {
   access_token: string
   refresh_token: string

@@ -108,15 +108,6 @@ const NotificationsPage: React.FC = () => {
         return '🔔';
       case 'audit':
         return '📋';
-      // SUB-01.2: 四类订阅通知（新内容/更新/过期/冲突）
-      case 'subscription_new':
-        return '🔔';
-      case 'subscription_update':
-        return '🔄';
-      case 'subscription_expired':
-        return '⌛';
-      case 'subscription_conflict':
-        return '⚠️';
       default:
         return '📩';
     }

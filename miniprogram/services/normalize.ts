@@ -9,7 +9,6 @@ import type {
   SearchResult,
   School,
   SchoolMembership,
-  Subscription,
   Topic,
 } from '../types'
 import { resolveAvatar, resolveImageUrl } from './request'
@@ -237,16 +236,6 @@ export function normalizeNotification(raw: any): Notification {
     actor_name: raw?.actor_name,
     actor_avatar: raw?.actor_avatar ? resolveAvatar(raw.actor_avatar) : undefined,
     is_read: raw?.is_read === true,
-    created_at: raw?.created_at || '',
-  }
-}
-
-export function normalizeSubscription(raw: any): Subscription {
-  return {
-    id: numberOr(raw?.id, 0),
-    target_type: raw?.target_type || 'category',
-    target_id: numberOr(raw?.target_id, 0),
-    target_name: raw?.target_name || raw?.name,
     created_at: raw?.created_at || '',
   }
 }

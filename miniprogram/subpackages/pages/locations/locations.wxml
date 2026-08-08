@@ -129,9 +129,6 @@
       <view class="panel-header">
         <text class="panel-title">{{detail && detail.location.name || '地点详情'}}</text>
         <view class="panel-header-actions">
-          <view class="location-subscribe-btn {{locationSubscribed ? 'subscribed' : ''}}" bindtap="toggleLocationSubscription" hover-class="panel-close-hover" hover-stay-time="120">
-            <text>{{locationSubscriptionLoading ? '处理中' : (locationSubscribed ? '已订阅' : '订阅')}}</text>
-          </view>
           <view class="panel-close" bindtap="closeDetail" hover-class="panel-close-hover" hover-stay-time="120">
             <icon name="x" size="32rpx" color="#6a7d81" />
           </view>

@@ -2,7 +2,6 @@ import { http } from './request'
 
 export interface NotificationPreferences {
   instant_enabled: boolean
-  subscription_enabled: boolean
   interaction_enabled: boolean
   audit_enabled: boolean
   governance_enabled: boolean

@@ -4,7 +4,6 @@ import { topicsApi, type TopicDetail as TopicDetailData } from '../services/topi
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { EmptyState, ErrorState, LoadingState } from '../components/state';
-import { SubscribeButton } from '../components/SubscribeButton';
 import { ArrowLeft, Eye, Heart, MessageCircle, FileText } from 'lucide-react';
 import { logger } from '../utils/logger';
 import { formatRelativeTime, formatDate as formatDateAbs } from '../utils/date';
@@ -118,8 +117,6 @@ const TopicDetailPage: React.FC = () => {
           <h1 className="font-display font-bold text-[26px] tracking-wide text-lake leading-tight">
             {topic.title}
           </h1>
-          {/* SUB-01: 订阅本专题按钮（有新内容/更新/过期/冲突时通知） */}
-          <SubscribeButton target_type="topic" target_id={topic.id} size="sm" />
         </div>
         {topic.description && (
           <p className="text-ink-sub text-sm leading-relaxed mb-3">

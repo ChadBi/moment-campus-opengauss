@@ -19,6 +19,10 @@
   - [miniprogram/skills/moment-campus/utils/util.js](file:///e:/Project/moment-campus/miniprogram/skills/moment-campus/utils/util.js) resolveImageUrl 不再 replace 为 localhost，改用 `DEV_API_HOST + url`
   - [miniprogram/skills/moment-campus/utils/request.js](file:///e:/Project/moment-campus/miniprogram/skills/moment-campus/utils/request.js) BASE_URL 从硬编码 localhost 改为模板字符串 `${DEV_LAN_HOST}:8000`
 
+### 移除
+
+- 移除小程序和 Web 用户可见的内容订阅入口、订阅服务、订阅偏好开关及相关死代码；保留后端兼容接口、历史通知数据和平台商业订阅管理。
+
 ### 变更
 
 - 地图地点标记改为常驻显示地点名称和评分，暂无评分的地点显示“暂无评分”。
@@ -417,6 +421,8 @@
 ## [2.1.11] - 2026-08-06
 
 ### 移除
+
+- 移除小程序和 Web 用户可见的内容订阅入口、订阅服务、订阅偏好开关和相关死代码；保留后端兼容接口与平台商业订阅管理。
 
 - `miniprogram` 从 `app.json` 路由注册中移除 `pages/topics/topics` 与分包 `topic-detail/topic-detail` 两个专题页；同步删除首页 `home.wxml` 专题入口按钮与对应样式、`goToTopics` 方法，满足用户"早就说已经删除了专题和收藏功能"的要求（订阅管理 bookmark 图标属正常订阅功能，予以保留）
 

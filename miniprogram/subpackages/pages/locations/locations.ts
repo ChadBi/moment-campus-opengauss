@@ -3,7 +3,6 @@ import { formatDate } from '../../../utils/format'
 import { authStore } from '../../../store/auth'
 import { campusStore } from '../../../store/campus'
 import { requireLogin } from '../../../utils/auth-guard'
-import { createSubscription, removeSubscription, checkSubscription } from '../../../services/subscriptions'
 import type {
   LocationItem,
   LocationReview,
@@ -47,9 +46,6 @@ Page({
     createFloor: '',
     createLatitude: '',
     createLongitude: '',
-    locationSubscribed: false,
-    locationSubscriptionId: 0,
-    locationSubscriptionLoading: false,
     myReview: null as LocationReview | null,
     // 评价表单
     score: 5,
@@ -264,9 +260,6 @@ Page({
       detailNotice: '',
       detail: null,
       myReview: null,
-      locationSubscribed: false,
-      locationSubscriptionId: 0,
-      locationSubscriptionLoading: false,
       score: 5,
       content: '',
       factValue: '',
@@ -332,46 +325,6 @@ Page({
       detailError: '',
       detailNotice,
     })
-    this.loadLocationSubscription(id)
-  },
-
-  async loadLocationSubscription(id: number) {
-    if (!authStore.getState().isLoggedIn) return
-    try {
-      const result = await checkSubscription('location', id)
-      if (this.data.activeDetailId !== id) return
-      this.setData({
-        locationSubscribed: !!result.subscribed,
-        locationSubscriptionId: result.subscription_id || 0,
-      })
-    } catch {
-      // 游客或登录态刷新期间检查失败不影响地点详情展示。
-    }
-  },
-
-  async toggleLocationSubscription() {
-    if (this.data.locationSubscriptionLoading) return
-    if (!requireLogin('登录后即可订阅地点动态')) return
-    const id = this.data.activeDetailId
-    if (!id) return
-    this.setData({ locationSubscriptionLoading: true })
-    try {
-      if (this.data.locationSubscribed) {
-        if (this.data.locationSubscriptionId) {
-          await removeSubscription(this.data.locationSubscriptionId)
-        }
-        this.setData({ locationSubscribed: false, locationSubscriptionId: 0 })
-        wx.showToast({ title: '已取消订阅', icon: 'none' })
-      } else {
-        const result = await createSubscription('location', id)
-        this.setData({ locationSubscribed: true, locationSubscriptionId: result.id || 0 })
-        wx.showToast({ title: '已订阅地点', icon: 'success' })
-      }
-    } catch (e: any) {
-      wx.showToast({ title: e.message || '操作失败', icon: 'none' })
-    } finally {
-      this.setData({ locationSubscriptionLoading: false })
-    }
   },
 
   closeDetail() {

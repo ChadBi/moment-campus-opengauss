@@ -47,32 +47,6 @@
   display: block;
 }
 
-/* 订阅按钮 */
-.subscribe-btn {
-  flex-shrink: 0;
-  min-width: 140rpx;
-  height: 60rpx;
-  line-height: 60rpx;
-  padding: 0 24rpx;
-  margin: 0;
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #ffffff;
-  background: var(--lake);
-  border-radius: 999rpx;
-  border: none;
-}
-
-.subscribe-btn::after {
-  border: none;
-}
-
-.subscribe-btn.subscribed {
-  color: var(--lake);
-  background: transparent;
-  border: 2rpx solid var(--lake);
-}
-
 .topic-desc {
   margin-top: 16rpx;
   padding: 20rpx;

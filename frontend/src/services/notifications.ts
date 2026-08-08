@@ -32,7 +32,6 @@ interface UnreadCountResponse {
 // UX-01.5: 通知偏好（6 类开关）
 export interface NotificationPreference {
   instant_enabled: boolean;
-  subscription_enabled: boolean;
   interaction_enabled: boolean;
   audit_enabled: boolean;
   governance_enabled: boolean;

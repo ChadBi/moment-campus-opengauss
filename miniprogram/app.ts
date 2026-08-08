@@ -37,7 +37,7 @@ App({
     this.loadCurrentSchool()
 
     // 游客模式（Task 6）：未登录也能浏览首页/地图/搜索/详情/专题。
-    // 需要登录的页面（我的/通知/订阅/反馈等）在各自 onShow 中守卫，写操作统一引导登录。
+    // 需要登录的页面（我的/通知/反馈等）在各自 onShow 中守卫，写操作统一引导登录。
 
     // 版本更新检查（Task 7）：启动时静默检查新版本
     this.registerUpdateManager()

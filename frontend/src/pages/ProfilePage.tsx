@@ -761,7 +761,7 @@ const ProfilePage: React.FC = () => {
         onSwitched={() => { void handleSwitchSchoolDone(); }}
       />
 
-      {/* UX-01.5: 通知偏好（7 类开关 + 每日摘要时间 + 邮件同步） */}
+      {/* UX-01.5: 通知偏好 */}
       <NotificationPreferencesCard />
 
       {/* REC-01.2: 推荐隐私偏好（个性化开关 + 清除画像历史） */}
@@ -789,7 +789,7 @@ const ProfilePage: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-ink font-medium">个性化推荐</p>
                 <p className="text-[11px] text-ink-muted mt-1 leading-relaxed">
-                  开启后，首页"为你推荐"将基于你的浏览、搜索与订阅偏好做确定性排序；
+                  开启后，首页"为你推荐"将基于你的浏览与搜索偏好做确定性排序；
                   关闭后将清除所有学校的浏览历史，并改用本校热门/最新/管理员推荐。
                 </p>
               </div>
