@@ -12,6 +12,7 @@
 - [x] **业务引用**：帖子、评论、协同验证、专题、通知、举报及学校成员关系全部改为手机号关联；补充 seed 配置级手机号引用校验。
 - [x] **认证数据清理**：重建前显式清空 `user_auth_identities`、`auth_sessions`、`sms_verifications`、`binding_tickets`，并重置相关序列；微信示例身份固定为 `MOCK_OPENID_STATIC_20260808_LOCAL_DEV`。
 - [x] **活跃辅助文件**：更新 `AGENTS.md`、演示指南、前端 README、Playwright 登录 helper、状态 fixture 和手工验证脚本中的登录凭证。
+- [x] **根 README**：补充手机号/短信/微信手机号登录说明，更新三校手机号演示账号和无密码微信账号。
 - [x] **定向验证**：完成 openGauss seed 重建、数据库约束/数据计数校验、密码登录与 Mock 微信手机号登录校验；未执行后端全量测试。
 - [x] **交付**：新增 seed 配置测试、更新 CHANGELOG 和本任务中文报告；保留历史审计/变更记录及敏感/临时文件不入提交。
 
