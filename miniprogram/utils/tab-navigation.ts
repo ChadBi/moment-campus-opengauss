@@ -59,7 +59,11 @@ export function setPreparedTabBarPath(url: string): void {
 }
 
 /**
- * 在发起 switchTab 前同步导航状态，避免目标页 onShow 触发前 TabBar 仍显示旧页面。
+ * 在发起 switchTab 前只记录目标路由。
+ *
+ * 每个 Tab 页都有独立且会被缓存的自定义 TabBar 实例。这里不能提前修改
+ * 当前页的组件，否则会形成“源页先高亮目标项 -> 目标页显示自己的旧状态 ->
+ * onShow 再修正”的可见闪烁。
  */
 export function prepareTabBarSwitch(url: string): number | null {
   const index = getTabBarIndex(url)
@@ -67,14 +71,6 @@ export function prepareTabBarSwitch(url: string): number | null {
 
   setTabBarIndex(index)
   setPreparedTabBarPath(url)
-  try {
-    const pages = getCurrentPages()
-    const current = pages[pages.length - 1] as any
-    const tabBar = current && typeof current.getTabBar === 'function' ? current.getTabBar() : null
-    if (tabBar) tabBar.setData({ selected: index })
-  } catch {
-    // 非 TabBar 页面没有可同步的组件时，仅保留全局状态即可。
-  }
   return index
 }
 

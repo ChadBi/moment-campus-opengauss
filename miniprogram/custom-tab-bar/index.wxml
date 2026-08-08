@@ -4,9 +4,7 @@
       class="tab-item {{selected === 0 ? 'active' : ''}}"
       data-index="0"
       data-path="/pages/home/home"
-      bindtap="switchTab"
-      hover-class="tab-item-hover"
-      hover-stay-time="120">
+      bindtap="switchTab">
       <icon name="home" size="40rpx" color="{{selected === 0 ? '#174d5e' : 'rgba(255,255,255,0.75)'}}" />
       <text class="tab-label">首页</text>
     </view>
@@ -15,9 +13,7 @@
       class="tab-item {{selected === 1 ? 'active' : ''}}"
       data-index="1"
       data-path="/pages/map/map"
-      bindtap="switchTab"
-      hover-class="tab-item-hover"
-      hover-stay-time="120">
+      bindtap="switchTab">
       <icon name="map" size="40rpx" color="{{selected === 1 ? '#174d5e' : 'rgba(255,255,255,0.75)'}}" />
       <text class="tab-label">地图</text>
     </view>
@@ -26,9 +22,7 @@
       class="tab-item tab-publish {{selected === 3 ? 'active' : ''}}"
       data-index="3"
       data-path="/pages/publish/publish"
-      bindtap="switchTab"
-      hover-class="tab-item-hover"
-      hover-stay-time="120">
+      bindtap="switchTab">
       <view class="publish-btn">
         <icon name="plus-circle" size="48rpx" color="#ffffff" />
       </view>
@@ -39,9 +33,7 @@
       class="tab-item {{selected === 2 ? 'active' : ''}}"
       data-index="2"
       data-path="/pages/search/search"
-      bindtap="switchTab"
-      hover-class="tab-item-hover"
-      hover-stay-time="120">
+      bindtap="switchTab">
       <icon name="search" size="40rpx" color="{{selected === 2 ? '#174d5e' : 'rgba(255,255,255,0.75)'}}" />
       <text class="tab-label">搜索</text>
     </view>
@@ -50,9 +42,7 @@
       class="tab-item {{selected === 4 ? 'active' : ''}}"
       data-index="4"
       data-path="/pages/profile/profile"
-      bindtap="switchTab"
-      hover-class="tab-item-hover"
-      hover-stay-time="120">
+      bindtap="switchTab">
       <icon name="user" size="40rpx" color="{{selected === 4 ? '#174d5e' : 'rgba(255,255,255,0.75)'}}" />
       <text class="tab-label">我的</text>
     </view>

@@ -90,6 +90,8 @@ Page({
   onLoad() {
     syncTabBarForPage(1)
     ;(this as any)._locationRequestVersion = 0
+    ;(this as any)._locationsLoadingVersion = null
+    ;(this as any)._locationSchoolCode = ''
     ;(this as any)._selectedRequestVersion = 0
     ;(this as any)._hasLoadedLocations = false
     ;(this as any)._sheetScrollTop = 0
@@ -99,8 +101,22 @@ Page({
     ;(this as any)._unsubscribeCampus = campusStore.subscribe(state => {
       const school = state.currentSchool
       const schoolName = (school && school.name) || state.schoolCode
+      const schoolChanged = (this as any)._locationSchoolCode !== state.schoolCode
+      ;(this as any)._locationSchoolCode = state.schoolCode
+
+      if (!schoolChanged) {
+        this.setData({
+          schoolName,
+          latitude: school?.center_lat || DEFAULT_LAT,
+          longitude: school?.center_lng || DEFAULT_LNG,
+          scale: school?.map_zoom || DEFAULT_ZOOM,
+        })
+        return
+      }
+
       const version = ((this as any)._locationRequestVersion || 0) + 1
       ;(this as any)._locationRequestVersion = version
+      ;(this as any)._hasLoadedLocations = false
       ;(this as any)._sheetScrollTop = 0
       this.setData({
         schoolName,
@@ -112,6 +128,7 @@ Page({
         sheetDragging: false,
         sheetDragOffset: 0,
         markers: [],
+        rawLocations: [],
       })
       void this.loadLocations(version)
     })
@@ -121,19 +138,23 @@ Page({
     const unsubscribe = (this as any)._unsubscribeCampus
     if (unsubscribe) unsubscribe()
     ;(this as any)._locationRequestVersion += 1
+    ;(this as any)._locationsLoadingVersion = null
     ;(this as any)._selectedRequestVersion += 1
   },
 
   onShow() {
     syncTabBarForPage(1)
-    if (!(this as any)._hasLoadedLocations) {
+    if (!(this as any)._hasLoadedLocations && (this as any)._locationsLoadingVersion === null) {
       void this.loadLocations((this as any)._locationRequestVersion || 0)
     }
   },
 
   async loadLocations(version?: number) {
     const requestVersion = version ?? ((this as any)._locationRequestVersion || 0)
+    if ((this as any)._locationsLoadingVersion === requestVersion) return
+
     const schoolCode = campusStore.getState().schoolCode
+    ;(this as any)._locationsLoadingVersion = requestVersion
     this.setData({ locationsLoading: true, locationsError: false })
     try {
       const locations = await getLocations(schoolCode)
@@ -142,14 +163,19 @@ Page({
         markers: locations.map(location => buildMarker(location)),
         rawLocations: locations,
         selectedLocation: null,
-        locationsLoading: false,
         locationsError: false,
       })
       ;(this as any)._hasLoadedLocations = true
     } catch (e: any) {
       if (schoolCode !== campusStore.getState().schoolCode || requestVersion !== ((this as any)._locationRequestVersion || 0)) return
       console.error('加载地点标记失败', e)
-      this.setData({ locationsLoading: false, locationsError: true })
+      this.setData({ locationsError: true })
+    } finally {
+      if ((this as any)._locationsLoadingVersion !== requestVersion) return
+      ;(this as any)._locationsLoadingVersion = null
+      if (schoolCode === campusStore.getState().schoolCode && requestVersion === ((this as any)._locationRequestVersion || 0)) {
+        this.setData({ locationsLoading: false })
+      }
     }
   },
 

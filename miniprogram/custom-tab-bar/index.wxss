@@ -13,11 +13,10 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   align-items: center;
-  background: rgba(23, 77, 94, 0.96);
+  background: #174d5e;
   border-radius: 40rpx;
   border: 1rpx solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 16rpx 56rpx rgba(20, 55, 63, 0.28), 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
-  backdrop-filter: blur(20px);
   height: 120rpx;
   padding: 10rpx 8rpx;
 }
@@ -30,12 +29,7 @@
   height: 100%;
   border-radius: 24rpx;
   padding: 8rpx 4rpx;
-  transition: background 220ms cubic-bezier(0.16, 1, 0.3, 1), transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
   gap: 4rpx;
-}
-
-.tab-item-hover {
-  transform: scale(0.94);
 }
 
 .tab-item.active {
@@ -71,22 +65,10 @@
   margin-top: -44rpx;
   box-shadow: 0 10rpx 30rpx rgba(230, 115, 64, 0.38), inset 0 1rpx 0 rgba(255, 255, 255, 0.28);
   border: 2rpx solid rgba(255, 255, 255, 0.18);
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.tab-item-hover .publish-btn {
-  transform: scale(0.92);
 }
 
 .publish-label {
   margin-top: 4rpx;
   color: rgba(255, 255, 255, 0.92);
   font-weight: 600;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tab-item,
-  .publish-btn {
-    transition: none;
-  }
 }

@@ -28,6 +28,8 @@ const STATUS_LABELS: Record<string, string> = {
   archived: '已归档',
 }
 
+const PROFILE_REFRESH_INTERVAL_MS = 60 * 1000
+
 Page({
   data: {
     schoolName: '',
@@ -101,6 +103,9 @@ Page({
 
   onLoad() {
     syncTabBarForPage(4)
+    ;(this as any)._profileLoaded = false
+    ;(this as any)._lastProfileRefreshAt = 0
+    ;(this as any)._profileRefreshPromise = null
     authStore.subscribe(state => {
       this.setData({ isLoggedIn: state.isLoggedIn })
       if (state.isLoggedIn && state.user) {
@@ -143,13 +148,41 @@ Page({
         devCode: '',
         recEnabled: false,
       })
+      ;(this as any)._profileLoaded = false
+      ;(this as any)._lastProfileRefreshAt = 0
       return
     }
-    const tasks: Promise<any>[] = [this.loadUser(), this.loadStats(), this.refreshPosts(), this.loadMemberships(), this.loadRecPreference()]
-    if (this.data.activeSection === 'history') {
-      tasks.push(this.refreshHistory())
+    await this.refreshProfile()
+  },
+
+  async refreshProfile(force = false) {
+    const now = Date.now()
+    if (
+      !force &&
+      (this as any)._profileLoaded &&
+      now - Number((this as any)._lastProfileRefreshAt || 0) < PROFILE_REFRESH_INTERVAL_MS
+    ) return
+
+    if ((this as any)._profileRefreshPromise) {
+      await (this as any)._profileRefreshPromise
+      return
     }
-    await Promise.all(tasks)
+
+    const tasks: Promise<any>[] = [this.loadUser(), this.loadStats(), this.refreshPosts(false), this.loadMemberships(), this.loadRecPreference()]
+    if (this.data.activeSection === 'history') {
+      tasks.push(this.refreshHistory(false))
+    }
+    const refreshPromise = Promise.all(tasks)
+    ;(this as any)._profileRefreshPromise = refreshPromise
+    try {
+      await refreshPromise
+      ;(this as any)._profileLoaded = true
+      ;(this as any)._lastProfileRefreshAt = Date.now()
+    } finally {
+      if ((this as any)._profileRefreshPromise === refreshPromise) {
+        ;(this as any)._profileRefreshPromise = null
+      }
+    }
   },
 
   // ============== 用户信息 ==============
@@ -313,15 +346,20 @@ Page({
   },
 
   // ============== 我的帖子 ==============
-  async refreshPosts() {
-    this.setData({ page: 1, hasMore: true, posts: [] })
+  async refreshPosts(clearExisting = false) {
+    this.setData({
+      page: 1,
+      hasMore: true,
+      ...(clearExisting ? { posts: [] } : {}),
+    })
     await this.loadPosts()
   },
 
   async loadPosts() {
     if (this.data.loadingPosts || this.data.loadingMorePosts) return
     const isFirstPage = this.data.page === 1
-    this.setData({ loadingPosts: isFirstPage, loadingMorePosts: !isFirstPage })
+    const showInitialLoading = isFirstPage && this.data.posts.length === 0
+    this.setData({ loadingPosts: showInitialLoading, loadingMorePosts: !isFirstPage })
     try {
       const { activeStatus, page, pageSize } = this.data
       let url = `/users/me/posts?page=${page}&page_size=${pageSize}`
@@ -332,7 +370,7 @@ Page({
       const items = (res.items || []) as any[]
       const list = items.map((p: any) => this.normalizePost(p))
       this.setData({
-        posts: [...this.data.posts, ...list],
+        posts: isFirstPage ? list : [...this.data.posts, ...list],
         hasMore: res.has_more !== undefined ? !!res.has_more : list.length >= pageSize,
         page: page + 1,
       })
@@ -374,7 +412,7 @@ Page({
   },
 
   onPullDownRefresh() {
-    Promise.all([this.loadUser(), this.loadStats(), this.refreshPosts()])
+    this.refreshProfile(true)
       .finally(() => wx.stopPullDownRefresh())
   },
 
@@ -401,22 +439,27 @@ Page({
   },
 
   // ============== 浏览历史 ==============
-  async refreshHistory() {
-    this.setData({ historyPage: 1, historyHasMore: true, history: [] })
+  async refreshHistory(clearExisting = false) {
+    this.setData({
+      historyPage: 1,
+      historyHasMore: true,
+      ...(clearExisting ? { history: [] } : {}),
+    })
     await this.loadHistory()
   },
 
   async loadHistory() {
     if (this.data.loadingHistory || this.data.loadingMoreHistory) return
     const isFirstPage = this.data.historyPage === 1
-    this.setData({ loadingHistory: isFirstPage, loadingMoreHistory: !isFirstPage })
+    const showInitialLoading = isFirstPage && this.data.history.length === 0
+    this.setData({ loadingHistory: showInitialLoading, loadingMoreHistory: !isFirstPage })
     try {
       const { historyPage, historyPageSize } = this.data
       const res: any = await http.get(`/users/me/view-history?page=${historyPage}&page_size=${historyPageSize}`)
       const items = (res.items || res.history || res || []) as any[]
       const list = items.map((h: any) => this.normalizeHistory(h))
       this.setData({
-        history: [...this.data.history, ...list],
+        history: isFirstPage ? list : [...this.data.history, ...list],
         historyHasMore: res.has_more !== undefined ? !!res.has_more : list.length >= historyPageSize,
         historyPage: historyPage + 1,
       })
