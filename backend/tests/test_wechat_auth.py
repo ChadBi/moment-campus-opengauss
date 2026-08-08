@@ -361,7 +361,11 @@ async def test_wechat_register_email_domain_mismatch_returns_400(client: AsyncCl
 
 @pytest.mark.asyncio
 async def test_wechat_register_example_zju_email_works(client: AsyncClient, db_session: AsyncSession):
-    """微信注册：自建临时浙大校（有 example.zju.edu.cn 域名）→ 200 成功，user 正确，campus_verified=False。"""
+    """微信注册：自建临时浙大校（有 example.zju.edu.cn 域名）→ 200 成功且自动校园认证。
+
+    邮箱域名完全命中该校 SchoolDomain → 自动设置 campus_verified=True 并记录认证时间，
+    免去用户重新走 verify-campus/send→confirm 邮箱验证码流程。
+    """
     zj = await _seed_wechat_school_with_domains(
         db_session,
         suffix="zj",
@@ -388,7 +392,8 @@ async def test_wechat_register_example_zju_email_works(client: AsyncClient, db_s
     assert register_resp.status_code == 200, register_resp.text
     body = register_resp.json()
     assert body["user"]["email"] == unique_email
-    assert body["user"]["campus_verified"] is False
+    # 命中 addl_domains（example.zju.edu.cn）→ 自动认证
+    assert body["user"]["campus_verified"] is True
     assert "access_token" in body
     assert "refresh_token" in body
 

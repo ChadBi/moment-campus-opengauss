@@ -49,7 +49,10 @@ from app.services.wechat import (
     create_binding_ticket,
     consume_binding_ticket,
 )
-from app.services.school_domain import ensure_email_matches_school_domains
+from app.services.school_domain import (
+    ensure_email_matches_school_domains,
+    auto_verify_campus_domain_match,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -330,6 +333,9 @@ async def wechat_register(
     )
     db.add(user)
     await db.flush()
+
+    # 自动校园认证：邮箱域名命中该校 SchoolDomain 时直接设置 campus_verified=True
+    await auto_verify_campus_domain_match(db, user, data.school_id, email)
 
     # 6. 创建两种身份
     wechat_identity = UserAuthIdentity(

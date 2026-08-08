@@ -2,7 +2,32 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（修复新增地点按钮文字对齐）
+> 最后更新：2026-08-08（阶段七 四流程闭环+教育邮箱自动校园认证修复 v2.2.20）
+
+## 2026-08-08 执行任务：阶段七 注册×登录×发布×新增地点四流程闭环 + 教育邮箱自动认证修复
+> 用户追加要求：「一个功能都不要忘记，后台管理界面要在测试范围之内。发布流程、地点新增流程、注册流程、登录流程全都进行校验，现在是找bug阶段」
+
+- [x] **注册流程闭环（小程序端）**：新邮箱e2e_emailreg_001@example.jiangnan.edu.cn注册→automation_evaluate校验成功跳个人中心→昵称/学校/0已发布统计卡全正确；**修复P1级Bug**：register.ts误调用wechatRegister（缺少binding_ticket导致400）→改为import并调用emailRegister，修复后一次性通过。
+- [x] **登录流程闭环（小程序端）**：退出→新账号重新登录→user1演示账号再次登录，automation_evaluate onEmailLogin errorMsg=""，个人中心数据零闪烁。
+- [x] **发布流程闭环（小程序端）**：分类=分享吐槽/标题/正文→onAskAiSuggest生成AI建议→onApplyAiSuggest一键应用→onSubmitPublish发布→跳帖子详情页成功→我的帖子Tab列表状态"待审核"正确（普通用户首帖需admin审核）。
+- [x] **新增地点流程闭环（小程序端）**：subpackages/locations点"新增地点"→地图选点Modal→填纬度/经度/名称→类型=教学楼/描述/开放时间→提交成功跳location-detail→详情验证名称/类型/提交者/待核验状态。
+- [x] **Web端同四条交叉验证**：同四流程对照跑，确认教育邮箱注册两端同返回campus_verified未认证→触发后端修复。
+- [x] **差异修复：教育邮箱自动校园认证**：新增services/school_domain.py auto_verify_campus_domain_match()，命中学校任一SchoolDomain即置campus_verified=True+campus_verified_at；运营域momentcampus.com和测试邮箱qq.com不自动认证；auth.py/wechat_auth.py两注册接口flush后调用；定向回归`pytest tests/test_auth.py tests/test_wechat_auth.py -v` **38项全过**。
+- [x] **文档与交付**：任务报告 [AIwork/小程序全流程E2E排查与Web后台管理验证任务报告.md](file:///e:/Project/moment-campus/AIwork/小程序全流程E2E排查与Web后台管理验证任务报告.md) 追加2.8四流程小节、2.9修复小节、5.2修改文件列表、7.3 38项测试报告；CHANGELOG升v2.2.20；本条目更新。
+
+## 2026-08-08 执行任务：小程序全流程 E2E 排查 + Web 后台管理 19 菜单全验证
+
+- [x] **环境准备**：wechatide-skill 门禁通过；后端 /health=ok；小程序 simulator_refresh 编译成功；Web Vite 启动 http://localhost:5173/。
+- [x] **小程序 TabBar 5 页面**（首页/地图/搜索/发布/个人中心）：逐页打开 + 截图 + console grep「error/warn/fail」=0，UI 渲染全对。
+- [x] **小程序 13 个二级页**（登录/注册/帖子详情/热榜/通知/通知偏好/协议/隐私/关于/话题 + 子包 3 个）：`simulator_open_page` 全 19 次 success，console 零错误零警告。
+- [x] **小程序邮箱登录流程**（automation_evaluate 驱动）：user1@example.jiangnan.edu.cn / pass123 → onEmailLogin errorMsg="" → 跳个人中心；个人中心正确显示「江南小李/已认证/6已发布/0草稿/1待审核/3贡献」统计卡和7态筛选。
+- [x] **小程序发布页 UI 流程**：navigate → setData 填分类/标题/正文 → 截图确认 AI 助手卡片/分类/字数统计/上传限制/联系方式说明全正常。
+- [x] **Web 游客态 11 项**：/map /home /hot-ranking /search+结果 /posts/27 /topics /topics/1 /locations /locations+搜索+详情 /publish守卫重定向；Console 仅 React DevTools info，无 4xx/5xx。
+- [x] **Web 登录态 5 项**（super_admin）：登录→/map?school=jiangnan /publish 结构 /profile 资料 /notifications 通知 /map marker+抽屉。
+- [x] **Web 后台 Admin 级 13 菜单**：Dashboard/Review/Reports/Feedback/Users/Categories/Locations/Topics/Jobs/Logs/Settings/Usage/Analytics 逐个进入+滚动+Console全绿。
+- [x] **Web 后台 SuperAdmin 级 5 菜单**：Platform-Overview/Platform-Plans/Platform-Schools/Import/Funnel 逐个进入+滚动+Console全绿。
+- [x] **RBAC 权限拦截验证**：普通用户 user1 登录后手动地址栏访问 /admin → 被正确重定向回 /map，右上角无「管理后台」入口。
+- [x] **任务交付**：计划文档 [.trae/documents/小程序全流程E2E排查计划.md](file:///e:/Project/moment-campus/.trae/documents/小程序全流程E2E排查计划.md) + 任务报告 [AIwork/小程序全流程E2E排查与Web后台管理验证任务报告.md](file:///e:/Project/moment-campus/AIwork/小程序全流程E2E排查与Web后台管理验证任务报告.md)（8 节模板，覆盖 79 节点，P0/P1/P2 Bug=0）。
 
 ## 2026-08-08 执行任务：校园认证仅限注册学校与跨校只读
 

@@ -1,5 +1,5 @@
 import { authStore } from '../../store/auth'
-import { wechatBindExisting, wechatRegister } from '../../services/auth'
+import { wechatBindExisting, wechatRegister, emailRegister } from '../../services/auth'
 import { listSchools, getCurrentSchool } from '../../services/schools'
 import { campusStore } from '../../store/campus'
 import { navigateToTab } from '../../utils/tab-navigation'
@@ -107,8 +107,7 @@ Page({
           this.setData({ errorMsg: '两次输入的密码不一致' })
           return
         }
-        const res = await wechatRegister({
-          binding_ticket: this.data.bindingTicket,
+        const res = await emailRegister({
           nickname: this.data.nickname,
           school_id: this.data.schoolId,
           password: this.data.password,

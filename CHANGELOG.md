@@ -7,6 +7,22 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.20] - 2026-08-08
+
+### 修复
+
+- 修复小程序注册页邮箱 Tab「立即注册」永远 400 失败的 P1 级 Bug：`pages/register/register.ts` 错误地调用 `wechatRegister` 并传入空 `binding_ticket`，改为调用正确的 `emailRegister` 接口（无需 binding_ticket），邮箱注册链路一次通过。
+- 修复教育邮箱注册后未自动通过校园认证（`campus_verified` 始终为 False）的体验缺陷：在 `services/school_domain.py` 新增 `auto_verify_campus_domain_match()` 统一 Helper，当邮箱域名命中该校任一 `SchoolDomain`（官方主域名或 addl_domains 附加域名）时，自动标记 `campus_verified=True` 并记录认证时间；运营邮箱 `@momentcampus.com` 与测试通用邮箱 `@qq.com` 仍保持需手动走验证码流程。`/auth/register` 与 `/auth/wechat/register` 两个注册接口在创建用户 flush 后统一调用。
+
+### 新增
+
+- 阶段七 四流程闭环 E2E：使用 wechatide-skill automation_evaluate 与 browser_use 子智能体完成小程序端 + Web 端注册 × 登录 × 发布 × 新增地点四条核心链路的端到端验证，并做对照找差异。
+
+### 测试
+
+- 后端定向回归 auth + wechat_auth：`pytest tests/test_auth.py tests/test_wechat_auth.py -v` 共 38 项全通过（修复前 2 条预期 False 失败 → 修复后对齐新行为改为 True，零回归）。
+- 覆盖场景：江南大学 / 浙大 addl_domains 附加域名自动认证、qq.com 与 momentcampus.com 不自动认证保持原行为、域名拦截 400、微信绑定冲突 409、会话管理、身份管理、登录懒建身份。
+
 ## [2.2.19] - 2026-08-08
 
 ### 变更

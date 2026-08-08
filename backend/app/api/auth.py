@@ -42,7 +42,10 @@ from app.core.exceptions import (
     ConflictException,
     NotFoundException,
 )
-from app.services.school_domain import ensure_email_matches_school_domains
+from app.services.school_domain import (
+    ensure_email_matches_school_domains,
+    auto_verify_campus_domain_match,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +127,9 @@ async def register(
     )
     db.add(user)
     await db.flush()
+
+    # 自动校园认证：邮箱域名命中该校 SchoolDomain 时直接设置 campus_verified=True
+    await auto_verify_campus_domain_match(db, user, school_id, data.email)
 
     # ACC-01.5: 创建 email_password 身份记录（双读兼容策略）
     email_identity = UserAuthIdentity(

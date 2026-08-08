@@ -236,7 +236,11 @@ async def test_register_email_domain_mismatch_returns_400(client: AsyncClient, d
 
 @pytest.mark.asyncio
 async def test_register_email_domain_example_match_returns_200(client: AsyncClient, db_session: AsyncSession):
-    """邮箱注册：选临时江南校，传 @example.jiangnan.edu.cn（附加域名）→ 200 成功，campus_verified=False。"""
+    """邮箱注册：选临时江南校，传 @example.jiangnan.edu.cn（附加域名）→ 200 成功且自动校园认证。
+
+    邮箱域名完全命中该校 SchoolDomain → 自动设置 campus_verified=True 并记录认证时间，
+    免去用户重新走 send/confirm 邮箱验证码流程。
+    """
     jn = await _seed_school_with_domains(
         db_session,
         suffix="jn2",
@@ -255,7 +259,8 @@ async def test_register_email_domain_example_match_returns_200(client: AsyncClie
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body["user"]["email"] == unique_email
-    assert body["user"]["campus_verified"] is False
+    # 命中 addl_domains（example.jiangnan.edu.cn）→ 自动认证
+    assert body["user"]["campus_verified"] is True
 
 
 @pytest.mark.asyncio
