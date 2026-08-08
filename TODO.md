@@ -2,7 +2,26 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-08（微信登录链路规范化：首次登录→注册→自动绑定+登录；绑定已存在账号冲突 409 双单向校验）
+> 最后更新：2026-08-08（注册阶段强制教育邮箱校验：统一 helper + 邮箱注册 + 微信注册 + 豁免域 WHITELIST）
+
+## 2026-08-08 执行任务：注册阶段强制教育邮箱校验（B-01）
+
+- [x] **抽统一 helper `app/services/school_domain.py`**：新增 `ensure_email_matches_school_domains(db, school_id, email, *, require_email=True)`。规则：
+  ① 空邮箱 + require_email=True → 400「请填写所选学校的教育邮箱」
+  ② 无 @ 等非法格式 → 400「请输入有效的邮箱地址」
+  ③ 豁免域 `ALLOWED_NON_CAMPUS_DOMAINS = frozenset({"momentcampus.com"})` → 放行（运营账号不受学校域名限制）
+  ④ 学校不存在/未激活 → 400「所选学校不存在」
+  ⑤ 该校有 SchoolDomain 配置 + 域名不在列表 → 400 友好长提示（含允许域名 + 运营邮箱说明 + 联系校管理员加附加域名路径）
+  ⑥ 该校未配置任何 SchoolDomain（配置期极端场景）→ 放行，不 400 死锁
+  附带 `parse_email_domain(email) -> str | None` 辅助函数，统一邮箱→小写域名解析。
+- [x] **`/auth/register` 接入 helper**：在 `_resolve_school_id_from_header` 之后、"检查邮箱是否已存在"之前插入 B-01 校验（require_email=True）；新增 import `from app.services.school_domain import ensure_email_matches_school_domains`
+- [x] **`/wechat/register` 接入 helper + 移除临时邮箱 wx_xxx@momentcampus.local 生成逻辑**：原"未传 email 就 secrets.token_hex 生成 wx_xxx@momentcampus.local 临时邮箱"的分支彻底删除；改为在检查 openid 冲突之后直接调用 `ensure_email_matches_school_domains(db, data.school_id, data.email, require_email=True)`——空邮箱时 helper 直接 400「请填写所选学校的教育邮箱」；域名不匹配时 400「请使用{校}官方教育邮箱注册」。helper 内部还会校验学校存在性，因此原来的单独 SELECT School 做存在性检查一并删除，避免重复查询。
+- [x] **修复测试 helper school_code 长度**：`_seed_school_with_domains` / `_seed_wechat_school_with_domains` 两个测试自建临时学校函数，原 code 生成格式为 `test-school-{suffix}-{time_ns()}` 长度超过 `School.code` 的 varchar(20)，引发 `StringDataRightTruncationError`。改为短格式 `t{suffix}{time_ns() % 10000000:07d}`（总长度 ≤ 12），唯一且合规。
+- [x] **TDD 全程 RED-GREEN**：RED 阶段（未实现生产代码）运行目标 7 条用例 → 3 FAIL（都是 expect 400 但 got 200，正是缺少校验的症状）+ 4 PASS；修复后 7/7 全过；再跑完整 3 套件（test_auth + test_wechat_auth + test_campus_verify）合计 44/44 全绿 ✅
+- [x] **覆盖场景清单（7 条目标用例 + 回归 37 条）**：
+  邮件注册 4 条：域名不匹配→400 ✅ / @example 附加域名匹配→200（campus_verified=False）✅ / momentcampus.com 豁免域运营邮箱→200 ✅ / 学校未配置 domains→允许任意邮箱（空配置期放行）✅
+  微信注册 3 条：不传 email→400「请填写所选学校的教育邮箱」✅ / gmail 域名不匹配→400 官方教育邮箱提示 ✅ / example.zju.edu.cn 合法域名→200（campus_verified=False）✅
+  回归 37 条：test_wechat_bind_existing/register_success/delete_identity/校园认证 send/confirm/already_verified 等全链路
 
 ## 2026-08-08 执行任务：微信登录链路规范化：首次微信→注册→自动绑+登录；绑定已存在账号冲突 409 双单向校验
 

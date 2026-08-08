@@ -200,7 +200,7 @@ async def test_bind_existing_account_already_has_wechat_identity_fails(
 async def test_wechat_register_success(
     client: AsyncClient, test_school: dict, db_session: AsyncSession
 ):
-    """微信新用户注册 → 成功。"""
+    """微信新用户注册 → 成功（B-01 后必须提供邮箱；test_school 没配 SchoolDomain 所以任何邮箱皆可）。"""
     # 1. 获取 binding_ticket
     exchange_resp = await client.post(
         "/api/v1/auth/wechat/exchange",
@@ -208,7 +208,8 @@ async def test_wechat_register_success(
     )
     ticket = exchange_resp.json()["binding_ticket"]
 
-    # 2. 注册新用户
+    # 2. 注册新用户（B-01 后 email 为必填）
+    register_email = "wx_new_user_test@example.com"
     register_resp = await client.post(
         "/api/v1/auth/wechat/register",
         json={
@@ -216,6 +217,7 @@ async def test_wechat_register_success(
             "nickname": "微信新用户",
             "school_id": test_school["id"],
             "password": "securepassword123",
+            "email": register_email,
         },
     )
     assert register_resp.status_code == 200
@@ -226,6 +228,7 @@ async def test_wechat_register_success(
     assert "user" in data
     assert data["user"]["id"] >= 1
     assert data["user"]["campus_verified"] is False  # 新用户默认未进行校园邮箱验证
+    assert data["user"]["email"] == register_email
 
     # 3. 验证用户已创建
     user_check = await db_session.execute(
@@ -233,9 +236,9 @@ async def test_wechat_register_success(
     )
     user = user_check.scalar_one_or_none()
     assert user is not None
-    assert user.email.endswith("@momentcampus.local")
+    assert user.email == register_email
 
-    # 4. 验证两种身份都已创建
+    # 4. 验证两种身份都已创建（wechat_miniprogram + email_password）
     identities = (await db_session.execute(
         select(UserAuthIdentity).where(UserAuthIdentity.user_id == user.id)
     )).scalars().all()
@@ -248,7 +251,7 @@ async def test_wechat_register_success(
 async def test_wechat_register_with_email(
     client: AsyncClient, test_school: dict, db_session: AsyncSession
 ):
-    """微信注册时提供自定义邮箱。"""
+    """微信注册时提供自定义邮箱（test_school 空域名 → 放行任意邮箱）。"""
     exchange_resp = await client.post(
         "/api/v1/auth/wechat/exchange",
         json={"code": "custom_email_code"},
@@ -271,6 +274,122 @@ async def test_wechat_register_with_email(
         select(User).where(User.email == "custom@example.com")
     )
     assert user_check.scalar_one_or_none() is not None
+
+
+# ============================================================
+# B-01 微信注册邮箱域名强制校验 & 空邮箱 400
+# ============================================================
+
+
+async def _seed_wechat_school_with_domains(db_session: AsyncSession, suffix: str, domains: list[str]):
+    """事务内自建临时学校+SchoolDomain（pytest 不 seed 三校），返回学校 dict。"""
+    from app.models.school import School
+    from app.models.school_domain import SchoolDomain
+    import time as _t
+    short_code = f"w{suffix}{_t.time_ns() % 10000000:07d}"  # 保证 <=20 字，唯一
+    school = School(
+        name=f"测试校-wx-{suffix}",
+        code=short_code,
+        is_active=True,
+    )
+    db_session.add(school)
+    await db_session.flush()
+    for i, d in enumerate([x.strip().lower().lstrip("@") for x in domains if x.strip()]):
+        db_session.add(SchoolDomain(
+            school_id=school.id,
+            domain=d,
+            is_primary=(i == 0),
+        ))
+    await db_session.commit()
+    return {"id": school.id, "name": school.name, "code": school.code}
+
+
+@pytest.mark.asyncio
+async def test_wechat_register_empty_email_now_returns_400(client: AsyncClient, test_school: dict, db_session: AsyncSession):
+    """微信注册：不提供 email（或空字符串）→ B-01 后 400，请填写所选学校的教育邮箱。"""
+    exchange_resp = await client.post(
+        "/api/v1/auth/wechat/exchange",
+        json={"code": "EMPTY_EMAIL_WECHAT_FOR_TEST"},
+    )
+    assert exchange_resp.status_code == 200
+    ticket = exchange_resp.json()["binding_ticket"]
+
+    register_resp = await client.post(
+        "/api/v1/auth/wechat/register",
+        json={
+            "binding_ticket": ticket,
+            "nickname": "空邮箱新微信用户",
+            "school_id": test_school["id"],
+            "password": "pass12345",
+            # 故意不提供 email
+        },
+    )
+    assert register_resp.status_code == 400
+    assert "请填写所选学校的教育邮箱" in register_resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_wechat_register_email_domain_mismatch_returns_400(client: AsyncClient, db_session: AsyncSession):
+    """微信注册：自建临时学校（有 SchoolDomain）+ 传 gmail 邮箱 → 400 官方教育邮箱提示。"""
+    jn = await _seed_wechat_school_with_domains(
+        db_session,
+        suffix="jn",
+        domains=["jiangnan.edu.cn", "example.jiangnan.edu.cn"],
+    )
+
+    exchange_resp = await client.post(
+        "/api/v1/auth/wechat/exchange",
+        json={"code": "GMAIL_WECHAT_FOR_TEST"},
+    )
+    ticket = exchange_resp.json()["binding_ticket"]
+
+    register_resp = await client.post(
+        "/api/v1/auth/wechat/register",
+        json={
+            "binding_ticket": ticket,
+            "nickname": "gmail微信用户",
+            "school_id": jn["id"],
+            "password": "pass12345",
+            "email": "wechat_gmail_user@gmail.com",
+        },
+    )
+    assert register_resp.status_code == 400
+    assert "官方教育邮箱" in register_resp.json()["detail"]
+    assert jn["name"] in register_resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_wechat_register_example_zju_email_works(client: AsyncClient, db_session: AsyncSession):
+    """微信注册：自建临时浙大校（有 example.zju.edu.cn 域名）→ 200 成功，user 正确，campus_verified=False。"""
+    zj = await _seed_wechat_school_with_domains(
+        db_session,
+        suffix="zj",
+        domains=["zju.edu.cn", "example.zju.edu.cn"],
+    )
+
+    exchange_resp = await client.post(
+        "/api/v1/auth/wechat/exchange",
+        json={"code": "ZJU_EXAMPLE_EMAIL_WECHAT_FOR_TEST"},
+    )
+    ticket = exchange_resp.json()["binding_ticket"]
+    unique_email = f"zju_new_wx_{__import__('time').time_ns()}@example.zju.edu.cn"
+
+    register_resp = await client.post(
+        "/api/v1/auth/wechat/register",
+        json={
+            "binding_ticket": ticket,
+            "nickname": "浙大新生微信",
+            "school_id": zj["id"],
+            "password": "pass12345",
+            "email": unique_email,
+        },
+    )
+    assert register_resp.status_code == 200, register_resp.text
+    body = register_resp.json()
+    assert body["user"]["email"] == unique_email
+    assert body["user"]["campus_verified"] is False
+    assert "access_token" in body
+    assert "refresh_token" in body
 
 
 @pytest.mark.asyncio

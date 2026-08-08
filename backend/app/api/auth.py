@@ -42,6 +42,7 @@ from app.core.exceptions import (
     ConflictException,
     NotFoundException,
 )
+from app.services.school_domain import ensure_email_matches_school_domains
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +103,9 @@ async def register(
         raise BadRequestException(
             detail="无法确定注册学校，请通过 school_id 字段或 X-School-Code 头提供"
         )
+
+    # B-01: 注册阶段强制校验教育邮箱域名
+    await ensure_email_matches_school_domains(db, school_id, data.email, require_email=True)
 
     # 检查邮箱是否已存在
     result = await db.execute(select(User).where(User.email == data.email))

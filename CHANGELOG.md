@@ -7,6 +7,38 @@
 
 > **说明**：自 2026-07-26 起，详细的任务级变更追踪改由 `TODO.md` + `AIwork/` 任务报告维护，本文件仅保留版本级里程碑摘要。
 
+## [2.2.16] - 2026-08-08
+
+### 新增
+
+- **注册阶段强制教育邮箱校验（B-01 统一 helper + 双接口接入）**：
+  解决用户在注册邮箱时可以填任意 gmail/outlook 等非教育邮箱绕过「校园身份」的问题。
+
+  核心 helper（新增文件）：
+  - `app/services/school_domain.py`：
+    - `ALLOWED_NON_CAMPUS_DOMAINS = frozenset({"momentcampus.com"})` 运营豁免域白名单（`admin@momentcampus.com` 等平台账号不受学校域名限制）
+    - `parse_email_domain(email) -> Optional[str]`：统一邮箱→小写域名解析（空/无 @ 返回 None）
+    - `ensure_email_matches_school_domains(db, school_id, email, *, require_email=True)`：6 条规则流水线——①空邮箱+require_email→400「请填写所选学校的教育邮箱」②非法格式→400「请输入有效的邮箱地址」③命中豁免域→放行 ④学校不存在→400「所选学校不存在」⑤有配置域名但不匹配→400 长提示（列出允许域名 + 运营邮箱说明 + 联系校管理员路径）⑥未配置任何域名（配置期极端场景）→放行避免死锁
+
+  接入点：
+  - `app/api/auth.py` `/auth/register`：确定 school_id 后、检查邮箱是否已存在前插入 B-01 校验（require_email=True）
+  - `app/api/wechat_auth.py` `/wechat/register`：**删除** 旧的"空邮箱时 secrets.token_hex 生成 `wx_xxx@momentcampus.local` 临时邮箱"分支（这是 B-01 前的逃生舱，现在必须强校验）；改为调用 helper（require_email=True）；同步删除单独做的 SELECT School 存在性检查（helper 内部已覆盖，避免重复查询）
+
+  测试修复：
+  - `tests/test_auth.py` `_seed_school_with_domains`：`School.code` 长度为 varchar(20)，原 `test-school-{suffix}-{time_ns()}` 生成超长 → 改为 `t{suffix}{time_ns()%10000000:07d}` （≤ 12 字，唯一合规）
+  - `tests/test_wechat_auth.py` `_seed_wechat_school_with_domains`：同构修复 → `w{suffix}{time_ns()%10000000:07d}`
+
+### 校验
+
+- `$env:APP_ENV=opengauss ; $env:TEST_DATABASE_URL=postgresql+asyncpg://gaussdb:Gaussdb%40123@localhost:5432/moment_campus_test ; backend/.venv/Scripts/python -m pytest tests/test_auth.py tests/test_wechat_auth.py tests/test_campus_verify.py -v`：**44/44 全绿**（15 + 21 + 8 = 44），耗时 50.63s
+- 7 条新增目标用例 TDD RED→GREEN 完整闭环：
+  RED 阶段（helper 未接入）→ 3 FAIL（`domain_mismatch_*`×2 + `empty_email_*`×1，均 expect 400 / got 200） + 4 PASS（合法域名/豁免域/空配置期）
+  GREEN 阶段（helper 接入 + 临时邮箱分支删除）→ 7/7 全过
+- 覆盖场景枚举：
+  ✅ 邮件注册 4 条：gmail 域名不匹配→400「官方教育邮箱」+ 校名 | @example.jiangnan.edu.cn 附加域命中→200 campus_verified=False | @momentcampus.com 运营豁免域→200 | test_school 未配置任何 SchoolDomain→允许任意邮箱注册（空配置期放行不 400 死锁）
+  ✅ 微信注册 3 条：不传 email 字段→400「请填写所选学校的教育邮箱」| gmail 域名→400 官方教育邮箱 + 校名 | @example.zju.edu.cn 合法附加域→200 campus_verified=False + access_token
+  ✅ 回归 37 条：注册成功/冲突、微信 bind 成功/错密码/过期 ticket/双单向 409 冲突、identity 增删、session 管理、校园认证 send/confirm/错码/一次性/已认证拦截/鉴权
+
 ## [2.2.15] - 2026-08-08
 
 ### 修复

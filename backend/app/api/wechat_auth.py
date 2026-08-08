@@ -49,6 +49,7 @@ from app.services.wechat import (
     create_binding_ticket,
     consume_binding_ticket,
 )
+from app.services.school_domain import ensure_email_matches_school_domains
 
 logger = logging.getLogger(__name__)
 
@@ -306,24 +307,18 @@ async def wechat_register(
     if existing.scalar_one_or_none() is not None:
         raise ConflictException(detail="该微信已绑定其他账号")
 
-    # 3. 处理邮箱
-    if data.email:
-        # 使用提供的邮箱，检查是否已被注册
-        email_check = await db.execute(select(User).where(User.email == data.email))
-        if email_check.scalar_one_or_none() is not None:
-            raise ConflictException(detail="该邮箱已被注册")
-        email = data.email
-    else:
-        # 生成临时邮箱
-        import secrets
-        unique_id = secrets.token_hex(8)
-        email = f"wx_{unique_id}@momentcampus.local"
+    # 3. B-01: 注册阶段强制校验教育邮箱域名
+    #    - 空邮箱 → 400「请填写所选学校的教育邮箱」
+    #    - 域名不匹配 → 400「请使用XX官方教育邮箱注册」
+    #    - 豁免域 momentcampus.com / 学校无 SchoolDomain 配置期 → 放行
+    #    （helper 内部还会检查学校存在性，因此不再单独做 School 存在性检查）
+    await ensure_email_matches_school_domains(db, data.school_id, data.email, require_email=True)
+    email = data.email  # 经过 helper 必为非空且格式合法
 
-    # 4. 检查学校是否存在
-    school_result = await db.execute(select(School).where(School.id == data.school_id))
-    school = school_result.scalar_one_or_none()
-    if school is None or not school.is_active:
-        raise BadRequestException(detail="学校不存在或已被禁用")
+    # 4. 检查邮箱是否已被注册
+    email_check = await db.execute(select(User).where(User.email == email))
+    if email_check.scalar_one_or_none() is not None:
+        raise ConflictException(detail="该邮箱已被注册")
 
     # 5. 创建用户
     password_hash = get_password_hash(data.password)

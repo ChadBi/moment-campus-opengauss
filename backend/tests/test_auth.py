@@ -180,3 +180,127 @@ async def test_register_with_x_school_code_header_succeeds(
     assert membership.is_default is True
     assert membership.role == "member"
 
+
+# ============================================================
+# B-01 注册阶段教育邮箱强制校验（SchoolDomain 拦截）
+# 说明：pytest 不 seed 三校，每个用例在事务内临时自建 1 所学校 + 对应 SchoolDomain
+#       （测试结束自动回滚，不污染其他用例）。
+# ============================================================
+
+
+async def _seed_school_with_domains(db_session: AsyncSession, suffix: str, domains: list[str]):
+    """在当前测试事务里自建一所临时学校（含其 1~N 条 SchoolDomain），返回学校 dict。"""
+    from app.models.school import School
+    from app.models.school_domain import SchoolDomain
+    import time as _t
+    short_code = f"t{suffix}{_t.time_ns() % 10000000:07d}"  # 保证 <=20 字，唯一
+    school = School(
+        name=f"测试校-{suffix}",
+        code=short_code,
+        is_active=True,
+    )
+    db_session.add(school)
+    await db_session.flush()
+    for i, d in enumerate([x.strip().lower().lstrip("@") for x in domains if x.strip()]):
+        db_session.add(SchoolDomain(
+            school_id=school.id,
+            domain=d,
+            is_primary=(i == 0),
+        ))
+    await db_session.commit()
+    return {"id": school.id, "name": school.name, "code": school.code, "domains": domains}
+
+
+@pytest.mark.asyncio
+async def test_register_email_domain_mismatch_returns_400(client: AsyncClient, db_session: AsyncSession):
+    """邮箱注册：选临时学校（有 SchoolDomain），但传 gmail 邮箱 → 后端 400 拦，提示使用该校官方教育邮箱。"""
+    jn = await _seed_school_with_domains(
+        db_session,
+        suffix="jn",
+        domains=["jiangnan.edu.cn", "stu.jiangnan.edu.cn", "example.jiangnan.edu.cn"],
+    )
+
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "random_jiangnan@gmail.com",
+            "password": "pass12345",
+            "nickname": "gmail用户",
+            "school_id": jn["id"],
+        },
+    )
+    assert resp.status_code == 400
+    assert "官方教育邮箱" in resp.json()["detail"]
+    assert jn["name"] in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_register_email_domain_example_match_returns_200(client: AsyncClient, db_session: AsyncSession):
+    """邮箱注册：选临时江南校，传 @example.jiangnan.edu.cn（附加域名）→ 200 成功，campus_verified=False。"""
+    jn = await _seed_school_with_domains(
+        db_session,
+        suffix="jn2",
+        domains=["jiangnan.edu.cn", "example.jiangnan.edu.cn"],
+    )
+    unique_email = f"new_user_{__import__('time').time_ns()}@example.jiangnan.edu.cn"
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": unique_email,
+            "password": "pass12345",
+            "nickname": "教育邮箱新生",
+            "school_id": jn["id"],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["user"]["email"] == unique_email
+    assert body["user"]["campus_verified"] is False
+
+
+@pytest.mark.asyncio
+async def test_register_momentcampus_com_whitelist_returns_200(client: AsyncClient, db_session: AsyncSession):
+    """邮箱注册：临时复旦校有 SchoolDomain 但不包含 momentcampus.com → 因豁免域白名单，注册仍成功。"""
+    fd = await _seed_school_with_domains(
+        db_session,
+        suffix="fd",
+        domains=["fudan.edu.cn", "example.fudan.edu.cn"],
+    )
+    unique_email = f"ops_fudan_{__import__('time').time_ns()}@momentcampus.com"
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": unique_email,
+            "password": "pass12345",
+            "nickname": "复旦运营小号",
+            "school_id": fd["id"],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["user"]["email"] == unique_email
+    assert resp.json()["user"]["campus_verified"] is False
+
+
+@pytest.mark.asyncio
+async def test_register_school_with_empty_domains_allows_any_email(client: AsyncClient, test_school: dict, db_session: AsyncSession):
+    """邮箱注册：test_school 未配置任何 SchoolDomain（配置期极端场景）→ 允许任意邮箱注册，不 400 死锁。"""
+    # 先断言 test_school 确实没配任何 domains（保证用例正确性）
+    schools_resp = await client.get("/api/v1/schools")
+    my_school = next((s for s in schools_resp.json() if s["id"] == test_school["id"]), None)
+    assert my_school is not None
+    assert len(my_school["domains"]) == 0, "本用例依赖 test_school 没有 SchoolDomains（conftest 创建 test-uni 时本就没配）"
+
+    unique_email = f"temp_user_{__import__('time').time_ns()}@outlook.com"
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": unique_email,
+            "password": "pass12345",
+            "nickname": "临时用户（空域名阶段）",
+            "school_id": test_school["id"],
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["user"]["email"] == unique_email
+    assert resp.json()["user"]["campus_verified"] is False
+
