@@ -89,6 +89,9 @@ htmlcov/
 
 # E2E 测试截图（体积过大，不纳入版本控制）
 AIwork/screenshots/
+# 微信开发者工具模拟器调试截图（体积过大，不入库）
+AIwork/*_screenshot.jpg
+AIwork/*_screenshot.png
 
 # 上传文件
 uploads/
@@ -122,6 +125,14 @@ deploy/_env_prod_new
 
 # 微信开发者工具私有配置（不纳入版本控制）
 miniprogram/project.private.config.json
+
+# 小程序 TypeScript 编译产物（project.config.json 已启用 typescript 编译器插件，每次编译自动产出同名 .js）
+# 保留存在的配置文件（app.json/app.config.json/TS源文件），只忽略编译产出的同名纯 JS 文件
+miniprogram/**/*.js
+# 但不忽略 skills 分包里的 util.js / request.js（技能是原生 JS 手写的，非 TS 编译产物）
+!miniprogram/skills/**/*.js
+!miniprogram/**/*.cjs
+!miniprogram/**/*.mjs
 
 # 小程序 AI 工具链产物（一次性生成/校验元数据）
 miniprogram/.ai-mode-skills/
