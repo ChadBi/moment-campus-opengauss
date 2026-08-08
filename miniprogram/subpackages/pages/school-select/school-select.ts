@@ -120,11 +120,26 @@ Page({
     this.setData({ submitting: true })
     try {
       const oldState = campusStore.getState()
+
+      // 游客切换的是本地浏览租户，不创建/修改账号学校绑定。
+      const authState = authStore.getState()
+      if (!authState.isLoggedIn) {
+        const school = this.data.schools.find(item => item.code === code)
+        if (!school) throw new Error('学校信息不存在，请重新选择')
+        clearSchoolCache(oldState.schoolCode)
+        campusStore.setSchool(school)
+        wx.showToast({ title: '浏览学校已切换', icon: 'success' })
+        setTimeout(() => {
+          wx.navigateBack({ delta: 1 })
+        }, 500)
+        return
+      }
+
       await joinSchool(code)
       const school = await getCurrentSchool(code)
       clearSchoolCache(oldState.schoolCode)
       campusStore.setSchool(school)
-      const user = authStore.getState().user
+      const user = authState.user
       if (user) authStore.setUser({ ...user, school_id: school.id })
       wx.showToast({ title: '切换成功', icon: 'success' })
       setTimeout(() => {

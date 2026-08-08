@@ -1,5 +1,5 @@
 import { chooseAndUploadImage } from '../../services/upload'
-import { requireLogin, guardPageLogin } from '../../utils/auth-guard'
+import { requireLogin } from '../../utils/auth-guard'
 import { cachedFetch } from '../../utils/cache'
 import { campusStore } from '../../store/campus'
 import { authStore } from '../../store/auth'
@@ -92,9 +92,21 @@ Page({
 
   onShow() {
     syncTabBarForPage(3)
-    // 发布页是纯写操作，进入前就提醒登录（避免填半天表单才发现不能提交）
-    guardPageLogin('请先登录后再发布帖子')
-    if (authStore.getState().isLoggedIn && !this.data.canWrite) {
+    // 游客打开发布页时立即提醒，并返回首页，不让游客停留在写操作表单中。
+    if (!authStore.getState().isLoggedIn) {
+      if ((this as any)._guestRedirecting) return
+      ;(this as any)._guestRedirecting = true
+      wx.showModal({
+        title: '请先登录',
+        content: '登录后才能发布帖子',
+        showCancel: false,
+        confirmText: '知道了',
+        success: () => navigateToTab('/pages/home/home'),
+        fail: () => navigateToTab('/pages/home/home'),
+      })
+      return
+    }
+    if (!this.data.canWrite) {
       wx.showToast({ title: '当前学校仅支持浏览，请切回注册学校后发布', icon: 'none' })
     }
     this.consumeSelectedLocation()
