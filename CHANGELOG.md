@@ -16,6 +16,7 @@
 ### 变更
 
 - `ai` 修复 DeepSeek V4 默认思考模式耗尽地点摘要输出预算后返回空内容的问题；仅为地点摘要关闭思考模式，并增加安全的空响应诊断与结构化 JSON 兼容处理。
+- `scripts` 新增 `refresh_all_location_summaries.py` 地点摘要批量刷新脚本（标记脏→AI 生成→自动审批，支持 `--limit`/`--all`/`--school`），并清理调试期产生的 7 个一次性脚本/输出文件（`debug_*`/`test_*`/`dump_prompt`/`cleanup_summaries`/`debug_raw_output.txt`）。
 
 ## [2.2.34] - 2026-08-09
 
