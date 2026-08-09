@@ -211,7 +211,7 @@ const AdminReportsPage: React.FC = () => {
                 setFilterStatus(opt.value);
                 setPage(1);
               }}
-              className={`px-3 py-1.5 rounded text-sm transition-colors w-16 text-center ${
+              className={`px-4 py-2 rounded text-sm transition-colors min-w-[88px] text-center ${
                 filterStatus === opt.value
                   ? 'bg-lake text-paper'
                   : 'text-ink-sub hover:bg-mist'

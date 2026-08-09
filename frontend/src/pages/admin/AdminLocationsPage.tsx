@@ -261,14 +261,7 @@ const AdminLocationsPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Task 6.2: 地点核验流程引导 */}
-      <div className="flex items-start gap-2 bg-lake/5 border border-lake/20 rounded-lg px-4 py-3 text-sm text-ink-sub">
-        <Info size={16} className="text-lake flex-shrink-0 mt-0.5" />
-        <div>
-          <span className="font-medium text-ink">核验流程：</span>
-          用户发帖时新增地点 → <code className="text-xs bg-mist px-1.5 py-0.5 rounded">is_verified=false</code> → 管理员在此核验 → 标记 <code className="text-xs bg-mist px-1.5 py-0.5 rounded">is_verified=true</code> 后合并到正式地点列表。点击「详情」可在地图上查看地点位置。
-        </div>
-      </div>
+
 
       {/* 地点知识层审核队列 */}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -432,7 +425,7 @@ const AdminLocationsPage: React.FC = () => {
               placeholder="按名称搜索"
               className="w-44"
             />
-            <Button size="sm" variant="secondary" onClick={handleSearch}>
+            <Button size="sm" variant="secondary" onClick={handleSearch} className="min-w-[84px] justify-center">
               <Search size={13} className="mr-1" />
               搜索
             </Button>

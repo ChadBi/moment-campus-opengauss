@@ -356,7 +356,7 @@ const PlatformSchoolsPage: React.FC = () => {
           icon={<Search size={16} />}
           className="flex-1"
         />
-        <Button variant="primary" size="md" onClick={handleSearch}>
+        <Button variant="primary" size="md" onClick={handleSearch} className="min-w-[84px] justify-center">
           搜索
         </Button>
       </div>

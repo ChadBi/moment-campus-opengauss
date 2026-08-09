@@ -293,10 +293,10 @@ const AdminLogsPage: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center justify-end gap-2">
-            <Button size="sm" variant="text" onClick={handleClearFilter} disabled={!hasFilter}>
+            <Button size="sm" variant="text" onClick={handleClearFilter} disabled={!hasFilter} className="min-w-[72px] justify-center">
               重置
             </Button>
-            <Button size="sm" variant="primary" onClick={handleApplyFilter}>
+            <Button size="sm" variant="primary" onClick={handleApplyFilter} className="min-w-[84px] justify-center">
               <Search size={14} className="mr-1" />
               查询
             </Button>
