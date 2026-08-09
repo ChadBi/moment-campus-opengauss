@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 SUMMARY_SCENE = "location_summary"
 SUMMARY_POST_DAYS = 7
 SUMMARY_REVIEW_DAYS = 30
-SUMMARY_MAX_POSTS = 20
-SUMMARY_MAX_REVIEWS = 20
+SUMMARY_MAX_POSTS = 10
+SUMMARY_MAX_REVIEWS = 10
 
 
 def _normalize_claim(raw: dict[str, Any], idx: int) -> dict[str, Any]:
@@ -198,7 +198,7 @@ async def build_source_snapshot(
                 "source_type": "post",
                 "source_id": post.id,
                 "title": post.title,
-                "content": post.content[:1500],
+                "content": (post.content or "")[:500],
                 "created_at": post.created_at.isoformat(),
                 "author_id": post.user_id,
                 "author_name": None if post.is_anonymous else (post.user.nickname if post.user else None),
@@ -211,7 +211,7 @@ async def build_source_snapshot(
             {
                 "source_type": "review",
                 "source_id": review.id,
-                "content": review.content or "",
+                "content": (review.content or "")[:200],
                 "score": review.score,
                 "created_at": review.created_at.isoformat(),
                 "author_id": review.user_id,
@@ -331,11 +331,36 @@ def _normalise_output(parsed: Any, snapshot: dict[str, Any]) -> tuple[dict[str, 
 
 
 def _build_prompt(snapshot: dict[str, Any]) -> str:
+    schema_hint = {
+        "summary_text": "100-200字的近期动态概述",
+        "claims": [
+            {
+                "claim_id": "c1",
+                "text": "具体结论",
+                "source_refs": [{"source_type": "post", "source_id": 123}],
+            }
+        ],
+        "conflicts": [],
+    }
+    data_json = json.dumps(snapshot, ensure_ascii=False, indent=2)
     return (
-        "你是校园信息整理助手。只允许根据给定来源整理地点近期动态，不能补写来源中没有的事实。"
-        "稳定资料可以作为背景，但任何动态结论都必须引用至少两个不同用户的来源。"
-        "如果来源相互矛盾，请放入 conflicts，不能自行选择。输出严格符合 JSON Schema。\n\n"
-        + json.dumps(snapshot, ensure_ascii=False, indent=2)
+        "你是校园信息整理助手。根据以下【原始数据】，整理地点近期动态，输出一个JSON对象。\n"
+        "规则：\n"
+        "1. 只能根据原始数据中的内容整理，不能编造事实。\n"
+        "2. 动态结论必须引用至少两个不同用户的来源。\n"
+        "3. 如果信息矛盾，放入conflicts数组。\n"
+        f"4. 输出格式如下（不要输出其他解释，不要用markdown代码块）：\n{json.dumps(schema_hint, ensure_ascii=False, indent=2)}\n\n"
+        f"【原始数据】\n{data_json}"
+    )
+
+
+def _location_summary_ai_options() -> AIInvokeOptions:
+    """地点摘要使用非思考模式，避免推理占满输出 token 后没有最终 JSON。"""
+    return AIInvokeOptions(
+        temperature=0.1,
+        max_tokens=1500,
+        timeout=60.0,
+        thinking=False,
     )
 
 
@@ -376,7 +401,7 @@ async def generate_location_summary(
         tenant=tenant,
         db=db,
         user=user,
-        options=AIInvokeOptions(temperature=0.1, max_tokens=1200),
+        options=_location_summary_ai_options(),
         trace_id=trace_id,
         provider=provider,
     )

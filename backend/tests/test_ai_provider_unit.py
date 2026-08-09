@@ -12,6 +12,8 @@
 """
 import asyncio
 import json
+import logging
+from types import SimpleNamespace
 
 import pytest
 import pytest_asyncio
@@ -28,6 +30,7 @@ from app.ai.provider import (
     AIInvokeOptions,
     CircuitBreaker,
     MockAIProvider,
+    OpenAIProvider,
 )
 from app.ai.schemas import SEARCH_INTENT_SCHEMA, validate_structured_output
 
@@ -77,6 +80,60 @@ def _valid_intent_json() -> str:
     )
 
 
+class _FakeCompletions:
+    def __init__(self, response):
+        self.response = response
+        self.last_kwargs = None
+
+    async def create(self, **kwargs):
+        self.last_kwargs = kwargs
+        return self.response
+
+
+class _FakeOpenAIClient:
+    def __init__(self, response):
+        self.chat = SimpleNamespace(completions=_FakeCompletions(response))
+
+
+def _openai_response(
+    content: str = '{"ok": true}',
+    *,
+    reasoning_content: str = "",
+    finish_reason: str = "stop",
+    reasoning_tokens: int = 0,
+):
+    return SimpleNamespace(
+        id="resp-test-1",
+        choices=[SimpleNamespace(
+            finish_reason=finish_reason,
+            message=SimpleNamespace(
+                content=content,
+                reasoning_content=reasoning_content,
+            ),
+        )],
+        usage=SimpleNamespace(
+            prompt_tokens=12,
+            completion_tokens=max(reasoning_tokens, 4),
+            completion_tokens_details=SimpleNamespace(reasoning_tokens=reasoning_tokens),
+        ),
+    )
+
+
+def _make_openai_provider(model: str, api_base: str, response) -> tuple[OpenAIProvider, _FakeOpenAIClient]:
+    provider = OpenAIProvider(
+        api_key="test-key",
+        model=model,
+        timeout=15.0,
+        max_tokens=1024,
+        max_retries=0,
+        circuit=CircuitBreaker(failure_threshold=5, reset_seconds=60),
+        api_base=api_base,
+    )
+    client = _FakeOpenAIClient(response)
+    provider._client = client
+    return provider, client
+
+
 # ============================================================
 # 1. Mock Provider 正常调用 + 结构化输出
 # ============================================================
@@ -104,7 +161,25 @@ class TestMockProviderNormal:
         data = {"intent": "x", "filters": {"keyword": None, "category": None,
                 "sort": None, "date_from": None, "date_to": None}, "reasons": None}
         out = validate_structured_output(data, SEARCH_INTENT_SCHEMA)
-        assert out is data
+        assert out == data
+
+    async def test_structured_output_strips_unknown_fields_recursively(self):
+        data = {
+            "intent": "x",
+            "filters": {
+                "keyword": None,
+                "category": None,
+                "sort": None,
+                "date_from": None,
+                "date_to": None,
+                "unexpected_nested": "drop-me",
+            },
+            "reasons": None,
+            "unexpected_top": {"echo": "drop-me"},
+        }
+        out = validate_structured_output(data, SEARCH_INTENT_SCHEMA)
+        assert "unexpected_top" not in out
+        assert "unexpected_nested" not in out["filters"]
 
     async def test_structured_output_schema_fail(self):
         # 缺少 required 字段 filters → Schema 校验失败
@@ -273,3 +348,71 @@ class TestCircuitBreaker:
         assert resp.output_status == "success"
         # 成功后计数清零
         assert provider.circuit.failures == 0
+
+
+# ============================================================
+# 7. DeepSeek V4 思考模式控制与空响应诊断
+# ============================================================
+class TestDeepSeekThinkingMode:
+    async def test_deepseek_thinking_disabled_uses_extra_body(self):
+        provider, client = _make_openai_provider(
+            "deepseek-v4-flash",
+            "https://api.deepseek.com",
+            _openai_response(),
+        )
+
+        await provider._invoke(
+            "地点摘要",
+            AIInvokeOptions(thinking=False, max_tokens=1500, timeout=60.0),
+        )
+
+        kwargs = client.chat.completions.last_kwargs
+        assert kwargs["extra_body"] == {"thinking": {"type": "disabled"}}
+        assert kwargs["max_tokens"] == 1500
+        assert kwargs["timeout"] == 60.0
+
+    async def test_default_options_do_not_change_other_deepseek_scenes(self):
+        provider, client = _make_openai_provider(
+            "deepseek-v4-flash",
+            "https://api.deepseek.com",
+            _openai_response(),
+        )
+
+        await provider._invoke("AI 搜索", AIInvokeOptions())
+
+        assert "extra_body" not in client.chat.completions.last_kwargs
+
+    async def test_non_deepseek_provider_ignores_thinking_option(self):
+        provider, client = _make_openai_provider(
+            "gpt-4o-mini",
+            "https://api.openai.com/v1",
+            _openai_response(),
+        )
+
+        await provider._invoke("普通请求", AIInvokeOptions(thinking=False))
+
+        assert "extra_body" not in client.chat.completions.last_kwargs
+
+    async def test_empty_content_logs_safe_reasoning_metadata(self, caplog):
+        provider, _ = _make_openai_provider(
+            "deepseek-v4-flash",
+            "https://api.deepseek.com",
+            _openai_response(
+                content="",
+                reasoning_content="内部推理内容",
+                finish_reason="length",
+                reasoning_tokens=1500,
+            ),
+        )
+
+        with caplog.at_level(logging.WARNING, logger="app.ai.provider"):
+            result = await provider._invoke("敏感 prompt 不应进入日志", AIInvokeOptions())
+
+        assert result.content == ""
+        assert "ai_provider_empty_content" in caplog.text
+        assert "response_id=resp-test-1" in caplog.text
+        assert "finish_reason=length" in caplog.text
+        assert "reasoning_tokens=1500" in caplog.text
+        assert "reasoning_length=6" in caplog.text
+        assert "内部推理内容" not in caplog.text
+        assert "敏感 prompt" not in caplog.text

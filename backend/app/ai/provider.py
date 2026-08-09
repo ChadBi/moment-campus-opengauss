@@ -51,6 +51,7 @@ class AIInvokeOptions:
     max_retries: Optional[int] = None  # None → 用 settings.AI_MAX_RETRIES
     temperature: float = 0.2
     system_prompt: Optional[str] = None  # 可选系统提示
+    thinking: Optional[bool] = None  # DeepSeek V4 思考模式；None → 使用服务端默认值
 
 
 @dataclass
@@ -166,7 +167,7 @@ class AIProvider:
     # ------------------------------------------------------------
     # 子类实现
     # ------------------------------------------------------------
-    async def _invoke(self, prompt: str, options: AIInvokeOptions) -> AIInvokeResult:
+    async def _invoke(self, prompt: str, options: AIInvokeOptions, schema: Optional[dict[str, Any]] = None) -> AIInvokeResult:
         raise NotImplementedError
 
     # ------------------------------------------------------------
@@ -209,7 +210,7 @@ class AIProvider:
             attempt += 1
             try:
                 raw = await asyncio.wait_for(
-                    self._invoke(prompt, opts),
+                    self._invoke(prompt, opts, schema),
                     timeout=timeout,
                 )
             except asyncio.TimeoutError as exc:
@@ -233,7 +234,16 @@ class AIProvider:
                 latency_ms = int((time.monotonic() - start) * 1000)
                 parsed = None
                 if schema is not None:
-                    parsed = self._parse_and_validate(raw.content, schema)
+                    try:
+                        parsed = self._parse_and_validate(raw.content, schema)
+                    except AIJSONParseError:
+                        logger.warning(
+                            "ai_provider_json_parse_failed provider=%s model=%s content_length=%s",
+                            self.name,
+                            raw.model,
+                            len(raw.content),
+                        )
+                        raise
                 await self.circuit.record_success()
                 return AIResponse(
                     content=raw.content,
@@ -290,17 +300,42 @@ class AIProvider:
 
 
 def _extract_json_block(text: str) -> Any:
-    """从 markdown ```json 代码块中提取 JSON。"""
-    import re
+    """从模型输出中提取 JSON，支持多种包裹方式。
 
+    策略：
+    1. 尝试提取 ```json ... ``` 或 ``` ... ``` 代码块
+    2. 尝试找到第一个 { 或 [ 到最后一个匹配的 } 或 ]
+    """
+    # 策略1：markdown 代码块
     pattern = re.compile(r"```(?:json)?\s*(\{.*?\}|\[.*?\])\s*```", re.DOTALL)
     match = pattern.search(text)
-    if not match:
-        return None
-    try:
-        return json.loads(match.group(1))
-    except json.JSONDecodeError:
-        return None
+    if match:
+        try:
+            return json.loads(match.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # 策略2：找到第一个 { 到最后一个 }（处理嵌套对象）
+    first_brace = text.find("{")
+    last_brace = text.rfind("}")
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        candidate = text[first_brace:last_brace + 1]
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass
+
+    # 策略3：找到第一个 [ 到最后一个 ]（处理数组）
+    first_bracket = text.find("[")
+    last_bracket = text.rfind("]")
+    if first_bracket != -1 and last_bracket != -1 and last_bracket > first_bracket:
+        candidate = text[first_bracket:last_bracket + 1]
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            pass
+
+    return None
 
 
 # ============================================================
@@ -343,7 +378,19 @@ class OpenAIProvider(AIProvider):
             self._client = AsyncOpenAI(**kwargs)
         return self._client
 
-    async def _invoke(self, prompt: str, options: AIInvokeOptions) -> AIInvokeResult:
+    def _is_deepseek(self) -> bool:
+        """判断当前 OpenAI 兼容端点是否为 DeepSeek。"""
+        return (
+            self.model.lower().startswith("deepseek-")
+            or "deepseek.com" in self.api_base.lower()
+        )
+
+    async def _invoke(
+        self,
+        prompt: str,
+        options: AIInvokeOptions,
+        schema: Optional[dict[str, Any]] = None,
+    ) -> AIInvokeResult:
         client = self._get_client()
         messages: list[dict[str, str]] = []
         if options.system_prompt:
@@ -351,23 +398,48 @@ class OpenAIProvider(AIProvider):
         messages.append({"role": "user", "content": prompt})
 
         max_tokens = options.max_tokens or self.max_tokens
+        effective_timeout = options.timeout or self.timeout
         try:
-            resp = await client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=options.temperature,
-                max_tokens=max_tokens,
-            )
+            kwargs: dict[str, Any] = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": options.temperature,
+                "max_tokens": max_tokens,
+                "timeout": effective_timeout,
+            }
+            if options.thinking is not None and self._is_deepseek():
+                kwargs["extra_body"] = {
+                    "thinking": {"type": "enabled" if options.thinking else "disabled"},
+                }
+            resp = await client.chat.completions.create(**kwargs)
         except Exception as exc:  # noqa: BLE001  统一分类
             raise self._classify_openai_error(exc) from exc
 
-        content = resp.choices[0].message.content or ""
-        usage = resp.usage
+        choice = resp.choices[0]
+        message = choice.message
+        content = message.content or ""
+        usage = getattr(resp, "usage", None)
+        output_tokens = getattr(usage, "completion_tokens", 0) or 0
+        completion_details = getattr(usage, "completion_tokens_details", None)
+        reasoning_tokens = getattr(completion_details, "reasoning_tokens", 0) or 0
+        reasoning_content = getattr(message, "reasoning_content", None) or ""
+        if not content:
+            logger.warning(
+                "ai_provider_empty_content provider=%s model=%s response_id=%s "
+                "finish_reason=%s output_tokens=%s reasoning_tokens=%s reasoning_length=%s",
+                self.name,
+                self.model,
+                getattr(resp, "id", None),
+                getattr(choice, "finish_reason", None),
+                output_tokens,
+                reasoning_tokens,
+                len(reasoning_content),
+            )
         return AIInvokeResult(
             content=content,
             model=self.model,
             input_tokens=getattr(usage, "prompt_tokens", 0) or 0,
-            output_tokens=getattr(usage, "completion_tokens", 0) or 0,
+            output_tokens=output_tokens,
         )
 
     @staticmethod
@@ -633,7 +705,7 @@ class MockAIProvider(AIProvider):
         return self._response
 
     # ----- 实现 -----
-    async def _invoke(self, prompt: str, options: AIInvokeOptions) -> AIInvokeResult:
+    async def _invoke(self, prompt: str, options: AIInvokeOptions, schema: Optional[dict[str, Any]] = None) -> AIInvokeResult:
         self.call_count += 1
         self.last_prompt = prompt
         if self._delay is not None:

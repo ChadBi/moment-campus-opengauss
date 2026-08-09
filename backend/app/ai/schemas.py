@@ -111,26 +111,56 @@ PUBLISH_SUGGESTION_SCHEMA: dict[str, Any] = {
 }
 
 
+def _strip_additional_properties(data: Any, schema: dict[str, Any]) -> Any:
+    """递归剥离 schema 中未声明的额外字段。
+
+    部分模型（如 DeepSeek）在 response_format=json_object 模式下仍会回显输入字段，
+    导致 additionalProperties:false 的严格校验失败。本函数在校验前清洗数据，
+    仅保留 schema.properties 中声明的键。
+    """
+    if not isinstance(schema, dict):
+        return data
+
+    schema_type = schema.get("type")
+
+    if schema_type == "object" and isinstance(data, dict):
+        properties = schema.get("properties", {})
+        allowed_keys = set(properties.keys())
+        stripped = {k: data[k] for k in data if k in allowed_keys}
+        for key, sub_schema in properties.items():
+            if key in stripped:
+                stripped[key] = _strip_additional_properties(stripped[key], sub_schema)
+        return stripped
+
+    if schema_type == "array" and isinstance(data, list):
+        items_schema = schema.get("items", {})
+        return [_strip_additional_properties(item, items_schema) for item in data]
+
+    return data
+
+
 def validate_structured_output(data: Any, schema: dict[str, Any]) -> Any:
     """用 JSON Schema 校验模型结构化输出。
+
+    校验前会自动剥离 schema 未声明的额外字段（应对 AI 回显输入字段的情况）。
 
     Args:
         data: 已解析的 Python 对象（通常为 dict）
         schema: JSON Schema 字典
 
     Returns:
-        校验通过时返回原 data。
+        校验通过时返回清洗后的 data。
 
     Raises:
         AIJSONParseError: 校验失败，message 含可读的校验路径与原因。
     """
+    cleaned = _strip_additional_properties(data, schema)
     try:
-        jsonschema.validate(instance=data, schema=schema)
+        jsonschema.validate(instance=cleaned, schema=schema)
     except ValidationError as exc:
-        # path 为空时显示 <root>
         path = ".".join(str(p) for p in exc.absolute_path) or "<root>"
         raise AIJSONParseError(
             f"结构化输出校验失败：路径 {path} - {exc.message}",
             provider_message=exc.message,
         ) from exc
-    return data
+    return cleaned

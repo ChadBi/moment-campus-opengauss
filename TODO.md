@@ -2,7 +2,18 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-09（彻底修复跨校管理员登录需两次点击问题）
+> 最后更新：2026-08-09（修复 DeepSeek 地点摘要空响应）
+
+## 2026-08-09 修复：DeepSeek 地点摘要 HTTP 200 但返回空内容
+
+> 问题原因：`deepseek-v4-flash` 默认启用思考模式，地点摘要仅提供 1500 个输出 token 时，复杂来源整理可能先耗尽推理预算，导致 HTTP 200 但最终 `message.content` 为空；原 Provider 又只读取最终内容，没有记录结束原因和推理 token 元数据。
+
+- [x] **地点摘要关闭思考模式**：为 `AIInvokeOptions` 增加可选 `thinking`，地点摘要固定传 `thinking=False`，Provider 仅对 DeepSeek 请求转换为 `extra_body.thinking.type=disabled`
+- [x] **保持其他 AI 场景不变**：AI 搜索、辅助发布等未传 `thinking` 的调用继续使用服务端默认行为；非 DeepSeek Provider 忽略该选项
+- [x] **补充安全诊断日志**：空内容时记录 response id、finish reason、输出/推理 token 和推理内容长度，不记录 prompt、推理正文或密钥
+- [x] **增强结构化输出兼容**：支持从非代码块文本中提取 JSON，并在 Schema 校验前递归剥离模型回显的未声明字段
+- [x] **AI 专项测试**：Provider 与地点摘要纯函数测试 26/26 通过
+- [x] **真实 DeepSeek 验证**：南门地点摘要 prompt 长度 1663，单次请求返回 607 字符，成功解析 `summary_text/claims/conflicts`，输入 635 tokens、输出 221 tokens
 
 ## 2026-08-09 彻底修复：跨校管理员登录需两次点击问题
 

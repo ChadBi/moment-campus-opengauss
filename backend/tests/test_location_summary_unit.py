@@ -2,7 +2,11 @@
 
 import pytest
 
-from app.services.location_summary import _normalise_output, snapshot_hash
+from app.services.location_summary import (
+    _location_summary_ai_options,
+    _normalise_output,
+    snapshot_hash,
+)
 
 
 def _snapshot():
@@ -77,3 +81,11 @@ def test_summary_accepts_two_authors_and_rejects_virtual_source():
 
 def test_snapshot_hash_is_stable_for_same_payload():
     assert snapshot_hash(_snapshot()) == snapshot_hash(_snapshot())
+
+
+def test_location_summary_disables_deepseek_thinking_mode():
+    options = _location_summary_ai_options()
+    assert options.temperature == 0.1
+    assert options.max_tokens == 1500
+    assert options.timeout == 60.0
+    assert options.thinking is False
