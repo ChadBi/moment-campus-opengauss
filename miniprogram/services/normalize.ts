@@ -10,6 +10,7 @@ import type {
   School,
   SchoolMembership,
   Topic,
+  User,
 } from '../types'
 import { resolveAvatar, resolveImageUrl } from './request'
 
@@ -290,5 +291,24 @@ export function normalizeTopic(raw: any): Topic {
     view_count: numberOr(raw?.view_count, 0),
     is_featured: raw?.is_featured,
     sort_order: raw?.sort_order,
+  }
+}
+
+export function normalizeUser(raw: any): User {
+  return {
+    id: numberOr(raw?.id, 0),
+    phone: raw?.phone ?? null,
+    education_email: raw?.education_email ?? null,
+    has_password: raw?.has_password === true,
+    nickname: String(raw?.nickname || '校园用户'),
+    avatar_url: raw?.avatar_url ? resolveAvatar(raw.avatar_url) : undefined,
+    bio: raw?.bio ?? undefined,
+    school_id: numberOr(raw?.school_id, 0),
+    registration_school_id: raw?.registration_school_id ?? null,
+    role: raw?.role || 'user',
+    is_active: raw?.is_active !== false,
+    created_at: raw?.created_at || '',
+    campus_verified: raw?.campus_verified === true,
+    campus_verified_at: raw?.campus_verified_at ?? undefined,
   }
 }

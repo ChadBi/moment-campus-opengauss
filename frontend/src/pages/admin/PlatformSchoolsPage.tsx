@@ -11,6 +11,7 @@ import {
   type SubscriptionHistoryResponse,
   type SchoolAlertsResponse,
   type SubscriptionAssignRequest,
+  type SchoolCreateRequest,
 } from '../../services/platform';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -83,6 +84,26 @@ const PlatformSchoolsPage: React.FC = () => {
   } | null>(null);
   const [statusReason, setStatusReason] = useState('');
   const [statusSubmitting, setStatusSubmitting] = useState(false);
+
+  // 新增学校弹窗
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    code: '',
+    name: '',
+    province: '',
+    city: '',
+    address: '',
+    center_lat: '',
+    center_lng: '',
+    map_zoom: '15',
+    logo_url: '',
+    brand_color: '',
+    description: '',
+    admin_email: '',
+    plan_code: '',
+  });
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [plans, setPlans] = useState<Array<{ code: string; name: string }>>([]);
 
   const loadData = useCallback(async () => {
     try {
@@ -212,6 +233,67 @@ const PlatformSchoolsPage: React.FC = () => {
     }
   };
 
+  /** 打开新增学校弹窗 */
+  const openCreateModal = () => {
+    setCreateForm({
+      code: '',
+      name: '',
+      province: '',
+      city: '',
+      address: '',
+      center_lat: '',
+      center_lng: '',
+      map_zoom: '15',
+      logo_url: '',
+      brand_color: '',
+      description: '',
+      admin_email: '',
+      plan_code: '',
+    });
+    setCreateModalOpen(true);
+    if (plans.length === 0) {
+      platformApi.listPlans().then((data) => {
+        setPlans(data.filter((p) => p.status === 'active').map((p) => ({ code: p.code, name: p.name })));
+      }).catch(() => {});
+    }
+  };
+
+  /** 提交新增学校 */
+  const handleCreateSchool = async () => {
+    if (!createForm.code.trim() || !createForm.name.trim()) {
+      showToast('请填写学校代码和名称', 'error');
+      return;
+    }
+    setCreateSubmitting(true);
+    try {
+      const payload: SchoolCreateRequest = {
+        code: createForm.code.trim(),
+        name: createForm.name.trim(),
+        province: createForm.province.trim() || null,
+        city: createForm.city.trim() || null,
+        address: createForm.address.trim() || null,
+        center_lat: createForm.center_lat ? Number(createForm.center_lat) : null,
+        center_lng: createForm.center_lng ? Number(createForm.center_lng) : null,
+        map_zoom: createForm.map_zoom ? Number(createForm.map_zoom) : null,
+        logo_url: createForm.logo_url.trim() || null,
+        brand_color: createForm.brand_color.trim() || null,
+        description: createForm.description.trim() || null,
+        admin_email: createForm.admin_email.trim() || null,
+        plan_code: createForm.plan_code || null,
+      };
+      await platformApi.createSchool(payload);
+      showToast('学校创建成功', 'success');
+      setCreateModalOpen(false);
+      setPage(1);
+      void loadData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '创建失败';
+      showToast(message, 'error');
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
+
   if (!isSuperAdmin) {
     return (
       <div className="py-16 text-center">
@@ -241,15 +323,25 @@ const PlatformSchoolsPage: React.FC = () => {
             管理平台学校、开通清单、订阅与告警
           </p>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<RefreshCw size={14} />}
-          loading={refreshing}
-          onClick={handleRefresh}
-        >
-          刷新
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Plus size={14} />}
+            onClick={openCreateModal}
+          >
+            新增学校
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<RefreshCw size={14} />}
+            loading={refreshing}
+            onClick={handleRefresh}
+          >
+            刷新
+          </Button>
+        </div>
       </div>
 
       {/* 搜索栏 */}
@@ -677,6 +769,144 @@ const PlatformSchoolsPage: React.FC = () => {
               onClick={handleStatusChange}
             >
               确定
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 新增学校弹窗 */}
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="新增学校"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="学校代码"
+              placeholder="如 jiangnan"
+              value={createForm.code}
+              onChange={(e) => setCreateForm({ ...createForm, code: e.target.value })}
+              required
+            />
+            <Input
+              label="学校名称"
+              placeholder="如 江南大学"
+              value={createForm.name}
+              onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="省份"
+              placeholder="如 江苏省"
+              value={createForm.province}
+              onChange={(e) => setCreateForm({ ...createForm, province: e.target.value })}
+            />
+            <Input
+              label="城市"
+              placeholder="如 无锡市"
+              value={createForm.city}
+              onChange={(e) => setCreateForm({ ...createForm, city: e.target.value })}
+            />
+          </div>
+          <Input
+            label="详细地址（可选）"
+            placeholder="如 江苏省无锡市滨湖区蠡湖大道1800号"
+            value={createForm.address}
+            onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })}
+          />
+          <div className="grid grid-cols-3 gap-3">
+            <Input
+              label="中心纬度"
+              type="number"
+              step="0.000001"
+              placeholder="31.483652"
+              value={createForm.center_lat}
+              onChange={(e) => setCreateForm({ ...createForm, center_lat: e.target.value })}
+            />
+            <Input
+              label="中心经度"
+              type="number"
+              step="0.000001"
+              placeholder="120.27116"
+              value={createForm.center_lng}
+              onChange={(e) => setCreateForm({ ...createForm, center_lng: e.target.value })}
+            />
+            <Input
+              label="地图缩放"
+              type="number"
+              min="1"
+              max="20"
+              placeholder="15"
+              value={createForm.map_zoom}
+              onChange={(e) => setCreateForm({ ...createForm, map_zoom: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Logo URL（可选）"
+              placeholder="https://example.com/logo.png"
+              value={createForm.logo_url}
+              onChange={(e) => setCreateForm({ ...createForm, logo_url: e.target.value })}
+            />
+            <Input
+              label="品牌色（可选）"
+              placeholder="#174d5e"
+              value={createForm.brand_color}
+              onChange={(e) => setCreateForm({ ...createForm, brand_color: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">
+              初始套餐
+            </label>
+            <select
+              value={createForm.plan_code}
+              onChange={(e) => setCreateForm({ ...createForm, plan_code: e.target.value })}
+              className="select-nice"
+            >
+              <option value="">不分配套餐</option>
+              {plans.map((p) => (
+                <option key={p.code} value={p.code}>
+                  {p.name}（{p.code}）
+                </option>
+              ))}
+            </select>
+          </div>
+          <Input
+            label="管理员邮箱（可选）"
+            type="email"
+            placeholder="admin@school.edu.cn"
+            value={createForm.admin_email}
+            onChange={(e) => setCreateForm({ ...createForm, admin_email: e.target.value })}
+          />
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">
+              描述（可选）
+            </label>
+            <textarea
+              value={createForm.description}
+              onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+              rows={2}
+              placeholder="学校简介"
+              className="w-full px-3.5 py-2 bg-paper border border-line rounded-[10px] text-sm text-ink placeholder:text-ink-muted/60 focus:outline-none focus:border-lake resize-none"
+            />
+          </div>
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button variant="secondary" size="sm" onClick={() => setCreateModalOpen(false)}>
+              取消
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={createSubmitting}
+              icon={<Plus size={14} />}
+              onClick={handleCreateSchool}
+            >
+              创建学校
             </Button>
           </div>
         </div>

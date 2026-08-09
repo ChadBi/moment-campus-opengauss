@@ -163,20 +163,20 @@ const AdminReportsPage: React.FC = () => {
       nowrap: true,
       render: (_, row) => {
         if (row.status !== 'pending') {
-          return <span className="text-xs text-ink-muted">已处理</span>;
+          return <span className="text-xs text-ink-muted inline-block w-12 text-center">已处理</span>;
         }
         if (processingId === row.id) {
           return (
             <button
               onClick={closeProcessPanel}
-              className="text-sm text-ink-muted hover:text-ink"
+              className="text-sm text-ink-muted hover:text-ink inline-flex items-center justify-center w-12 h-8"
             >
               收起
             </button>
           );
         }
         return (
-          <Button size="sm" variant="primary" onClick={() => openProcessPanel(row.id)}>
+          <Button size="sm" variant="primary" onClick={() => openProcessPanel(row.id)} className="w-12">
             处理
           </Button>
         );
@@ -211,7 +211,7 @@ const AdminReportsPage: React.FC = () => {
                 setFilterStatus(opt.value);
                 setPage(1);
               }}
-              className={`px-3 py-1.5 rounded text-sm transition-colors ${
+              className={`px-3 py-1.5 rounded text-sm transition-colors w-16 text-center ${
                 filterStatus === opt.value
                   ? 'bg-lake text-paper'
                   : 'text-ink-sub hover:bg-mist'

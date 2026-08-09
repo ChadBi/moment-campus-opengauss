@@ -48,9 +48,6 @@
             src="{{avatarUrl}}"
             mode="aspectFill"
           />
-          <view class="avatar-edit {{avatarUploading ? 'uploading' : ''}}" bindtap="onAvatarTap" hover-class="avatar-edit-hover" hover-stay-time="120">
-            <icon name="{{avatarUploading ? 'refresh-cw' : 'camera'}}" size="28rpx" color="#fff" />
-          </view>
         </view>
         <view class="user-meta">
           <view class="nickname-row">

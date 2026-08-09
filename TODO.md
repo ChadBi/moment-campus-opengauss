@@ -14,7 +14,16 @@
   - Web端密码登录正常（超管和校管理员都可正常登录）
   - 权限隔离正确：校管理员登录后看不到「平台运营」菜单组（平台首页/平台套餐/学校管理/开通向导/激活漏斗）
 - [x] **更新AGENTS.md**：演示账号部分更新江南大学管理员账号信息
-- [ ] **待补充**：学校管理页面目前没有「新增学校」按钮，需要后续补充UI和功能
+- [x] **补充「新增学校」按钮和弹窗UI**：`frontend/src/pages/admin/PlatformSchoolsPage.tsx` 页面右上角新增「新增学校」按钮，点击打开弹窗表单，包含学校代码、名称、省份、城市、详细地址、中心经纬度、地图缩放、Logo URL、品牌色、初始套餐、管理员邮箱、描述等字段，提交调用`POST /platform/schools`接口创建学校
+
+## 2026-08-09 修复：头像/图片不显示、头像功能删除、举报按钮抖动问题
+> 问题汇总：①小程序用户头像和帖子图片不显示；②直接删除修改头像功能；③举报管理页面点击按钮时其他按钮位置小幅抖动；④补充学校管理页面「新增学校」按钮和弹窗UI。
+
+- [x] **删除修改头像功能**：`miniprogram/pages/profile/profile.wxml` 删除头像编辑按钮（`avatar-edit`）；`profile.ts` 移除`onAvatarTap`函数、`avatarUploading`状态、`uploadAvatar`导入，头像仅作为展示不可修改
+- [x] **修复头像/图片URL规范化问题**：`miniprogram/pages/profile/profile.ts` 的`loadUser`函数改为使用`getMe()`（已封装`normalizeUser`规范化）替代直接调用`http.get('/users/me')`，确保`avatar_url`经过`resolveAvatar`处理拼接正确的IMAGE_HOST前缀；之前已确认`services/users.ts`、`store/auth.ts`都正确使用`normalizeUser`处理用户数据，`normalize.ts`中`normalizePost`、`normalizeImage`等函数也正确使用`resolveImageUrl`处理图片URL
+- [x] **修复举报管理按钮布局抖动**：`frontend/src/pages/admin/AdminReportsPage.tsx` 为操作列按钮添加固定宽度`w-12`和居中样式`inline-flex items-center justify-center`；筛选按钮（全部/待处理/已处理）添加固定宽度`w-16 text-center`，确保不同状态按钮宽度一致，点击切换时不会引起其他按钮位置偏移
+- [x] **补充新增学校弹窗完整字段**：`PlatformSchoolsPage.tsx` 新增学校表单补充`address`（详细地址）、`logo_url`（Logo URL）、`brand_color`（品牌色）字段，提交时正确传递给后端`SchoolCreateRequest`接口
+- [x] **前端构建验证**：`npm run build` 成功通过，TypeScript类型检查和Vite打包无错误
 
 ## 2026-08-09 修复：举报弹层点击类型选项后自动关闭问题
 > **问题原因**：帖子详情页举报弹层的 `.modal-content` 使用了 `catchtap=""` 空字符串绑定事件，微信小程序中空字符串无法正确阻止事件冒泡，导致点击举报类型选项时tap事件冒泡到外层遮罩 `.modal-mask`（绑定了 `bindtap="closeReport"`），触发弹层关闭。

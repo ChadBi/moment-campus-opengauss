@@ -1,5 +1,6 @@
 import type { User, WechatExchangeResponse } from '../types'
 import { clearAuthTokens, syncAuthTokens } from '../services/request'
+import { normalizeUser } from '../services/normalize'
 
 interface AuthState {
   isLoggedIn: boolean
@@ -50,7 +51,7 @@ export const authStore = {
     syncAuthTokens(data.access_token, data.refresh_token || '')
 
     if ('user' in data && data.user && (data.user as User).id) {
-      state.user = data.user as User
+      state.user = normalizeUser(data.user)
       state.isLoggedIn = true
       notify()
       return
@@ -84,7 +85,7 @@ export const authStore = {
   },
 
   setUser(user: User) {
-    state.user = user
+    state.user = normalizeUser(user)
     notify()
   },
 

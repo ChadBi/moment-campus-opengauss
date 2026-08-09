@@ -2,8 +2,9 @@ import { http, resolveAvatar, defaultAvatar } from '../../services/request'
 import { authStore } from '../../store/auth'
 import { campusStore } from '../../store/campus'
 import { formatDate, formatCount } from '../../utils/format'
-import { normalizePost, normalizeMembership } from '../../services/normalize'
+import { normalizePost, normalizeMembership, normalizeUser } from '../../services/normalize'
 import { listMemberships } from '../../services/schools'
+import { getMe } from '../../services/users'
 import { logout } from '../../services/auth'
 import {
   sendEducationEmail,
@@ -12,7 +13,6 @@ import {
   unbindEducationEmail,
   setPassword,
 } from '../../services/auth'
-import { uploadAvatar } from '../../services/upload'
 import { navigateToTab, syncTabBarForPage } from '../../utils/tab-navigation'
 import { isRegistrationSchool } from '../../utils/campus-permission'
 
@@ -45,7 +45,6 @@ Page({
     // 用户信息
     user: null as any,
     avatarUrl: defaultAvatar(),
-    avatarUploading: false,
     nickname: '',
     bio: '',
     phone: '',
@@ -242,40 +241,10 @@ Page({
     })
   },
 
-  onAvatarTap() {
-    if (!this.data.isLoggedIn || this.data.avatarUploading) return
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      sizeType: ['compressed'],
-      success: async res => {
-        const file = res.tempFiles && res.tempFiles[0]
-        if (!file || !file.tempFilePath) return
-        this.setData({ avatarUploading: true })
-        try {
-          const avatarUrl = await uploadAvatar(file.tempFilePath)
-          const user = this.data.user ? { ...this.data.user, avatar_url: avatarUrl } : null
-          this.setData({ avatarUrl })
-          if (user) {
-            authStore.setUser(user)
-            this.setData({ user })
-          }
-          wx.showToast({ title: '头像已更新', icon: 'success' })
-        } catch (e: any) {
-          wx.showToast({ title: e.message || '头像上传失败', icon: 'none' })
-        } finally {
-          this.setData({ avatarUploading: false })
-        }
-      },
-    })
-  },
-
   async loadUser() {
     this.setData({ loadingUser: true })
     try {
-      const res: any = await http.get('/users/me')
-      const user = res.user || res
+      const user = await getMe()
       this.applyUser(user)
       authStore.setUser(user)
     } catch (e: any) {
