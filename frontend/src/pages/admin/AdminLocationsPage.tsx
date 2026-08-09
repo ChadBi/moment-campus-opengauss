@@ -12,7 +12,7 @@ import {
   type LocationSummaryAdmin,
 } from '../../services/admin';
 import { useUIStore } from '../../store/useUIStore';
-import { MapPin, Check, X, Search, Eye, Building2, Layers, Info, User, Clock, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Check, X, Search, Eye, Building2, Layers, User, Clock, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import MapLocationPicker from '../../components/MapLocationPicker';
 import { logger } from '../../utils/logger';
 import { formatShortDateTime as formatDate } from '../../utils/date';

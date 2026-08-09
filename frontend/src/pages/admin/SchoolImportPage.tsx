@@ -3,9 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
+import { Input } from '../../components/ui/Input';
 import {
   platformApi,
   type SchoolListResponse,
+  type SchoolCreateRequest,
 } from '../../services/platform';
 import { useUIStore } from '../../store/useUIStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -25,6 +28,8 @@ import {
   RefreshCw,
   MapPin,
   FileEdit,
+  Plus,
+  Building2,
 } from 'lucide-react';
 
 /** 简易 CSV 解析（支持引号包裹与逗号转义） */
@@ -123,6 +128,21 @@ const SchoolImportPage: React.FC = () => {
   const [commitResult, setCommitResult] =
     useState<ImportCommitResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // 新增学校弹窗
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    code: '',
+    name: '',
+    province: '',
+    city: '',
+    address: '',
+    center_lat: '',
+    center_lng: '',
+    map_zoom: '16',
+  });
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [plans, setPlans] = useState<Array<{ code: string; name: string }>>([]);
 
   const loadData = useCallback(async () => {
     try {
@@ -262,6 +282,60 @@ const SchoolImportPage: React.FC = () => {
     setCommitResult(null);
   };
 
+  /** 打开新增学校弹窗 */
+  const openCreateModal = () => {
+    setCreateForm({
+      code: '',
+      name: '',
+      province: '',
+      city: '',
+      address: '',
+      center_lat: '',
+      center_lng: '',
+      map_zoom: '16',
+    });
+    setCreateModalOpen(true);
+    if (plans.length === 0) {
+      platformApi.listPlans().then((data) => {
+        setPlans(data.filter((p) => p.status === 'active').map((p) => ({ code: p.code, name: p.name })));
+      }).catch(() => {});
+    }
+  };
+
+  /** 提交新增学校 */
+  const handleCreateSchool = async () => {
+    if (!createForm.code.trim() || !createForm.name.trim()) {
+      showToast('请填写学校代码和名称', 'error');
+      return;
+    }
+    setCreateSubmitting(true);
+    try {
+      const payload: SchoolCreateRequest = {
+        code: createForm.code.trim(),
+        name: createForm.name.trim(),
+        province: createForm.province.trim() || null,
+        city: createForm.city.trim() || null,
+        address: createForm.address.trim() || null,
+        center_lat: createForm.center_lat ? Number(createForm.center_lat) : null,
+        center_lng: createForm.center_lng ? Number(createForm.center_lng) : null,
+        map_zoom: createForm.map_zoom ? Number(createForm.map_zoom) : null,
+      };
+      const result = await platformApi.createSchool(payload) as { school: { id: number } };
+      showToast('学校创建成功，请继续开通流程', 'success');
+      setCreateModalOpen(false);
+      // 刷新学校列表并自动选中新创建的学校
+      await loadData();
+      if (result.school?.id) {
+        setSelectedSchoolId(result.school.id);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '创建失败';
+      showToast(message, 'error');
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
+
   if (!isSuperAdmin) {
     return (
       <div className="py-16 text-center">
@@ -288,7 +362,7 @@ const SchoolImportPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold text-ink">开通向导</h1>
           <p className="text-ink-sub text-sm mt-1">
-            下载模板 → 上传 CSV → 预览校验 → 批量导入地点与首批内容
+            新增学校 → 下载模板 → 上传 CSV → 预览校验 → 批量导入地点与首批内容
           </p>
         </div>
         <Button
@@ -301,33 +375,52 @@ const SchoolImportPage: React.FC = () => {
         </Button>
       </div>
 
-      {/* 步骤 1：选择学校 */}
+      {/* 步骤 1：选择/创建学校 */}
       <Card variant="outlined" padding="md">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="w-6 h-6 rounded-full bg-lake text-paper text-sm font-bold grid place-items-center">
-            1
-          </span>
-          <h2 className="text-base font-semibold text-ink">选择目标学校</h2>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-lake text-paper text-sm font-bold grid place-items-center">
+              1
+            </span>
+            <h2 className="text-base font-semibold text-ink">选择或创建学校</h2>
+          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<Plus size={14} />}
+            onClick={openCreateModal}
+          >
+            新增学校
+          </Button>
         </div>
-        <select
-          value={selectedSchoolId ?? ''}
-          onChange={(e) =>
-            setSelectedSchoolId(
-              e.target.value ? parseInt(e.target.value, 10) : null
-            )
-          }
-          className="select-nice md:w-80"
-        >
-          <option value="">请选择学校</option>
-          {schools?.items.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}（{s.code}）
-            </option>
-          ))}
-        </select>
-        <p className="text-xs text-ink-muted mt-2">
-          导入数据将强制绑定所选学校，请求体中的 school_id 字段会被忽略。
-        </p>
+        {schools && schools.items.length > 0 ? (
+          <>
+            <select
+              value={selectedSchoolId ?? ''}
+              onChange={(e) =>
+                setSelectedSchoolId(
+                  e.target.value ? parseInt(e.target.value, 10) : null
+                )
+              }
+              className="select-nice md:w-80"
+            >
+              <option value="">请选择学校</option>
+              {schools.items.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}（{s.code}）{s.is_active ? '' : '· 已暂停'}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-ink-muted mt-2">
+              导入数据将强制绑定所选学校，请求体中的 school_id 字段会被忽略。
+            </p>
+          </>
+        ) : (
+          <div className="py-6 text-center">
+            <Building2 size={40} className="mx-auto text-ink-muted/50 mb-3" />
+            <p className="text-ink-sub mb-3">还没有学校，点击上方按钮创建第一所学校</p>
+          </div>
+        )}
       </Card>
 
       {/* 步骤 2：上传 CSV */}
@@ -625,6 +718,100 @@ const SchoolImportPage: React.FC = () => {
           </p>
         )}
       </Card>
+
+      {/* 新增学校弹窗 */}
+      <Modal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="快速创建学校"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-ink-sub mb-2">
+            创建基础学校信息后，可继续使用向导导入地点与内容数据。
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="学校代码"
+              placeholder="如 jiangnan"
+              value={createForm.code}
+              onChange={(e) => setCreateForm({ ...createForm, code: e.target.value })}
+              required
+            />
+            <Input
+              label="学校名称"
+              placeholder="如 江南大学"
+              value={createForm.name}
+              onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="省份"
+              placeholder="如 江苏省"
+              value={createForm.province}
+              onChange={(e) => setCreateForm({ ...createForm, province: e.target.value })}
+            />
+            <Input
+              label="城市"
+              placeholder="如 无锡市"
+              value={createForm.city}
+              onChange={(e) => setCreateForm({ ...createForm, city: e.target.value })}
+            />
+          </div>
+          <Input
+            label="详细地址（可选）"
+            placeholder="如 江苏省无锡市滨湖区蠡湖大道1800号"
+            value={createForm.address}
+            onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })}
+          />
+          <div className="grid grid-cols-3 gap-3">
+            <Input
+              label="中心纬度"
+              type="number"
+              step="0.000001"
+              placeholder="31.483652"
+              value={createForm.center_lat}
+              onChange={(e) => setCreateForm({ ...createForm, center_lat: e.target.value })}
+            />
+            <Input
+              label="中心经度"
+              type="number"
+              step="0.000001"
+              placeholder="120.27116"
+              value={createForm.center_lng}
+              onChange={(e) => setCreateForm({ ...createForm, center_lng: e.target.value })}
+            />
+            <Input
+              label="地图缩放"
+              type="number"
+              min="1"
+              max="20"
+              placeholder="16"
+              value={createForm.map_zoom}
+              onChange={(e) => setCreateForm({ ...createForm, map_zoom: e.target.value })}
+            />
+          </div>
+          <p className="text-xs text-ink-muted">
+            💡 提示：Logo、品牌色、套餐分配、管理员邮箱等可在「学校管理」页面后续完善。
+          </p>
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <Button variant="secondary" size="sm" onClick={() => setCreateModalOpen(false)}>
+              取消
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={createSubmitting}
+              icon={<Plus size={14} />}
+              onClick={handleCreateSchool}
+            >
+              创建并继续
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
