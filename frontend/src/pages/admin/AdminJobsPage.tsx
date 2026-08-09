@@ -175,6 +175,7 @@ const AdminJobsPage: React.FC = () => {
             variant="secondary"
             loading={triggering}
             onClick={() => handleTrigger(true)}
+            className="min-w-[120px] justify-center"
           >
             <FlaskConical size={14} className="mr-1" />
             预演（不写库）
@@ -184,6 +185,7 @@ const AdminJobsPage: React.FC = () => {
             variant="primary"
             loading={triggering}
             onClick={() => handleTrigger(false)}
+            className="min-w-[96px] justify-center"
           >
             <Play size={14} className="mr-1" />
             手动执行
