@@ -122,7 +122,6 @@ async def list_my_location_fact_proposals(
 
 @router.get(
     "/admin/location-fact-proposals",
-    response_model=PaginatedResponse[LocationFactProposalResponse],
     summary="地点资料提议审核队列",
     dependencies=[AdminDep],
 )
@@ -139,13 +138,34 @@ async def list_location_fact_proposals(
     ]
     total = await db.scalar(select(func.count(LocationFactProposal.id)).where(*filters)) or 0
     result = await db.execute(
-        select(LocationFactProposal)
+        select(LocationFactProposal, Location.name, User.nickname)
+        .join(Location, Location.id == LocationFactProposal.location_id)
+        .join(User, User.id == LocationFactProposal.proposer_id)
         .where(*filters)
         .order_by(LocationFactProposal.created_at.asc())
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
-    return PaginatedResponse.create(list(result.scalars().all()), page, page_size, int(total))
+    items = []
+    for proposal, loc_name, proposer_name in result.all():
+        item = {
+            "id": proposal.id,
+            "location_id": proposal.location_id,
+            "location_name": loc_name,
+            "school_id": proposal.school_id,
+            "proposer_id": proposal.proposer_id,
+            "proposer_name": proposer_name,
+            "changes_json": proposal.changes_json,
+            "reason": proposal.reason,
+            "status": proposal.status,
+            "reviewer_id": proposal.reviewer_id,
+            "review_reason": proposal.review_reason,
+            "reviewed_at": proposal.reviewed_at,
+            "created_at": proposal.created_at,
+            "updated_at": proposal.updated_at,
+        }
+        items.append(item)
+    return PaginatedResponse.create(items, page, page_size, int(total))
 
 
 @router.post(

@@ -162,15 +162,21 @@ export interface LocationAdmin {
 export interface LocationFactProposalAdmin {
   id: number;
   location_id: number;
+  location_name: string;
   school_id: number;
   proposer_id: number;
+  proposer_name: string;
   changes_json: {
     upserts?: Array<{ fact_key: string; label?: string; value: string; source_note?: string }>;
     remove_keys?: string[];
   };
   reason: string | null;
   status: string;
+  reviewer_id?: number | null;
+  review_reason?: string | null;
+  reviewed_at?: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface LocationSummaryAdmin {

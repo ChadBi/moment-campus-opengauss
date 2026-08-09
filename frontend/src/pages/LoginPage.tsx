@@ -66,8 +66,15 @@ const LoginPage: React.FC = () => {
       const response = await authApi.login(mode === 'sms' ? { phone, sms_code: smsCode } : { phone, password });
       setAuth(response.user, response.access_token, response.refresh_token);
       setToast({ message: `登录成功，欢迎回来 ${maskPhone(phone)}`, type: 'success' });
-      const isAdmin = response.user.role === 'admin' || response.user.role === 'super_admin';
-      navigate(redirectTo !== '/' ? redirectTo : isAdmin ? '/admin' : '/');
+      const isSuperAdmin = response.user.role === 'super_admin';
+      const isSchoolAdmin = response.user.role === 'admin';
+      if (isSuperAdmin) {
+        navigate(redirectTo !== '/' ? redirectTo : '/admin/platform/overview');
+      } else if (isSchoolAdmin) {
+        navigate(redirectTo !== '/' ? redirectTo : '/admin');
+      } else {
+        navigate(redirectTo !== '/' ? redirectTo : '/');
+      }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string } } };
       setError(e.response?.data?.detail || '登录失败，请检查手机号和凭证');

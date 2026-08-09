@@ -348,13 +348,24 @@
         </view>
         <view wx:elif="{{!campusVerified}}" class="knowledge-empty">请先完成校园身份认证</view>
         <view wx:else class="proposal-form">
-          <picker mode="selector" range="{{['营业时间','服务内容','价格说明','联系方式','进入方式','预约方式','其他']}}" bindchange="onFactKeyChange">
-            <view class="fact-picker">选择资料类型：{{factKey}}</view>
+          <picker mode="selector" range="{{factKeyOptions}}" range-key="label" bindchange="onFactKeyChange">
+            <view class="fact-picker">
+              <text class="fact-picker-label">资料类型</text>
+              <text class="fact-picker-value">{{factLabel}}</text>
+              <icon name="chevron-down" size="24rpx" color="#8a9a9e" />
+            </view>
           </picker>
-          <input class="proposal-input" value="{{factLabel}}" bindinput="onFactLabelInput" placeholder="资料标题" />
-          <textarea class="proposal-input" value="{{factValue}}" bindinput="onFactValueInput" maxlength="2000" auto-height placeholder="填写你确认过的地点资料" />
-          <input class="proposal-input" value="{{factReason}}" bindinput="onFactReasonInput" maxlength="1000" placeholder="补充说明（可选）" />
-          <view class="submit-btn {{proposalSubmitting || !factValue ? 'disabled' : ''}}" bindtap="submitFactProposal">{{proposalSubmitting ? '提交中...' : '提交资料提议'}}</view>
+          <view class="proposal-field">
+            <text class="proposal-field-label">资料内容</text>
+            <textarea class="proposal-textarea" value="{{factValue}}" bindinput="onFactValueInput" maxlength="2000" auto-height placeholder="填写你确认过的地点资料，例如：周一至周日 8:00-22:00" placeholder-class="proposal-placeholder" />
+          </view>
+          <view class="proposal-field">
+            <text class="proposal-field-label">补充说明（可选）</text>
+            <textarea class="proposal-textarea proposal-textarea-sm" value="{{factReason}}" bindinput="onFactReasonInput" maxlength="500" auto-height placeholder="信息来源、时间、注意事项等" placeholder-class="proposal-placeholder" />
+          </view>
+          <view class="proposal-submit-wrap">
+            <view class="submit-btn proposal-submit {{proposalSubmitting || !factValue ? 'disabled' : ''}}" bindtap="submitFactProposal">{{proposalSubmitting ? '提交中...' : '提交资料提议'}}</view>
+          </view>
         </view>
       </scroll-view>
     </view>

@@ -12,12 +12,13 @@ import {
   type LocationSummaryAdmin,
 } from '../../services/admin';
 import { useUIStore } from '../../store/useUIStore';
-import { MapPin, Check, X, Search, Eye, Building2, Layers, Info } from 'lucide-react';
+import { MapPin, Check, X, Search, Eye, Building2, Layers, Info, User, Clock, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import MapLocationPicker from '../../components/MapLocationPicker';
 import { logger } from '../../utils/logger';
 import { formatShortDateTime as formatDate } from '../../utils/date';
 
 const PAGE_SIZE = 10;
+const FACT_PAGE_SIZE = 5;
 
 /** ADM-01.6: 地点核验队列（待办卡片入口 /admin/locations?verified=false） */
 const AdminLocationsPage: React.FC = () => {
@@ -40,9 +41,14 @@ const AdminLocationsPage: React.FC = () => {
   // Task 3.6: 详情弹窗（展示地点坐标 + 地图）
   const [detailLocation, setDetailLocation] = useState<LocationAdmin | null>(null);
   const [factProposals, setFactProposals] = useState<LocationFactProposalAdmin[]>([]);
+  const [factTotal, setFactTotal] = useState(0);
+  const [factTotalPages, setFactTotalPages] = useState(0);
+  const [factPage, setFactPage] = useState(1);
   const [summaryQueue, setSummaryQueue] = useState<LocationSummaryAdmin[]>([]);
   const [knowledgeLoading, setKnowledgeLoading] = useState(true);
   const [actingKnowledgeId, setActingKnowledgeId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState<Record<number, string>>({});
+  const [expandedReject, setExpandedReject] = useState<number | null>(null);
 
   const loadLocations = useCallback(async (p: number) => {
     try {
@@ -68,25 +74,27 @@ const AdminLocationsPage: React.FC = () => {
     void loadLocations(page);
   }, [page, loadLocations]);
 
-  const loadKnowledgeQueues = useCallback(async () => {
+  const loadKnowledgeQueues = useCallback(async (p: number = factPage) => {
     setKnowledgeLoading(true);
     try {
       const [proposals, summaries] = await Promise.all([
-        adminApi.getLocationFactProposals({ status: 'pending', page: 1, page_size: 8 }),
-        adminApi.getLocationSummaries({ status: 'pending_review', page: 1, page_size: 8 }),
+        adminApi.getLocationFactProposals({ status: 'pending', page: p, page_size: FACT_PAGE_SIZE }),
+        adminApi.getLocationSummaries({ status: 'pending_review', page: 1, page_size: 5 }),
       ]);
       setFactProposals(proposals.items);
+      setFactTotal(proposals.total);
+      setFactTotalPages(proposals.total_pages);
       setSummaryQueue(summaries.items);
     } catch (error) {
       logger.error('加载地点知识审核队列失败:', error);
     } finally {
       setKnowledgeLoading(false);
     }
-  }, []);
+  }, [factPage]);
 
   useEffect(() => {
-    void loadKnowledgeQueues();
-  }, [loadKnowledgeQueues]);
+    void loadKnowledgeQueues(factPage);
+  }, [factPage, loadKnowledgeQueues]);
 
   const handleKnowledgeAction = async (
     kind: 'fact' | 'summary',
@@ -96,22 +104,29 @@ const AdminLocationsPage: React.FC = () => {
     const key = `${kind}:${id}`;
     setActingKnowledgeId(key);
     try {
+      const reason = action === 'reject' ? (rejectReason[id] || '').trim() || undefined : undefined;
       if (kind === 'fact') {
         if (action === 'approve') await adminApi.approveLocationFactProposal(id);
-        else await adminApi.rejectLocationFactProposal(id, '资料暂未通过审核');
+        else await adminApi.rejectLocationFactProposal(id, reason);
       } else if (action === 'approve') {
         await adminApi.approveLocationSummary(id);
       } else {
-        await adminApi.rejectLocationSummary(id, '摘要暂未通过审核');
+        await adminApi.rejectLocationSummary(id, reason);
       }
       showToast(action === 'approve' ? '已批准' : '已驳回', 'success');
-      void loadKnowledgeQueues();
+      setExpandedReject(null);
+      setRejectReason((prev) => { const next = { ...prev }; delete next[id]; return next; });
+      void loadKnowledgeQueues(factPage);
     } catch (error) {
       logger.error('地点知识审核失败:', error);
       showToast('审核操作失败', 'error');
     } finally {
       setActingKnowledgeId(null);
     }
+  };
+
+  const toggleRejectInput = (id: number) => {
+    setExpandedReject(expandedReject === id ? null : id);
   };
 
   const updateVerifiedFilter = (value: string) => {
@@ -259,28 +274,107 @@ const AdminLocationsPage: React.FC = () => {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card variant="outlined" padding="sm">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-ink">资料提议（{factProposals.length}）</h2>
-            <span className="text-xs text-ink-muted">整份批准或驳回</span>
+            <div className="flex items-center gap-2">
+              <FileText size={16} className="text-lake" />
+              <h2 className="font-semibold text-ink">资料提议审核</h2>
+              <Badge variant="warning">{factTotal}</Badge>
+            </div>
+            <span className="text-xs text-ink-muted">批准后公开展示</span>
           </div>
-          {knowledgeLoading ? <p className="text-sm text-ink-muted">加载中…</p> : factProposals.length === 0 ? (
-            <p className="text-sm text-ink-muted">暂无待审核资料提议。</p>
+          {knowledgeLoading ? <p className="text-sm text-ink-muted py-4 text-center">加载中…</p> : factProposals.length === 0 ? (
+            <div className="py-8 text-center">
+              <Check size={32} className="mx-auto text-success/50 mb-2" />
+              <p className="text-sm text-ink-muted">暂无待审核资料提议</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {factProposals.map((proposal) => (
-                <div key={proposal.id} className="rounded-lg bg-mist/60 p-3">
-                  <div className="text-xs text-ink-muted mb-1">地点 #{proposal.location_id} · 用户 #{proposal.proposer_id}</div>
-                  <div className="space-y-1 text-sm text-ink">
+                <div key={proposal.id} className="rounded-lg border border-line/60 bg-paper p-3.5">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-ink text-sm truncate">
+                          <MapPin size={12} className="inline mr-1 text-lake" />
+                          {proposal.location_name}
+                        </span>
+                        <Badge variant="info" className="text-[10px]">地点 #{proposal.location_id}</Badge>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-ink-muted">
+                        <span className="flex items-center gap-1">
+                          <User size={11} />
+                          {proposal.proposer_name}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock size={11} />
+                          {formatDate(proposal.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 bg-mist/40 rounded-md p-2.5 mb-2">
                     {(proposal.changes_json.upserts || []).map((item) => (
-                      <div key={item.fact_key}><span className="text-ink-muted">{item.label || item.fact_key}：</span>{item.value}</div>
+                      <div key={item.fact_key} className="text-sm">
+                        <span className="text-ink-muted font-medium">{item.label || item.fact_key}：</span>
+                        <span className="text-ink">{item.value}</span>
+                      </div>
                     ))}
                   </div>
-                  {proposal.reason && <p className="text-xs text-ink-sub mt-1">说明：{proposal.reason}</p>}
-                  <div className="flex justify-end gap-2 mt-2">
-                    <Button size="sm" variant="text" loading={actingKnowledgeId === `fact:${proposal.id}`} onClick={() => void handleKnowledgeAction('fact', proposal.id, 'reject')}>驳回</Button>
-                    <Button size="sm" variant="primary" loading={actingKnowledgeId === `fact:${proposal.id}`} onClick={() => void handleKnowledgeAction('fact', proposal.id, 'approve')}>批准</Button>
+                  {proposal.reason && (
+                    <div className="text-xs text-ink-sub bg-lamp/8 rounded-md px-2.5 py-1.5 mb-2">
+                      <span className="font-medium">补充说明：</span>{proposal.reason}
+                    </div>
+                  )}
+                  {expandedReject === proposal.id && (
+                    <div className="mb-2">
+                      <Input
+                        placeholder="请输入驳回原因（可选）"
+                        value={rejectReason[proposal.id] || ''}
+                        onChange={(e) => setRejectReason((prev) => ({ ...prev, [proposal.id]: e.target.value }))}
+                        className="text-sm"
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => toggleRejectInput(proposal.id)}
+                      className="text-xs text-ink-muted hover:text-ink flex items-center gap-0.5"
+                    >
+                      {expandedReject === proposal.id ? <><ChevronUp size={12} />收起</> : <><ChevronDown size={12} />填写驳回原因</>}
+                    </button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        loading={actingKnowledgeId === `fact:${proposal.id}`}
+                        onClick={() => void handleKnowledgeAction('fact', proposal.id, 'reject')}
+                        className="w-16 justify-center"
+                      >
+                        驳回
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        loading={actingKnowledgeId === `fact:${proposal.id}`}
+                        onClick={() => void handleKnowledgeAction('fact', proposal.id, 'approve')}
+                        className="w-16 justify-center"
+                      >
+                        批准
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
+              {factTotalPages > 1 && (
+                <div className="flex items-center justify-center pt-2">
+                  <Pagination
+                    page={factPage}
+                    pageSize={FACT_PAGE_SIZE}
+                    total={factTotal}
+                    totalPages={factTotalPages}
+                    onChange={(p) => setFactPage(p)}
+                  />
+                </div>
+              )}
             </div>
           )}
         </Card>

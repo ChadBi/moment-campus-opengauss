@@ -2,7 +2,26 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-09（后台菜单清理、江南大学独立校管理员、登录验证）
+> 最后更新：2026-08-09（超管权限边界、地点资料审核UI优化、小程序弹窗优化）
+
+## 2026-08-09 修复：超管权限边界 + 登录问题 + 地点资料审核功能完善
+
+> 问题汇总：①浙江管理员账号登录问题排查；②超管登录后可看到学校管理菜单，权限边界不清晰；③小程序补充地点资料弹窗内容被挤压；④Web管理后台地点资料审核队列信息不全、无驳回原因输入。
+
+- [x] **登录问题排查**：通过Python脚本验证后端登录接口`/auth/token`对浙江管理员`13900000201/pass123`返回正常（200 OK，role=admin），问题出在前端学校切换逻辑
+- [x] **修复超管权限边界**：
+  - `LoginPage.tsx`：超管登录后默认跳转到`/admin/platform/overview`平台首页，校管理员跳转到`/admin`
+  - `AdminDashboard.tsx`：超管仅显示「平台运营」菜单组（平台首页/套餐管理/学校管理/开通向导/激活漏斗），不显示校级管理菜单；学校管理员仅显示校级管理菜单，不显示平台运营菜单
+  - 新增路由守卫：超管访问校级页面自动重定向到平台首页，校管理员访问平台页面自动重定向到管理首页
+- [x] **优化小程序补充地点资料弹窗**：
+  - `miniprogram/subpackages/pages/locations/locations.ts`：将`factKeyOptions`改为`{key, label}`对象数组，添加`onFactKeyChange`正确获取选中的key和中文标签
+  - `locations.wxml`：重构弹窗布局，为每个字段添加清晰标签（资料类型/资料内容/补充说明），优化输入区域结构
+  - `locations.wxss`：优化弹窗高度（max-height:85vh）、内边距、textarea最小高度（160rpx）、行高，解决内容被挤压问题
+- [x] **完善Web管理后台地点资料审核**：
+  - 后端`location_knowledge.py`：审核队列接口改为Join查询，返回`location_name`（地点名称）和`proposer_name`（提交人昵称）
+  - 前端`admin.ts`：更新`LocationFactProposalAdmin`类型，新增`location_name/proposer_name/reviewer_id/review_reason/reviewed_at/updated_at`字段
+  - `AdminLocationsPage.tsx`：重写资料审核卡片UI，显示地点名称、提交人、提交时间、资料内容（带标签）、补充说明；新增驳回原因输入框（可折叠）；审核按钮固定宽度；支持分页；空状态友好提示
+- [x] **前端构建验证**：`npm run build`成功通过，TypeScript类型检查和Vite打包无错误（除maplibre大chunk提示，不影响功能）
 
 ## 2026-08-09 后台菜单清理与江南大学校管理员设置
 - [x] **删除不需要的后台菜单**：`frontend/src/pages/admin/AdminDashboard.tsx` 中移除「专题管理」和「反馈管理」菜单项，清理不再使用的 `BookMarked`、`MessageCircle` 图标import

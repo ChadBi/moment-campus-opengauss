@@ -88,7 +88,15 @@ Page({
     factValue: '',
     factReason: '',
     proposalSubmitting: false,
-    factKeyOptions: ['normal_hours', 'services', 'price_note', 'contact', 'access', 'booking', 'other'],
+    factKeyOptions: [
+      { key: 'normal_hours', label: '营业时间' },
+      { key: 'services', label: '服务内容' },
+      { key: 'price_note', label: '价格说明' },
+      { key: 'contact', label: '联系方式' },
+      { key: 'access', label: '进入方式' },
+      { key: 'booking', label: '预约方式' },
+      { key: 'other', label: '其他' },
+    ],
     starOptions: [1, 2, 3, 4, 5],
   },
 
@@ -438,8 +446,10 @@ Page({
   },
 
   onFactKeyChange(e: any) {
-    const options = this.data.factKeyOptions as string[]
-    this.setData({ factKey: options[Number(e.detail.value)] || 'other' })
+    const options = this.data.factKeyOptions as Array<{ key: string; label: string }>
+    const idx = Number(e.detail.value)
+    const selected = options[idx] || options[options.length - 1]
+    this.setData({ factKey: selected.key, factLabel: selected.label })
   },
 
   onFactLabelInput(e: any) {

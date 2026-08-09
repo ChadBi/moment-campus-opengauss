@@ -74,8 +74,18 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (!user || !isAdminRole(user.role)) {
       navigate('/login');
+      return;
     }
-  }, [user, navigate]);
+    // super_admin 访问校级管理路径时，自动重定向到平台运营首页
+    if (user.role === 'super_admin') {
+      const isPlatformRoute = location.pathname.startsWith('/admin/platform') ||
+        location.pathname === '/admin/import' ||
+        location.pathname === '/admin/funnel';
+      if (!isPlatformRoute) {
+        navigate('/admin/platform/overview', { replace: true });
+      }
+    }
+  }, [user, navigate, location.pathname]);
 
   // 路由变化时关闭移动端侧边栏（UI 同步需求，需在 effect 中 setState）
   useEffect(() => {
@@ -110,13 +120,15 @@ const AdminDashboard: React.FC = () => {
   }
 
   const isSuperAdmin = user.role === 'super_admin';
-  // 按角色过滤菜单项
-  const visibleItems = MENU_ITEMS.filter(
-    (item) => !item.superAdminOnly || isSuperAdmin
-  );
-  // 分组：常规管理 / 平台运营（super_admin）
-  const adminItems = visibleItems.filter((item) => !item.superAdminOnly);
-  const platformItems = visibleItems.filter((item) => item.superAdminOnly);
+  // 按角色过滤菜单项：
+  // - super_admin：仅显示平台运营菜单
+  // - admin：仅显示校级管理菜单
+  const adminItems = isSuperAdmin
+    ? []
+    : MENU_ITEMS.filter((item) => !item.superAdminOnly);
+  const platformItems = isSuperAdmin
+    ? MENU_ITEMS.filter((item) => item.superAdminOnly)
+    : [];
 
   return (
     <div className="min-h-screen bg-mist">
