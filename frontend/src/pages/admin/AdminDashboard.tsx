@@ -45,13 +45,13 @@ interface MenuItem {
 }
 
 const MENU_ITEMS: MenuItem[] = [
+  // 校级管理菜单（admin/super_admin 可见）
   { path: '/admin', label: '仪表盘', icon: LayoutDashboard, crumb: '仪表盘' },
   { path: '/admin/review', label: '内容审核', icon: FileText, crumb: '内容审核' },
   { path: '/admin/users', label: '用户管理', icon: Users, crumb: '用户管理' },
   { path: '/admin/reports', label: '举报管理', icon: Flag, crumb: '举报管理' },
   { path: '/admin/locations', label: '地点核验', icon: MapPin, crumb: '地点核验' },
   { path: '/admin/categories', label: '分类管理', icon: FolderTree, crumb: '分类管理' },
-  { path: '/admin/jobs', label: '任务记录', icon: Wrench, crumb: '任务记录' },
   { path: '/admin/logs', label: '操作日志', icon: ScrollText, crumb: '操作日志' },
   { path: '/admin/usage', label: '用量与套餐', icon: Gauge, crumb: '用量与套餐' },
   // ANA-02.2: 校级数据分析（漏斗/留存/搜索/内容/治理 SLA/AI 用量/零结果洞察）
@@ -63,6 +63,7 @@ const MENU_ITEMS: MenuItem[] = [
   { path: '/admin/platform/schools', label: '学校管理', icon: School, crumb: '学校管理', superAdminOnly: true },
   { path: '/admin/import', label: '开通向导', icon: Upload, crumb: '开通向导', superAdminOnly: true },
   { path: '/admin/funnel', label: '激活漏斗', icon: TrendingUp, crumb: '激活漏斗', superAdminOnly: true },
+  { path: '/admin/jobs', label: '任务记录', icon: Wrench, crumb: '任务记录', superAdminOnly: true },
 ];
 
 const AdminDashboard: React.FC = () => {
@@ -76,13 +77,21 @@ const AdminDashboard: React.FC = () => {
       navigate('/login');
       return;
     }
-    // super_admin 访问校级管理路径时，自动重定向到平台运营首页
+    // 判断是否为平台专属路由
+    const isPlatformRoute = location.pathname.startsWith('/admin/platform') ||
+      location.pathname === '/admin/import' ||
+      location.pathname === '/admin/funnel' ||
+      location.pathname === '/admin/jobs';
+
     if (user.role === 'super_admin') {
-      const isPlatformRoute = location.pathname.startsWith('/admin/platform') ||
-        location.pathname === '/admin/import' ||
-        location.pathname === '/admin/funnel';
+      // super_admin 访问校级管理路径时，自动重定向到平台运营首页
       if (!isPlatformRoute) {
         navigate('/admin/platform/overview', { replace: true });
+      }
+    } else {
+      // admin（校管理员）访问平台专属路由时，自动重定向回校级管理首页
+      if (isPlatformRoute) {
+        navigate('/admin', { replace: true });
       }
     }
   }, [user, navigate, location.pathname]);
