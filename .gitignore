@@ -158,3 +158,6 @@ docs/video-assets/* copy.py
 
 
 messgae.md
+
+# Firecrawl 网页抓取缓存（第三方不可信内容，仅供本地核验）
+.firecrawl/

@@ -31,6 +31,7 @@ export const SchoolSwitcher: React.FC = () => {
     currentSchoolName,
     loadingSchools,
     setMemberships,
+    setSchools,
   } = useCampusStore();
   const { isAuthenticated, user } = useAuthStore();
   const switchSchool = useSwitchSchool();
@@ -69,6 +70,10 @@ export const SchoolSwitcher: React.FC = () => {
   }, [open, schools, currentSchoolId]);
 
   const openDropdown = () => {
+    // 兜底：如果学校列表为空或只有1所，主动拉取
+    if (schools.length < 2) {
+      schoolsApi.listSchools().then((list) => setSchools(list)).catch(() => undefined);
+    }
     const idx = schools.findIndex((s) => s.id === currentSchoolId);
     setActiveIndex(idx >= 0 ? idx : 0);
     setOpen(true);

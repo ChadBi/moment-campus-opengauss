@@ -28,7 +28,7 @@ export const SwitchSchoolModal: React.FC<SwitchSchoolModalProps> = ({
   onClose,
   onSwitched,
 }) => {
-  const { schools, currentSchoolId, setMemberships } = useCampusStore();
+  const { schools, currentSchoolId, setMemberships, setSchools, loadingSchools } = useCampusStore();
   const { isAuthenticated } = useAuthStore();
   const switchSchool = useSwitchSchool();
   const showToast = useUIStore((s) => s.showToast);
@@ -37,14 +37,20 @@ export const SwitchSchoolModal: React.FC<SwitchSchoolModalProps> = ({
   const [pendingSchoolId, setPendingSchoolId] = useState<number | null>(null);
   const [switching, setSwitching] = useState(false);
 
-  // 打开时重置
+  // 打开时重置 + 兜底加载学校列表（防止 schools 为空）
   useEffect(() => {
     if (isOpen) {
-      void Promise.resolve().then(() => {
-        setKeyword('');
-        setPendingSchoolId(null);
-        setSwitching(false);
-      });
+      setKeyword('');
+      setPendingSchoolId(null);
+      setSwitching(false);
+      // 如果学校列表为空或仅1所（只有当前学校），主动拉取完整公开目录
+      if (schools.length < 2) {
+        schoolsApi.listSchools().then((list) => {
+          setSchools(list);
+        }).catch((err) => {
+          logger.error('加载学校列表失败:', err);
+        });
+      }
     }
   }, [isOpen]);
 
@@ -105,8 +111,15 @@ export const SwitchSchoolModal: React.FC<SwitchSchoolModalProps> = ({
 
       {/* 学校列表 */}
       <div className="max-h-[260px] overflow-y-auto space-y-1.5 mb-4">
-        {filtered.length === 0 ? (
-          <p className="text-center text-sm text-ink-muted py-6">未找到匹配的学校</p>
+        {loadingSchools && schools.length === 0 ? (
+          <div className="text-center py-6">
+            <div className="inline-block w-5 h-5 border-2 border-lake/30 border-t-lake rounded-full animate-spin" />
+            <p className="text-sm text-ink-muted mt-2">加载学校列表…</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="text-center text-sm text-ink-muted py-6">
+            {schools.length === 0 ? '学校列表加载失败，请刷新页面重试' : '未找到匹配的学校'}
+          </p>
         ) : (
           filtered.map((s) => {
             const isCurrent = s.id === currentSchoolId;

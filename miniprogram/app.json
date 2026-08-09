@@ -7,6 +7,7 @@
     "pages/profile/profile",
     "pages/post-detail/post-detail",
     "pages/hot-ranking/hot-ranking",
+    "pages/topics/topics",
     "pages/notifications/notifications",
     "pages/notification-preferences/notification-preferences",
     "pages/agreement/agreement",
@@ -68,7 +69,9 @@
       "pages": [
         "school-select/school-select",
         "edit-post/edit-post",
-        "locations/locations"
+        "locations/locations",
+        "topic-detail/topic-detail",
+        "forgot-password/forgot-password"
       ]
     },
     {

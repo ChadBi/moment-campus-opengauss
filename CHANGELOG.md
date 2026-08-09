@@ -13,6 +13,14 @@
 
 - **开通向导页面新增快速创建学校入口**：超管在「开通向导」页面可直接点击「新增学校」按钮快速创建学校，无需跳转至学校管理页面；创建成功后自动选中新学校可继续后续导入流程；包含学校代码/名称/省份/城市/地址/经纬度/地图缩放等核心字段，Logo/品牌色/套餐/管理员邮箱等可在学校管理页面后续完善；平台暂无学校时显示友好空状态引导。
 
+### 变更
+
+- `web` 修复切换学校弹窗列表为空的问题：`SwitchSchoolModal` 和 `SchoolSwitcher` 打开时兜底拉取学校目录，解决 schools 列表不持久化导致首次请求失败后列表始终为空的问题；添加加载中状态和错误提示。
+- `web` API 请求添加 15 秒超时和 GET 请求自动重试机制（网络错误/5xx 最多重试 2 次，指数退避），缓解 Cloudflare CDN 回源波动导致的间歇性加载失败。
+- `seed` 补充江南大学校管理员预设（`13900000000`，admin 角色），使管理员结构对齐「1 超管 + 3 校管」规范。
+- `miniprogram` app.json 补注册 `pages/topics/topics`、`subpackages/pages/topic-detail/topic-detail`、`subpackages/pages/forgot-password/forgot-password` 三个页面，修复上传时未打包警告。
+- `.gitignore` 添加 `.firecrawl/` 目录忽略规则。
+
 ## [2.3.0] - 2026-08-09
 
 ### 变更

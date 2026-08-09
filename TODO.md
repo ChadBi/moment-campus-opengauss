@@ -2,7 +2,25 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-09（开通向导新增学校功能上线）
+> 最后更新：2026-08-09（华为云v2.3.0全量部署上线）
+
+## 2026-08-09 部署：华为云v2.3.0全量部署（复赛演示版）
+
+- [x] **更新seed_data.py**：补充江南大学校管理员（13900000000/admin），管理员结构改为1超管+3校管
+- [x] **前端构建**：`npm run build` 成功，生成 dist 产物
+- [x] **打包上传**：后端代码/脚本/迁移/依赖/前端/systemd配置打包SCP到服务器
+- [x] **服务器代码更新**：后端app/scripts/alembic/requirements + 前端dist + deploy/bare-metal 全量替换
+- [x] **环境配置**：SMTP(QQ邮箱)/阿里云短信/微信小程序配置从本地安全传递到服务器deploy/.env.prod
+- [x] **依赖安装**：pip install -r requirements.txt（清华镜像源）
+- [x] **数据库重置与迁移**：DROP+CREATE moment_campus，alembic upgrade head 全部迁移成功
+- [x] **backend/.env.prod创建**：完整生产环境配置（含SMTP/短信/微信/Embedding/AI）
+- [x] **SMTP连通性测试**：465端口可达，SMTP登录成功，阿里云短信SDK导入成功
+- [x] **大规模数据生成**：seed_data.py 完成 — 3校/150用户/1500帖子/22261点赞/4246评论/1106验证/572地点评价
+- [x] **Embedding向量生成**：seed_data.py自动完成1410条published帖子的512维向量
+- [x] **地点摘要刷新**：refresh_all_location_summaries.py — 39地点中30个成功生成AI摘要
+- [x] **服务启动**：moment-backend 4 workers active running，两个定时器已启用
+- [x] **Nginx配置**：nginx -t 通过，reload 成功
+- [x] **验证测试**：健康检查OK，HTTPS访问正常，API返回数据正确，管理员结构验证通过（1超管+3校管）
 
 ## 2026-08-09 功能：开通向导页面新增快速创建学校入口
 

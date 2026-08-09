@@ -839,6 +839,8 @@ async def seed_users(session: AsyncSession, schools: list, school_by_code: dict)
     # 预置演示账号配置
     preset_users = {
         "jiangnan": [
+            {"seq": 0, "nickname": "江南大学运营组", "role": "admin",
+             "bio": "江南大学此刻校园运营组", "campus_verified": False, "password": "pass123"},
             {"seq": 1, "nickname": "校园运营组", "role": "super_admin",
              "bio": "此刻校园平台运营组", "campus_verified": False, "password": "pass123"},
             {"seq": 2, "nickname": "江南小李", "role": "user",

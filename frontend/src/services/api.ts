@@ -31,6 +31,7 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 15000,
 });
 
 // 请求拦截器：添加 Token + X-School-Code
@@ -64,10 +65,30 @@ api.interceptors.request.use(
 // （后端 refresh 接口会签发新 refresh_token 并使旧的失效，并发刷新会导致后续请求拿到已失效 token）
 let refreshPromise: Promise<string> | null = null;
 
+// 网络错误/5xx 自动重试（仅 GET 请求，最多重试 2 次，指数退避）
+const RETRY_MAX = 2;
+const RETRY_BASE_DELAY = 800;
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // GET 请求网络错误或 5xx 自动重试（在 401 处理之前）
+    if (originalRequest) {
+      const isGetRequest = (originalRequest.method || 'get').toLowerCase() === 'get';
+      const isNetworkError = !error.response; // 无 response = 网络层错误（超时/DNS/连接断开）
+      const isServerError = error.response?.status >= 500 && error.response?.status < 600;
+      const retryCount = (originalRequest as any)._retryCount ?? 0;
+
+      if (isGetRequest && (isNetworkError || isServerError) && retryCount < RETRY_MAX) {
+        (originalRequest as any)._retryCount = retryCount + 1;
+        const delay = RETRY_BASE_DELAY * (retryCount + 1); // 800ms, 1600ms
+        logger.warn(`请求失败(${error.code || error.response?.status})，${delay}ms 后第${retryCount + 1}次重试: ${originalRequest.url}`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return api(originalRequest);
+      }
+    }
 
     // 401 错误：尝试刷新 Token
     if (error.response?.status === 401 && !originalRequest._retry) {
