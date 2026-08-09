@@ -113,6 +113,9 @@ docs/"此刻校园"项目初步方案说明
 rubbish/*
 !rubbish/README.md
 
+# 数据库删除归档目录（AGENTS.md 规约：删除数据库时统一移入此处）
+delete/
+
 # 部署临时文件（本地构建产物，不应提交）
 deploy/_*.zip
 deploy/_*.tar.gz

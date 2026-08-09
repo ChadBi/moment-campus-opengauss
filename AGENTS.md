@@ -3,7 +3,7 @@
 - Python 项目必须使用 `backend/.venv` 虚拟环境。
 - 项目根目录：`moment-campus/`
 - 项目文档：`docs/`
-- 根目录两个 HTML 文件为早期演示 Demo。
+- 根目录已无 HTML 演示文件（两个早期 Demo 已于 2026-07-26 归档至 `rubbish/`，仅 `rubbish/README.md` 入库）。
 - 每完成一个小点就更新 `TODO.md`。
 - 每次更新 `TODO.md` 都必须提交 Git 代码，提交信息说明完成了什么功能、修复了什么 Bug、更新了哪些文档或配置。
 - 删除数据库时，把数据库文件移动到 `delete/` 文件夹统一处理；openGauss 容器用 `docker compose down -v opengauss`。
