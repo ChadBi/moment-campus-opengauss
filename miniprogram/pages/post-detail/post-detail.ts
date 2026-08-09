@@ -346,6 +346,9 @@ Page({
     this.setData({ reportVisible: false })
   },
 
+  // 阻止弹层内容区域点击事件冒泡到遮罩层
+  stopPropagation() {},
+
   onReportReasonInput(e: any) {
     this.setData({ reportReason: e.detail.value || '' })
   },

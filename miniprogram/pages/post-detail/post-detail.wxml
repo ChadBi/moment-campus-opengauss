@@ -283,7 +283,7 @@
 
   <!-- 举报弹层 -->
   <view wx:if="{{reportVisible}}" class="modal-mask" bindtap="closeReport">
-    <view class="modal-content" catchtap="">
+    <view class="modal-content" catchtap="stopPropagation">
       <view class="modal-title">
         <view class="title-left">
           <icon name="alert-circle" size="36rpx" color="#174d5e" />
