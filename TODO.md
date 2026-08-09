@@ -2,7 +2,29 @@
 
 > 依据 [AGENTS.md](AGENTS.md) 要求维护，每完成一个小点即更新本文件。
 > 任务详细规划见 [docs/21_后续开发任务清单.md](docs/21_后续开发任务清单.md)。
-> 最后更新：2026-08-09（修复跨校管理员登录需要两次点击问题）
+> 最后更新：2026-08-09（彻底修复跨校管理员登录需两次点击问题）
+
+## 2026-08-09 彻底修复：跨校管理员登录需两次点击问题
+
+> 问题根因分析：
+> 1. 登出时未清除zustand persist持久化的学校上下文（`currentSchoolCode`），导致新用户登录后store中仍残留旧学校code
+> 2. `useSchoolSync`在登录后初始化学校时，无论是否为登录场景，都会在切换学校时弹出"您没有该学校的访问权限"误导性提示
+> 3. 登录后学校初始化与`navigate('/admin')`存在时序竞态，旧学校code导致首次API请求403，需再次点击登录
+> 4. 退出登录重定向到`/login`时，若`redirect`参数指向`/login`会造成登录后跳回登录页
+> 5. 已登录状态下直接访问`/login`换号登录时（未经logout），`isAuthenticated`没有经历false→true过渡，新登录标记未设置
+
+- [x] **登出清除学校上下文**：`useSchoolSync.ts`监听`isAuthenticated`从true→false时，调用`useCampusStore.getState().clearSchool()`清除学校上下文，避免旧用户学校残留
+- [x] **登录初始化静默切换**：新增`isFirstAuthBootstrapRef`标记，在登录后首次学校初始化时（包括`isAuthenticated` false→true 和`user.id`变化两种场景），切换学校不弹出"无权限"toast；仅在用户已登录状态下手动切换到无权限学校时才弹提示
+- [x] **换号登录场景支持**：新增`prevUserIdRef`检测`user.id`变化（覆盖已登录直接访问/login换号的边缘场景），换号时同样标记为首次初始化并清除旧学校
+- [x] **修复redirect循环**：
+  - `buildLoginRedirect()`排除`/login`、`/register`等公开页面路径，避免生成`redirect=/login`导致登录后跳回登录页
+  - `LoginPage.tsx`对rawRedirect指向公开页面时默认跳`/`，双重保险
+- [x] **移除LoginPage不可靠的setCurrentSchool**：不再依赖登录时手动设置学校（schools可能未加载），改由`useSchoolSync`统一负责登录后的学校初始化，逻辑更集中可靠
+- [x] **端到端浏览器测试验证**：
+  - 复旦管理员一次登录成功，显示"复旦运营组"，无误导性toast ✅
+  - 江南大学管理员（从复旦退出后登录）一次登录成功，显示"江南大学运营组"，无误导性toast ✅
+  - 浙江大学管理员（最严苛场景：不退出直接在/login换号登录，旧school=jiangnan）一次登录成功，显示"浙大运营组"，无误导性toast ✅
+- [x] **前端构建验证**：`npm run build`成功通过
 
 ## 2026-08-09 修复：跨校管理员登录需要两次点击
 

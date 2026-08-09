@@ -6,10 +6,16 @@ import { useAuthStore } from './store/useAuthStore';
 import { useSchoolSync } from './hooks/useSchoolSync';
 
 // ACC-01.1: 保留当前路径作为登录后回跳目标
+// 排除登录/注册等公开页面，避免出现 redirect=/login 的循环
 function buildLoginRedirect(): string {
   const loc = window.location;
+  const currentPath = loc.pathname;
+  const PUBLIC_PATHS = ['/login', '/register'];
+  if (PUBLIC_PATHS.includes(currentPath)) {
+    return '/login';
+  }
   const params = new URLSearchParams(loc.search);
-  params.set('redirect', loc.pathname + loc.search);
+  params.set('redirect', currentPath + loc.search);
   return `/login?${params.toString()}`;
 }
 

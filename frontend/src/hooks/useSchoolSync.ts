@@ -224,6 +224,32 @@ export function useSchoolSync(): void {
   // 6. 登录态变化时：登录后 ensureValidSchool；登出时 clear
   // ACC-01.4: super_admin 可访问所有学校，不调用 ensureValidSchool
   // ----------------------------------------------------------
+  const prevAuthRef = useRef(isAuthenticated);
+  const prevUserIdRef = useRef(user?.id);
+  const isFirstAuthBootstrapRef = useRef(false);
+
+  useEffect(() => {
+    // 登出时：清除学校上下文，避免旧用户的 currentSchoolCode 残留给新用户
+    if (prevAuthRef.current && !isAuthenticated) {
+      useCampusStore.getState().clearSchool();
+      isFirstAuthBootstrapRef.current = false;
+    }
+    // 标记"刚登录"：isAuthenticated 从 false→true（正常登录流程）时首次 bootstrap 不弹提示
+    if (!prevAuthRef.current && isAuthenticated) {
+      isFirstAuthBootstrapRef.current = true;
+    }
+    prevAuthRef.current = isAuthenticated;
+
+    // 标记"换号登录"：user.id 变化（如已登录状态下直接在登录页换号登录）也视为新登录初始化
+    const currentUserId = user?.id;
+    if (currentUserId && currentUserId !== prevUserIdRef.current) {
+      isFirstAuthBootstrapRef.current = true;
+      // 换号时也清一次学校，避免旧账号学校残留
+      useCampusStore.getState().clearSchool();
+    }
+    prevUserIdRef.current = currentUserId;
+  }, [isAuthenticated, user?.id]);
+
   useEffect(() => {
     if (!isAuthenticated || memberships.length === 0) return;
     // super_admin 可访问所有学校，跳过 ensureValidSchool 避免被回退
@@ -246,12 +272,16 @@ export function useSchoolSync(): void {
       const next = new URLSearchParams(searchParams);
       next.set('school', newCode);
       setSearchParams(next, { replace: true });
-      // 提示用户无权限，已回退到默认学校
-      const fallbackName = useCampusStore.getState().currentSchoolName;
-      useUIStore.getState().showToast(
-        `您没有该学校的访问权限，已切换回 ${fallbackName}`,
-        'info'
-      );
+      // 仅非首次登录初始化时才弹提示：刚登录时切换到正确学校是正常初始化，不提示"无权限"
+      // （避免用户每次切换账号登录都看到误导性的"您没有该学校的访问权限"提示）
+      if (!isFirstAuthBootstrapRef.current) {
+        const fallbackName = useCampusStore.getState().currentSchoolName;
+        useUIStore.getState().showToast(
+          `您没有该学校的访问权限，已切换回 ${fallbackName}`,
+          'info'
+        );
+      }
+      isFirstAuthBootstrapRef.current = false;
     }
   }, [
     isAuthenticated,

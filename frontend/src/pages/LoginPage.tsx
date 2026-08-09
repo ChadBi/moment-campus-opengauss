@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { useCampusStore } from '../store/useCampusStore';
 import { authApi } from '../services/auth';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
@@ -15,7 +14,6 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { setAuth } = useAuthStore();
-  const { schools, setCurrentSchool } = useCampusStore();
   const [mode, setMode] = useState<'sms' | 'password'>('sms');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +22,10 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
-  const redirectTo = searchParams.get('redirect') || '/';
+  const rawRedirect = searchParams.get('redirect') || '/';
+  // 过滤掉指向公开页面（如/login、/register）的redirect，避免登录后跳回登录页
+  const PUBLIC_PATHS = ['/login', '/register'];
+  const redirectTo = PUBLIC_PATHS.includes(rawRedirect.split('?')[0]) ? '/' : rawRedirect;
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -67,17 +68,8 @@ const LoginPage: React.FC = () => {
     try {
       const response = await authApi.login(mode === 'sms' ? { phone, sms_code: smsCode } : { phone, password });
       setAuth(response.user, response.access_token, response.refresh_token);
-
-      // 登录成功后，先根据用户 school_id 设置正确的当前学校（避免旧学校残留导致无权限提示）
-      const isSuperAdmin = response.user.role === 'super_admin';
-      if (!isSuperAdmin && response.user.school_id) {
-        const userSchool = schools.find((s) => s.id === response.user.school_id);
-        if (userSchool) {
-          setCurrentSchool(userSchool);
-        }
-      }
-
       setToast({ message: `登录成功，欢迎回来 ${maskPhone(phone)}`, type: 'success' });
+      const isSuperAdmin = response.user.role === 'super_admin';
       const isSchoolAdmin = response.user.role === 'admin';
       if (isSuperAdmin) {
         navigate(redirectTo !== '/' ? redirectTo : '/admin/platform/overview');
